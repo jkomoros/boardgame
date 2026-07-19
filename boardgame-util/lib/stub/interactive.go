@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // InteractiveOptions renders an interactve prompt at out, in to generate an
@@ -30,7 +32,7 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 		return result
 	}
 
-	defaultDisplayName := strings.Title(gameName)
+	defaultDisplayName := uppercaseFirstRune(gameName)
 
 	result.DisplayName = getString(out, in, "What is the human-readable display name for this game? (e.g. 'Checkers', 'Tic Tac Toe')", defaultDisplayName)
 	if result.DisplayName == defaultDisplayName {
@@ -73,6 +75,14 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 	}
 
 	return result
+}
+
+func uppercaseFirstRune(value string) string {
+	first, size := utf8.DecodeRuneInString(value)
+	if size == 0 {
+		return value
+	}
+	return string(unicode.ToUpper(first)) + value[size:]
 }
 
 func parseNumPlayers(in string) (min, max, defaultNum int, err error) {

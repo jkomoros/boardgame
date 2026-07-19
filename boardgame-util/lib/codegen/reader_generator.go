@@ -2,7 +2,8 @@ package codegen
 
 import (
 	"sort"
-	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/MarcGrol/golangAnnotations/model"
 )
@@ -79,15 +80,31 @@ func (r *readerGenerator) baseReaderGeneratorTemplateArguments() baseReaderGener
 	//The prefix used to be "__" but that didn't lint correctly, so instead use
 	//a non-latin prefix character that is like an a but with a dot (to make it
 	//less likely to show up in autocompletes in IDEs)
-	readerName := "ȧutoGenerated" + strings.Title(structName) + "Reader"
+	readerName := "ȧutoGenerated" + changeFirstRuneCase(structName, unicode.ToUpper) + "Reader"
 
 	return baseReaderGeneratorTemplateArguments{
 		StructName:              structName,
-		FirstLetter:             strings.ToLower(structName[:1]),
+		FirstLetter:             firstRuneWithCase(structName, unicode.ToLower),
 		ReaderName:              readerName,
 		OutputReadSetter:        r.outputReadSetter,
 		OutputReadSetConfigurer: r.outputReadSetConfigurer,
 	}
+}
+
+func changeFirstRuneCase(value string, change func(rune) rune) string {
+	first, size := utf8.DecodeRuneInString(value)
+	if size == 0 {
+		return value
+	}
+	return string(change(first)) + value[size:]
+}
+
+func firstRuneWithCase(value string, change func(rune) rune) string {
+	if value == "" {
+		return ""
+	}
+	first, _ := utf8.DecodeRuneInString(value)
+	return string(change(first))
 }
 
 func (r *readerGenerator) headerForStruct() string {
