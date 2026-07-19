@@ -1179,6 +1179,11 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) ([]gin.H, error) {
 	var bundles []gin.H
+	// Keep the authenticated/request audience distinct from auto-current-player,
+	// which is only a display perspective. A spectator or a different seated
+	// player must not gain actor-exact choices by asking to view the current
+	// player's sanitized state.
+	requestPlayerIndex := playerIndex
 
 	if len(moves) == 0 {
 		moves = append(moves, nil)
@@ -1237,6 +1242,11 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 			"Move":            moveJSON,
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           forms,
+		}
+		if i == len(moves)-1 && playerIndex == requestPlayerIndex {
+			if choices := s.projectedMoveChoicesForBundle(game, state, playerIndex); choices != nil {
+				bundle["ProjectedMoveChoices"] = choices
+			}
 		}
 
 		bundles = append(bundles, bundle)
@@ -1682,6 +1692,9 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		//applied but no player moves yet. State blobs used to include their own
 		//state version but now we have to ship it down to the client speically.
 		"StateVersion": state.Version(),
+	}
+	if choices := s.projectedMoveChoicesForBundle(game, state, playerIndex); choices != nil {
+		args["ProjectedMoveChoices"] = choices
 	}
 
 	s.lastErrorMessage = ""

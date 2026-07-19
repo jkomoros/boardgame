@@ -1,0 +1,257 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+
+	"github.com/jkomoros/boardgame"
+)
+
+const (
+	projectedMoveChoicesStatusReady  = "ready"
+	projectedMoveChoicesStatusFailed = "failed"
+
+	maxProjectedMoveChoiceSets       = 8
+	maxProjectedMoveCandidatesPerSet = 64
+	maxProjectedMoveLegalEvaluations = 128
+	maxProjectedMoveChoicesBytes     = 64 << 10
+)
+
+// projectedMoveChoicesSnapshot is a version-pinned, actor-only read model of
+// finite move inputs. It intentionally contains no presentation text or legal
+// error detail. A failed snapshot tells the client not to mistake a projection
+// failure for an authoritative empty result.
+type projectedMoveChoicesSnapshot struct {
+	StateVersion                          int                      `json:"StateVersion"`
+	MoveChoiceProjectionSchemaFingerprint string                   `json:"MoveChoiceProjectionSchemaFingerprint"`
+	ProjectionSchemaVersion               int                      `json:"ProjectionSchemaVersion"`
+	Status                                string                   `json:"Status"`
+	Sets                                  []projectedMoveChoiceSet `json:"Sets,omitempty"`
+}
+
+type projectedMoveChoiceSet struct {
+	MoveName   string                         `json:"MoveName"`
+	FieldName  string                         `json:"FieldName"`
+	Source     boardgame.MoveChoiceSource     `json:"Source"`
+	Candidates []projectedMoveChoiceCandidate `json:"Candidates"`
+}
+
+type projectedMoveChoiceCandidate struct {
+	Value     interface{} `json:"Value"`
+	Available bool        `json:"Available"`
+}
+
+type projectedMoveChoiceSourceValue struct {
+	value interface{}
+	wire  string
+}
+
+type projectedMoveChoiceBudget struct {
+	legalEvaluations int
+}
+
+// projectMoveChoiceSet binds each member of one sealed candidate universe to
+// a fresh move and asks the move's full Legal method exactly once. A nil set
+// means either that the canonical move name is hidden from this actor or that
+// no candidate is legal; both cases intentionally publish no choice set.
+func projectMoveChoiceSet(
+	game *boardgame.Game,
+	state boardgame.ImmutableState,
+	actor boardgame.PlayerIndex,
+	schema boardgame.MoveChoiceProjectionSchema,
+	budget *projectedMoveChoiceBudget,
+) (*projectedMoveChoiceSet, error) {
+	if schema.Disclosure != boardgame.MoveChoiceDisclosureActorExact {
+		return nil, fmt.Errorf("move %q uses unsupported choice disclosure %q", schema.MoveName, schema.Disclosure)
+	}
+
+	probe := game.MoveByNameForState(schema.MoveName, state)
+	if probe == nil {
+		return nil, fmt.Errorf("projected-choice move %q is not installed", schema.MoveName)
+	}
+	visible, err := game.MoveNameVisibleToPlayer(probe, actor, actor, state)
+	if err != nil {
+		return nil, fmt.Errorf("resolve move-name visibility for %q: %w", schema.MoveName, err)
+	}
+	if !visible {
+		return nil, nil
+	}
+
+	values, err := projectedMoveChoiceSourceValues(state, schema)
+	if err != nil {
+		return nil, fmt.Errorf("move %q field %q: %w", schema.MoveName, schema.FieldName, err)
+	}
+	if len(values) > maxProjectedMoveCandidatesPerSet {
+		return nil, fmt.Errorf("move %q has %d projected candidates; limit is %d", schema.MoveName, len(values), maxProjectedMoveCandidatesPerSet)
+	}
+
+	set := &projectedMoveChoiceSet{
+		MoveName:   schema.MoveName,
+		FieldName:  schema.FieldName,
+		Source:     schema.Source,
+		Candidates: make([]projectedMoveChoiceCandidate, 0, len(values)),
+	}
+	legalCandidates := 0
+	for _, sourceValue := range values {
+		if budget.legalEvaluations >= maxProjectedMoveLegalEvaluations {
+			return nil, fmt.Errorf("projected choices exceed %d Legal evaluations", maxProjectedMoveLegalEvaluations)
+		}
+		move := game.MoveByNameForState(schema.MoveName, state)
+		if move == nil {
+			return nil, fmt.Errorf("projected-choice move %q disappeared during projection", schema.MoveName)
+		}
+		if err := bindMoveFields(move, func(name string) (string, bool) {
+			if name == schema.FieldName {
+				return sourceValue.wire, true
+			}
+			return "", false
+		}); err != nil {
+			return nil, fmt.Errorf("bind candidate %q for move %q: %w", sourceValue.wire, schema.MoveName, err)
+		}
+
+		budget.legalEvaluations++
+		available := move.Legal(state, actor) == nil
+		if available {
+			legalCandidates++
+		}
+		set.Candidates = append(set.Candidates, projectedMoveChoiceCandidate{
+			Value:     sourceValue.value,
+			Available: available,
+		})
+	}
+	if legalCandidates == 0 {
+		return nil, nil
+	}
+	return set, nil
+}
+
+// projectMoveChoicesSnapshot projects only a recoverable proposal frontier.
+// nil,nil means the supplied state or audience is intentionally ineligible;
+// callers must omit the wire field in that case.
+func projectMoveChoicesSnapshot(
+	game *boardgame.Game,
+	state boardgame.ImmutableState,
+	actor boardgame.PlayerIndex,
+	viewer boardgame.PlayerIndex,
+) (*projectedMoveChoicesSnapshot, error) {
+	if game == nil || state == nil {
+		return nil, fmt.Errorf("projected choices require a game and immutable state")
+	}
+	if state.Game() != game {
+		return nil, fmt.Errorf("projected-choice state does not belong to the game")
+	}
+	if state.Sanitized() {
+		return nil, fmt.Errorf("projected choices require authoritative unsanitized state")
+	}
+	frontier, known := game.Manager().ProposalFrontierVersion(game.ID())
+	if !known || state.Version() != frontier {
+		return nil, nil
+	}
+	// Version one authorizes exact membership/status only to the proposing
+	// actor. Observers, admins, and other players receive no snapshot.
+	if actor < 0 || viewer != actor || !actor.Valid(state) {
+		return nil, nil
+	}
+
+	schema, err := boardgame.BuildMoveChoiceProjectionSchema(game.Manager())
+	if err != nil {
+		return nil, err
+	}
+	// Do not add a feature envelope to every legacy game. Once at least one
+	// projection is configured, an empty ready Sets array is authoritative.
+	if len(schema) == 0 {
+		return nil, nil
+	}
+	fingerprint, err := boardgame.MoveChoiceProjectionSchemaFingerprint(game.Manager())
+	if err != nil {
+		return nil, err
+	}
+	snapshot := &projectedMoveChoicesSnapshot{
+		StateVersion:                          state.Version(),
+		MoveChoiceProjectionSchemaFingerprint: fingerprint,
+		ProjectionSchemaVersion:               boardgame.MoveChoiceProjectionSchemaVersion,
+		Status:                                projectedMoveChoicesStatusReady,
+		Sets:                                  make([]projectedMoveChoiceSet, 0),
+	}
+	if len(schema) > maxProjectedMoveChoiceSets {
+		return snapshot, fmt.Errorf("game configures %d projected choice sets; limit is %d", len(schema), maxProjectedMoveChoiceSets)
+	}
+
+	budget := new(projectedMoveChoiceBudget)
+	for _, declaration := range schema {
+		set, err := projectMoveChoiceSet(game, state, actor, declaration, budget)
+		if err != nil {
+			return snapshot, err
+		}
+		if set == nil {
+			continue
+		}
+		snapshot.Sets = append(snapshot.Sets, *set)
+		if err := validateProjectedMoveChoicesSize(snapshot); err != nil {
+			return snapshot, err
+		}
+	}
+	return snapshot, nil
+}
+
+func validateProjectedMoveChoicesSize(snapshot *projectedMoveChoicesSnapshot) error {
+	encoded, err := json.Marshal(snapshot)
+	if err != nil {
+		return fmt.Errorf("encode projected choices: %w", err)
+	}
+	if len(encoded) > maxProjectedMoveChoicesBytes {
+		return fmt.Errorf("projected choices exceed %d bytes", maxProjectedMoveChoicesBytes)
+	}
+	return nil
+}
+
+// projectedMoveChoicesForBundle converts internal failures to an explicit,
+// generic failed snapshot while logging the diagnostic only on the server.
+func (s *Server) projectedMoveChoicesForBundle(
+	game *boardgame.Game,
+	state boardgame.ImmutableState,
+	actor boardgame.PlayerIndex,
+) *projectedMoveChoicesSnapshot {
+	snapshot, err := projectMoveChoicesSnapshot(game, state, actor, actor)
+	if err == nil {
+		return snapshot
+	}
+	if s != nil && s.logger != nil {
+		entry := s.logger.WithError(err)
+		if game != nil {
+			entry = entry.WithField("gameID", game.ID())
+		}
+		entry.Error("Projected move choices failed")
+	}
+	if snapshot == nil {
+		// Invalid/non-versioned direct calls have no safe wire identity. Normal
+		// bundle delivery always has an initialized snapshot before projection.
+		return nil
+	}
+	snapshot.Status = projectedMoveChoicesStatusFailed
+	snapshot.Sets = nil
+	return snapshot
+}
+
+func projectedMoveChoiceSourceValues(state boardgame.ImmutableState, schema boardgame.MoveChoiceProjectionSchema) ([]projectedMoveChoiceSourceValue, error) {
+	switch schema.Source {
+	case boardgame.MoveChoiceSourcePlayers:
+		result := make([]projectedMoveChoiceSourceValue, 0, len(state.ImmutablePlayerStates()))
+		for i := range state.ImmutablePlayerStates() {
+			value := boardgame.PlayerIndex(i)
+			if value.Valid(state) {
+				result = append(result, projectedMoveChoiceSourceValue{value: value, wire: strconv.Itoa(i)})
+			}
+		}
+		return result, nil
+	case boardgame.MoveChoiceSourceEnumValues:
+		result := make([]projectedMoveChoiceSourceValue, 0, len(schema.CandidateValues))
+		for _, value := range schema.CandidateValues {
+			result = append(result, projectedMoveChoiceSourceValue{value: value, wire: value})
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("unsupported choice source %q", schema.Source)
+	}
+}
