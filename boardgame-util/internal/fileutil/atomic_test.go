@@ -140,3 +140,24 @@ func TestWriteFileExclusivePublishesCompleteFileWithoutStagingArtifacts(t *testi
 		t.Fatalf("exclusive staging artifacts remain: %v", matches)
 	}
 }
+
+func TestWriteFileExclusiveReportsPostCommitCleanupFailure(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "new.go")
+	originalRemove := removeAtomicArtifact
+	removeAtomicArtifact = func(string) error { return errors.New("injected cleanup failure") }
+	t.Cleanup(func() { removeAtomicArtifact = originalRemove })
+
+	err := WriteFileExclusive(path, []byte("complete"), 0o640)
+	if err == nil || !strings.Contains(err.Error(), "committed") || !strings.Contains(err.Error(), "injected cleanup failure") {
+		t.Fatalf("error = %v, want explicit post-commit cleanup failure", err)
+	}
+	contents, readErr := os.ReadFile(path)
+	if readErr != nil || string(contents) != "complete" {
+		t.Fatalf("committed output = %q, %v; want complete", contents, readErr)
+	}
+	matches, globErr := filepath.Glob(filepath.Join(dir, ".boardgame-exclusive-*"))
+	if globErr != nil || len(matches) != 1 {
+		t.Fatalf("staging artifacts = %v, err = %v; want one", matches, globErr)
+	}
+}

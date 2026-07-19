@@ -3,6 +3,7 @@
 package fileutil
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 var rename = os.Rename
 var link = os.Link
+var removeAtomicArtifact = os.Remove
 
 // WriteFileAtomic replaces path with contents using a same-directory temporary
 // file. Existing regular-file permissions are preserved; symlinks and other
@@ -32,25 +34,31 @@ func WriteFileAtomic(path string, contents []byte, defaultMode fs.FileMode) erro
 		return fmt.Errorf("create temporary file beside %s: %w", path, err)
 	}
 	tempPath := temp.Name()
-	defer os.Remove(tempPath)
+	cleanup := func() error {
+		err := removeAtomicArtifact(tempPath)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove staged file %s: %w", tempPath, err)
+		}
+		return nil
+	}
 
 	if err := temp.Chmod(mode); err != nil {
 		_ = temp.Close()
-		return fmt.Errorf("set permissions on temporary file for %s: %w", path, err)
+		return errors.Join(fmt.Errorf("set permissions on temporary file for %s: %w", path, err), cleanup())
 	}
 	if _, err := temp.Write(contents); err != nil {
 		_ = temp.Close()
-		return fmt.Errorf("write temporary file for %s: %w", path, err)
+		return errors.Join(fmt.Errorf("write temporary file for %s: %w", path, err), cleanup())
 	}
 	if err := temp.Sync(); err != nil {
 		_ = temp.Close()
-		return fmt.Errorf("sync temporary file for %s: %w", path, err)
+		return errors.Join(fmt.Errorf("sync temporary file for %s: %w", path, err), cleanup())
 	}
 	if err := temp.Close(); err != nil {
-		return fmt.Errorf("close temporary file for %s: %w", path, err)
+		return errors.Join(fmt.Errorf("close temporary file for %s: %w", path, err), cleanup())
 	}
 	if err := rename(tempPath, path); err != nil {
-		return fmt.Errorf("replace %s atomically: %w", path, err)
+		return errors.Join(fmt.Errorf("replace %s atomically: %w", path, err), cleanup())
 	}
 	return nil
 }
@@ -64,24 +72,33 @@ func WriteFileExclusive(path string, contents []byte, mode fs.FileMode) error {
 		return fmt.Errorf("stage exclusive file for %s: %w", path, err)
 	}
 	tempPath := file.Name()
-	defer func() {
-		_ = file.Close()
-		_ = os.Remove(tempPath)
-	}()
+	cleanup := func() error {
+		err := removeAtomicArtifact(tempPath)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove staged file %s: %w", tempPath, err)
+		}
+		return nil
+	}
 	if err := file.Chmod(mode.Perm()); err != nil {
-		return fmt.Errorf("set permissions on exclusive file for %s: %w", path, err)
+		_ = file.Close()
+		return errors.Join(fmt.Errorf("set permissions on exclusive file for %s: %w", path, err), cleanup())
 	}
 	if _, err := file.Write(contents); err != nil {
-		return fmt.Errorf("stage exclusive file for %s: %w", path, err)
+		_ = file.Close()
+		return errors.Join(fmt.Errorf("stage exclusive file for %s: %w", path, err), cleanup())
 	}
 	if err := file.Sync(); err != nil {
-		return fmt.Errorf("sync exclusive file for %s: %w", path, err)
+		_ = file.Close()
+		return errors.Join(fmt.Errorf("sync exclusive file for %s: %w", path, err), cleanup())
 	}
 	if err := file.Close(); err != nil {
-		return fmt.Errorf("close exclusive file for %s: %w", path, err)
+		return errors.Join(fmt.Errorf("close exclusive file for %s: %w", path, err), cleanup())
 	}
 	if err := link(tempPath, path); err != nil {
-		return fmt.Errorf("install %s exclusively: %w", path, err)
+		return errors.Join(fmt.Errorf("install %s exclusively: %w", path, err), cleanup())
+	}
+	if err := cleanup(); err != nil {
+		return fmt.Errorf("output %s committed but staging cleanup failed: %w", path, err)
 	}
 	return nil
 }
