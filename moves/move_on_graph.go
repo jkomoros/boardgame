@@ -78,6 +78,9 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	// Check for free move (teleport)
 	if freePred, ok := m.Info().ConcreteMove().(interfaces.FreeMovePredicate); ok {
 		if freePred.IsFreeMove(playerState, targetVal) {
+			if err := behavior.MayMoveTo(m.TargetLocation); err != nil {
+				return errors.New("cannot move to target location: " + err.Error())
+			}
 			return nil
 		}
 	}
@@ -86,6 +89,11 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	path, err := behavior.ShortestPathTo(targetVal)
 	if err != nil {
 		return errors.New("no valid path to target: " + err.Error())
+	}
+	for _, spaceVal := range path[1:] {
+		if err := behavior.MayMoveTo(spaceVal.Value().Int()); err != nil {
+			return errors.New("path contains an unreachable stack slot: " + err.Error())
+		}
 	}
 
 	// Validate each space in the path (skip start)

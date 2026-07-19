@@ -1,6 +1,7 @@
 package legal_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/jkomoros/boardgame"
@@ -422,7 +423,7 @@ func TestMayMoveTo(t *testing.T) {
 // slot-specific rejection (occupied destination slot), which MayMoveTo
 // itself does not check.
 func TestMayMoveToSlot(t *testing.T) {
-	spec := legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex")
+	spec := legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex", "move.CardIndex")
 	if spec.Name != "mayMoveToSlot" {
 		t.Fatalf("Name = %q, want mayMoveToSlot", spec.Name)
 	}
@@ -446,6 +447,17 @@ func TestMayMoveToSlot(t *testing.T) {
 	}
 	if v.Message == nil || v.Message.Template != legal.TemplateMayNotMoveTo {
 		t.Fatalf("occupied dest slot legal.Message = %+v, want template %q", v.Message, legal.TemplateMayNotMoveTo)
+	}
+
+	// Distinct source/destination fields are the general case: source index 0
+	// remains occupied while player.CardsLeftToReveal selects empty slot 2.
+	distinct := legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex", "player.CardsLeftToReveal")
+	distinctPred := resolvePredicateForTest(t, distinct)
+	if v := distinctPred.Evaluate(occupied.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("distinct destination slot: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+	if got := legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"); !reflect.DeepEqual(got, spec) {
+		t.Fatalf("MayMoveToSameSlot = %+v, want %+v", got, spec)
 	}
 
 	noMove := buildLegalFixture(t, "memoryNoMove")
@@ -480,7 +492,11 @@ func TestMayMoveFacetHonesty(t *testing.T) {
 	// carries no constraint at all — the common case, and the one
 	// LegalFacetOccupancy would have been tempting to declare.
 	for _, name := range []string{"mayMoveTo", "mayMoveToSlot"} {
-		spec := legal.Spec{Name: name, Args: []string{"game.HiddenCards", "game.VisibleCards", "move.CardIndex"}}
+		args := []string{"game.HiddenCards", "game.VisibleCards", "move.CardIndex"}
+		if name == "mayMoveToSlot" {
+			args = append(args, "move.CardIndex")
+		}
+		spec := legal.Spec{Name: name, Args: args}
 		pred := resolvePredicateForTest(t, spec)
 		dst, ok := findRead(pred.Reads, "game.VisibleCards")
 		if !ok {
@@ -581,6 +597,9 @@ func TestDefaultConstructors(t *testing.T) {
 		"componentPresentAtKey":            true,
 		"mayMoveTo":                        true,
 		"mayMoveToSlot":                    true,
+		"mayMoveAllTo":                     true,
+		"maySwapComponents":                true,
+		"maySwapComponentsByKey":           true,
 		"allActivePlayers":                 true,
 		"proposerIsCurrentPlayer":          true,
 		"proposerIsPlayerFromMove":         true,
@@ -637,6 +656,8 @@ func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 		legal.TemplateComponentMissingKey,
 		legal.TemplateNoComponentToMove,
 		legal.TemplateMayNotMoveTo,
+		legal.TemplateMayNotMoveAllTo,
+		legal.TemplateMayNotSwapComponents,
 		legal.TemplateAllActivePlayers,
 		legal.TemplateProposerTargetInvalid,
 		legal.TemplateProposerNotYourTurn,

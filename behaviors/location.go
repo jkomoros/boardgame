@@ -157,17 +157,35 @@ func (l *LocationBehavior) LocationIndexKey() (enum.EnumKey, bool) {
 	return 0, false
 }
 
-// MoveTo moves the token from its current position to the target slot index by
-// swapping components in the SizedStack.
-func (l *LocationBehavior) MoveTo(targetIndex int) error {
+func (l *LocationBehavior) moveIndexes(targetIndex int) (int, int, error) {
 	if l.locationStack == nil {
-		return errors.New("LocationBehavior: locationStack not connected")
+		return 0, 0, errors.New("LocationBehavior: locationStack not connected")
 	}
 	currentKey, ok := l.LocationIndexKey()
 	if !ok {
-		return errors.New("LocationBehavior: no component found in location stack")
+		return 0, 0, errors.New("LocationBehavior: no component found in location stack")
 	}
-	return l.locationStack.SwapComponents(currentKey.Int(), targetIndex)
+	return currentKey.Int(), targetIndex, nil
+}
+
+// MayMoveTo reports whether MoveTo could move the token to targetIndex without
+// modifying the location stack.
+func (l *LocationBehavior) MayMoveTo(targetIndex int) error {
+	currentIndex, targetIndex, err := l.moveIndexes(targetIndex)
+	if err != nil {
+		return err
+	}
+	return l.locationStack.MaySwapComponents(currentIndex, targetIndex)
+}
+
+// MoveTo moves the token from its current position to the target slot index by
+// swapping components in the SizedStack.
+func (l *LocationBehavior) MoveTo(targetIndex int) error {
+	currentIndex, targetIndex, err := l.moveIndexes(targetIndex)
+	if err != nil {
+		return err
+	}
+	return l.locationStack.SwapComponents(currentIndex, targetIndex)
 }
 
 // Neighbors returns the indices of all spaces adjacent to the current location

@@ -355,9 +355,12 @@ type Stack interface {
 	//for use when stack slots are keyed by enum values.
 	SwapComponentsByKey(i, j enum.EnumKey) error
 
-	//SortComponents sorts the stack's components in the order implied by less
-	//by repeatedly calling SwapComponents. Errors if any SwapComponents
-	//errors. If error is non-nil, the stack may be left in an arbitrary order.
+	//SortComponents sorts the stack's components in the order implied by less.
+	//It validates the stack before sorting a private copy of its slots, so an
+	//error or panic from a pure less function leaves the live stack unchanged.
+	//less must not mutate state or depend on components' current slot locations;
+	//it should compare immutable component data only. A nil less function
+	//returns an error.
 	SortComponents(less func(i, j ImmutableComponentInstance) bool) error
 
 	//Resizable returns true if calls to any of the methods that change the
@@ -1976,9 +1979,9 @@ func (s *sizedStack) insertNext(c ImmutableComponentInstance) {
 }
 
 type stackSorter struct {
-	stack Stack
+	stack ImmutableStack
 	less  func(i, j ImmutableComponentInstance) bool
-	err   error
+	swap  func(i, j int)
 }
 
 func (s *stackSorter) Len() int {
@@ -1986,11 +1989,7 @@ func (s *stackSorter) Len() int {
 }
 
 func (s *stackSorter) Swap(i, j int) {
-	err := s.stack.SwapComponents(i, j)
-
-	if err != nil {
-		s.err = err
-	}
+	s.swap(i, j)
 }
 
 func (s *stackSorter) Less(i, j int) bool {
@@ -2006,15 +2005,43 @@ func (s *sizedStack) SortComponents(less func(i, j ImmutableComponentInstance) b
 }
 
 func sortComponentsImpl(s Stack, less func(i, j ImmutableComponentInstance) bool) error {
-	sorter := &stackSorter{
-		stack: s,
-		less:  less,
-		err:   nil,
+	if less == nil {
+		return errors.New("less function is nil")
+	}
+	if err := s.modificationsAllowed(); err != nil {
+		return err
 	}
 
-	sort.Sort(sorter)
+	switch stack := s.(type) {
+	case *growableStack:
+		candidate := *stack
+		candidate.indexes = append([]int(nil), stack.indexes...)
+		sort.Sort(&stackSorter{
+			stack: &candidate,
+			less:  less,
+			swap: func(i, j int) {
+				candidate.indexes[i], candidate.indexes[j] = candidate.indexes[j], candidate.indexes[i]
+			},
+		})
+		stack.indexes = candidate.indexes
+		stack.state().updateIndexForAllComponents(stack)
+	case *sizedStack:
+		candidate := *stack
+		candidate.indexes = append([]int(nil), stack.indexes...)
+		sort.Sort(&stackSorter{
+			stack: &candidate,
+			less:  less,
+			swap: func(i, j int) {
+				candidate.indexes[i], candidate.indexes[j] = candidate.indexes[j], candidate.indexes[i]
+			},
+		})
+		stack.indexes = candidate.indexes
+		stack.state().updateIndexForAllComponents(stack)
+	default:
+		return errors.New("unsupported stack implementation")
+	}
 
-	return errors.NewWrapped(sorter.err)
+	return nil
 }
 
 func (g *growableStack) secretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {

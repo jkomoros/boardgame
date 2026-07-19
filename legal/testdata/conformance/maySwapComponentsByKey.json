@@ -1,0 +1,24 @@
+{
+  "predicate": "maySwapComponentsByKey",
+  "cases": [
+    {
+      "spec": {"name": "maySwapComponentsByKey", "args": ["game.Spaces", "move.TokenIndexToMove", "move.SpaceIndex"]},
+      "fixture": "checkersDistinctSpaces",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "maySwapComponentsByKey", "args": ["game.Spaces", "move.TokenIndexToMove", "move.TokenIndexToMove"]},
+      "fixture": "checkersDistinctSpaces",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.may_not_swap_components"
+    },
+    {
+      "spec": {"name": "maySwapComponentsByKey", "args": ["game.Spaces", "move.TokenIndexToMove", "move.SpaceIndex"]},
+      "fixture": "checkersNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

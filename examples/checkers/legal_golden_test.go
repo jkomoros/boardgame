@@ -381,13 +381,9 @@ func moveMoveTokenGoldenFixtures(t *testing.T) []moveMoveTokenGoldenFixture {
 		fixtures = append(fixtures, moveMoveTokenGoldenFixture{"unreachableDest", game, move})
 	}
 
-	// sameSpace: TokenIndexToMove == SpaceIndex. Legacy hits
-	// g.Spaces.MaySwapComponentsByKey's "i and j were the same" branch
-	// before ever reaching the component-present check; the migrated plan
-	// has no declarative gate for this (a token is never its own graph
-	// neighbor, so LegalCustom's walk falls through to
-	// "checkers.illegal_dest" too) — both illegal, message text diverges.
-	// See knownMessageCollapseDivergence below.
+	// sameSpace: TokenIndexToMove == SpaceIndex. Both the legacy method and
+	// legal.MaySwapComponentsByKey hit "i and j were the same" before the
+	// component-present check.
 	{
 		game, state := newMoveMoveTokenGame(t)
 		g, _ := concreteStates(state)
@@ -406,41 +402,13 @@ func moveMoveTokenGoldenFixtures(t *testing.T) []moveMoveTokenGoldenFixture {
 	return fixtures
 }
 
-// knownMessageCollapseDivergence names (fixture, proposer) combinations
-// where the migrated plan is EXPECTED to disagree with the legacy oracle on
-// the message text, even though both agree the move is illegal (nil-ness
-// always matches). Unlike Task 11's memory bucket-reordering divergence,
-// this is NOT a bucket-reordering effect: moveMoveToken's declarative gates
-// (legal.ComponentPresentAtKey/ComponentPropEqualsCurrentPlayer/
-// checkers.spaceIsBlack) all read a move.* path (TokenIndexToMove or
-// SpaceIndex), so all four land in the field-DEPENDENT bucket alongside the
-// contributed proposer check; the only field-independent predicate is the
-// phase check (legal.InPhase, contributed via moves.AddForPhase), which was
-// ALSO first in the legacy imperative chain — so evaluation order is
-// byte-identical to legacy's for moveMoveToken specifically (see the
-// Task 12 report for the general finding this narrows).
-//
-// The divergence here is a deliberate, spec-sanctioned RESIDUE COLLAPSE
-// (design spec §8's LegalCustom sample): g.Spaces.MaySwapComponentsByKey's
-// i==j distinctness check is not re-run in LegalCustom (moves.go's doc
-// comment explains why: the walk below already rejects a token moving to
-// its own space, since a space is never its own graph neighbor), so the
-// legacy "i and j were the same" string is replaced by the generic
-// "checkers.illegal_dest" text the capture-graph walk's own fallback
-// already uses for a genuinely unreachable destination.
-var knownMessageCollapseDivergence = map[string]bool{
-	"sameSpace/currentPlayer": true,
-	"sameSpace/admin":         true,
-}
-
 // TestGoldenLegalMoveMoveToken is the design spec §9 "golden equivalence"
 // test for checkers' declarative migration (spec §8): for every fixture
 // above, cross every proposer worth distinguishing (the current player, a
 // different concrete player, AdminPlayerIndex — a wildcard that passes the
 // proposer check, ObserverPlayerIndex — which fails it) and assert the
 // legacy oracle and the migrated move's real Legal() agree on nil-ness, and
-// (outside the one documented residue-collapse exception above) on message
-// text too.
+// on message text too.
 func TestGoldenLegalMoveMoveToken(t *testing.T) {
 	fixtures := moveMoveTokenGoldenFixtures(t)
 
@@ -475,9 +443,6 @@ func TestGoldenLegalMoveMoveToken(t *testing.T) {
 
 				if (legacyErr == nil) != (actualErr == nil) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
-				}
-				if knownMessageCollapseDivergence[fixture.name+"/"+proposerName] {
-					return
 				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
 					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())

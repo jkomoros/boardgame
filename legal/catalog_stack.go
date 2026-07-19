@@ -37,6 +37,13 @@ const (
 	// boardgame.LegalPredicate.EmittedBindings and legal/doc.go's template
 	// tables section).
 	TemplateMayNotMoveTo = "legal.may_not_move_to"
+	// TemplateMayNotMoveAllTo is the default Fail template key for
+	// MayMoveAllTo. Bindings: "detail", the underlying error message.
+	TemplateMayNotMoveAllTo = "legal.may_not_move_all_to"
+	// TemplateMayNotSwapComponents is the default Fail template key for
+	// MaySwapComponents and MaySwapComponentsByKey. Bindings: "detail", the
+	// underlying error message.
+	TemplateMayNotSwapComponents = "legal.may_not_swap_components"
 	// TemplateComponentPresentUnexpected is the default Fail template key
 	// for ComponentAbsentAt (spec §4's negation leaf, the exact inverse of
 	// ComponentPresentAt): fired when a component IS present at the index
@@ -78,6 +85,8 @@ var defaultTemplateKeys = []string{
 	TemplateComponentMissingKey,
 	TemplateNoComponentToMove,
 	TemplateMayNotMoveTo,
+	TemplateMayNotMoveAllTo,
+	TemplateMayNotSwapComponents,
 	// Task 5 (catalog_players.go / catalog_purpose.go) additions:
 	TemplateAllActivePlayers,
 	TemplateProposerTargetInvalid,
@@ -149,18 +158,40 @@ func MayMoveTo(srcPath, dstPath, idxField string) Spec {
 }
 
 // MayMoveToSlot returns a Spec for the "mayMoveToSlot" predicate: Passes if
-// the component at index idxField in the stack at srcPath could legally be
-// moved to slot idxField in the stack at dstPath, per
-// ImmutableComponentInstance.MayMoveToSlot (component.go). idxField names
-// the SAME index used for both the source lookup and the destination slot
-// — the mirrored-stacks pattern memory's HiddenCards/VisibleCards uses
-// (design spec §8).
+// the component at sourceIndexField in srcPath could legally be moved to
+// destinationSlotField in dstPath, per
+// ImmutableComponentInstance.MayMoveToSlot.
 //
 // Facet honesty: like MayMoveTo, the resolved predicate declares
 // LegalFacetValues (not LegalFacetOccupancy) on dstPath. See the doc comment
 // on mayMoveConstructor for why.
-func MayMoveToSlot(srcPath, dstPath, idxField string) Spec {
-	return Spec{Name: "mayMoveToSlot", Args: []string{srcPath, dstPath, idxField}}
+func MayMoveToSlot(srcPath, dstPath, sourceIndexField, destinationSlotField string) Spec {
+	return Spec{Name: "mayMoveToSlot", Args: []string{srcPath, dstPath, sourceIndexField, destinationSlotField}}
+}
+
+// MayMoveToSameSlot is a convenience for mirrored stack layouts where the
+// same move field selects both the source component and destination slot.
+func MayMoveToSameSlot(srcPath, dstPath, indexField string) Spec {
+	return MayMoveToSlot(srcPath, dstPath, indexField, indexField)
+}
+
+// MayMoveAllTo returns a server-evaluated Spec that passes when every
+// component in srcPath could be moved to dstPath transactionally. It is not
+// client-evaluable because custom stack constraints may inspect other runtime
+// state while simulating the transfer.
+func MayMoveAllTo(srcPath, dstPath string) Spec {
+	return Spec{Name: "mayMoveAllTo", Args: []string{srcPath, dstPath}}
+}
+
+// MaySwapComponents returns a Spec that passes when the two int-valued move
+// fields identify distinct, in-range slots in stackPath.
+func MaySwapComponents(stackPath, firstIndexField, secondIndexField string) Spec {
+	return Spec{Name: "maySwapComponents", Args: []string{stackPath, firstIndexField, secondIndexField}}
+}
+
+// MaySwapComponentsByKey is the enum-keyed counterpart of MaySwapComponents.
+func MaySwapComponentsByKey(stackPath, firstKeyField, secondKeyField string) Spec {
+	return Spec{Name: "maySwapComponentsByKey", Args: []string{stackPath, firstKeyField, secondKeyField}}
 }
 
 // componentPresentAtConstructor returns the registry entry for
@@ -336,10 +367,7 @@ func componentPresentAtKeyConstructor() *PredicateConstructor {
 	}
 }
 
-// mayMoveConstructor builds either "mayMoveTo" or "mayMoveToSlot",
-// depending on useSlot: both share arg shape (srcPath, dstPath, idxField)
-// and Reads, differing only in whether MayMoveTo or MayMoveToSlot is
-// called on the component found at the source index.
+// mayMoveConstructor builds either "mayMoveTo" or "mayMoveToSlot".
 //
 // Facet honesty (dstPath declares LegalFacetValues, not LegalFacetOccupancy,
 // unlike srcPath): Evaluate calls comp.MayMoveTo(dst) / comp.MayMoveToSlot
@@ -380,12 +408,22 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 	return &PredicateConstructor{
 		Name: name,
 		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
-			if len(spec.Args) != 3 {
-				return nil, fmt.Errorf("legal: %s requires 3 args (srcPath, dstPath, idxField), got %d", name, len(spec.Args))
+			wantArgs := 3
+			argDescription := "srcPath, dstPath, sourceIndexField"
+			if useSlot {
+				wantArgs = 4
+				argDescription = "srcPath, dstPath, sourceIndexField, destinationSlotField"
+			}
+			if len(spec.Args) != wantArgs {
+				return nil, fmt.Errorf("legal: %s requires %d args (%s), got %d", name, wantArgs, argDescription, len(spec.Args))
 			}
 			srcPath := spec.Args[0]
 			dstPath := spec.Args[1]
-			idxField := spec.Args[2]
+			sourceIndexField := spec.Args[2]
+			destinationSlotField := ""
+			if useSlot {
+				destinationSlotField = spec.Args[3]
+			}
 
 			noComponentTemplate := spec.Message
 			if noComponentTemplate == "" {
@@ -409,27 +447,43 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 				emittedBindings = map[string][]string{noComponentTemplate: nil}
 			}
 
+			reads := []Read{
+				{Path: PropPath(srcPath), Facet: boardgame.LegalFacetOccupancy},
+				{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
+				{Path: PropPath(sourceIndexField), Facet: boardgame.LegalFacetValues},
+			}
+			requiredReadTypes := map[PropPath]boardgame.PropertyType{
+				PropPath(srcPath):          boardgame.TypeStack,
+				PropPath(dstPath):          boardgame.TypeStack,
+				PropPath(sourceIndexField): boardgame.TypeInt,
+			}
+			if useSlot {
+				if destinationSlotField != sourceIndexField {
+					reads = append(reads, Read{Path: PropPath(destinationSlotField), Facet: boardgame.LegalFacetValues})
+				}
+				requiredReadTypes[PropPath(destinationSlotField)] = boardgame.TypeInt
+			}
+
 			return &Predicate{
-				Name:            name,
-				ClientEvaluable: true,
-				Args:            spec.Args,
-				Reads: []Read{
-					{Path: PropPath(srcPath), Facet: boardgame.LegalFacetOccupancy},
-					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
-					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
-				},
-				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
-					PropPath(srcPath):  boardgame.TypeStack,
-					PropPath(dstPath):  boardgame.TypeStack,
-					PropPath(idxField): boardgame.TypeInt,
-				},
-				Cost:             boardgame.LegalCostModerate,
-				EmittedTemplates: []string{noComponentTemplate, mayNotMoveTemplate},
-				EmittedBindings:  emittedBindings,
+				Name:              name,
+				ClientEvaluable:   true,
+				Args:              spec.Args,
+				Reads:             reads,
+				RequiredReadTypes: requiredReadTypes,
+				Cost:              boardgame.LegalCostModerate,
+				EmittedTemplates:  []string{noComponentTemplate, mayNotMoveTemplate},
+				EmittedBindings:   emittedBindings,
 				Evaluate: func(ctx Context) Verdict {
-					idx, err := resolveIntPath(idxField, ctx)
+					sourceIndex, err := resolveIntPath(sourceIndexField, ctx)
 					if err != nil {
 						return UnknownVerdict(err.Error())
+					}
+					destinationSlot := sourceIndex
+					if useSlot {
+						destinationSlot, err = resolveIntPath(destinationSlotField, ctx)
+						if err != nil {
+							return UnknownVerdict(err.Error())
+						}
 					}
 					src, err := resolveStackPath(srcPath, ctx)
 					if err != nil {
@@ -443,16 +497,16 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 						return UnknownVerdict("legal: source or destination stack path resolved to nil")
 					}
 
-					comp := src.ImmutableComponentAt(idx)
+					comp := src.ImmutableComponentAt(sourceIndex)
 					if comp == nil {
 						return FailT(noComponentTemplate, map[string]BindingValue{
-							"index": Int(idx),
+							"index": Int(sourceIndex),
 						})
 					}
 
 					var moveErr error
 					if useSlot {
-						moveErr = comp.MayMoveToSlot(dst, idx)
+						moveErr = comp.MayMoveToSlot(dst, destinationSlot)
 					} else {
 						moveErr = comp.MayMoveTo(dst)
 					}
@@ -474,6 +528,133 @@ func mayMoveToConstructor() *PredicateConstructor {
 
 func mayMoveToSlotConstructor() *PredicateConstructor {
 	return mayMoveConstructor("mayMoveToSlot", true)
+}
+
+func mayMoveAllToConstructor() *PredicateConstructor {
+	return &PredicateConstructor{
+		Name: "mayMoveAllTo",
+		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+			if len(spec.Args) != 2 {
+				return nil, fmt.Errorf("legal: mayMoveAllTo requires 2 args (srcPath, dstPath), got %d", len(spec.Args))
+			}
+			srcPath, dstPath := spec.Args[0], spec.Args[1]
+			template := spec.Message
+			if template == "" {
+				template = TemplateMayNotMoveAllTo
+			}
+			return &Predicate{
+				Name:            "mayMoveAllTo",
+				ClientEvaluable: false,
+				Args:            spec.Args,
+				Reads: []Read{
+					{Path: PropPath(srcPath), Facet: boardgame.LegalFacetValues},
+					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
+				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(srcPath): boardgame.TypeStack,
+					PropPath(dstPath): boardgame.TypeStack,
+				},
+				Cost:             boardgame.LegalCostExpensive,
+				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"detail"}},
+				Evaluate: func(ctx Context) Verdict {
+					src, err := resolveStackPath(srcPath, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					dst, err := resolveStackPath(dstPath, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					if src == nil || dst == nil {
+						return UnknownVerdict("legal: source or destination stack path resolved to nil")
+					}
+					if err := src.MayMoveAllTo(dst); err != nil {
+						return FailT(template, map[string]BindingValue{"detail": String(err.Error())})
+					}
+					return PassVerdict()
+				},
+			}, nil
+		},
+	}
+}
+
+func maySwapComponentsConstructor(name string, keyed bool) *PredicateConstructor {
+	return &PredicateConstructor{
+		Name: name,
+		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+			if len(spec.Args) != 3 {
+				return nil, fmt.Errorf("legal: %s requires 3 args (stackPath, firstIndexField, secondIndexField), got %d", name, len(spec.Args))
+			}
+			stackPath, firstField, secondField := spec.Args[0], spec.Args[1], spec.Args[2]
+			template := spec.Message
+			if template == "" {
+				template = TemplateMayNotSwapComponents
+			}
+			fieldType := boardgame.TypeInt
+			if keyed {
+				fieldType = boardgame.TypeEnum
+			}
+			reads := []Read{
+				{Path: PropPath(stackPath), Facet: boardgame.LegalFacetCount},
+				{Path: PropPath(firstField), Facet: boardgame.LegalFacetValues},
+			}
+			if secondField != firstField {
+				reads = append(reads, Read{Path: PropPath(secondField), Facet: boardgame.LegalFacetValues})
+			}
+			return &Predicate{
+				Name:            name,
+				ClientEvaluable: true,
+				Args:            spec.Args,
+				Reads:           reads,
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(stackPath):   boardgame.TypeStack,
+					PropPath(firstField):  fieldType,
+					PropPath(secondField): fieldType,
+				},
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"detail"}},
+				Evaluate: func(ctx Context) Verdict {
+					stack, err := resolveStackPath(stackPath, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					if stack == nil {
+						return UnknownVerdict(fmt.Sprintf("legal: stack path %q resolved to nil", stackPath))
+					}
+					var first, second int
+					if keyed {
+						firstVal, firstErr := resolveEnumPath(firstField, ctx)
+						secondVal, secondErr := resolveEnumPath(secondField, ctx)
+						if firstErr != nil {
+							return UnknownVerdict(firstErr.Error())
+						}
+						if secondErr != nil {
+							return UnknownVerdict(secondErr.Error())
+						}
+						if firstVal == nil || secondVal == nil {
+							return UnknownVerdict("legal: swap enum path resolved to nil")
+						}
+						first, second = firstVal.Value().Int(), secondVal.Value().Int()
+					} else {
+						first, err = resolveIntPath(firstField, ctx)
+						if err != nil {
+							return UnknownVerdict(err.Error())
+						}
+						second, err = resolveIntPath(secondField, ctx)
+						if err != nil {
+							return UnknownVerdict(err.Error())
+						}
+					}
+					if err := stack.MaySwapComponents(first, second); err != nil {
+						return FailT(template, map[string]BindingValue{"detail": String(err.Error())})
+					}
+					return PassVerdict()
+				},
+			}, nil
+		},
+	}
 }
 
 // ConstructorConfigurer is implemented optionally by a game's GameDelegate to
@@ -505,6 +686,9 @@ func DefaultConstructors() []*PredicateConstructor {
 		componentPresentAtKeyConstructor(),
 		mayMoveToConstructor(),
 		mayMoveToSlotConstructor(),
+		mayMoveAllToConstructor(),
+		maySwapComponentsConstructor("maySwapComponents", false),
+		maySwapComponentsConstructor("maySwapComponentsByKey", true),
 		allActivePlayersConstructor(),
 		proposerIsCurrentPlayerConstructor(),
 		proposerIsPlayerFromMoveConstructor(),

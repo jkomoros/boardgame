@@ -1,0 +1,24 @@
+{
+  "predicate": "maySwapComponents",
+  "cases": [
+    {
+      "spec": {"name": "maySwapComponents", "args": ["game.HiddenCards", "move.CardIndex", "player.CardsLeftToReveal"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "maySwapComponents", "args": ["game.HiddenCards", "move.CardIndex", "move.CardIndex"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.may_not_swap_components"
+    },
+    {
+      "spec": {"name": "maySwapComponents", "args": ["game.HiddenCards", "move.CardIndex", "player.CardsLeftToReveal"]},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

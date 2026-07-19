@@ -36,7 +36,7 @@ capability in this package that requires a game to adopt it.
 	        legal.PropAtLeast("player.CardsLeftToReveal", 1).
 	            WithMessage("reveal.no_cards_left"),
 	        legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-	        legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+	        legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 	    ),
 	)
 
@@ -46,7 +46,8 @@ PlayerBoolAt, PlayerHasSubmitted, PlayerHasNotSubmitted, PlayerIsActive,
 PlayerIsInactive, PlayerSeatIsFilled, PlayerSeatIsClosed, PlayerIsAdmin,
 StackCount, StackEmpty, StackNotEmpty, PropEquals, PropNotEquals,
 ComponentPresentAt, ComponentAbsentAt, ComponentPresentAtKey, MayMoveTo,
-MayMoveToSlot, Any, AllActivePlayers, RevealableCardAt,
+MayMoveToSlot, MayMoveToSameSlot, MayMoveAllTo, MaySwapComponents,
+MaySwapComponentsByKey, Any, AllActivePlayers, RevealableCardAt,
 ComponentPropEqualsCurrentPlayer, ProposerIsCurrentPlayer, InPhase,
 StackConstraints — the full, current list is DefaultConstructors()).
 At NewGameManager, every declared Spec is resolved through the registry,
@@ -74,8 +75,8 @@ that doesn't exist:
 
  1. **If you can express the check as a relation over one or more property
     paths, it can be a catalog predicate.** PropAtLeast, PropCompare, and
-    PlayerBool are the general-purpose relations; ComponentPresentAt and
-    MayMoveTo/MayMoveToSlot are the stack-shaped ones. Prefer these first.
+    PlayerBool are the general-purpose relations; ComponentPresentAt and the
+    MayMove and MaySwap predicates are the stack-shaped ones. Prefer these first.
 
  2. **Branchy logic becomes a purpose-built named predicate with a
     hand-written Evaluate, not new DSL surface.** RevealableCardAt is the
@@ -375,9 +376,8 @@ respectively — and widened the composition seam. What's left, honestly:
     unsupported base type. FinishTurn/DealCountComponents specifically stay
     blocked because a partial contribution could desync the ledger;
     round-robin/progression-aware predicates are future work.
-  - **MayMoveTo/MayMoveToSlot take a single index field**, used for both the
-    source lookup and (for MayMoveToSlot) the destination slot. There is no
-    variant that names two different indices.
+  - **MayMoveTo takes one source index; MayMoveToSlot takes distinct source
+    and destination fields.** Use MayMoveToSameSlot for mirrored layouts.
   - **An unknown enum value name (PropEquals/PropNotEquals) is a
     LegalUnknown at evaluate time, not a boot-time construction error.** A
     constructor-time typo guard catches the common case when a chest is

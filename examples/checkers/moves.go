@@ -90,12 +90,10 @@ func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 //     unchanged. This single precondition is also what opts the move in,
 //     satisfying the boot rule that a LegalCustom move must declare at least
 //     one WithLegalPreconditions spec.
-//   - MayMoveToSlot stays in LegalCustom: it compares a FIXED source index (0,
-//     "first" of UnusedTokens) against move.TargetIndex for the destination —
-//     two DIFFERENT indices. legal.MayMoveToSlot only expresses the
-//     mirrored-stacks shape (one shared idxField for source AND destination),
-//     so the catalog cannot express this. Its native error is returned
-//     verbatim.
+//   - MayMoveToSlot stays in LegalCustom because its source is the FIXED index
+//     0 ("first" of UnusedTokens), rather than a move field. The declarative
+//     legal.MayMoveToSlot supports distinct source/destination fields, but not
+//     a literal source index. Its native error is returned verbatim.
 //   - spaceIsBlack stays imperative in LegalCustom too, in its ORIGINAL order
 //     (AFTER MayMoveToSlot). checkers already registers a
 //     "checkers.spaceIsBlack" predicate (moveMoveToken uses it), but migrating
@@ -145,7 +143,7 @@ type moveMoveToken struct {
 // overrides it) calls moves.Default.Legal, which detects the assembled plan
 // and evaluates THAT instead of the frozen chain — the plan is: the phase
 // check + proposer check (both contributed by moves.CurrentPlayer, unchanged
-// from before), then the three authored gates below, then LegalCustom.
+// from before), then the four authored gates below, then LegalCustom.
 // The original imperative body (kept only as legacyLegalMoveMoveToken, a
 // private copy in legal_golden_test.go, for golden-equivalence testing) read:
 //
@@ -189,24 +187,16 @@ type moveMoveToken struct {
 //   - "you can only move to spaces that are black" -> the game-registered
 //     "checkers.spaceIsBlack" predicate (ConfigurePredicateConstructors,
 //     below), default template "checkers.black_spaces_only".
-//   - g.Spaces.MaySwapComponentsByKey's i/j bounds+distinctness check and the
-//     FreeNextSpaces/LegalCaptureSpaces walk both stay hard-custom: no
-//     catalog predicate can express a graph search, and by the time
-//     LegalCustom runs the three gates above have already guaranteed
+//   - g.Spaces.MaySwapComponentsByKey's i/j bounds+distinctness check is now
+//     legal.MaySwapComponentsByKey, first in the authored plan so it retains
+//     the original imperative check order. The FreeNextSpaces/
+//     LegalCaptureSpaces walk stays hard-custom: no catalog predicate can
+//     express a graph search, and by the time LegalCustom runs the remaining
+//     three gates above have already guaranteed
 //     TokenIndexToMove names a present, current-player-owned token and
 //     SpaceIndex names a black space, so MaySwapComponentsByKey's bounds
-//     checks (always satisfied by valid enum values) and its i==j
-//     distinctness check (a token is never its own graph neighbor, so
-//     the walk below already rejects it) are redundant and are not
-//     re-run. Every residue failure — a genuinely unreachable
-//     destination OR (redundantly) i==j — collapses to the single
-//     "checkers.illegal_dest" template, replacing what were three
-//     distinct legacy strings ("i and j were the same", the two
-//     MaySwapComponentsByKey bounds messages, and the walk's own
-//     "spaceIndex does not represent a legal space..."). This is a
-//     documented, spec-sanctioned message-text collapse (see the Task 12
-//     report), not a nil-ness change: the move is illegal in exactly the
-//     same cases as before.
+//     checks are already complete. Every residue failure is therefore a
+//     genuinely unreachable destination and uses "checkers.illegal_dest".
 func (m *moveMoveToken) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	g := state.ImmutableGameState().(*gameState)

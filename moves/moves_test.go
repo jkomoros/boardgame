@@ -1,6 +1,7 @@
 package moves
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/enum/graph"
 	"github.com/workfit/tester/assert"
 )
 
@@ -331,6 +333,141 @@ func TestLocationBehaviorTagWiring(t *testing.T) {
 		key, found := player.LocationBehavior.LocationIndexKey()
 		assert.For(t, "LocationIndexKey found", i).ThatActual(found).IsTrue()
 		assert.For(t, "LocationIndexKey value", i).ThatActual(int(key)).Equals(0)
+
+		if err := player.LocationBehavior.MayMoveTo(1); err != nil {
+			t.Fatalf("player %d MayMoveTo(1): %v", i, err)
+		}
+		key, _ = player.LocationBehavior.LocationIndexKey()
+		if key != 0 {
+			t.Fatalf("player %d MayMoveTo mutated location to %d", i, key)
+		}
+		if err := player.LocationBehavior.MoveTo(1); err != nil {
+			t.Fatalf("player %d MoveTo(1): %v", i, err)
+		}
+		key, _ = player.LocationBehavior.LocationIndexKey()
+		if key != 1 {
+			t.Fatalf("player %d MoveTo location = %d, want 1", i, key)
+		}
+
+		mayErr := player.LocationBehavior.MayMoveTo(1)
+		moveErr := player.LocationBehavior.MoveTo(1)
+		if mayErr == nil || moveErr == nil || mayErr.Error() != moveErr.Error() {
+			t.Fatalf("player %d same-slot parity: MayMoveTo=%v MoveTo=%v", i, mayErr, moveErr)
+		}
+	}
+}
+
+func hopMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(manager.Delegate())
+	return Add(auto.MustConfig(new(HopAlongPath)))
+}
+
+func TestHopAlongPathPreflightsNextSlot(t *testing.T) {
+	manager, err := newGameManager(hopMoveInstaller)
+	if err != nil {
+		t.Fatalf("NewGameManager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("NewDefaultGame: %v", err)
+	}
+
+	state := game.CurrentState().(boardgame.State)
+	_, players := concreteStates(state)
+	move := game.MoveByName("Hop Along Path")
+	if move == nil {
+		t.Fatal("Hop Along Path move not found")
+	}
+
+	players[0].LocRemainingPath = []int{0, 99}
+	if err := move.Legal(state, boardgame.AdminPlayerIndex); err == nil {
+		t.Fatal("Legal accepted an out-of-range next hop")
+	}
+	if key, _ := players[0].LocationIndexKey(); key != 0 {
+		t.Fatalf("failed Legal mutated location to %d", key)
+	}
+
+	players[0].LocRemainingPath = []int{0, 1}
+	if err := move.Legal(state, boardgame.AdminPlayerIndex); err != nil {
+		t.Fatalf("Legal rejected valid next hop: %v", err)
+	}
+	if err := move.Apply(state); err != nil {
+		t.Fatalf("Apply rejected preflighted next hop: %v", err)
+	}
+	if key, _ := players[0].LocationIndexKey(); key != 1 {
+		t.Fatalf("Apply location = %d, want 1", key)
+	}
+	if !reflect.DeepEqual(players[0].LocRemainingPath, []int{1}) {
+		t.Fatalf("remaining path = %v, want [1]", players[0].LocRemainingPath)
+	}
+}
+
+type testAdvanceToken struct {
+	AdvanceToken
+	enabled bool
+	next    enum.EnumKey
+}
+
+func (m *testAdvanceToken) AdvancableLocation(state boardgame.ImmutableState) *behaviors.LocationBehavior {
+	return &state.ImmutablePlayerStates()[0].(*playerState).LocationBehavior
+}
+
+func (m *testAdvanceToken) NextAdvanceIndex(state boardgame.ImmutableState, currentIndex enum.ImmutableVal) enum.EnumKey {
+	return m.next
+}
+
+func (m *testAdvanceToken) ShouldAdvance(state boardgame.ImmutableState) error {
+	if !m.enabled {
+		return errors.New("disabled")
+	}
+	return nil
+}
+
+func advanceTokenMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(manager.Delegate())
+	return Add(auto.MustConfig(new(testAdvanceToken)))
+}
+
+func TestAdvanceTokenLegalPreflightsDestination(t *testing.T) {
+	manager, err := newGameManager(advanceTokenMoveInstaller)
+	if err != nil {
+		t.Fatalf("NewGameManager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("NewDefaultGame: %v", err)
+	}
+	state := game.CurrentState().(boardgame.State)
+	_, players := concreteStates(state)
+
+	locationGraph := graph.NewEnumGraph(colorEnum)
+	if err := locationGraph.AddEdgeByKey(0, 1); err != nil {
+		t.Fatalf("AddEdgeByKey: %v", err)
+	}
+	players[0].ConnectGraph(locationGraph)
+
+	move, ok := game.MoveByName("Advance Token").(*testAdvanceToken)
+	if !ok {
+		t.Fatalf("Advance Token concrete type = %T", game.MoveByName("Advance Token"))
+	}
+	move.enabled = true
+	move.next = 99
+	if err := move.Legal(state, boardgame.AdminPlayerIndex); err == nil {
+		t.Fatal("Legal accepted invalid next index")
+	}
+	if key, _ := players[0].LocationIndexKey(); key != 0 {
+		t.Fatalf("failed Legal mutated location to %d", key)
+	}
+
+	move.next = 1
+	if err := move.Legal(state, boardgame.AdminPlayerIndex); err != nil {
+		t.Fatalf("Legal rejected valid next index: %v", err)
+	}
+	if err := move.Apply(state); err != nil {
+		t.Fatalf("Apply rejected preflighted next index: %v", err)
+	}
+	if key, _ := players[0].LocationIndexKey(); key != 1 {
+		t.Fatalf("Apply location = %d, want 1", key)
 	}
 }
 

@@ -237,6 +237,7 @@ This single `MayMoveToSlot` call replaces what would otherwise be several manual
 - **`component.MayMoveToSlot(dest, slotIndex)`** — like `MayMoveTo`, plus validates that the specific slot is in range and (for SizedStacks) unoccupied.
 - **`stack.MayMoveAllTo(dest)`** — validates that *all* components in the source stack could be moved to the destination.
 - **`stack.MaySwapComponents(i, j)`** — validates that a swap would succeed.
+- **`locationBehavior.MayMoveTo(targetIndex)`** — validates behavior-backed spatial movement before `MoveTo` performs the swap.
 
 If `MayMoveTo` or `MayMoveToSlot` returns nil in `Legal()`, the corresponding `MoveTo` or `MoveToNextSlot` call in `Apply()` is guaranteed to succeed. Likewise, pair `MayMoveAllTo` in `Legal()` with `MoveAllTo` in `Apply()`.
 
@@ -737,7 +738,7 @@ revealCardConfig := auto.MustConfig(
     moves.WithLegalPreconditions(
         legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("reveal.no_cards_left"),
         legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-        legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+        legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
     ),
 )
 ```
@@ -785,7 +786,11 @@ The most common catalog predicates (full list: `legal.DefaultConstructors()`; re
 | `legal.ComponentAbsentAt(stackPath, idxField string)` | the exact negation of `ComponentPresentAt` — no component at that index | occupancy |
 | `legal.ComponentPresentAtKey(stackPath, keyField string)` | like above, but the slot is identified by an enum-valued key (e.g. a board position) | occupancy |
 | `legal.MayMoveTo(srcPath, dstPath, idxField string)` | the component at `idxField` in `srcPath` could legally move into `dstPath` (`ImmutableComponentInstance.MayMoveTo`) | values |
-| `legal.MayMoveToSlot(srcPath, dstPath, idxField string)` | like above, but into the *same* index slot in `dstPath` (the "mirrored stacks" pattern, e.g. memory's `HiddenCards`/`VisibleCards`) | occupancy (src) + values (dst, idx) |
+| `legal.MayMoveToSlot(srcPath, dstPath, sourceIndexField, destinationSlotField string)` | like above, but validates an explicit destination slot selected independently from the source component | occupancy (src) + values (dst, both indices) |
+| `legal.MayMoveToSameSlot(srcPath, dstPath, indexField string)` | convenience for mirrored stacks where one field selects both the source component and destination slot | occupancy (src) + values (dst, index) |
+| `legal.MayMoveAllTo(srcPath, dstPath string)` | every component could move transactionally; evaluated on the server because custom constraints may inspect broader state | values |
+| `legal.MaySwapComponents(stackPath, firstIndexField, secondIndexField string)` | the two int fields select distinct, in-range slots that can be swapped | count + index values |
+| `legal.MaySwapComponentsByKey(stackPath, firstKeyField, secondKeyField string)` | enum-keyed counterpart for spatial boards | count + key values |
 | `legal.Any(subs ...legal.Spec)` | at least one of `subs` passes (Kleene: Pass beats Unknown beats Fail) | union of children |
 | `legal.AllActivePlayers(inner legal.Spec)` | `inner` holds for every active (non-inactive) player; `inner` must be `PlayerBool`/`PlayerBoolIs`, a player-path `PropAtLeast`/`PropCompare`, or an `Any` of those (int/bool-typed inner leaves only — see Limits) | per-player values |
 | `legal.RevealableCardAt(hiddenPath, visiblePath, idxField string)` | purpose-built two-branch occupancy check (see above) | occupancy |
@@ -2789,8 +2794,8 @@ type MoveMoveNPC struct {
     moves.AdvanceToken
 }
 
-func (m *MoveMoveNPC) AdvancableLocation(state boardgame.State) *behaviors.LocationBehavior {
-    return &state.GameState().(*gameState).LocationBehavior
+func (m *MoveMoveNPC) AdvancableLocation(state boardgame.ImmutableState) *behaviors.LocationBehavior {
+    return &state.ImmutableGameState().(*gameState).LocationBehavior
 }
 
 func (m *MoveMoveNPC) NextAdvanceIndex(state boardgame.ImmutableState, currentIndex enum.ImmutableVal) enum.EnumKey {
