@@ -40,6 +40,8 @@ import type {
   ComponentMotionTrack,
   BaseComponentMotionInput,
 } from '../motion/component-track.js';
+import { compileMotionCohortSchedule } from '../motion/cohort.js';
+import type { MotionStaggerCohortSpec } from '../motion/cohort.js';
 import {
   compileComponentMotionTracks,
   componentMotionChannel,
@@ -134,6 +136,10 @@ export class BoardgameComponentAnimator extends LitElement {
   private _motionEventObservers = new Set<(event: StructuralMotionEvent) => void>();
   private _motionEventRevisions = new Map<StructuralMotionPlan['source'], StructuralMotionPlan>();
   private _motionEventHistory = new Map<StructuralMotionPlan['source'], readonly StructuralMotionEvent[]>();
+  private _motionCohorts: Readonly<{
+    generation: number;
+    specs: readonly MotionStaggerCohortSpec[];
+  }> | null = null;
 
   ancestorOffsetParent: HTMLElement | null = null;
 
@@ -208,10 +214,19 @@ export class BoardgameComponentAnimator extends LitElement {
     }
   }
 
+  /** Install author timing for the generation opened by the latest prepare(). */
+  installMotionCohorts(specs: readonly MotionStaggerCohortSpec[]): void {
+    this._motionCohorts = Object.freeze({
+      generation: this._generation,
+      specs: Object.freeze([...specs]),
+    });
+  }
+
   prepare() {
     this._invalidateSolvedMotionPlan();
     this._generation++;
     this._solvedMotionPlan = null;
+    this._motionCohorts = null;
     const collections = this.stackElement._sharedStackList;
 
     this._beforeCollectionOffsets = new Map();
@@ -1132,6 +1147,26 @@ export class BoardgameComponentAnimator extends LitElement {
         durationMs: ac.component.animationLengthMs(),
         delayMs: 0,
       });
+    }
+
+    const installedCohorts = this._motionCohorts?.generation === generation
+      ? this._motionCohorts.specs
+      : [];
+    const schedule = compileMotionCohortSchedule(
+      playback.map(item => ({
+        subjectId: item.component.id,
+        legacyDelayMs: item.delayMs,
+      })),
+      installedCohorts,
+    );
+    if (schedule.status === 'fallback' && installedCohorts.length > 0) {
+      console.error(`[motion] cohort scheduling fell back to stack timing: ${schedule.reason}`);
+    }
+    const delayBySubject = new Map(schedule.entries.map(entry => [entry.subjectId, entry.delayMs]));
+    for (const item of playback) {
+      const delayMs = delayBySubject.get(item.component.id) ?? item.delayMs;
+      item.delayMs = delayMs;
+      item.config.delayMs = delayMs;
     }
 
     // Publication barrier: everything above is measurement and planning.

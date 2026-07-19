@@ -11,9 +11,13 @@ import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
-import { cardView, fx, isStackLayout, tokenView } from '../../src/client.js';
+import { cardView, fx, isStackLayout, motion, tokenView } from '../../src/client.js';
 import type { ClientMove, StackLayout } from '../../src/client.js';
-import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
+import type {
+  EffectSpec,
+  EffectTransitionContext,
+  MotionStaggerCohortSpec,
+} from '../../src/client.js';
 import type { GameState, State } from './_types.js';
 import type { MoveName } from './_move_names.js';
 
@@ -225,6 +229,17 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
         timing: 'immediate',
       }),
       key: 'token-transfer',
+    })];
+  }
+
+  override motionCohortsForTransition(
+    context: EffectTransitionContext<State, MoveName>,
+  ): readonly MotionStaggerCohortSpec[] {
+    if (context.kind === 'initial' || context.move?.Name !== MoveNames.VisibleShuffle) return [];
+    return [motion.stagger({
+      key: 'visible-shuffle-cascade',
+      subjects: context.after.Game.FanStack.IDs,
+      intervalMs: 45,
     })];
   }
 

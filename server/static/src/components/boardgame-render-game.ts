@@ -304,7 +304,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
-  private _lastEffectTransitionKey = '';
+  private _lastPresentationTransitionKey = '';
   // Fired (composed) by the inner renderer via requestPreviewRefresh() when its
   // LOCAL interaction state changes (e.g. a multi-step move selected a source
   // piece) so previewSpec() must be re-evaluated without a state/turn change.
@@ -757,8 +757,8 @@ class BoardgameRenderGame extends LitElement {
     // For Lit renderers, set property directly
     this.renderer.state = newState;
 
-    const effectPlanning = newState
-      ? this._planTransitionEffects(this.renderer, previousState, newState, beforeAnchors)
+    const presentationPlanning = newState
+      ? this._planTransitionPresentation(this.renderer, previousState, newState, beforeAnchors)
       : Promise.resolve();
 
     if (newState && !stateWasNull) {
@@ -770,23 +770,23 @@ class BoardgameRenderGame extends LitElement {
         if (this.renderer !== renderer || renderer.state !== newState) return;
         this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations());
       };
-      void effectPlanning.then(startStructuralMotion, startStructuralMotion);
+      void presentationPlanning.then(startStructuralMotion, startStructuralMotion);
     }
   }
 
-  private async _planTransitionEffects(
+  private async _planTransitionPresentation(
     renderer: HostedGameRenderer,
     before: HostedState | null,
     after: HostedState,
     beforeAnchors: import('./boardgame-effect-layer.js').EffectAnchorSnapshot,
   ): Promise<void> {
     const key = `${this.gameId}:${this.snapshotEpoch}:${this.gameVersion}`;
-    if (this._lastEffectTransitionKey === key) return;
+    if (this._lastPresentationTransitionKey === key) return;
     await renderer.updateComplete;
-    if (this.renderer !== renderer || renderer.state !== after || !this._effects) return;
-    if (this._lastEffectTransitionKey === key) return;
-    this._lastEffectTransitionKey = key;
-    this._effects.installBeforeAnchors(beforeAnchors);
+    if (this.renderer !== renderer || renderer.state !== after) return;
+    if (this._lastPresentationTransitionKey === key) return;
+    this._lastPresentationTransitionKey = key;
+    this._effects?.installBeforeAnchors(beforeAnchors);
     const context = createEffectTransitionContext<HostedState, string>({
       before,
       after,
@@ -794,6 +794,20 @@ class BoardgameRenderGame extends LitElement {
       version: this.gameVersion,
       snapshotEpoch: this.snapshotEpoch,
     });
+    if (before !== null) {
+      try {
+        const cohorts = renderer.motionCohortsForTransition(context);
+        if (!Array.isArray(cohorts)) {
+          throw new Error('motionCohortsForTransition() must return a readonly array');
+        }
+        this._animator?.installMotionCohorts(cohorts);
+      } catch (error) {
+        // prepare() already cleared any prior declaration, so doing nothing is
+        // an atomic fallback to compatibility stack timing.
+        console.error('[motion] transition cohort planning failed:', error);
+      }
+    }
+    if (!this._effects) return;
     try {
       const effects = renderer.effectsForTransition(context);
       if (!Array.isArray(effects)) {
@@ -1051,7 +1065,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _removeRenderer() {
     this._effects?.cancelAll();
-    this._lastEffectTransitionKey = '';
+    this._lastPresentationTransitionKey = '';
     if (this.renderer && this._container) {
       this._container.removeChild(this.renderer);
     }
@@ -1131,7 +1145,7 @@ class BoardgameRenderGame extends LitElement {
     }
     this._configureEffectLayer();
     if (this.state) {
-      void this._planTransitionEffects(ele, null, this.state, new Map());
+      void this._planTransitionPresentation(ele, null, this.state, new Map());
     }
 
     // Only try to fire if there's a state. If it's the first time this

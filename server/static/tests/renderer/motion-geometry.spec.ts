@@ -865,3 +865,84 @@ test('structural outcomes report compiled version timing and exhausted stagger s
     diagnostics.stop();
   }
 });
+
+test('explicit motion cohorts schedule a deterministic order across stacks', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { cardView, motion } = await import('/src/client.ts');
+
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        prepare(): void;
+        installMotionCohorts(specs: unknown[]): void;
+        animateFlip(): Promise<void>;
+        _solvedMotionPlan: {
+          segments: Array<{ subjectId: string; timingRequest: { delayMs: number } }>;
+        } | null;
+      };
+      const makeStack = (name: string, ids: string[]) => {
+        const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
+          stack: unknown;
+          componentView: unknown;
+          updateComplete: Promise<unknown>;
+        };
+        stack.style.setProperty('--animation-length', '80ms');
+        stack.componentView = cardView({});
+        stack.stack = {
+          Deck: 'cards',
+          Indexes: ids.map((_id, index) => index),
+          IDs: ids,
+          IDsLastSeen: {},
+          ShuffleCount: 0,
+          Size: ids.length,
+          GameName: `cohort-${name}`,
+          Components: ids.map((id, index) => ({
+            Index: index,
+            Values: { rank: `${name}-${index}` },
+            Deck: 'cards',
+            GameName: `cohort-${name}`,
+            ID: id,
+          })),
+        };
+        return stack;
+      };
+      const left = makeStack('left', ['cohort-a', 'cohort-b']);
+      const right = makeStack('right', ['cohort-c']);
+      document.body.append(animator, left, right);
+      await Promise.all([animator.updateComplete, left.updateComplete, right.updateComplete]);
+      const elements = [...document.querySelectorAll<HTMLElement>('boardgame-card')];
+      await Promise.all(elements.map(element => (
+        element as HTMLElement & { updateComplete: Promise<unknown> }
+      ).updateComplete));
+
+      animator.prepare();
+      animator.installMotionCohorts([
+        motion.stagger({
+          subjects: ['cohort-c', 'cohort-a', 'cohort-b'],
+          intervalMs: 25,
+        }),
+      ]);
+      elements.forEach((element, index) => {
+        element.style.transform = `translateX(${25 + index * 5}px)`;
+      });
+      await animator.animateFlip();
+      return animator._solvedMotionPlan?.segments.map(segment => ({
+        subjectId: segment.subjectId,
+        delayMs: segment.timingRequest.delayMs,
+      }));
+    });
+
+    expect(Object.fromEntries(result?.map(entry => [entry.subjectId, entry.delayMs]) ?? [])).toEqual({
+      'cohort-a': 25,
+      'cohort-b': 50,
+      'cohort-c': 0,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});

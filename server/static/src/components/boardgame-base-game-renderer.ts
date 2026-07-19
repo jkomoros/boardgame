@@ -13,6 +13,7 @@ import type {
   EffectTheme,
   EffectTransitionContext,
 } from '../effects/effect-spec.js';
+import type { MotionStaggerCohortSpec } from '../motion/cohort.js';
 import {
   serializeCreatorMoveInputForServer,
   validateCreatorMoveInput,
@@ -271,6 +272,17 @@ export class BoardgameBaseGameRenderer<
    * to an already-finished game does not accidentally replay a celebration.
    */
   effectsForTransition(_context: EffectTransitionContext<S, MN>): readonly EffectSpec[] {
+    return [];
+  }
+
+  /**
+   * Pure structural start scheduling for one authoritative transition.
+   * Subject array order is the cadence order. Effects remain observational
+   * and cannot retime this motion.
+   */
+  motionCohortsForTransition(
+    _context: EffectTransitionContext<S, MN>,
+  ): readonly MotionStaggerCohortSpec[] {
     return [];
   }
 
