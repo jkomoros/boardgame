@@ -19,12 +19,16 @@ type fileMutation struct {
 	hadFile    bool
 	installed  bool
 	exclusive  bool
+	delete     bool
 }
 
 // FileSpec describes one file in an atomic output set.
 type FileSpec struct {
 	Contents []byte
 	Mode     fs.FileMode
+	// Delete removes the named file as part of the transaction. Missing files
+	// are a no-op; directories and other non-regular paths are rejected.
+	Delete bool
 	// ForceMode applies Mode even when replacing an existing file. By default,
 	// existing permissions are preserved.
 	ForceMode bool
@@ -117,19 +121,21 @@ func prepareMutations(root string, files map[string]FileSpec, overwrite bool) ([
 		seen[clean] = name
 
 		spec := files[name]
-		mutation := fileMutation{path: path, contents: spec.Contents, mode: spec.Mode.Perm(), exclusive: !overwrite}
+		mutation := fileMutation{path: path, contents: spec.Contents, mode: spec.Mode.Perm(), exclusive: !overwrite, delete: spec.Delete}
 		info, err := os.Lstat(path)
 		if err == nil {
 			if !info.Mode().IsRegular() {
 				return nil, fmt.Errorf("refusing to replace non-regular output %s", path)
 			}
-			if !overwrite {
+			if !overwrite && !spec.Delete {
 				return nil, fmt.Errorf("%s already exists; save aborted", name)
 			}
 			mutation.hadFile = true
 			if !spec.ForceMode {
 				mutation.mode = info.Mode().Perm()
 			}
+		} else if os.IsNotExist(err) && spec.Delete {
+			continue
 		} else if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("inspect output %s: %w", path, err)
 		}
@@ -225,6 +231,16 @@ func stageMutations(root string, mutations []fileMutation) error {
 		}
 		mutations[i].tempPath = file.Name()
 		mutations[i].backupPath = file.Name() + ".backup"
+		if mutations[i].delete {
+			if err := file.Close(); err != nil {
+				return fmt.Errorf("close deletion staging file for %s: %w", mutations[i].path, err)
+			}
+			if err := os.Remove(mutations[i].tempPath); err != nil {
+				return fmt.Errorf("remove deletion staging file for %s: %w", mutations[i].path, err)
+			}
+			mutations[i].tempPath = ""
+			continue
+		}
 		if err := file.Chmod(mutations[i].mode); err != nil {
 			_ = file.Close()
 			return fmt.Errorf("set staged permissions for %s: %w", mutations[i].path, err)
@@ -250,6 +266,10 @@ func installMutations(mutations []fileMutation) error {
 			if err := rename(mutations[i].path, mutations[i].backupPath); err != nil {
 				return errors.Join(fmt.Errorf("back up %s: %w", mutations[i].path, err), rollbackMutations(mutations, i-1))
 			}
+		}
+		if mutations[i].delete {
+			mutations[i].installed = true
+			continue
 		}
 		if mutations[i].exclusive {
 			if err := link(mutations[i].tempPath, mutations[i].path); err != nil {

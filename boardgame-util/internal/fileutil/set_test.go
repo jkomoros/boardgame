@@ -138,6 +138,58 @@ func TestWriteFilesAtomicExclusiveInstallDoesNotClobberRaceWinner(t *testing.T) 
 	assertNoSetArtifacts(t, root)
 }
 
+func TestWriteFileSetAtomicDeletesAsPartOfTransaction(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "orphan.go")
+	if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteFileSetAtomic(root, map[string]FileSpec{"orphan.go": {Delete: true}}, true); err != nil {
+		t.Fatalf("WriteFileSetAtomic: %v", err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("deleted file remains: %v", err)
+	}
+	assertNoSetArtifacts(t, root)
+}
+
+func TestWriteFileSetAtomicRestoresDeletionOnLaterFailure(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{"a-delete", "b-write"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("old-"+name), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	originalRename := rename
+	calls := 0
+	rename = func(oldPath, newPath string) error {
+		calls++
+		if calls == 3 {
+			return errors.New("injected install failure after deletion")
+		}
+		return originalRename(oldPath, newPath)
+	}
+	t.Cleanup(func() { rename = originalRename })
+
+	err := WriteFileSetAtomic(root, map[string]FileSpec{
+		"a-delete": {Delete: true},
+		"b-write":  {Contents: []byte("new"), Mode: 0o644},
+	}, true)
+	if err == nil {
+		t.Fatal("WriteFileSetAtomic succeeded, want injected failure")
+	}
+	for _, name := range []string{"a-delete", "b-write"} {
+		contents, readErr := os.ReadFile(filepath.Join(root, name))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if got, want := string(contents), "old-"+name; got != want {
+			t.Errorf("%s after rollback = %q, want %q", name, got, want)
+		}
+	}
+	assertNoSetArtifacts(t, root)
+}
+
 func assertNoSetArtifacts(t *testing.T, root string) {
 	t.Helper()
 	matches, err := filepath.Glob(filepath.Join(root, ".boardgame-set-*"))
