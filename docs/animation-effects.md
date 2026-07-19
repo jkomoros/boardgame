@@ -271,6 +271,30 @@ Parent tone, intensity, timing, and seed identity are inherited by children
 unless a child overrides them. Composition and leaf recipes use the same
 executor, cancellation, result, and budget semantics.
 
+### Reusable game-local profiles
+
+When a game repeats a visual phrase, keep the profile as an ordinary typed
+factory beside its renderer:
+
+```ts
+const rewardPop = (at: EffectPointAnchor, key: string): EffectSpec => fx.parallel([
+  fx.pulse({ at }),
+  fx.burst({ at }),
+], {
+  key,
+  tone: 'reward',
+  intensity: 'small',
+  timing: 'version',
+});
+```
+
+This inherits the same validation, deterministic identity, theme, reduced
+motion, and budgets as inline descriptors. Prefer this to a global string-based
+preset registry: TypeScript keeps the inputs honest, the profile is local to
+the game whose visual language it expresses, and changing it cannot silently
+restyle unrelated games. Promote a profile into `fx` only after several games
+demonstrate the same semantic contract—not merely similar keyframes.
+
 ## Determinism and companion timing
 
 Particle geometry is seeded from game ID, snapshot epoch, version, descriptor

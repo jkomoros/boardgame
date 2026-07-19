@@ -291,6 +291,12 @@ handle. It never replays a cached structural start after the subject has already
 arrived. This is the semantic distinction between scheduled effects and
 lifecycle subscriptions.
 
+Reusable visual profiles remain typed game-local descriptor factories. The
+existing semantic layers—recipe, tone, intensity, timing, theme, and
+composition—already contain the durable policy. A framework-wide named preset
+registry is intentionally deferred until multiple games prove an identical
+semantic contract; sharing a keyframe shape alone is insufficient.
+
 ## Physical animation ownership
 
 Avoid a general runtime channel arbiter. Conflicts are prevented by DOM
@@ -312,29 +318,34 @@ ownership:
 6. **Done:** specify and implement the solved-plan publication barrier.
 7. **Done:** publish immutable intentions, actual executions, skips, and terminal
    outcomes for FLIP and explicit flights.
-8. **Done:** expose read-only plan observation and pure lifecycle-event
-   compilation.
+8. **Done:** expose one ordered, replayable lifecycle stream with an explicit
+   generation-settled marker.
 9. **Done:** add `fx.motion()` point-only structural decoration for pulse/burst
    departure and arrival cues. It requires no component materialization, starts
    only from actual execution events, and cannot gate playback.
 10. **Done:** add an exact, privacy-safe silhouette snapshot protocol and
-    `fx.trail()` follower that derives geometry and timing from real FLIP
-    execution, degrades under budgets/reduced motion, and cancels by generation.
+    `fx.decorateMotion()`/`fx.trail()` follower that derives geometry and timing
+    from real FLIP execution, prepares before playback, degrades under
+    budgets/reduced motion, and cancels by generation.
 11. **Done:** extract immutable component motion tracks, make channel ownership
     explicit, plan once for participation and playback, and migrate card
     face/rotation animation off its imperative WAAPI hook.
 12. **Done:** move track-to-keyframe execution into the common animatable-item
     kernel and migrate the standalone Pig die spin, eliminating the last direct
     state-driven component `play()` bypass while preserving lifecycle scope.
-13. **Deferred:** design any artwork-bearing subject representation as a new,
+13. **Done:** make target startup atomic, isolate planner/playback failures,
+    redact structural plans to capabilities, label execution channels, enforce
+    reduced motion for explicit timing, and keep trails on compositor channels.
+14. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-14. Reassess a larger representation only when concrete duplication justifies
+15. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today
 
 Game authors should use `effectsForTransition()`, `this.effects.play()`, named
-anchors, `fx.motion()`, `fx.trail()`, and `animateBetween()` as documented in `docs/animation-effects.md` and
+anchors, `fx.motion()`, `fx.decorateMotion()`, `fx.trail()`, and
+`animateBetween()` as documented in `docs/animation-effects.md` and
 `docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
 events are framework-internal while their contracts settle. Shipping the
 internal seam first prevents an attractive experimental API from becoming a
