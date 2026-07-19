@@ -35,6 +35,10 @@ const (
 	maxReferenceBytes      = 32 << 20
 	maxTotalReferenceBytes = 64 << 20
 	maxAPIResponseBytes    = 64 << 20
+	maxImageAssetBytes     = 64 << 20
+	maxMetadataBytes       = 1 << 20
+	maxImageDimension      = 8192
+	maxImagePixels         = 20_000_000
 )
 
 var validRatios = map[string]bool{
@@ -306,6 +310,9 @@ func loadReferences(paths []string) ([]Reference, []part, error) {
 		if totalBytes+int64(len(data)) > maxTotalReferenceBytes {
 			return nil, nil, fmt.Errorf("reference images exceed the %d-byte aggregate limit", maxTotalReferenceBytes)
 		}
+		if err := validateImageDimensions(data); err != nil {
+			return nil, nil, fmt.Errorf("validate reference %s: %w", path, err)
+		}
 		totalBytes += int64(len(data))
 		mimeType := http.DetectContentType(data)
 		if !strings.HasPrefix(mimeType, "image/") {
@@ -369,6 +376,9 @@ func normalizeImage(data []byte, reportedMIME, output string) ([]byte, string, e
 		targetMIME = targetMIME[:separator]
 	}
 	detectedMIME := http.DetectContentType(data)
+	if err := validateImageDimensions(data); err != nil {
+		return nil, "", fmt.Errorf("validate generated image: %w", err)
+	}
 	if targetMIME == "" {
 		if strings.HasPrefix(detectedMIME, "image/") {
 			return data, detectedMIME, nil
@@ -378,7 +388,7 @@ func normalizeImage(data []byte, reportedMIME, output string) ([]byte, string, e
 	if detectedMIME == targetMIME {
 		return data, targetMIME, nil
 	}
-	decoded, _, err := image.Decode(bytes.NewReader(data))
+	decoded, err := decodeImageWithinLimits(data)
 	if err != nil {
 		return nil, "", fmt.Errorf("decode Gemini image for %s output: %w", targetMIME, err)
 	}
@@ -395,6 +405,25 @@ func normalizeImage(data []byte, reportedMIME, output string) ([]byte, string, e
 		return nil, "", fmt.Errorf("encode generated %s: %w", targetMIME, err)
 	}
 	return encoded.Bytes(), targetMIME, nil
+}
+
+func decodeImageWithinLimits(data []byte) (image.Image, error) {
+	if err := validateImageDimensions(data); err != nil {
+		return nil, err
+	}
+	decoded, _, err := image.Decode(bytes.NewReader(data))
+	return decoded, err
+}
+
+func validateImageDimensions(data []byte) error {
+	config, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	if config.Width <= 0 || config.Height <= 0 || config.Width > maxImageDimension || config.Height > maxImageDimension || int64(config.Width)*int64(config.Height) > maxImagePixels {
+		return fmt.Errorf("image dimensions %dx%d exceed production limits", config.Width, config.Height)
+	}
+	return nil
 }
 
 func digest(data []byte) string {

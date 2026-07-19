@@ -10,7 +10,6 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"math"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -72,11 +71,11 @@ func ProduceAlpha(options AlphaOptions, now func() time.Time) (*AlphaManifest, e
 	if options.CoreTolerance < 0 || options.FeatherTolerance <= options.CoreTolerance || options.ChromaGate < 0 || options.EdgeContract < 0 || options.EdgeContract > 16 {
 		return nil, errors.New("alpha options require 0 <= core < feather, chroma gate >= 0, and edge contract from 0 to 16")
 	}
-	inputBytes, err := os.ReadFile(options.Input)
+	inputBytes, err := readLimitedFile(options.Input, maxImageAssetBytes)
 	if err != nil {
 		return nil, err
 	}
-	source, _, err := image.Decode(bytes.NewReader(inputBytes))
+	source, err := decodeImageWithinLimits(inputBytes)
 	if err != nil {
 		return nil, fmt.Errorf("decode matte: %w", err)
 	}

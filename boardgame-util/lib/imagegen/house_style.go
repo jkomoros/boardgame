@@ -35,7 +35,7 @@ func AddHouseStyle(root, name, slug, briefPath, sourceLockPath string, force boo
 	if name == "" || !houseStyleSlug.MatchString(slug) {
 		return nil, errors.New("house style requires a name and a lowercase hyphenated slug")
 	}
-	brief, err := os.ReadFile(briefPath)
+	brief, err := readLimitedFile(briefPath, maxMetadataBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func houseStyleCatalogData(root string, replacement *HouseStyle) ([]byte, error)
 		if replacement != nil && dir.Name() == replacement.Slug {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(root, dir.Name(), "house-style.json"))
+		data, err := readLimitedFile(filepath.Join(root, dir.Name(), "house-style.json"), maxMetadataBytes)
 		if os.IsNotExist(err) {
 			continue
 		}

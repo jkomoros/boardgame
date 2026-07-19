@@ -12,7 +12,7 @@ func TestAddAndResolveHouseStyle(t *testing.T) {
 	selected := filepath.Join(dir, "selected.png")
 	locked := filepath.Join(dir, "locked.png")
 	brief := filepath.Join(dir, "brief.md")
-	if err := os.WriteFile(selected, []byte("style image"), 0o644); err != nil {
+	if err := writeTestPNG(selected); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(brief, []byte("Original graphite field archive."), 0o644); err != nil {
@@ -63,7 +63,7 @@ func TestAddHouseStylePreflightFailureCreatesNoStyleFiles(t *testing.T) {
 	selected := filepath.Join(dir, "selected.png")
 	locked := filepath.Join(dir, "locked.png")
 	brief := filepath.Join(dir, "brief.md")
-	if err := os.WriteFile(selected, []byte("style image"), 0o644); err != nil {
+	if err := writeTestPNG(selected); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(brief, []byte("brief"), 0o644); err != nil {

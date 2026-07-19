@@ -1,6 +1,9 @@
 package imagegen
 
 import (
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,7 +39,7 @@ func TestCreateAndReadStyleLock(t *testing.T) {
 	dir := t.TempDir()
 	selected := filepath.Join(dir, "candidate.png")
 	output := filepath.Join(dir, "locked.png")
-	if err := os.WriteFile(selected, []byte("image"), 0o644); err != nil {
+	if err := writeTestPNG(selected); err != nil {
 		t.Fatal(err)
 	}
 	now := func() time.Time { return time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC) }
@@ -58,7 +61,7 @@ func TestCreateStyleLockPreflightFailurePublishesNothing(t *testing.T) {
 	selected := filepath.Join(dir, "candidate.png")
 	output := filepath.Join(dir, "locked.png")
 	sidecar := output + ".style-lock.json"
-	if err := os.WriteFile(selected, []byte("image"), 0o644); err != nil {
+	if err := writeTestPNG(selected); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(sidecar, []byte("creator-owned"), 0o644); err != nil {
@@ -77,6 +80,21 @@ func TestCreateStyleLockPreflightFailurePublishesNothing(t *testing.T) {
 	if string(contents) != "creator-owned" {
 		t.Fatalf("existing sidecar changed: %q", contents)
 	}
+}
+
+func writeTestPNG(path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	image := image.NewNRGBA(image.Rect(0, 0, 3, 3))
+	image.SetNRGBA(1, 1, color.NRGBA{R: 255, A: 255})
+	encodeErr := png.Encode(file, image)
+	closeErr := file.Close()
+	if encodeErr != nil {
+		return encodeErr
+	}
+	return closeErr
 }
 
 func TestGalleryListsEveryCandidate(t *testing.T) {

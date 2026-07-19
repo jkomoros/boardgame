@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"net/http"
 	"os"
@@ -97,6 +98,17 @@ func TestLoadReferencesRejectsOversizedFile(t *testing.T) {
 	}
 	if _, _, err := loadReferences([]string{path}); err == nil || !strings.Contains(err.Error(), "byte limit") {
 		t.Fatalf("error = %v, want reference size limit", err)
+	}
+}
+
+func TestNormalizeImageRejectsExcessiveDimensionsBeforeDecode(t *testing.T) {
+	oversized := image.NewNRGBA(image.Rect(0, 0, maxImageDimension+1, 3))
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, oversized); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := normalizeImage(encoded.Bytes(), "image/png", "out.png"); err == nil || !strings.Contains(err.Error(), "dimensions") {
+		t.Fatalf("error = %v, want dimension limit", err)
 	}
 }
 

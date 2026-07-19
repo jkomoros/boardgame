@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -93,12 +92,15 @@ func buildStyleLockFiles(selected, output string, now func() time.Time) (*StyleL
 	if selected == "" || output == "" {
 		return nil, nil, false, errors.New("selected reference and output are required")
 	}
-	data, err := os.ReadFile(selected)
+	data, err := readLimitedFile(selected, maxImageAssetBytes)
 	if err != nil {
 		return nil, nil, false, err
 	}
+	if err := validateImageDimensions(data); err != nil {
+		return nil, nil, false, fmt.Errorf("validate selected style image: %w", err)
+	}
 	sourceManifest := selected + ".imagegen.json"
-	manifestData, manifestErr := os.ReadFile(sourceManifest)
+	manifestData, manifestErr := readLimitedFile(sourceManifest, maxMetadataBytes)
 	if os.IsNotExist(manifestErr) {
 		sourceManifest = ""
 	} else if manifestErr != nil {
@@ -127,12 +129,7 @@ func buildStyleLockFiles(selected, output string, now func() time.Time) (*StyleL
 }
 
 func ReadStyleLock(path string) (*StyleLock, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, 1<<20))
+	data, err := readLimitedFile(path, maxMetadataBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -144,9 +141,12 @@ func ReadStyleLock(path string) (*StyleLock, error) {
 	if !filepath.IsAbs(imagePath) {
 		imagePath = filepath.Join(filepath.Dir(path), imagePath)
 	}
-	image, err := os.ReadFile(imagePath)
+	image, err := readLimitedFile(imagePath, maxImageAssetBytes)
 	if err != nil {
 		return nil, fmt.Errorf("read locked style image: %w", err)
+	}
+	if err := validateImageDimensions(image); err != nil {
+		return nil, fmt.Errorf("validate locked style image: %w", err)
 	}
 	if digest(image) != lock.ImageSHA256 {
 		return nil, errors.New("locked style image hash does not match the lock manifest")
