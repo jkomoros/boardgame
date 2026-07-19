@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/moveargs"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
@@ -23,7 +24,6 @@ type emitMoveArgs struct {
 type generatedMoveArgsFile struct {
 	path     string
 	contents []byte
-	tempPath string
 	gameName string
 	moves    int
 }
@@ -245,45 +245,18 @@ func installGeneratedMoveArgs(generated []generatedMoveArgsFile, check bool) err
 		return nil
 	}
 
-	// Prepare every replacement alongside its destination before changing any
-	// destination. Rename is therefore same-filesystem and atomic per file; any
-	// extraction or preparation failure leaves the old generation untouched.
-	cleanup := func() {
-		for _, file := range generated {
-			if file.tempPath != "" {
-				_ = os.Remove(file.tempPath)
-			}
+	files := make(map[string]fileutil.FileSpec, len(generated))
+	for _, file := range generated {
+		if _, exists := files[file.path]; exists {
+			return fmt.Errorf("duplicate generated destination %s", file.path)
 		}
+		files[file.path] = fileutil.FileSpec{Contents: file.contents, Mode: 0o644, ForceMode: true}
 	}
-	defer cleanup()
-	for i := range generated {
-		file, err := os.CreateTemp(filepath.Dir(generated[i].path), ".move-args-*")
-		if err != nil {
-			return fmt.Errorf("couldn't stage _move_args.ts for %s: %w", generated[i].gameName, err)
-		}
-		generated[i].tempPath = file.Name()
-		if err := file.Chmod(0644); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("couldn't set staged permissions for %s: %w", generated[i].gameName, err)
-		}
-		if _, err := file.Write(generated[i].contents); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("couldn't stage _move_args.ts for %s: %w", generated[i].gameName, err)
-		}
-		if err := file.Sync(); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("couldn't sync staged _move_args.ts for %s: %w", generated[i].gameName, err)
-		}
-		if err := file.Close(); err != nil {
-			return fmt.Errorf("couldn't close staged _move_args.ts for %s: %w", generated[i].gameName, err)
-		}
+	if err := fileutil.WriteFileSetAtomicAbsolute(files, true); err != nil {
+		return fmt.Errorf("install generated move-input contracts: %w", err)
 	}
-	for i := range generated {
-		if err := os.Rename(generated[i].tempPath, generated[i].path); err != nil {
-			return fmt.Errorf("couldn't atomically replace _move_args.ts for %s: %w", generated[i].gameName, err)
-		}
-		generated[i].tempPath = ""
-		fmt.Fprintf(os.Stderr, "  Generated %s/client/_move_args.ts (%d moves)\n", generated[i].gameName, generated[i].moves)
+	for _, file := range generated {
+		fmt.Fprintf(os.Stderr, "  Generated %s/client/_move_args.ts (%d moves)\n", file.gameName, file.moves)
 	}
 
 	return nil

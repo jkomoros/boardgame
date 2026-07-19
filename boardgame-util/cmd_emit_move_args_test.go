@@ -46,8 +46,8 @@ func TestInstallGeneratedMoveArgsPreparationFailureLeavesAllOldFiles(t *testing.
 		{path: first, contents: []byte("new-a"), gameName: "a"},
 		{path: second, contents: []byte("new-z"), gameName: "z"},
 	}, false)
-	if err == nil || !strings.Contains(err.Error(), "stage") {
-		t.Fatalf("error = %v, want staging failure", err)
+	if err == nil {
+		t.Fatal("install succeeded despite invalid destination parent")
 	}
 	got, readErr := os.ReadFile(first)
 	if readErr != nil {

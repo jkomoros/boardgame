@@ -29,6 +29,9 @@ type FileSpec struct {
 	// Delete removes the named file as part of the transaction. Missing files
 	// are a no-op; directories and other non-regular paths are rejected.
 	Delete bool
+	// RequireExisting makes a missing destination a preflight error. It is
+	// useful when a concurrently removed file should abort the whole set.
+	RequireExisting bool
 	// Exclusive requires the destination to be absent even when the surrounding
 	// transaction otherwise permits overwrites.
 	Exclusive bool
@@ -46,6 +49,65 @@ func WriteFilesAtomic(root string, files map[string][]byte, overwrite bool, defa
 		specs[name] = FileSpec{Contents: contents, Mode: defaultMode}
 	}
 	return WriteFileSetAtomic(root, specs, overwrite)
+}
+
+// WriteFileSetAtomicAbsolute atomically applies a set whose map keys are
+// absolute destination paths. It is intended for generators that discover
+// outputs across multiple package directories and therefore have no natural
+// output root at the call site.
+func WriteFileSetAtomicAbsolute(files map[string]FileSpec, overwrite bool) error {
+	if len(files) == 0 {
+		return nil
+	}
+	paths := make([]string, 0, len(files))
+	cleaned := make(map[string]FileSpec, len(files))
+	for path, spec := range files {
+		if !filepath.IsAbs(path) {
+			return fmt.Errorf("output path %q must be absolute", path)
+		}
+		clean := filepath.Clean(path)
+		if _, exists := cleaned[clean]; exists {
+			return fmt.Errorf("multiple output paths resolve to %s", clean)
+		}
+		cleaned[clean] = spec
+		paths = append(paths, clean)
+	}
+	sort.Strings(paths)
+	root, err := commonParentDirectory(paths)
+	if err != nil {
+		return err
+	}
+	relative := make(map[string]FileSpec, len(cleaned))
+	for path, spec := range cleaned {
+		name, err := filepath.Rel(root, path)
+		if err != nil {
+			return fmt.Errorf("make output path %s relative to %s: %w", path, root, err)
+		}
+		relative[name] = spec
+	}
+	return WriteFileSetAtomic(root, relative, overwrite)
+}
+
+func commonParentDirectory(paths []string) (string, error) {
+	root := filepath.Dir(paths[0])
+	for _, path := range paths[1:] {
+		dir := filepath.Dir(path)
+		for {
+			rel, err := filepath.Rel(root, dir)
+			if err != nil {
+				return "", fmt.Errorf("find common output root for %s and %s: %w", root, dir, err)
+			}
+			if rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				break
+			}
+			parent := filepath.Dir(root)
+			if parent == root {
+				return "", fmt.Errorf("output paths %s and %s have no usable common directory", paths[0], path)
+			}
+			root = parent
+		}
+	}
+	return root, nil
 }
 
 // WriteFileSetAtomic is WriteFilesAtomic with per-file creation modes.
@@ -138,6 +200,9 @@ func prepareMutations(root string, files map[string]FileSpec, overwrite bool) ([
 				mutation.mode = info.Mode().Perm()
 			}
 		} else if os.IsNotExist(err) && spec.Delete {
+			if spec.RequireExisting {
+				return nil, fmt.Errorf("required output %s no longer exists", path)
+			}
 			continue
 		} else if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("inspect output %s: %w", path, err)

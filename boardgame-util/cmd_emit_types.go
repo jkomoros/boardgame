@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/gametypes"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
@@ -153,10 +154,9 @@ func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, incl
 }
 
 type generatedGameTypeFile struct {
-	path, tempPath, backupPath, gameName string
-	contents                             []byte
-	gameFields, playerFields             int
-	hadOriginal, installed               bool
+	path, gameName           string
+	contents                 []byte
+	gameFields, playerFields int
 }
 
 func checkGeneratedGameTypes(generated []generatedGameTypeFile) error {
@@ -273,112 +273,20 @@ export abstract class BoardgameHandViewBase<S, C extends object, M extends strin
 
 func installGeneratedGameTypes(generated []generatedGameTypeFile) error {
 	sort.Slice(generated, func(i, j int) bool { return generated[i].path < generated[j].path })
-	cleanup := func() {
-		for _, file := range generated {
-			if file.tempPath != "" {
-				_ = os.Remove(file.tempPath)
-			}
+	files := make(map[string]fileutil.FileSpec, len(generated))
+	for _, file := range generated {
+		if _, exists := files[file.path]; exists {
+			return fmt.Errorf("duplicate generated destination %s", file.path)
 		}
+		files[file.path] = fileutil.FileSpec{Contents: file.contents, Mode: 0o644, ForceMode: true}
 	}
-	defer cleanup()
-
-	seen := make(map[string]bool, len(generated))
-	for i := range generated {
-		if seen[generated[i].path] {
-			return fmt.Errorf("duplicate generated destination %s", generated[i].path)
-		}
-		seen[generated[i].path] = true
-		info, err := os.Lstat(generated[i].path)
-		if err == nil {
-			if !info.Mode().IsRegular() {
-				return fmt.Errorf("refusing to replace non-file generated destination %s", generated[i].path)
-			}
-			generated[i].hadOriginal = true
-		} else if !os.IsNotExist(err) {
-			return fmt.Errorf("couldn't inspect generated destination %s: %w", generated[i].path, err)
-		}
+	if err := fileutil.WriteFileSetAtomicAbsolute(files, true); err != nil {
+		return fmt.Errorf("install generated game types: %w", err)
 	}
-
-	// Prepare every replacement on the destination filesystem before changing
-	// any destination. Extraction, schema validation, or staging failures leave
-	// the prior complete generation untouched.
-	for i := range generated {
-		file, err := os.CreateTemp(filepath.Dir(generated[i].path), ".game-types-*")
-		if err != nil {
-			return fmt.Errorf("couldn't stage %s for %s: %w", filepath.Base(generated[i].path), generated[i].gameName, err)
-		}
-		generated[i].tempPath = file.Name()
-		if err := file.Chmod(0644); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("couldn't set staged permissions for %s: %w", generated[i].gameName, err)
-		}
-		if _, err := file.Write(generated[i].contents); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("couldn't stage generated types for %s: %w", generated[i].gameName, err)
-		}
-		if err := file.Sync(); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("couldn't sync generated types for %s: %w", generated[i].gameName, err)
-		}
-		if err := file.Close(); err != nil {
-			return fmt.Errorf("couldn't close generated types for %s: %w", generated[i].gameName, err)
-		}
-	}
-	rollback := func(last int) error {
-		var rollbackErr error
-		for i := last; i >= 0; i-- {
-			if generated[i].installed {
-				if err := os.Remove(generated[i].path); err != nil && !os.IsNotExist(err) && rollbackErr == nil {
-					rollbackErr = err
-				}
-			}
-			if generated[i].backupPath != "" {
-				if err := restoreGeneratedGameTypeFile(generated[i].backupPath, generated[i].path); err != nil {
-					if rollbackErr == nil {
-						rollbackErr = err
-					}
-				} else {
-					generated[i].backupPath = ""
-				}
-			}
-		}
-		return rollbackErr
-	}
-	for i := range generated {
-		if generated[i].hadOriginal {
-			generated[i].backupPath = generated[i].tempPath + ".backup"
-			if err := renameGeneratedGameTypeFile(generated[i].path, generated[i].backupPath); err != nil {
-				rollbackErr := rollback(i - 1)
-				return fmt.Errorf("couldn't preserve prior %s for %s: %w (rollback: %v)", filepath.Base(generated[i].path), generated[i].gameName, err, rollbackErr)
-			}
-		}
-		if err := renameGeneratedGameTypeFile(generated[i].tempPath, generated[i].path); err != nil {
-			var restoreErr error
-			if generated[i].backupPath != "" {
-				restoreErr = restoreGeneratedGameTypeFile(generated[i].backupPath, generated[i].path)
-				if restoreErr == nil {
-					generated[i].backupPath = ""
-				}
-			}
-			rollbackErr := rollback(i - 1)
-			return fmt.Errorf("couldn't atomically replace %s for %s: %w (current restore: %v; prior rollback: %v; backup: %s)", filepath.Base(generated[i].path), generated[i].gameName, err, restoreErr, rollbackErr, generated[i].backupPath)
-		}
-		generated[i].tempPath = ""
-		generated[i].installed = true
-		if generated[i].gameFields != 0 || generated[i].playerFields != 0 {
-			fmt.Fprintf(os.Stderr, "  Generated %s/client/_types.ts and _game_renderer.ts (%d game fields, %d player fields)\n", generated[i].gameName, generated[i].gameFields, generated[i].playerFields)
-		}
-	}
-	for i := range generated {
-		if generated[i].backupPath != "" {
-			if err := os.Remove(generated[i].backupPath); err != nil {
-				return fmt.Errorf("installed generated contracts but couldn't remove backup for %s: %w", generated[i].gameName, err)
-			}
-			generated[i].backupPath = ""
+	for _, file := range generated {
+		if file.gameFields != 0 || file.playerFields != 0 {
+			fmt.Fprintf(os.Stderr, "  Generated %s/client/_types.ts and _game_renderer.ts (%d game fields, %d player fields)\n", file.gameName, file.gameFields, file.playerFields)
 		}
 	}
 	return nil
 }
-
-var renameGeneratedGameTypeFile = os.Rename
-var restoreGeneratedGameTypeFile = os.Rename

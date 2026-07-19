@@ -43,6 +43,34 @@ func TestWriteFilesAtomicRejectsUnsafeAndAliasedPaths(t *testing.T) {
 	}
 }
 
+func TestWriteFileSetAtomicAbsoluteWritesAcrossPackageDirectories(t *testing.T) {
+	root := t.TempDir()
+	first := filepath.Join(root, "games", "alpha", "client", "_types.ts")
+	second := filepath.Join(root, "examples", "beta", "client", "_types.ts")
+	err := WriteFileSetAtomicAbsolute(map[string]FileSpec{
+		first:  {Contents: []byte("alpha"), Mode: 0o644},
+		second: {Contents: []byte("beta"), Mode: 0o644},
+	}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]string{first: "alpha", second: "beta"} {
+		got, err := os.ReadFile(path)
+		if err != nil || string(got) != want {
+			t.Fatalf("%s = %q, %v; want %q", path, got, err, want)
+		}
+	}
+}
+
+func TestWriteFileSetAtomicAbsoluteRejectsRelativePath(t *testing.T) {
+	err := WriteFileSetAtomicAbsolute(map[string]FileSpec{
+		"relative/output": {Contents: []byte("bad"), Mode: 0o644},
+	}, true)
+	if err == nil || !strings.Contains(err.Error(), "must be absolute") {
+		t.Fatalf("error = %v, want absolute-path error", err)
+	}
+}
+
 func TestWriteFilesAtomicRejectsSymlinkEscape(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation generally requires elevated privileges on Windows")
@@ -106,6 +134,41 @@ func TestWriteFilesAtomicRollsBackLateRenameFailure(t *testing.T) {
 	assertNoSetArtifacts(t, root)
 }
 
+func TestWriteFilesAtomicReportsFailedRestoreAndPreservesBackup(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "output")
+	if err := os.WriteFile(path, []byte("old"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	originalRename := rename
+	calls := 0
+	rename = func(oldPath, newPath string) error {
+		calls++
+		switch calls {
+		case 2:
+			return errors.New("injected install failure")
+		case 3:
+			return errors.New("injected restore failure")
+		default:
+			return originalRename(oldPath, newPath)
+		}
+	}
+	t.Cleanup(func() { rename = originalRename })
+
+	err := WriteFilesAtomic(root, map[string][]byte{"output": []byte("new")}, true, 0o644)
+	if err == nil || !strings.Contains(err.Error(), "injected restore failure") {
+		t.Fatalf("error = %v, want reported restore failure", err)
+	}
+	backups, globErr := filepath.Glob(filepath.Join(root, ".boardgame-set-*.backup"))
+	if globErr != nil || len(backups) != 1 {
+		t.Fatalf("preserved backups = %v, err = %v; want one", backups, globErr)
+	}
+	contents, readErr := os.ReadFile(backups[0])
+	if readErr != nil || string(contents) != "old" {
+		t.Fatalf("backup contents = %q, err = %v; want old", contents, readErr)
+	}
+}
+
 func TestWriteFilesAtomicExclusiveInstallDoesNotClobberRaceWinner(t *testing.T) {
 	root := t.TempDir()
 	originalLink := link
@@ -151,6 +214,16 @@ func TestWriteFileSetAtomicDeletesAsPartOfTransaction(t *testing.T) {
 		t.Fatalf("deleted file remains: %v", err)
 	}
 	assertNoSetArtifacts(t, root)
+}
+
+func TestWriteFileSetAtomicCanRequireDeletionTarget(t *testing.T) {
+	root := t.TempDir()
+	err := WriteFileSetAtomic(root, map[string]FileSpec{
+		"disappeared.go": {Delete: true, RequireExisting: true},
+	}, true)
+	if err == nil || !strings.Contains(err.Error(), "no longer exists") {
+		t.Fatalf("error = %v, want disappeared-output error", err)
+	}
 }
 
 func TestWriteFileSetAtomicRestoresDeletionOnLaterFailure(t *testing.T) {
