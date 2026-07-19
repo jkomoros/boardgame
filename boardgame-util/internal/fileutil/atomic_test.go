@@ -118,3 +118,25 @@ func TestWriteFileExclusiveDoesNotReplaceExistingFile(t *testing.T) {
 		t.Fatalf("existing contents = %q, want old", contents)
 	}
 }
+
+func TestWriteFileExclusivePublishesCompleteFileWithoutStagingArtifacts(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "new.go")
+	if err := WriteFileExclusive(path, []byte("complete"), 0o640); err != nil {
+		t.Fatalf("WriteFileExclusive: %v", err)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != "complete" {
+		t.Fatalf("contents = %q, want complete", contents)
+	}
+	matches, err := filepath.Glob(filepath.Join(dir, ".boardgame-exclusive-*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("exclusive staging artifacts remain: %v", matches)
+	}
+}

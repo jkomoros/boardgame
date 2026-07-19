@@ -21,8 +21,6 @@ type fileMutation struct {
 	exclusive  bool
 }
 
-var link = os.Link
-
 // FileSpec describes one file in an atomic output set.
 type FileSpec struct {
 	Contents []byte

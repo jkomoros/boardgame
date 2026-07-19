@@ -10,6 +10,7 @@ import (
 )
 
 var rename = os.Rename
+var link = os.Link
 
 // WriteFileAtomic replaces path with contents using a same-directory temporary
 // file. Existing regular-file permissions are preserved; symlinks and other
@@ -58,26 +59,29 @@ func WriteFileAtomic(path string, contents []byte, defaultMode fs.FileMode) erro
 // makes the existence check and creation one filesystem operation, avoiding a
 // check-then-write race and refusing to follow an existing symlink.
 func WriteFileExclusive(path string, contents []byte, mode fs.FileMode) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode.Perm())
+	file, err := os.CreateTemp(filepath.Dir(path), ".boardgame-exclusive-*")
 	if err != nil {
-		return fmt.Errorf("create %s exclusively: %w", path, err)
+		return fmt.Errorf("stage exclusive file for %s: %w", path, err)
 	}
-	complete := false
+	tempPath := file.Name()
 	defer func() {
 		_ = file.Close()
-		if !complete {
-			_ = os.Remove(path)
-		}
+		_ = os.Remove(tempPath)
 	}()
+	if err := file.Chmod(mode.Perm()); err != nil {
+		return fmt.Errorf("set permissions on exclusive file for %s: %w", path, err)
+	}
 	if _, err := file.Write(contents); err != nil {
-		return fmt.Errorf("write new file %s: %w", path, err)
+		return fmt.Errorf("stage exclusive file for %s: %w", path, err)
 	}
 	if err := file.Sync(); err != nil {
-		return fmt.Errorf("sync new file %s: %w", path, err)
+		return fmt.Errorf("sync exclusive file for %s: %w", path, err)
 	}
 	if err := file.Close(); err != nil {
-		return fmt.Errorf("close new file %s: %w", path, err)
+		return fmt.Errorf("close exclusive file for %s: %w", path, err)
 	}
-	complete = true
+	if err := link(tempPath, path); err != nil {
+		return fmt.Errorf("install %s exclusively: %w", path, err)
+	}
 	return nil
 }
