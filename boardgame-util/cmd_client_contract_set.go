@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"sort"
@@ -93,8 +92,11 @@ func (s *generatedClientContractSet) validatePaths() error {
 func (s *generatedClientContractSet) check() error {
 	var stale []string
 	for _, file := range s.replacements {
-		current, err := os.ReadFile(file.path)
-		if err != nil || !bytes.Equal(current, file.contents) {
+		current, err := generatedFileCurrent(file.path, file.contents)
+		if err != nil {
+			return err
+		}
+		if !current {
 			stale = append(stale, file.path)
 		}
 	}

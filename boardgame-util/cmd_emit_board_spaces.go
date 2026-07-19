@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -107,8 +106,11 @@ func installGeneratedBoardSpaces(generated []generatedBoardSpacesFile, orphans [
 	if check {
 		stale := append([]string(nil), orphans...)
 		for _, file := range generated {
-			current, err := os.ReadFile(file.path)
-			if err != nil || !bytes.Equal(current, file.contents) {
+			current, err := generatedFileCurrent(file.path, file.contents)
+			if err != nil {
+				return err
+			}
+			if !current {
 				stale = append(stale, file.path)
 			}
 		}

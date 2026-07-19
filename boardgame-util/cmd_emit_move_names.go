@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -146,8 +145,11 @@ func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) e
 	if check {
 		var stale []string
 		for _, file := range generated {
-			current, err := os.ReadFile(file.path)
-			if err != nil || !bytes.Equal(current, file.contents) {
+			current, err := generatedFileCurrent(file.path, file.contents)
+			if err != nil {
+				return err
+			}
+			if !current {
 				stale = append(stale, file.path)
 			}
 		}
