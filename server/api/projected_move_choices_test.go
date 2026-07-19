@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
@@ -15,11 +17,12 @@ import (
 
 type projectedChoicesDelegate struct {
 	*legalLedgerDelegate
-	rejectAll       bool
-	projectionCount int
-	namePolicy      string
-	moveName        string
-	legalCalls      atomic.Int32
+	rejectAll         bool
+	projectionCount   int
+	namePolicy        string
+	moveName          string
+	legalCalls        atomic.Int32
+	fixupUntilVersion atomic.Int32
 }
 
 func newProjectedChoicesDelegate() *projectedChoicesDelegate {
@@ -51,7 +54,15 @@ func (d *projectedChoicesDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		}
 		result = append(result, auto.MustConfig(new(projectedChoicesMove), options...))
 	}
+	result = append(result, auto.MustConfig(new(moves.NoOp), moves.WithMoveName("Recovery FixUp")))
 	return result
+}
+
+func (d *projectedChoicesDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgame.Move {
+	if int32(state.Version()) >= d.fixupUntilVersion.Load() {
+		return nil
+	}
+	return state.Game().MoveByNameForState("Recovery FixUp", state)
 }
 
 type projectedChoicesMove struct {
@@ -395,5 +406,208 @@ func TestProjectedMoveChoicesAutoCurrentDisplayDoesNotGrantActorAudience(t *test
 	}
 	if _, exists := bundles[0]["ProjectedMoveChoices"]; exists {
 		t.Fatalf("auto-current display granted another actor's choices: %#v", bundles[0]["ProjectedMoveChoices"])
+	}
+}
+
+type projectedChoicesReconcileStorage struct {
+	*legalLedgerStorage
+	frontierFailures atomic.Int32
+}
+
+func (s *projectedChoicesReconcileStorage) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	for {
+		remaining := s.frontierFailures.Load()
+		if remaining <= 0 {
+			break
+		}
+		if s.frontierFailures.CompareAndSwap(remaining, remaining-1) {
+			return errors.New("injected stale proposal-frontier CAS")
+		}
+	}
+	return s.legalLedgerStorage.SaveProposalFrontier(gameID, stateVersion, frontierVersion)
+}
+
+func setProjectedChoicesFrontierUnknown(t *testing.T, storage *legalLedgerStorage, gameID string) {
+	t.Helper()
+	storage.mu.Lock()
+	defer storage.mu.Unlock()
+	record := storage.games[gameID]
+	if record == nil {
+		t.Fatalf("missing stored game %q", gameID)
+	}
+	record.ProposalFrontierKnown = false
+	record.ProposalFrontierVersion = 0
+}
+
+func newProjectedChoicesReconcileGame(t *testing.T, delegate *projectedChoicesDelegate, storage *projectedChoicesReconcileStorage) (*boardgame.GameManager, *boardgame.Game) {
+	t.Helper()
+	manager, err := boardgame.NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return manager, game
+}
+
+func restartProjectedChoicesManager(t *testing.T, delegate *projectedChoicesDelegate, storage boardgame.StorageManager) *boardgame.GameManager {
+	t.Helper()
+	manager, err := boardgame.NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return manager
+}
+
+func TestReconcileProjectedMoveChoiceFrontierRepairsLegacyMarkerAndStaleCAS(t *testing.T) {
+	delegate := newProjectedChoicesDelegate()
+	storage := &projectedChoicesReconcileStorage{legalLedgerStorage: newLegalLedgerStorage()}
+	_, game := newProjectedChoicesReconcileGame(t, delegate, storage)
+	setProjectedChoicesFrontierUnknown(t, storage.legalLedgerStorage, game.ID())
+	storage.frontierFailures.Store(1)
+	manager := restartProjectedChoicesManager(t, newProjectedChoicesDelegate(), storage)
+
+	reconciled, err := reconcileProjectedMoveChoiceFrontier(manager.Game(game.ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reconciled == nil || !projectedMoveChoiceFrontierKnown(reconciled) || reconciled.Version() != game.Version() {
+		t.Fatalf("reconciled game = %#v", reconciled)
+	}
+	if storage.frontierFailures.Load() != 0 {
+		t.Fatal("injected stale CAS was not exercised")
+	}
+}
+
+func TestReconcileProjectedMoveChoiceFrontierCompletesPartialFixUpChain(t *testing.T) {
+	delegate := newProjectedChoicesDelegate()
+	storage := &projectedChoicesReconcileStorage{legalLedgerStorage: newLegalLedgerStorage()}
+	_, game := newProjectedChoicesReconcileGame(t, delegate, storage)
+	start := game.Version()
+	setProjectedChoicesFrontierUnknown(t, storage.legalLedgerStorage, game.ID())
+	restartedDelegate := newProjectedChoicesDelegate()
+	restartedDelegate.fixupUntilVersion.Store(int32(start + 2))
+	manager := restartProjectedChoicesManager(t, restartedDelegate, storage)
+
+	reconciled, err := reconcileProjectedMoveChoiceFrontier(manager.Game(game.ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reconciled.Version() != start+2 || !projectedMoveChoiceFrontierKnown(reconciled) {
+		t.Fatalf("partial chain recovered to version %d, frontier=%v; want %d", reconciled.Version(), projectedMoveChoiceFrontierKnown(reconciled), start+2)
+	}
+}
+
+func TestReconcileProjectedMoveChoiceFrontierSerializesConcurrentRequests(t *testing.T) {
+	delegate := newProjectedChoicesDelegate()
+	storage := &projectedChoicesReconcileStorage{legalLedgerStorage: newLegalLedgerStorage()}
+	_, game := newProjectedChoicesReconcileGame(t, delegate, storage)
+	setProjectedChoicesFrontierUnknown(t, storage.legalLedgerStorage, game.ID())
+	manager := restartProjectedChoicesManager(t, newProjectedChoicesDelegate(), storage)
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			reconciled, err := reconcileProjectedMoveChoiceFrontier(manager.Game(game.ID()))
+			if err == nil && (reconciled == nil || !projectedMoveChoiceFrontierKnown(reconciled)) {
+				err = errors.New("reconciliation returned an unknown frontier")
+			}
+			errs <- err
+		}()
+	}
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("concurrent frontier reconciliations did not terminate")
+	}
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestReconcileProjectedMoveChoiceFrontierSkipsLegacyGamesWithoutProjection(t *testing.T) {
+	storage := newLegalLedgerStorage()
+	manager, err := boardgame.NewGameManager(&legalLedgerDelegate{}, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	setProjectedChoicesFrontierUnknown(t, storage, game.ID())
+	frozen := manager.Game(game.ID())
+	got, err := reconcileProjectedMoveChoiceFrontier(frozen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != frozen {
+		t.Fatal("legacy game without projections was unnecessarily refreshed")
+	}
+	if manager.Game(game.ID()).AtProposalFrontier() {
+		t.Fatal("legacy game without projections was mutated")
+	}
+}
+
+func TestReconcileProjectedMoveChoiceFrontierFailsAfterBoundedAttempts(t *testing.T) {
+	delegate := newProjectedChoicesDelegate()
+	storage := &projectedChoicesReconcileStorage{legalLedgerStorage: newLegalLedgerStorage()}
+	_, game := newProjectedChoicesReconcileGame(t, delegate, storage)
+	setProjectedChoicesFrontierUnknown(t, storage.legalLedgerStorage, game.ID())
+	storage.frontierFailures.Store(maxProjectedMoveReconcileAttempts + 1)
+	manager := restartProjectedChoicesManager(t, newProjectedChoicesDelegate(), storage)
+
+	_, err := reconcileProjectedMoveChoiceFrontier(manager.Game(game.ID()))
+	if err == nil || !strings.Contains(err.Error(), "after 3 attempts") {
+		t.Fatalf("reconciliation error = %v", err)
+	}
+}
+
+type projectedChoicesNoopFrontierStorage struct {
+	boardgame.StorageManager
+}
+
+func (*projectedChoicesNoopFrontierStorage) SaveProposalFrontier(string, int, int) error {
+	return nil
+}
+
+func TestReconcileProjectedMoveChoiceFrontierAcceptsActiveMarkerWhenStorageCannotPersistIt(t *testing.T) {
+	delegate := newProjectedChoicesDelegate()
+	underlying := newLegalLedgerStorage()
+	// Model ServerStorageManager around a legacy/custom backend: the wrapper
+	// advertises ProposalFrontierStorage but its successful write cannot make
+	// the marker durable in the underlying game record.
+	storage := &projectedChoicesNoopFrontierStorage{StorageManager: underlying}
+	manager, err := boardgame.NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manager.Game(game.ID()).AtProposalFrontier() {
+		t.Fatal("no-op frontier storage unexpectedly persisted the marker")
+	}
+
+	reconciled, err := reconcileProjectedMoveChoiceFrontier(manager.Game(game.ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !projectedMoveChoiceFrontierKnown(reconciled) {
+		t.Fatal("active-process frontier was ignored because the frozen record remained unknown")
 	}
 }

@@ -1545,6 +1545,17 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		return
 	}
 
+	// Projected choices require durable evidence that the current head is a
+	// terminal proposal boundary. Repair legacy/unknown markers and interrupted
+	// fix-up chains through the engine's serialized loop before selecting the
+	// /info state. Games without projections pay no mutation cost.
+	var err error
+	game, err = reconcileProjectedMoveChoiceFrontier(game)
+	if err != nil {
+		r.Error(errors.New("Could not reconcile projected choices: " + err.Error()))
+		return
+	}
+
 	isOwner := false
 
 	if user != nil {

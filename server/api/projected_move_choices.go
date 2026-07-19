@@ -12,10 +12,11 @@ const (
 	projectedMoveChoicesStatusReady  = "ready"
 	projectedMoveChoicesStatusFailed = "failed"
 
-	maxProjectedMoveChoiceSets       = boardgame.MoveChoiceProjectionMaxSets
-	maxProjectedMoveCandidatesPerSet = boardgame.MoveChoiceProjectionMaxCandidatesPerSet
-	maxProjectedMoveLegalEvaluations = boardgame.MoveChoiceProjectionMaxLegalEvaluations
-	maxProjectedMoveChoicesBytes     = boardgame.MoveChoiceProjectionMaxWireBytes
+	maxProjectedMoveChoiceSets        = boardgame.MoveChoiceProjectionMaxSets
+	maxProjectedMoveCandidatesPerSet  = boardgame.MoveChoiceProjectionMaxCandidatesPerSet
+	maxProjectedMoveLegalEvaluations  = boardgame.MoveChoiceProjectionMaxLegalEvaluations
+	maxProjectedMoveChoicesBytes      = boardgame.MoveChoiceProjectionMaxWireBytes
+	maxProjectedMoveReconcileAttempts = 3
 )
 
 // projectedMoveChoicesSnapshot is a version-pinned, actor-only read model of
@@ -54,6 +55,67 @@ type projectedMoveChoiceBudget struct {
 type preparedProjectedMoveChoiceSet struct {
 	schema boardgame.MoveChoiceProjectionSchema
 	values []projectedMoveChoiceSourceValue
+}
+
+// reconcileProjectedMoveChoiceFrontier repairs missing durable boundary
+// evidence before /info selects a state. Legacy records, a crash between the
+// state write and marker write, and a partially committed fix-up chain all
+// present identically as an unknown frontier. ForceFixUp serializes recovery
+// through the game's ordinary main loop and resolves only after its recursive
+// fix-up closure and terminal marker write.
+func reconcileProjectedMoveChoiceFrontier(game *boardgame.Game) (*boardgame.Game, error) {
+	if game == nil {
+		return nil, fmt.Errorf("cannot reconcile projected choices for a nil game")
+	}
+	schema, err := boardgame.BuildMoveChoiceProjectionSchema(game.Manager())
+	if err != nil {
+		return nil, fmt.Errorf("build projected-choice schema: %w", err)
+	}
+	if len(schema) == 0 {
+		return game, nil
+	}
+	// The normal path is already certified. Consult the manager so an active
+	// in-memory marker also counts, but require it to match this exact snapshot
+	// before avoiding the storage reload.
+	if projectedMoveChoiceFrontierKnown(game) {
+		return game, nil
+	}
+
+	current := game.Manager().Game(game.ID())
+	if current == nil {
+		return nil, fmt.Errorf("reload game before projected-choice reconciliation")
+	}
+	var lastErr error
+	for attempt := 0; attempt < maxProjectedMoveReconcileAttempts; attempt++ {
+		if projectedMoveChoiceFrontierKnown(current) {
+			return current, nil
+		}
+		lastErr = <-current.Manager().Internals().ForceFixUp(current)
+
+		// Always reload durable state, even after an error. A concurrent server
+		// may have won the CAS and completed reconciliation while this request
+		// observed a stale marker write.
+		refreshed := current.Manager().Game(current.ID())
+		if refreshed == nil {
+			return nil, fmt.Errorf("reload game after projected-choice reconciliation")
+		}
+		current = refreshed
+		if projectedMoveChoiceFrontierKnown(current) {
+			return current, nil
+		}
+		if lastErr == nil {
+			lastErr = fmt.Errorf("terminal fix-up check did not persist a proposal frontier")
+		}
+	}
+	return nil, fmt.Errorf("projected-choice frontier reconciliation failed after %d attempts: %w", maxProjectedMoveReconcileAttempts, lastErr)
+}
+
+func projectedMoveChoiceFrontierKnown(game *boardgame.Game) bool {
+	if game == nil {
+		return false
+	}
+	frontier, known := game.Manager().ProposalFrontierVersion(game.ID())
+	return known && frontier == game.Version()
 }
 
 // projectMoveChoiceSet binds each member of one sealed candidate universe to
