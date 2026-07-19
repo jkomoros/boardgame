@@ -22,8 +22,21 @@ export interface PointEffectAnchor {
   readonly y: number;
 }
 
+export type MotionEffectMoment = 'departure' | 'arrival';
+
+/**
+ * A safe point projected from automatic component motion. It identifies no DOM
+ * node and grants no access to component content.
+ */
+export interface MotionEffectAnchor {
+  readonly kind: 'motion';
+  readonly subjectId: string;
+  readonly moment: MotionEffectMoment;
+}
+
 /** Elements are ideal for immediate interaction feedback; named anchors are replay-safe. */
 export type EffectAnchor = NamedEffectAnchor | PointEffectAnchor | HTMLElement;
+export type EffectPointAnchor = EffectAnchor | MotionEffectAnchor;
 
 export interface EffectBase {
   /** Stable identity within a transition or composition. */
@@ -45,7 +58,7 @@ export interface EffectBase {
 
 export interface BurstEffectSpec extends EffectBase {
   readonly kind: 'burst';
-  readonly at: EffectAnchor;
+  readonly at: EffectPointAnchor;
   readonly advanced?: EffectBase['advanced'] & Readonly<{
     count?: number;
     spreadPx?: number;
@@ -54,7 +67,7 @@ export interface BurstEffectSpec extends EffectBase {
 
 export interface PulseEffectSpec extends EffectBase {
   readonly kind: 'pulse';
-  readonly at: EffectAnchor;
+  readonly at: EffectPointAnchor;
   readonly advanced?: EffectBase['advanced'] & Readonly<{
     scale?: number;
   }>;
@@ -97,7 +110,7 @@ export type EffectResult =
   | Readonly<{ status: 'cancelled' }>
   | Readonly<{
     status: 'skipped';
-    reason: 'budget' | 'missing-anchor' | 'not-connected' | 'timing';
+    reason: 'budget' | 'missing-anchor' | 'motion-skipped' | 'not-connected' | 'timing';
   }>;
 
 export interface EffectHandle {
@@ -167,6 +180,18 @@ export const fx = Object.freeze({
       throw new Error('effect point coordinates must be finite');
     }
     return Object.freeze({ kind: 'point', x, y });
+  },
+
+  /** Decorate automatic component motion at its actual departure or arrival. */
+  motion(subjectId: string, moment: MotionEffectMoment = 'arrival'): MotionEffectAnchor {
+    if (moment !== 'departure' && moment !== 'arrival') {
+      throw new Error('motion moment must be departure or arrival');
+    }
+    return Object.freeze({
+      kind: 'motion',
+      subjectId: nonEmpty(subjectId, 'motion subject ID'),
+      moment,
+    });
   },
 
   burst(options: BurstOptions): BurstEffectSpec {

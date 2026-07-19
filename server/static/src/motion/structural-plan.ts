@@ -37,16 +37,21 @@ export type StructuralValueSnapshot =
 export interface StructuralSpatialChange {
   readonly offsetFrom?: OffsetGeometry;
   readonly offsetTo?: OffsetGeometry;
-  /** Historical visual endpoints captured in the same measurement transaction. */
-  readonly viewportFrom: ViewportGeometry;
-  readonly viewportTo: ViewportGeometry;
   readonly inversion: FlipGeometry;
+}
+
+/** Historical visual endpoints captured in the same measurement transaction. */
+export interface StructuralViewportEndpoints {
+  readonly from: ViewportGeometry;
+  readonly to: ViewportGeometry;
 }
 
 export interface StructuralMotionDraft {
   readonly subjectId: string;
   readonly presence: StructuralPresence;
   readonly provenance: StructuralProvenance;
+  /** Subject location exists independently of whether it spatially moved. */
+  readonly viewport?: StructuralViewportEndpoints;
   readonly spatial?: StructuralSpatialChange;
   readonly transform?: Readonly<{ before: string; after: string }>;
   readonly properties: readonly StructuralPropertyChange[];
@@ -151,12 +156,16 @@ export function createStructuralMotionDraft(input: Readonly<{
     subjectId: input.subjectId,
     presence: input.presence,
     provenance: Object.freeze({ ...input.provenance }),
-    ...(input.inversion?.changed && input.viewportFrom && input.viewportTo ? {
+    ...(input.viewportFrom && input.viewportTo ? {
+      viewport: Object.freeze({
+        from: input.viewportFrom,
+        to: input.viewportTo,
+      }),
+    } : {}),
+    ...(input.inversion?.changed ? {
       spatial: Object.freeze({
         ...(input.from ? { offsetFrom: input.from } : {}),
         ...(input.to ? { offsetTo: input.to } : {}),
-        viewportFrom: input.viewportFrom,
-        viewportTo: input.viewportTo,
         inversion: input.inversion,
       }),
     } : {}),

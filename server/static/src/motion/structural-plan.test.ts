@@ -40,8 +40,8 @@ describe('structural motion plans', () => {
       afterOpacity: '1',
     });
     assert.equal(draft.spatial?.offsetFrom, from);
-    assert.equal(draft.spatial?.viewportFrom, viewportFrom);
-    assert.equal(draft.spatial?.viewportTo, viewportTo);
+    assert.equal(draft.viewport?.from, viewportFrom);
+    assert.equal(draft.viewport?.to, viewportTo);
     assert.deepEqual(draft.transform, { before: 'rotate(1deg)', after: 'rotate(2deg)' });
     assert.deepEqual(draft.properties, [{ name: 'faceUp', before: false, after: true }]);
     assert.deepEqual(draft.opacity, { before: 0.4, after: 1 });
@@ -142,5 +142,24 @@ describe('structural motion plans', () => {
       name: 'custom', before: { kind: 'opaque' }, after: { kind: 'opaque' },
     }]);
     assert.equal(Object.isFrozen(draft.properties[0].before), true);
+  });
+
+  it('retains viewport endpoints for a stationary morph without claiming travel', () => {
+    const draft = createStructuralMotionDraft({
+      subjectId: 'card-flip',
+      presence: 'retained',
+      provenance: { kind: 'identity' },
+      from,
+      to: from,
+      viewportFrom,
+      viewportTo: viewportFrom,
+      inversion: solveFlipGeometry(from, from),
+      beforeProperties: { faceUp: false },
+      afterProperties: { faceUp: true },
+      animatingProperties: ['faceUp'],
+    });
+    assert.equal(draft.spatial, undefined);
+    assert.deepEqual(draft.viewport, { from: viewportFrom, to: viewportFrom });
+    assert.deepEqual(draft.properties, [{ name: 'faceUp', before: false, after: true }]);
   });
 });

@@ -102,11 +102,13 @@ interface StructuralMotionSegment {
   readonly subjectId: string;
   readonly presence: 'retained' | 'appearing' | 'departing';
   readonly provenance: StructuralProvenance;
+  readonly viewport?: {
+    readonly from: ViewportGeometry;
+    readonly to: ViewportGeometry;
+  };
   readonly spatial?: {
     readonly offsetFrom?: OffsetGeometry;
     readonly offsetTo?: OffsetGeometry;
-    readonly viewportFrom: ViewportGeometry;
-    readonly viewportTo: ViewportGeometry;
     readonly inversion: FlipGeometry;
   };
   readonly transform?: { readonly before: string; readonly after: string };
@@ -118,11 +120,11 @@ interface StructuralMotionSegment {
 ```
 
 Spatial, property, transform, and opacity changes are orthogonal rather than
-collapsed into one exclusive `kind`. The spatial record carries both the
-legacy FLIP offset coordinates and viewport coordinates captured during the
-same measurement transaction. Property values that cannot be safely and
-immutably represented are marked `opaque`; plans never retain arbitrary game
-objects.
+collapsed into one exclusive `kind`. Viewport endpoints describe where the
+subject was and is even for a stationary morph; `spatial` exists only when it
+actually traveled or resized and retains the legacy FLIP offset coordinates.
+Property values that cannot be safely and immutably represented are marked
+`opaque`; plans never retain arbitrary game objects.
 
 ### Publication lifecycle
 
@@ -158,6 +160,27 @@ Event identity includes source, generation, segment index, and status. It never
 fabricates an intermediate state if a consumer missed a revision. This is the
 smallest durable seam for diagnostics and future decoration adapters; it is not
 yet a game-author API.
+
+### Point-only decoration adapter
+
+The render host registers authoritative effect descriptors before starting the
+new generation's structural playback. It first lets `prepare()` publish any
+old-generation cancellation, then opens a fresh effect epoch; this prevents a
+cancelled old animation of the same component from satisfying the new
+transition's anchor.
+
+`fx.motion(subjectId, 'departure')` resolves from the segment's captured
+viewport `from` center on the real `started` event. The default
+`fx.motion(subjectId, 'arrival')` resolves from its `to` center only on
+`finished`. Skipped/cancelled motion and an absent subject settle the decorative
+handle explicitly instead of leaving a pending promise. A settled plan closes
+all unmatched anchors. The adapter consumes only automatic FLIP events;
+explicit `animateBetween()` flights do not silently become author effects.
+
+Motion anchors are accepted by point recipes (`pulse` and `burst`) but not by
+`travel`. This is an intentional capability boundary: coordinates are safe to
+publish, while materializing or following the moving subject requires a future
+privacy-aware snapshot protocol.
 
 Provenance is explicit. Retained subjects have exact identity continuity;
 appearing and departing endpoints inferred from `IDsLastSeen` carry their stack
@@ -202,10 +225,11 @@ ownership:
 7. **Done:** publish immutable intentions, actual executions, skips, and terminal
    outcomes for FLIP and explicit flights.
 8. **Done:** expose read-only plan observation and pure lifecycle-event
-   compilation. **Not done:** connect those events to effect recipes.
-9. **Next:** add point-only structural decoration (arrival/departure cues) that
-   requires no component materialization and cannot gate playback.
-10. **Deferred:** design a privacy-safe subject snapshot protocol before trails
+   compilation.
+9. **Done:** add `fx.motion()` point-only structural decoration for pulse/burst
+   departure and arrival cues. It requires no component materialization, starts
+   only from actual execution events, and cannot gate playback.
+10. **Next/deferred:** design a privacy-safe subject snapshot protocol before trails
     or travelers may visually reproduce a card/component.
 11. Reassess a larger representation only when concrete duplication justifies
     it.
@@ -213,7 +237,7 @@ ownership:
 ## Supported surface today
 
 Game authors should use `effectsForTransition()`, `this.effects.play()`, named
-anchors, and `animateBetween()` as documented in `docs/animation-effects.md` and
+anchors, `fx.motion()`, and `animateBetween()` as documented in `docs/animation-effects.md` and
 `docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
 events are framework-internal while their contracts settle. Shipping the
 internal seam first prevents an attractive experimental API from becoming a

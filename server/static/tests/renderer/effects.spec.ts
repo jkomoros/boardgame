@@ -138,6 +138,134 @@ test('named anchors stay renderer-scoped', async ({ page }) => {
   }
 });
 
+test('motion anchors decorate actual departure and arrival without owning the subject', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-effect-layer.ts');
+      const { fx } = await import('/src/effects/effect-spec.ts');
+      const planObservers = new Set<(plan: any) => void>();
+      const eventObservers = new Set<(event: any) => void>();
+      const motionSource = {
+        observeStructuralMotion(observer: (plan: any) => void) {
+          planObservers.add(observer);
+          return () => planObservers.delete(observer);
+        },
+        observeStructuralMotionEvents(observer: (event: any) => void) {
+          eventObservers.add(observer);
+          return () => eventObservers.delete(observer);
+        },
+      };
+      const layer = document.createElement('boardgame-effect-layer') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        shadowRoot: ShadowRoot;
+        configure(config: object): void;
+        beginMotionTransition(expected: boolean): void;
+        playTransition(effect: object): {
+          finished: Promise<{ status: string; reason?: string }>;
+        };
+      };
+      document.body.append(layer);
+      await layer.updateComplete;
+      layer.configure({
+        anchorRoot: document,
+        seedScope: 'motion-anchor:2',
+        theme: {},
+        animationContext: null,
+        motionSource,
+      });
+      layer.beginMotionTransition(true);
+      const departure = layer.playTransition(fx.pulse({
+        at: fx.motion('card-17', 'departure'),
+        tone: 'attention',
+        advanced: { durationMs: 120 },
+      }));
+      const arrival = layer.playTransition(fx.burst({
+        at: fx.motion('card-17'),
+        tone: 'reward',
+        advanced: { durationMs: 120, count: 3 },
+      }));
+      const before = {
+        pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
+        particles: layer.shadowRoot.querySelectorAll('.particle').length,
+      };
+      const segment = {
+        subjectId: 'card-17',
+        viewport: {
+          from: { space: 'viewport', left: 20, top: 30, width: 40, height: 20 },
+          to: { space: 'viewport', left: 200, top: 100, width: 60, height: 40 },
+        },
+      };
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 2, kind: 'started', subjectId: 'card-17', segment,
+      });
+      const pulse = layer.shadowRoot.querySelector<HTMLElement>('.pulse');
+      const atDeparture = {
+        pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
+        particles: layer.shadowRoot.querySelectorAll('.particle').length,
+        left: pulse?.style.left,
+        top: pulse?.style.top,
+      };
+      const departureResult = await departure.finished;
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 2, kind: 'finished', subjectId: 'card-17', segment,
+      });
+      const particle = layer.shadowRoot.querySelector<HTMLElement>('.particle');
+      const atArrival = {
+        particles: layer.shadowRoot.querySelectorAll('.particle').length,
+        left: particle?.style.left,
+        top: particle?.style.top,
+      };
+      const arrivalResult = await arrival.finished;
+
+      layer.beginMotionTransition(true);
+      const missing = layer.playTransition(fx.pulse({
+        at: fx.motion('missing-card'),
+        advanced: { durationMs: 120 },
+      }));
+      for (const observer of planObservers) observer({ source: 'flip', phase: 'settled' });
+      const missingResult = await missing.finished;
+
+      layer.beginMotionTransition(true);
+      const skipped = layer.playTransition(fx.pulse({
+        at: fx.motion('skipped-card'),
+        advanced: { durationMs: 120 },
+      }));
+      for (const observer of eventObservers) observer({
+        source: 'flip',
+        generation: 4,
+        kind: 'skipped',
+        subjectId: 'skipped-card',
+        segment: { subjectId: 'skipped-card' },
+      });
+      const skippedResult = await skipped.finished;
+      return {
+        before,
+        atDeparture,
+        atArrival,
+        departureResult,
+        arrivalResult,
+        missingResult,
+        skippedResult,
+      };
+    });
+
+    expect(result.before).toEqual({ pulses: 0, particles: 0 });
+    expect(result.atDeparture).toEqual({
+      pulses: 1, particles: 0, left: '40px', top: '40px',
+    });
+    expect(result.atArrival).toEqual({ particles: 3, left: '230px', top: '120px' });
+    expect(result.departureResult).toEqual({ status: 'finished' });
+    expect(result.arrivalResult).toEqual({ status: 'finished' });
+    expect(result.missingResult).toEqual({ status: 'skipped', reason: 'missing-anchor' });
+    expect(result.skippedResult).toEqual({ status: 'skipped', reason: 'motion-skipped' });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('reduced motion substitutes a stationary emphasis', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const diagnostics = await prepareRendererFixturePage(page);

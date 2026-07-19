@@ -8,20 +8,34 @@ import type {
   EffectHandle,
   EffectHostAPI,
   EffectIntensity,
+  EffectPointAnchor,
   EffectResult,
   EffectSpec,
   EffectTheme,
   EffectTone,
+  MotionEffectAnchor,
   PulseEffectSpec,
 } from '../effects/effect-spec.js';
 import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
 import { captureViewportGeometry, geometryCenter } from '../motion/geometry.js';
+import type { StructuralMotionEvent } from '../motion/structural-events.js';
+import type {
+  StructuralMotionObserver,
+  StructuralMotionPlan,
+} from '../motion/structural-plan.js';
+
+interface StructuralMotionSource {
+  observeStructuralMotion(observer: StructuralMotionObserver): () => void;
+  observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
+}
 
 export interface EffectLayerConfiguration {
   anchorRoot: ParentNode | null;
   seedScope: string;
   theme: EffectTheme;
   animationContext: import('./companion-sync.js').VersionAnimationContext | null;
+  /** Internal source for automatic component-motion endpoint events. */
+  motionSource?: StructuralMotionSource | null;
 }
 
 export type EffectAnchorSnapshot = ReadonlyMap<string, Readonly<{ x: number; y: number }>>;
@@ -34,6 +48,16 @@ interface ResolvedPolicy {
 }
 
 interface InternalHandle extends EffectHandle {}
+
+type MotionResolution =
+  | Readonly<{ kind: 'point'; point: Readonly<{ x: number; y: number }> }>
+  | Readonly<{ kind: 'result'; result: EffectResult }>;
+
+interface MotionWaiter {
+  readonly epoch: number;
+  readonly key: string;
+  settle(resolution: MotionResolution): void;
+}
 
 const FINISHED: EffectResult = Object.freeze({ status: 'finished' });
 const CANCELLED: EffectResult = Object.freeze({ status: 'cancelled' });
@@ -153,6 +177,14 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   private readonly _activeCancels = new Set<() => void>();
   private readonly _transitionCancels = new Set<() => void>();
   private _beforeAnchors: EffectAnchorSnapshot = new Map();
+  private _motionSource: StructuralMotionSource | null = null;
+  private _unobserveMotionPlan: (() => void) | null = null;
+  private _unobserveMotionEvents: (() => void) | null = null;
+  private _motionEpoch = 0;
+  private _expectsMotionPlan = false;
+  private _motionPlanSettled = false;
+  private _motionResolutions = new Map<string, MotionResolution>();
+  private _motionWaiters = new Set<MotionWaiter>();
 
   override render() {
     return html`
@@ -171,6 +203,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       theme: configuration.theme,
       animationContext: configuration.animationContext,
     };
+    this._setMotionSource(configuration.motionSource ?? null);
     const runner = this._runner();
     if (runner) runner.animationContext = configuration.animationContext;
   }
@@ -194,7 +227,18 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
 
   override disconnectedCallback(): void {
     this.cancelAll();
+    this._setMotionSource(null);
     super.disconnectedCallback();
+  }
+
+  /** Start a renderer transition scope before its descriptors are installed. */
+  beginMotionTransition(expectsStructuralMotion: boolean): void {
+    const abandoned = Object.freeze({ kind: 'result', result: CANCELLED }) as MotionResolution;
+    for (const waiter of [...this._motionWaiters]) waiter.settle(abandoned);
+    this._motionEpoch++;
+    this._expectsMotionPlan = expectsStructuralMotion;
+    this._motionPlanSettled = !expectsStructuralMotion;
+    this._motionResolutions.clear();
   }
 
   play(effect: EffectSpec): EffectHandle {
@@ -253,12 +297,19 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   }
 
   private _burst(effect: Extract<EffectSpec, { kind: 'burst' }>, path: string, policy: ResolvedPolicy): InternalHandle {
+    return this._atPoint(effect.at, point => this._burstAt(effect, path, policy, point));
+  }
+
+  private _burstAt(
+    effect: Extract<EffectSpec, { kind: 'burst' }>,
+    path: string,
+    policy: ResolvedPolicy,
+    point: Readonly<{ x: number; y: number }>,
+  ): InternalHandle {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const substitute: PulseEffectSpec = { ...effect, kind: 'pulse', at: effect.at };
-      return this._pulse(substitute, path, policy, true);
+      return this._pulseAt(substitute, path, policy, true, point);
     }
-    const point = this._anchorPoint(effect.at);
-    if (!point) return skipped('missing-anchor');
     const defaults = INTENSITY[policy.intensity];
     const requestedCount = finite(effect.advanced?.count, defaults.count, 1, MAX_BURST_PARTICLES);
     const reservation = reserveEffectBudget(this.ownerDocument, requestedCount);
@@ -309,8 +360,16 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     policy: ResolvedPolicy,
     reduced: boolean,
   ): InternalHandle {
-    const point = this._anchorPoint(effect.at);
-    if (!point) return skipped('missing-anchor');
+    return this._atPoint(effect.at, point => this._pulseAt(effect, _path, policy, reduced, point));
+  }
+
+  private _pulseAt(
+    effect: PulseEffectSpec,
+    _path: string,
+    policy: ResolvedPolicy,
+    reduced: boolean,
+    point: Readonly<{ x: number; y: number }>,
+  ): InternalHandle {
     const reservation = reserveEffectBudget(this.ownerDocument, 1);
     if (!reservation) return skipped('budget');
     const container = this._container();
@@ -509,6 +568,153 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   private _runner(): BoardgameAnimatableItem | null {
     const runner = this.shadowRoot?.querySelector('#runner');
     return runner instanceof BoardgameAnimatableItem ? runner : null;
+  }
+
+  private _setMotionSource(source: StructuralMotionSource | null): void {
+    if (source === this._motionSource) return;
+    this._unobserveMotionPlan?.();
+    this._unobserveMotionEvents?.();
+    this._unobserveMotionPlan = null;
+    this._unobserveMotionEvents = null;
+    this._motionSource = source;
+    if (!source) return;
+    this._unobserveMotionPlan = source.observeStructuralMotion(
+      plan => this._motionPlanChanged(plan),
+    );
+    this._unobserveMotionEvents = source.observeStructuralMotionEvents(
+      event => this._motionEvent(event),
+    );
+  }
+
+  private _motionPlanChanged(plan: StructuralMotionPlan): void {
+    if (plan.source !== 'flip' || plan.phase !== 'settled') return;
+    // The animator publishes the plan revision before its exact lifecycle
+    // events. Deferring the missing-subject sweep lets a final arrival event
+    // resolve first without coupling either observer API to registration order.
+    const epoch = this._motionEpoch;
+    queueMicrotask(() => {
+      if (epoch !== this._motionEpoch) return;
+      this._motionPlanSettled = true;
+      const missing = Object.freeze({
+        kind: 'result',
+        result: Object.freeze({ status: 'skipped', reason: 'missing-anchor' }),
+      }) as MotionResolution;
+      for (const waiter of [...this._motionWaiters]) {
+        if (waiter.epoch === epoch) waiter.settle(missing);
+      }
+    });
+  }
+
+  private _motionEvent(event: StructuralMotionEvent): void {
+    if (event.source !== 'flip') return;
+    const endpoints = event.segment.viewport;
+    if ((event.kind === 'started' || event.kind === 'finished') && !endpoints) {
+      const missing = Object.freeze({
+        kind: 'result',
+        result: Object.freeze({ status: 'skipped', reason: 'missing-anchor' }),
+      }) as MotionResolution;
+      this._resolveMotion(event.subjectId, 'departure', missing);
+      this._resolveMotion(event.subjectId, 'arrival', missing);
+      return;
+    }
+    if (event.kind === 'started' && endpoints) {
+      this._resolveMotion(event.subjectId, 'departure', {
+        kind: 'point', point: geometryCenter(endpoints.from),
+      });
+    } else if (event.kind === 'finished' && endpoints) {
+      this._resolveMotion(event.subjectId, 'arrival', {
+        kind: 'point', point: geometryCenter(endpoints.to),
+      });
+    } else if (event.kind === 'skipped' || event.kind === 'cancelled') {
+      const unavailable = Object.freeze({
+        kind: 'result',
+        result: Object.freeze({ status: 'skipped', reason: 'motion-skipped' }),
+      }) as MotionResolution;
+      this._resolveMotion(event.subjectId, 'departure', unavailable);
+      this._resolveMotion(event.subjectId, 'arrival', unavailable);
+    }
+  }
+
+  private _resolveMotion(
+    subjectId: string,
+    moment: MotionEffectAnchor['moment'],
+    input: MotionResolution,
+  ): void {
+    const resolution: MotionResolution = input.kind === 'point'
+      ? Object.freeze({
+        kind: 'point',
+        point: Object.freeze({ x: input.point.x, y: input.point.y }),
+      })
+      : Object.freeze({ kind: 'result', result: input.result });
+    const key = this._motionKey(subjectId, moment);
+    this._motionResolutions.set(key, resolution);
+    for (const waiter of [...this._motionWaiters]) {
+      if (waiter.epoch === this._motionEpoch && waiter.key === key) waiter.settle(resolution);
+    }
+  }
+
+  private _motionKey(subjectId: string, moment: MotionEffectAnchor['moment']): string {
+    return `${moment}\u0000${subjectId}`;
+  }
+
+  private _atPoint(
+    anchor: EffectPointAnchor,
+    start: (point: Readonly<{ x: number; y: number }>) => InternalHandle,
+  ): InternalHandle {
+    if (!(anchor instanceof HTMLElement) && anchor.kind === 'motion') {
+      return this._deferMotionPoint(anchor, start);
+    }
+    const point = this._anchorPoint(anchor);
+    return point ? start(point) : skipped('missing-anchor');
+  }
+
+  private _deferMotionPoint(
+    anchor: MotionEffectAnchor,
+    start: (point: Readonly<{ x: number; y: number }>) => InternalHandle,
+  ): InternalHandle {
+    const key = this._motionKey(anchor.subjectId, anchor.moment);
+    const existing = this._motionResolutions.get(key);
+    if (existing?.kind === 'point') return start(existing.point);
+    if (existing?.kind === 'result') return {
+      finished: Promise.resolve(existing.result),
+      cancel: () => {},
+    };
+    if (!this._expectsMotionPlan || this._motionPlanSettled) return skipped('missing-anchor');
+
+    const epoch = this._motionEpoch;
+    let child: InternalHandle | null = null;
+    let settled = false;
+    let resolveFinished!: (result: EffectResult) => void;
+    const finished = new Promise<EffectResult>(resolve => { resolveFinished = resolve; });
+    const finish = (result: EffectResult) => {
+      if (settled) return;
+      settled = true;
+      this._motionWaiters.delete(waiter);
+      resolveFinished(result);
+    };
+    const waiter: MotionWaiter = {
+      epoch,
+      key,
+      settle: resolution => {
+        if (settled) return;
+        this._motionWaiters.delete(waiter);
+        if (resolution.kind === 'result') {
+          finish(resolution.result);
+          return;
+        }
+        child = start(resolution.point);
+        void child.finished.then(finish);
+      },
+    };
+    this._motionWaiters.add(waiter);
+    return {
+      finished,
+      cancel: () => {
+        if (settled) return;
+        child?.cancel();
+        finish(CANCELLED);
+      },
+    };
   }
 
   private _anchorPoint(anchor: EffectAnchor): { x: number; y: number } | null {

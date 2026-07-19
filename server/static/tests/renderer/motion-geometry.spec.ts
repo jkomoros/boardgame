@@ -15,9 +15,9 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
           phase: string;
           segments: Array<{
             execution: { status: string };
-            spatial?: {
-              viewportFrom: { space: string; left: number; top: number };
-              viewportTo: { space: string; left: number; top: number };
+          viewport?: {
+            from: { space: string; left: number; top: number };
+            to: { space: string; left: number; top: number };
             };
           }>;
         };
@@ -66,9 +66,9 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
       phase: 'settled',
       segments: [{
         execution: { status: 'finished' },
-        spatial: {
-          viewportFrom: { space: 'viewport', left: 20, top: 30 },
-          viewportTo: { space: 'viewport', left: 200, top: 100 },
+        viewport: {
+          from: { space: 'viewport', left: 20, top: 30 },
+          to: { space: 'viewport', left: 200, top: 100 },
         },
       }],
     });
@@ -221,9 +221,9 @@ test('structural plans publish before playback and invalidate on interruption', 
             presence: string;
             provenance: { kind: string };
             transform?: { before: string; after: string };
-            spatial?: {
-              viewportFrom: { space: string; left: number; top: number };
-              viewportTo: { space: string; left: number; top: number };
+            viewport?: {
+              from: { space: string; left: number; top: number };
+              to: { space: string; left: number; top: number };
             };
             timingRequest: { policy: string; delayMs: number; durationMs: number };
             execution: {
@@ -394,9 +394,9 @@ test('structural plans preserve uncertainty for inferred appearance and departur
             stackId?: string;
             evidence?: string;
           };
-          spatial?: {
-            viewportFrom: { space: string };
-            viewportTo: { space: string };
+          viewport?: {
+            from: { space: string };
+            to: { space: string };
           };
           execution: { status: string };
         }>;
@@ -487,9 +487,9 @@ test('structural plans preserve uncertainty for inferred appearance and departur
         stackId: result.sourceId,
         evidence: 'runner-up',
       },
-      spatial: {
-        viewportFrom: { space: 'viewport' },
-        viewportTo: { space: 'viewport' },
+      viewport: {
+        from: { space: 'viewport' },
+        to: { space: 'viewport' },
       },
       execution: { status: 'finished' },
     });
@@ -502,9 +502,9 @@ test('structural plans preserve uncertainty for inferred appearance and departur
         stackId: result.sourceId,
         evidence: 'ambiguous',
       },
-      spatial: {
-        viewportFrom: { space: 'viewport' },
-        viewportTo: { space: 'viewport' },
+      viewport: {
+        from: { space: 'viewport' },
+        to: { space: 'viewport' },
       },
       execution: { status: 'finished' },
     });

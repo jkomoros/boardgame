@@ -138,6 +138,44 @@ Current geometry is preferred; the prior measurement is retained as a fallback
 for an element that disappeared. Names never search another mounted renderer or
 companion surface.
 
+## Decorating automatic component motion
+
+Use a motion anchor when a pulse or burst should occur at the actual endpoint
+of one component's automatic structural animation:
+
+```ts
+fx.burst({
+  at: fx.motion(cardId), // arrival is the default
+  tone: 'reward',
+  intensity: 'small',
+  timing: 'immediate',
+})
+
+fx.pulse({
+  at: fx.motion(cardId, 'departure'),
+  tone: 'attention',
+  intensity: 'subtle',
+  timing: 'immediate',
+})
+```
+
+`departure` resolves only when the card's real WAAPI playback starts;
+`arrival` resolves only after it finishes successfully. A skipped, cancelled,
+or missing structural animation produces an explicit skipped effect result.
+Stationary face/property morphs still have endpoints, so an arrival burst can
+decorate a card flip without claiming that the card traveled.
+
+Motion anchors are intentionally point-only and currently work with `pulse`
+and `burst`, not `travel`. They expose an ID and captured viewport center—never
+a DOM reference, cloned card, hidden face, or transform ownership. They are for
+authoritative transition descriptors; use ordinary element or point anchors
+for local interaction feedback.
+
+Because the structural event itself supplies synchronization, start a
+departure/arrival decoration with `timing: 'immediate'`. Reusing
+`timing: 'version'` after arrival may correctly skip because the version slot
+has already been consumed by the card animation.
+
 ## Composition
 
 Every recipe is an `EffectSpec`, so composition is ordinary immutable data:
@@ -203,7 +241,8 @@ remain available only under `advanced.palette`.
   must also appear in semantic UI.
 - Reduced motion substitutes a short stationary opacity emphasis for bursts and
   travel instead of moving particles across the screen.
-- Effects return `finished`, `cancelled`, or `skipped` with a reason.
+- Effects return `finished`, `cancelled`, or `skipped` with a reason. Motion
+  anchors use `motion-skipped` when their structural segment did not complete.
 - Renderer removal cancels all effects. A newer transition cancels stale
   transition-owned effects.
 - One document-wide manager admits at most eight concurrent effects and 60
@@ -244,6 +283,7 @@ text remains normal accessible UI; any floating text effect is only its
 | Intensity | `subtle`, `small`, `medium`, `large` | `medium` | Inherited through composition |
 | Timing | `immediate`, `version`, or `{ localStartAtMs }` | `immediate` | Inherited through composition |
 | Identity | `key`, `seedKey` | descriptor path | Descriptor and deterministic seed identity |
+| Structural point | `fx.motion(id, 'departure' \| 'arrival')` | `arrival` | `pulse` and `burst` in authoritative transitions |
 | Theme | semantic tone palettes | Material-aware defaults | Renderer via `effectTheme()` |
 | Escape hatch | recipe-specific `advanced` values | semantic policy | Validated and clamped |
 
@@ -254,8 +294,9 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 
 ## Working examples
 
-- `examples/memory` pulses the card field on every reveal and adds a reward
-  burst for a match.
+- `examples/memory` follows the real revealed card's structural arrival, then
+  pulses it and adds a reward burst for a match. The reveal is a stationary
+  face morph, demonstrating that endpoint decoration does not imply travel.
 - `examples/debuganimations` demonstrates authoritative travel followed by an
   arrival burst, plus an imperative click celebration and theme/intensity
   controls.
@@ -265,6 +306,5 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 
 What is not configurable yet is equally important: games cannot subscribe to
 the private structural-motion plan, replace automatic FLIP, or request a trail
-that clones an arbitrary card. Point-only arrival/departure decoration is the
-next intended layer. Reproducing a subject will wait for an explicit,
+that clones an arbitrary card. Reproducing a subject will wait for an explicit,
 privacy-safe component snapshot protocol.

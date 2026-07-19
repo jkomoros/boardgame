@@ -746,20 +746,31 @@ class BoardgameRenderGame extends LitElement {
       // components' transitionend from interfering with the new cycle.
       this._clearAllAnimatingComponents();
       this._animator?.prepare();
+      // prepare() publishes cancellation for the old FLIP generation. Open
+      // the new effect epoch only afterwards so stale same-subject outcomes
+      // cannot satisfy or poison the next transition's motion anchors.
+      this._effects?.beginMotionTransition(true);
+    } else if (newState) {
+      this._effects?.beginMotionTransition(false);
     }
 
     // For Lit renderers, set property directly
     this.renderer.state = newState;
 
-    if (newState) {
-      void this._planTransitionEffects(this.renderer, previousState, newState, beforeAnchors);
-    }
+    const effectPlanning = newState
+      ? this._planTransitionEffects(this.renderer, previousState, newState, beforeAnchors)
+      : Promise.resolve();
 
     if (newState && !stateWasNull) {
-      // Call animateFlip. When all of the things that will be animating have
-      // started, check to see if no animations have been registered; if they
-      // haven't, then we can advance to the next state immediately.
-      this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations());
+      // Register motion-point descriptors before the animator publishes its
+      // synchronous planned/started events. Effect planning remains isolated:
+      // either fulfillment or rejection releases structural playback.
+      const renderer = this.renderer;
+      const startStructuralMotion = () => {
+        if (this.renderer !== renderer || renderer.state !== newState) return;
+        this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations());
+      };
+      void effectPlanning.then(startStructuralMotion, startStructuralMotion);
     }
   }
 
@@ -1054,6 +1065,7 @@ class BoardgameRenderGame extends LitElement {
       seedScope: `${this.gameId}:${this.snapshotEpoch}:${this.gameVersion}`,
       theme: this.renderer?.effectTheme() ?? {},
       animationContext: this.animationContext,
+      motionSource: this._animator ?? null,
     });
   }
 

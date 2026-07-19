@@ -78,18 +78,30 @@ export class BoardgameRenderGameMemory extends GameRenderer {
   ): readonly EffectSpec[] {
     if (context.kind === 'initial' || context.move?.Name !== MoveNames.RevealCard) return [];
     const revealed = context.after.Game.VisibleCards.Components.filter(isVisibleComponent);
+    const previouslyRevealed = new Set(
+      context.before.Game.VisibleCards.Components.filter(isVisibleComponent).map(card => card.ID),
+    );
+    const newlyRevealed = revealed.find(card => !previouslyRevealed.has(card.ID));
     const isMatch = revealed.length === 2
       && revealed[0]!.Values.Type === revealed[1]!.Values.Type;
+    // A motion anchor follows the real card's structural lifecycle. It works
+    // even though a reveal is a stationary face morph rather than travel, and
+    // never clones or takes transform ownership from the card.
+    const revealPoint = newlyRevealed
+      ? fx.motion(newlyRevealed.ID)
+      : fx.anchor('memory-cards');
     const feedback: EffectSpec[] = [fx.pulse({
-      at: fx.anchor('memory-cards'),
+      at: revealPoint,
       tone: isMatch ? 'reward' : 'attention',
       intensity: isMatch ? 'medium' : 'small',
+      timing: newlyRevealed ? 'immediate' : 'version',
     })];
     if (isMatch) {
       feedback.push(fx.burst({
-        at: fx.anchor('memory-cards'),
+        at: revealPoint,
         tone: 'reward',
         intensity: 'medium',
+        timing: newlyRevealed ? 'immediate' : 'version',
       }));
     }
     return [fx.parallel(feedback, {

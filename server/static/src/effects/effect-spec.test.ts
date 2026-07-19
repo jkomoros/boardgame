@@ -41,8 +41,22 @@ describe('effect descriptors', () => {
   it('rejects ambiguous identity, anchor, point, and timing inputs', () => {
     assert.throws(() => fx.anchor('  '), /anchor name/);
     assert.throws(() => fx.point(Number.NaN, 0), /finite/);
+    assert.throws(() => fx.motion('  '), /motion subject ID/);
+    assert.throws(() => fx.motion('card', 'middle' as never), /motion moment/);
     assert.throws(() => fx.pulse({ at: fx.point(0, 0), key: '' }), /effect key/);
     assert.throws(() => fx.sequence([], { gapMs: -1 }), /gapMs/);
+  });
+
+  it('describes privacy-safe structural departure and arrival points', () => {
+    const arrival = fx.motion('card-17');
+    const departure = fx.motion('card-17', 'departure');
+    assert.deepEqual(arrival, {
+      kind: 'motion', subjectId: 'card-17', moment: 'arrival',
+    });
+    assert.deepEqual(departure, {
+      kind: 'motion', subjectId: 'card-17', moment: 'departure',
+    });
+    assert.equal(Object.isFrozen(arrival), true);
   });
 
   it('copies and freezes game-local themes', () => {
