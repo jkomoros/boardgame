@@ -37,7 +37,10 @@ func SetMoveChoiceRecording(config PropertyCollection, recording MoveChoiceRecor
 	return nil
 }
 
-func configuredMoveChoiceRecording(move Move) (*MoveChoiceRecording, error) {
+// ConfiguredMoveChoiceRecording returns the engine-owned recording descriptor
+// installed on move, if any. The defensive value is suitable for manager-time
+// consistency validation by higher-level authoring helpers.
+func ConfiguredMoveChoiceRecording(move Move) (*MoveChoiceRecording, error) {
 	if move == nil || move.Info() == nil {
 		return nil, nil
 	}
@@ -53,7 +56,7 @@ func configuredMoveChoiceRecording(move Move) (*MoveChoiceRecording, error) {
 }
 
 func applyMoveChoiceRecording(move Move, state State) error {
-	recording, err := configuredMoveChoiceRecording(move)
+	recording, err := ConfiguredMoveChoiceRecording(move)
 	if err != nil || recording == nil {
 		return err
 	}

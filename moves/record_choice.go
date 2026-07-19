@@ -58,13 +58,20 @@ func WithRecordedChoice(field string, destination ChoiceDestination, options ...
 		target = destination.recordedChoiceDestination()
 	}
 	return func(config boardgame.PropertyCollection) {
-		declarations, _ := config[configPropRecordedChoices].([]recordedChoiceDeclaration)
-		config[configPropRecordedChoices] = append(declarations, recordedChoiceDeclaration{field: field, target: target})
-		_ = boardgame.SetMoveChoiceRecording(config, boardgame.MoveChoiceRecording{
+		declaration := recordedChoiceDeclaration{field: field, target: target}
+		recording := boardgame.MoveChoiceRecording{
 			FieldName: field, DestinationProperty: target.property,
 			DestinationScope:     boardgame.MoveChoiceRecordingScope(target.scope),
 			DestinationPlayerKey: "TargetPlayerIndex",
-		})
+		}
+		if err := boardgame.SetMoveChoiceRecording(config, recording); err != nil {
+			if declaration.target.err != "" {
+				declaration.target.err += "; "
+			}
+			declaration.target.err += err.Error()
+		}
+		declarations, _ := config[configPropRecordedChoices].([]recordedChoiceDeclaration)
+		config[configPropRecordedChoices] = append(declarations, declaration)
 		WithChoices(field, options...)(config)
 	}
 }
@@ -100,6 +107,18 @@ func (r *RecordCurrentPlayerChoice) binding(state boardgame.State, validating bo
 	declaration := declarations[0]
 	if declaration.target.err != "" {
 		return nil, errors.New("RecordCurrentPlayerChoice: " + declaration.target.err)
+	}
+	installed, err := boardgame.ConfiguredMoveChoiceRecording(top)
+	if err != nil {
+		return nil, fmt.Errorf("RecordCurrentPlayerChoice: read installed descriptor: %w", err)
+	}
+	expected := boardgame.MoveChoiceRecording{
+		FieldName: declaration.field, DestinationProperty: declaration.target.property,
+		DestinationScope:     boardgame.MoveChoiceRecordingScope(declaration.target.scope),
+		DestinationPlayerKey: "TargetPlayerIndex",
+	}
+	if installed == nil || *installed != expected {
+		return nil, fmt.Errorf("RecordCurrentPlayerChoice: installed descriptor %#v does not match declaration %#v", installed, expected)
 	}
 	if strings.TrimSpace(declaration.field) == "" || strings.TrimSpace(declaration.target.property) == "" {
 		return nil, errors.New("RecordCurrentPlayerChoice: source and destination properties must be non-empty")

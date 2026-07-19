@@ -156,3 +156,26 @@ func TestRecordCurrentPlayerChoiceRejectsInvalidUsageAtBoot(t *testing.T) {
 		t.Fatalf("type-mismatch error = %v", err)
 	}
 }
+
+func TestWithRecordedChoiceRejectsAnExistingLowLevelDescriptor(t *testing.T) {
+	_, err := newGameManager(func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return []boardgame.MoveConfig{auto.MustConfig(
+			new(moveRecordInheritedTarget),
+			WithMoveName("Duplicate Record Descriptor"),
+			WithMoveInputFieldOverride("TargetPlayerIndex", boardgame.MoveInputRequired),
+			func(config boardgame.PropertyCollection) {
+				if err := boardgame.SetMoveChoiceRecording(config, boardgame.MoveChoiceRecording{
+					FieldName: "TargetPlayerIndex", DestinationScope: boardgame.MoveChoiceRecordingGame,
+					DestinationProperty: "Counter",
+				}); err != nil {
+					t.Fatal(err)
+				}
+			},
+			WithRecordedChoice("TargetPlayerIndex", InGame("CurrentPlayer")),
+		)}
+	})
+	if err == nil || !strings.Contains(err.Error(), "more than one choice recording") {
+		t.Fatalf("duplicate descriptor error = %v", err)
+	}
+}
