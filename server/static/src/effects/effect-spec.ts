@@ -96,6 +96,15 @@ export interface TrailEffectSpec extends Omit<EffectBase, 'timing' | 'advanced'>
   }>;
 }
 
+/** A lifecycle-bound decoration is subscribed before structural playback. */
+export interface DecorateMotionEffectSpec extends Omit<EffectBase, 'timing' | 'advanced'> {
+  readonly kind: 'decorate-motion';
+  readonly subject: string;
+  readonly effects: readonly EffectSpec[];
+  readonly timing?: never;
+  readonly advanced?: never;
+}
+
 export interface SequenceEffectSpec extends EffectBase {
   readonly kind: 'sequence';
   readonly effects: readonly EffectSpec[];
@@ -112,6 +121,7 @@ export type EffectSpec =
   | PulseEffectSpec
   | TravelEffectSpec
   | TrailEffectSpec
+  | DecorateMotionEffectSpec
   | SequenceEffectSpec
   | ParallelEffectSpec;
 
@@ -162,6 +172,11 @@ type BurstOptions = CommonOptions & Pick<BurstEffectSpec, 'at'>;
 type PulseOptions = CommonOptions & Pick<PulseEffectSpec, 'at'>;
 type TravelOptions = CommonOptions & Pick<TravelEffectSpec, 'from' | 'to'>;
 type TrailOptions = Omit<TrailEffectSpec, 'kind'>;
+type DecorateMotionOptions = Omit<DecorateMotionEffectSpec, 'kind' | 'effects'> & Readonly<{
+  trail?: Omit<TrailOptions, 'subject'> | true;
+  departure?: EffectSpec;
+  arrival?: EffectSpec;
+}>;
 
 function nonEmpty(value: string, label: string): string {
   const normalized = value.trim();
@@ -239,6 +254,31 @@ export const fx = Object.freeze({
       ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
       ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
       ...(advanced ? { advanced } : {}),
+    });
+  },
+
+  decorateMotion(options: DecorateMotionOptions): DecorateMotionEffectSpec {
+    const subject = nonEmpty(options.subject, 'motion decoration subject ID');
+    const effects: EffectSpec[] = [];
+    if (options.trail) {
+      effects.push(fx.trail({
+        subject,
+        ...(options.trail === true ? {} : options.trail),
+      }));
+    }
+    if (options.departure) effects.push(options.departure);
+    if (options.arrival) effects.push(options.arrival);
+    if (effects.length === 0) {
+      throw new Error('motion decoration requires a trail, departure, or arrival effect');
+    }
+    return Object.freeze({
+      kind: 'decorate-motion',
+      subject,
+      ...(options.tone === undefined ? {} : { tone: options.tone }),
+      ...(options.intensity === undefined ? {} : { intensity: options.intensity }),
+      ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
+      ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
+      effects: Object.freeze(effects),
     });
   },
 

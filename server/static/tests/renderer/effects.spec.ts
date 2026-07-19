@@ -181,12 +181,21 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
         tone: 'reward',
         advanced: { durationMs: 120, count: 3 },
       }));
-      const trail = layer.playTransition(fx.trail({
-        subject: 'card-17',
-        tone: 'magic',
-        intensity: 'small',
-        advanced: { echoes: 3, lagMs: 4, opacity: 0.3 },
-      }));
+      const trail = layer.playTransition(fx.sequence([
+        fx.travel({
+          from: fx.point(5, 5),
+          to: fx.point(15, 15),
+          advanced: { durationMs: 600 },
+        }),
+        fx.decorateMotion({
+          subject: 'card-17',
+          trail: {
+            tone: 'magic',
+            intensity: 'small',
+            advanced: { echoes: 3, lagMs: 4, opacity: 0.3 },
+          },
+        }),
+      ]));
       const before = {
         pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
         particles: layer.shadowRoot.querySelectorAll('.particle').length,

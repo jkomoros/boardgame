@@ -48,6 +48,10 @@ interface ResolvedPolicy {
 
 interface InternalHandle extends EffectHandle {}
 
+interface EffectExecutionContext {
+  readonly preparedMotion: Map<string, InternalHandle>;
+}
+
 type MotionResolution =
   | Readonly<{ kind: 'point'; point: Readonly<{ x: number; y: number }> }>
   | Readonly<{ kind: 'result'; result: EffectResult }>;
@@ -283,13 +287,19 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
 
   private _start(effect: EffectSpec, transitionOwned: boolean): EffectHandle {
     if (!this.isConnected) return skipped('not-connected');
-    const running = this._execute(effect, '0', {
+    const context: EffectExecutionContext = { preparedMotion: new Map() };
+    const rootPolicy: ResolvedPolicy = {
       tone: 'neutral',
       intensity: 'medium',
       timing: 'immediate',
       seedKey: '',
-    });
-    const cancel = () => running.cancel();
+    };
+    this._prepareMotionDecorations(effect, '0', rootPolicy, context);
+    const running = this._execute(effect, '0', rootPolicy, context);
+    const cancel = () => {
+      running.cancel();
+      for (const prepared of context.preparedMotion.values()) prepared.cancel();
+    };
     this._activeCancels.add(cancel);
     if (transitionOwned) this._transitionCancels.add(cancel);
     void running.finished.finally(() => {
@@ -307,13 +317,45 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     for (const cancel of [...this._activeCancels]) cancel();
   }
 
-  private _execute(effect: EffectSpec, path: string, inherited: ResolvedPolicy): InternalHandle {
-    const policy: ResolvedPolicy = {
+  private _resolvedPolicy(effect: EffectSpec, inherited: ResolvedPolicy): ResolvedPolicy {
+    return {
       tone: effect.tone ?? inherited.tone,
       intensity: effect.intensity ?? inherited.intensity,
       timing: effect.timing ?? inherited.timing,
       seedKey: effect.seedKey ?? effect.key ?? inherited.seedKey,
     };
+  }
+
+  private _prepareMotionDecorations(
+    effect: EffectSpec,
+    path: string,
+    inherited: ResolvedPolicy,
+    context: EffectExecutionContext,
+  ): void {
+    const policy = this._resolvedPolicy(effect, inherited);
+    if (effect.kind === 'decorate-motion') {
+      if (!context.preparedMotion.has(path)) {
+        context.preparedMotion.set(
+          path,
+          this._parallel(effect.effects, path, { ...policy, timing: 'immediate' }, context),
+        );
+      }
+      return;
+    }
+    if (effect.kind === 'sequence' || effect.kind === 'parallel') {
+      effect.effects.forEach((child, index) => {
+        this._prepareMotionDecorations(child, `${path}.${index}`, policy, context);
+      });
+    }
+  }
+
+  private _execute(
+    effect: EffectSpec,
+    path: string,
+    inherited: ResolvedPolicy,
+    context: EffectExecutionContext,
+  ): InternalHandle {
+    const policy = this._resolvedPolicy(effect, inherited);
     switch (effect.kind) {
       case 'burst':
         return this._burst(effect, path, policy);
@@ -323,10 +365,13 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
         return this._travel(effect, path, policy);
       case 'trail':
         return this._trail(effect, path, policy);
+      case 'decorate-motion':
+        return context.preparedMotion.get(path)
+          ?? this._parallel(effect.effects, path, { ...policy, timing: 'immediate' }, context);
       case 'sequence':
-        return this._sequence(effect.effects, effect.gapMs, path, policy);
+        return this._sequence(effect.effects, effect.gapMs, path, policy, context);
       case 'parallel':
-        return this._parallel(effect.effects, path, policy);
+        return this._parallel(effect.effects, path, policy, context);
     }
   }
 
@@ -503,6 +548,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     gapMs: number,
     path: string,
     policy: ResolvedPolicy,
+    context: EffectExecutionContext,
   ): InternalHandle {
     let current: InternalHandle | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -522,7 +568,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       let completed = false;
       let lastSkipped: EffectResult | null = null;
       for (let index = 0; index < effects.length && !cancelled; index++) {
-        current = this._execute(effects[index], `${path}.${index}`, policy);
+        current = this._execute(effects[index], `${path}.${index}`, policy, context);
         const result = await current.finished;
         current = null;
         if (result.status === 'finished') completed = true;
@@ -545,8 +591,15 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     };
   }
 
-  private _parallel(effects: readonly EffectSpec[], path: string, policy: ResolvedPolicy): InternalHandle {
-    const children = effects.map((effect, index) => this._execute(effect, `${path}.${index}`, policy));
+  private _parallel(
+    effects: readonly EffectSpec[],
+    path: string,
+    policy: ResolvedPolicy,
+    context: EffectExecutionContext,
+  ): InternalHandle {
+    const children = effects.map((effect, index) => (
+      this._execute(effect, `${path}.${index}`, policy, context)
+    ));
     let cancelled = false;
     const finished = Promise.all(children.map(child => child.finished)).then(results => {
       if (cancelled) return CANCELLED;

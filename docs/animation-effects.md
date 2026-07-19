@@ -192,19 +192,19 @@ Use `fx.trail()` when the decoration should follow a component's real automatic
 movement rather than synthesize a second trip between named anchors:
 
 ```ts
-fx.parallel([
-  fx.trail({
-    subject: movedTokenId,
+fx.decorateMotion({
+  subject: movedTokenId,
+  trail: {
     tone: 'magic',
     intensity: 'small',
-  }),
-  fx.burst({
+  },
+  arrival: fx.burst({
     at: fx.motion(movedTokenId),
     tone: 'reward',
     intensity: 'small',
     timing: 'immediate',
   }),
-])
+})
 ```
 
 The trail begins from the structural motion's real `started` event. It uses the
@@ -214,6 +214,14 @@ animations. It is cancelled when that exact motion generation is interrupted.
 It therefore has no independent `timing` option and never delays the state
 queue. A component that did not move returns `no-motion-path`; a missing or
 opted-out visual subject returns `missing-subject`.
+
+`fx.decorateMotion()` is the durable composition boundary for lifecycle-bound
+work. The effect layer discovers it recursively and subscribes its trail and
+departure/arrival effects before structural playback, even when the descriptor
+is nested inside an `fx.sequence()`. When the sequence later reaches that item,
+it joins the already-running or completed decoration instead of replaying a
+cached start event late. Use a bare top-level `fx.trail()` only when no grouped
+departure or arrival decoration is needed.
 
 The trail is a colored silhouette, not a component clone. The animator captures
 only an explicit shape capability—`rectangle`, `rounded-rectangle`, or
@@ -353,7 +361,7 @@ text remains normal accessible UI; any floating text effect is only its
 
 | Choice | Values | Default | Scope |
 | --- | --- | --- | --- |
-| Recipe | `burst`, `pulse`, `travel`, `trail`, `sequence`, `parallel` | none | Descriptor |
+| Recipe | `burst`, `pulse`, `travel`, `trail`, `decorateMotion`, `sequence`, `parallel` | none | Descriptor |
 | Tone | `neutral`, `reward`, `confirm`, `attention`, `warning`, `magic` | `neutral` | Inherited through composition |
 | Intensity | `subtle`, `small`, `medium`, `large` | `medium` | Inherited through composition |
 | Timing | `immediate`, `version`, or `{ localStartAtMs }` | `immediate` | Inherited through composition |

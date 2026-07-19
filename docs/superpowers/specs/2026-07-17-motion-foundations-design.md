@@ -264,7 +264,9 @@ that value through an exact sanitizer before publishing it on a segment. Any
 extra property rejects the whole snapshot, so content, artwork, DOM, styles,
 and hidden game state cannot accidentally become observable.
 
-`fx.trail({ subject })` waits for the matching FLIP `started` event. The overlay
+`fx.decorateMotion({ subject, trail, departure, arrival })` is recursively
+prepared before structural playback, even inside ordinary composition. Its
+trail waits for the matching FLIP `started` event. The overlay
 then derives its endpoints from the segment's viewport geometry and its timing
 envelope from actual compiled execution records. It owns only disposable echo
 elements, consumes the shared visual-node budget, and is cancelled by the
@@ -276,6 +278,11 @@ The trail deliberately has no independent timing policy: a follower that can
 drift into a different version slot is not a follower. Artwork-bearing subjects
 remain a future, separately reviewed protocol rather than a compatible field
 added to the safe silhouette value.
+
+When a sequence reaches a prepared motion decoration, it joins that existing
+handle. It never replays a cached structural start after the subject has already
+arrived. This is the semantic distinction between scheduled effects and
+lifecycle subscriptions.
 
 ## Physical animation ownership
 

@@ -20,6 +20,7 @@ export type {
 } from './motion/subject.js';
 export type {
   BurstEffectSpec,
+  DecorateMotionEffectSpec,
   EffectAnchor,
   EffectHandle,
   EffectHostAPI,

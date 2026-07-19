@@ -212,19 +212,18 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
         id => !context.after.Game.TokensFrom.IDs.includes(id),
       );
     if (!movedTokenId) return [];
-    return [fx.parallel([
-      fx.trail({
-        subject: movedTokenId,
+    return [fx.decorateMotion({
+      subject: movedTokenId,
+      trail: {
         tone: 'magic',
         intensity: 'small',
-      }),
-      fx.burst({
+      },
+      arrival: fx.burst({
         at: fx.motion(movedTokenId),
         tone: 'reward',
         intensity: 'small',
         timing: 'immediate',
       }),
-    ], {
       key: 'token-transfer',
     })];
   }

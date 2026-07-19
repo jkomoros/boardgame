@@ -79,6 +79,23 @@ describe('effect descriptors', () => {
     assert.throws(() => fx.trail({ subject: ' ' }), /trail subject ID/);
   });
 
+  it('groups lifecycle-bound motion decoration as immutable data', () => {
+    const descriptor = fx.decorateMotion({
+      subject: 'card-22',
+      trail: { tone: 'magic', intensity: 'small' },
+      arrival: fx.burst({ at: fx.motion('card-22'), tone: 'reward' }),
+    });
+    assert.equal(descriptor.kind, 'decorate-motion');
+    assert.equal(descriptor.subject, 'card-22');
+    assert.deepEqual(descriptor.effects.map(effect => effect.kind), ['trail', 'burst']);
+    assert.equal(Object.isFrozen(descriptor), true);
+    assert.equal(Object.isFrozen(descriptor.effects), true);
+    assert.throws(
+      () => fx.decorateMotion({ subject: 'card-22' }),
+      /requires a trail, departure, or arrival/,
+    );
+  });
+
   it('copies and freezes game-local themes', () => {
     const reward = ['#ffd700'];
     const theme = defineEffectTheme({ tones: { reward } });
