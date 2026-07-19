@@ -208,9 +208,12 @@ export type ExpandedTimer = unknown;
 export type FullGameState<GS, PS, GC, PC, DC> = { readonly Game: GS; readonly Players: readonly PS[]; readonly Components?: DC; readonly Computed?: { readonly Global?: GC; readonly Players?: readonly PC[] } };
 export type RawStack = unknown;
 `
-	frameworkClient := `export abstract class BoardgameBaseGameRenderer<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object, E extends object = object> extends HTMLElement {
+	frameworkClient := `type MoveChoiceProjectionTypes = Readonly<Record<string, { readonly field: string; readonly value: string | number; readonly input: object }>>;
+export abstract class BoardgameBaseGameRenderer<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object, E extends object = object, MCP extends MoveChoiceProjectionTypes = Record<never, never>> extends HTMLElement {
   protected readonly moveInputSchema!: unknown;
   protected readonly moveInputSchemaFingerprint!: string;
+  protected readonly moveChoiceProjectionSchema!: readonly unknown[];
+  protected readonly moveChoiceProjectionSchemaFingerprint!: string;
   readonly state!: S;
   readonly chest!: { readonly Decks?: C; readonly Constants?: K; readonly Enums?: E };
 }
@@ -219,8 +222,8 @@ export abstract class BoardgameBasePlayerInfoRenderer<S, PS> extends HTMLElement
   playerIndex!: number;
   playerState!: PS | null;
 }
-export abstract class BoardgameTableViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object, E extends object = object> extends BoardgameBaseGameRenderer<S, C, M, A, K, E> {}
-export abstract class BoardgameHandViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object, E extends object = object> extends BoardgameBaseGameRenderer<S, C, M, A, K, E> {}
+export abstract class BoardgameTableViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object, E extends object = object, MCP extends MoveChoiceProjectionTypes = Record<never, never>> extends BoardgameBaseGameRenderer<S, C, M, A, K, E, MCP> {}
+export abstract class BoardgameHandViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object, E extends object = object, MCP extends MoveChoiceProjectionTypes = Record<never, never>> extends BoardgameBaseGameRenderer<S, C, M, A, K, E, MCP> {}
 `
 	if err := os.WriteFile(filepath.Join(frameworkDir, "types", "boardgame-types.ts"), []byte(frameworkTypes), 0600); err != nil {
 		return fmt.Errorf("couldn't stage TypeScript type declarations: %w", err)

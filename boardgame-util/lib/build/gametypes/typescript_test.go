@@ -304,15 +304,19 @@ func TestGenerateRendererTypeScriptBindsCompleteContractAndExactRegistration(t *
 		"customElements.define(tagName, constructor);",
 		"'boardgame-render-game-sample', 'game', 'GameRenderer', GameRenderer, constructor",
 		"protected override readonly moveInputSchema = moveInputSchema;",
+		"protected override readonly moveChoiceProjectionSchema = moveChoiceProjectionSchema;",
+		"protected override readonly moveChoiceProjectionSchemaFingerprint = moveChoiceProjectionSchemaFingerprint;",
 		"readonly Components: ComponentCatalog;",
 		"readonly Constants: GameConstants;",
 		"readonly Enums: GameEnums;",
+		"readonly MoveChoiceProjections: MoveChoiceProjections;",
 		"readonly RendererTag:",
 		"'boardgame-render-game-sample-table'",
 		"'boardgame-render-game-sample-hand'",
 		"GameClientContract['State']",
 		"GameClientContract['Constants']",
 		"GameClientContract['Enums']",
+		"GameClientContract['MoveChoiceProjections']",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("missing %q:\n%s", want, ts)
