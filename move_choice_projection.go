@@ -16,6 +16,20 @@ const moveChoiceProjectionConfigKey = "github.com/jkomoros/boardgame.MoveChoiceP
 // creator-input proposal protocol version and fingerprint.
 const MoveChoiceProjectionSchemaVersion = 1
 
+// Move-choice projection limits are part of the protocol's resource-safety
+// contract. Static enum universes are rejected during manager boot; dynamic
+// player universes are checked again by the server projector.
+const (
+	MoveChoiceProjectionMaxSets             = 8
+	MoveChoiceProjectionMaxCandidatesPerSet = 64
+	MoveChoiceProjectionMaxLegalEvaluations = 128
+	// Static values get half of the total wire budget; the remainder is
+	// reserved for move/field identity, candidate status, and envelope data.
+	// The server still measures the complete viewer-specific JSON before Legal.
+	MoveChoiceProjectionMaxStaticCandidateBytes = 32 << 10
+	MoveChoiceProjectionMaxWireBytes            = 64 << 10
+)
+
 // MoveChoiceSource is a sealed framework-owned finite candidate universe.
 // Sources enumerate possible values; ordinary move legality remains the sole
 // authority for whether each complete binding is currently available.
@@ -138,7 +152,43 @@ func BuildMoveChoiceProjectionSchema(manager *GameManager) ([]MoveChoiceProjecti
 		result = append(result, item)
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].MoveName < result[j].MoveName })
+	if err := validateMoveChoiceProjectionSchemaLimits(result); err != nil {
+		return nil, err
+	}
 	return result, nil
+}
+
+func validateMoveChoiceProjectionSchemaLimits(schema []MoveChoiceProjectionSchema) error {
+	if len(schema) > MoveChoiceProjectionMaxSets {
+		return fmt.Errorf("game configures %d move choice projections; limit is %d", len(schema), MoveChoiceProjectionMaxSets)
+	}
+	staticCandidates := 0
+	staticCandidateBytes := 0
+	for _, projection := range schema {
+		if projection.Source != MoveChoiceSourceEnumValues {
+			continue
+		}
+		if len(projection.CandidateValues) > MoveChoiceProjectionMaxCandidatesPerSet {
+			return fmt.Errorf("move %q has %d static choice candidates; limit is %d", projection.MoveName, len(projection.CandidateValues), MoveChoiceProjectionMaxCandidatesPerSet)
+		}
+		staticCandidates += len(projection.CandidateValues)
+		if staticCandidates > MoveChoiceProjectionMaxLegalEvaluations {
+			return fmt.Errorf("move choice projections have %d static candidates; total limit is %d", staticCandidates, MoveChoiceProjectionMaxLegalEvaluations)
+		}
+		for _, value := range projection.CandidateValues {
+			// Count JSON encoding rather than raw string bytes so quotes,
+			// backslashes, and control characters cannot expand past the cap.
+			encoded, err := json.Marshal(value)
+			if err != nil {
+				return fmt.Errorf("encode move %q candidate value: %w", projection.MoveName, err)
+			}
+			staticCandidateBytes += len(encoded)
+			if staticCandidateBytes > MoveChoiceProjectionMaxStaticCandidateBytes {
+				return fmt.Errorf("move choice projections have %d encoded static candidate bytes; limit is %d", staticCandidateBytes, MoveChoiceProjectionMaxStaticCandidateBytes)
+			}
+		}
+	}
+	return nil
 }
 
 func resolveMoveChoiceProjection(move MoveInputSchemaMove, projection MoveChoiceProjection) (MoveChoiceProjectionSchema, error) {

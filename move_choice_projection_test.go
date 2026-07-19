@@ -74,3 +74,40 @@ func TestMoveChoiceProjectionFingerprintExcludesAuditProse(t *testing.T) {
 		t.Fatal("candidate-universe edit did not change choice-projection fingerprint")
 	}
 }
+
+func TestMoveChoiceProjectionSchemaResourceLimits(t *testing.T) {
+	projection := func(name string, candidates int) MoveChoiceProjectionSchema {
+		values := make([]string, candidates)
+		for i := range values {
+			values[i] = "value"
+		}
+		return MoveChoiceProjectionSchema{
+			MoveName: name, FieldName: "Choice", Source: MoveChoiceSourceEnumValues,
+			CandidateValues: values, Disclosure: MoveChoiceDisclosureActorExact,
+		}
+	}
+	tests := []struct {
+		name   string
+		schema []MoveChoiceProjectionSchema
+		want   string
+	}{
+		{"too many sets", make([]MoveChoiceProjectionSchema, MoveChoiceProjectionMaxSets+1), "projections"},
+		{"too many candidates in one set", []MoveChoiceProjectionSchema{projection("Large", MoveChoiceProjectionMaxCandidatesPerSet+1)}, "static choice candidates"},
+		{"too many candidates in total", []MoveChoiceProjectionSchema{projection("First", 64), projection("Second", 64), projection("Third", 1)}, "total limit"},
+		{"too many encoded candidate bytes", []MoveChoiceProjectionSchema{{
+			MoveName: "Huge", FieldName: "Choice", Source: MoveChoiceSourceEnumValues,
+			CandidateValues: []string{strings.Repeat("\\", MoveChoiceProjectionMaxStaticCandidateBytes)},
+		}}, "encoded static candidate bytes"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateMoveChoiceProjectionSchemaLimits(test.schema)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want %q", err, test.want)
+			}
+		})
+	}
+	if err := validateMoveChoiceProjectionSchemaLimits([]MoveChoiceProjectionSchema{projection("Valid", 64)}); err != nil {
+		t.Fatalf("valid bounded schema failed: %v", err)
+	}
+}

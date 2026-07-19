@@ -12,10 +12,10 @@ const (
 	projectedMoveChoicesStatusReady  = "ready"
 	projectedMoveChoicesStatusFailed = "failed"
 
-	maxProjectedMoveChoiceSets       = 8
-	maxProjectedMoveCandidatesPerSet = 64
-	maxProjectedMoveLegalEvaluations = 128
-	maxProjectedMoveChoicesBytes     = 64 << 10
+	maxProjectedMoveChoiceSets       = boardgame.MoveChoiceProjectionMaxSets
+	maxProjectedMoveCandidatesPerSet = boardgame.MoveChoiceProjectionMaxCandidatesPerSet
+	maxProjectedMoveLegalEvaluations = boardgame.MoveChoiceProjectionMaxLegalEvaluations
+	maxProjectedMoveChoicesBytes     = boardgame.MoveChoiceProjectionMaxWireBytes
 )
 
 // projectedMoveChoicesSnapshot is a version-pinned, actor-only read model of
@@ -51,6 +51,11 @@ type projectedMoveChoiceBudget struct {
 	legalEvaluations int
 }
 
+type preparedProjectedMoveChoiceSet struct {
+	schema boardgame.MoveChoiceProjectionSchema
+	values []projectedMoveChoiceSourceValue
+}
+
 // projectMoveChoiceSet binds each member of one sealed candidate universe to
 // a fresh move and asks the move's full Legal method exactly once. A nil set
 // means either that the canonical move name is hidden from this actor or that
@@ -62,6 +67,25 @@ func projectMoveChoiceSet(
 	schema boardgame.MoveChoiceProjectionSchema,
 	budget *projectedMoveChoiceBudget,
 ) (*projectedMoveChoiceSet, error) {
+	prepared, err := prepareMoveChoiceSet(game, state, actor, schema)
+	if err != nil || prepared == nil {
+		return nil, err
+	}
+	if err := preflightProjectedMoveChoiceSets(
+		&projectedMoveChoicesSnapshot{Status: projectedMoveChoicesStatusReady},
+		[]preparedProjectedMoveChoiceSet{*prepared}, budget,
+	); err != nil {
+		return nil, err
+	}
+	return evaluatePreparedMoveChoiceSet(game, state, actor, *prepared, budget)
+}
+
+func prepareMoveChoiceSet(
+	game *boardgame.Game,
+	state boardgame.ImmutableState,
+	actor boardgame.PlayerIndex,
+	schema boardgame.MoveChoiceProjectionSchema,
+) (*preparedProjectedMoveChoiceSet, error) {
 	if schema.Disclosure != boardgame.MoveChoiceDisclosureActorExact {
 		return nil, fmt.Errorf("move %q uses unsupported choice disclosure %q", schema.MoveName, schema.Disclosure)
 	}
@@ -85,15 +109,26 @@ func projectMoveChoiceSet(
 	if len(values) > maxProjectedMoveCandidatesPerSet {
 		return nil, fmt.Errorf("move %q has %d projected candidates; limit is %d", schema.MoveName, len(values), maxProjectedMoveCandidatesPerSet)
 	}
+	return &preparedProjectedMoveChoiceSet{schema: schema, values: values}, nil
+}
+
+func evaluatePreparedMoveChoiceSet(
+	game *boardgame.Game,
+	state boardgame.ImmutableState,
+	actor boardgame.PlayerIndex,
+	prepared preparedProjectedMoveChoiceSet,
+	budget *projectedMoveChoiceBudget,
+) (*projectedMoveChoiceSet, error) {
+	schema := prepared.schema
 
 	set := &projectedMoveChoiceSet{
 		MoveName:   schema.MoveName,
 		FieldName:  schema.FieldName,
 		Source:     schema.Source,
-		Candidates: make([]projectedMoveChoiceCandidate, 0, len(values)),
+		Candidates: make([]projectedMoveChoiceCandidate, 0, len(prepared.values)),
 	}
 	legalCandidates := 0
-	for _, sourceValue := range values {
+	for _, sourceValue := range prepared.values {
 		if budget.legalEvaluations >= maxProjectedMoveLegalEvaluations {
 			return nil, fmt.Errorf("projected choices exceed %d Legal evaluations", maxProjectedMoveLegalEvaluations)
 		}
@@ -111,6 +146,10 @@ func projectMoveChoiceSet(
 		}
 
 		budget.legalEvaluations++
+		// The count bound limits how many game-authored legality calls one
+		// projection may make. Like every existing legality endpoint, this
+		// assumes an individual Legal implementation terminates normally; the
+		// framework deliberately does not launch unbounded goroutines to time it.
 		available := move.Legal(state, actor) == nil
 		if available {
 			legalCandidates++
@@ -124,6 +163,38 @@ func projectMoveChoiceSet(
 		return nil, nil
 	}
 	return set, nil
+}
+
+// preflightProjectedMoveChoiceSets validates the complete visible candidate
+// payload before any game-authored Legal method runs. It includes sets that may
+// later prove all-illegal, so suppressed output cannot evade resource limits.
+func preflightProjectedMoveChoiceSets(
+	snapshot *projectedMoveChoicesSnapshot,
+	prepared []preparedProjectedMoveChoiceSet,
+	budget *projectedMoveChoiceBudget,
+) error {
+	preflight := *snapshot
+	preflight.Sets = make([]projectedMoveChoiceSet, 0, len(prepared))
+	totalEvaluations := budget.legalEvaluations
+	for _, item := range prepared {
+		totalEvaluations += len(item.values)
+		if totalEvaluations > maxProjectedMoveLegalEvaluations {
+			return fmt.Errorf("projected choices exceed %d Legal evaluations", maxProjectedMoveLegalEvaluations)
+		}
+		set := projectedMoveChoiceSet{
+			MoveName:   item.schema.MoveName,
+			FieldName:  item.schema.FieldName,
+			Source:     item.schema.Source,
+			Candidates: make([]projectedMoveChoiceCandidate, 0, len(item.values)),
+		}
+		for _, value := range item.values {
+			// false is one byte longer than true in JSON, making this a safe
+			// upper bound for the eventual status payload.
+			set.Candidates = append(set.Candidates, projectedMoveChoiceCandidate{Value: value.value})
+		}
+		preflight.Sets = append(preflight.Sets, set)
+	}
+	return validateProjectedMoveChoicesSize(&preflight)
 }
 
 // projectMoveChoicesSnapshot projects only a recoverable proposal frontier.
@@ -179,17 +250,27 @@ func projectMoveChoicesSnapshot(
 	}
 
 	budget := new(projectedMoveChoiceBudget)
+	prepared := make([]preparedProjectedMoveChoiceSet, 0, len(schema))
 	for _, declaration := range schema {
-		set, err := projectMoveChoiceSet(game, state, actor, declaration, budget)
+		set, err := prepareMoveChoiceSet(game, state, actor, declaration)
 		if err != nil {
 			return snapshot, err
 		}
 		if set == nil {
 			continue
 		}
-		snapshot.Sets = append(snapshot.Sets, *set)
-		if err := validateProjectedMoveChoicesSize(snapshot); err != nil {
+		prepared = append(prepared, *set)
+	}
+	if err := preflightProjectedMoveChoiceSets(snapshot, prepared, budget); err != nil {
+		return snapshot, err
+	}
+	for _, preparedSet := range prepared {
+		set, err := evaluatePreparedMoveChoiceSet(game, state, actor, preparedSet, budget)
+		if err != nil {
 			return snapshot, err
+		}
+		if set != nil {
+			snapshot.Sets = append(snapshot.Sets, *set)
 		}
 	}
 	return snapshot, nil

@@ -18,6 +18,7 @@ type projectedChoicesDelegate struct {
 	rejectAll       bool
 	projectionCount int
 	namePolicy      string
+	moveName        string
 	legalCalls      atomic.Int32
 }
 
@@ -33,6 +34,9 @@ func (d *projectedChoicesDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	result := make([]boardgame.MoveConfig, 0, d.projectionCount)
 	for i := 0; i < d.projectionCount; i++ {
 		name := "Choose Player"
+		if d.moveName != "" {
+			name = d.moveName
+		}
 		if d.projectionCount > 1 {
 			name = fmt.Sprintf("Choose Player %d", i)
 		}
@@ -250,9 +254,17 @@ func TestProjectedMoveChoicesByteBudget(t *testing.T) {
 }
 
 func TestProjectedMoveChoicesFailureIsExplicitAndGeneric(t *testing.T) {
+	tooMany := newProjectedChoicesDelegate()
+	tooMany.projectionCount = maxProjectedMoveChoiceSets + 1
+	if _, err := boardgame.NewGameManager(tooMany, newLegalLedgerStorage()); err == nil || !strings.Contains(err.Error(), "limit") {
+		t.Fatalf("manager boot error = %v; want projection-set limit", err)
+	}
+
 	delegate := newProjectedChoicesDelegate()
-	delegate.projectionCount = maxProjectedMoveChoiceSets + 1
+	delegate.rejectAll = true
+	delegate.moveName = strings.Repeat("oversized", maxProjectedMoveChoicesBytes/len("oversized")+1)
 	game := newProjectedChoicesGame(t, delegate)
+	delegate.legalCalls.Store(0)
 
 	snapshot := (&Server{}).projectedMoveChoicesForBundle(game, game.CurrentState(), 0)
 	if snapshot == nil || snapshot.Status != projectedMoveChoicesStatusFailed || len(snapshot.Sets) != 0 {
@@ -267,6 +279,9 @@ func TestProjectedMoveChoicesFailureIsExplicitAndGeneric(t *testing.T) {
 	}
 	if snapshot.MoveChoiceProjectionSchemaFingerprint == "" || snapshot.ProjectionSchemaVersion == 0 {
 		t.Fatalf("failed snapshot omitted schema identity: %#v", snapshot)
+	}
+	if delegate.legalCalls.Load() != 0 {
+		t.Fatalf("wire preflight performed %d Legal calls before failing", delegate.legalCalls.Load())
 	}
 }
 
