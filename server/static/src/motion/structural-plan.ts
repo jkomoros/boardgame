@@ -1,6 +1,5 @@
 import type {
   FlipGeometry,
-  OffsetGeometry,
   ViewportGeometry,
 } from './geometry.js';
 import type { AnimationTimingPolicy } from './timing.js';
@@ -23,34 +22,9 @@ export type StructuralProvenance =
     evidence: 'only-candidate' | 'runner-up' | 'latest-seen' | 'ambiguous';
   }>;
 
-export interface StructuralPropertyChange {
-  readonly name: string;
-  readonly before: StructuralValueSnapshot;
-  readonly after: StructuralValueSnapshot;
-}
-
-/** Exact DOM ownership channels planned for this segment. */
-export interface StructuralMotionChannel {
-  readonly target: 'host' | 'visual';
-  readonly property: 'transform' | 'opacity';
-}
-
-export type StructuralValueSnapshot =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Readonly<{ kind: 'opaque' | 'non-finite-number' }>;
-
-export interface StructuralSpatialChange {
-  readonly offsetFrom?: OffsetGeometry;
-  readonly offsetTo?: OffsetGeometry;
-  readonly inversion: FlipGeometry;
-}
-
-/** Historical visual endpoints captured in the same measurement transaction. */
-export interface StructuralViewportEndpoints {
+/** Privacy-safe visual path captured in one measurement transaction. */
+export interface StructuralMotionPath {
+  readonly kind: 'stationary' | 'travel';
   readonly from: ViewportGeometry;
   readonly to: ViewportGeometry;
 }
@@ -60,13 +34,9 @@ export interface StructuralMotionDraft {
   readonly presence: StructuralPresence;
   readonly provenance: StructuralProvenance;
   readonly visualSubject?: MotionSubjectSnapshot;
-  /** Subject location exists independently of whether it spatially moved. */
-  readonly viewport?: StructuralViewportEndpoints;
-  readonly spatial?: StructuralSpatialChange;
-  readonly transform?: Readonly<{ before: string; after: string }>;
-  readonly properties: readonly StructuralPropertyChange[];
-  readonly opacity?: Readonly<{ before: number; after: number }>;
-  readonly channels: readonly StructuralMotionChannel[];
+  readonly path?: StructuralMotionPath;
+  /** Exact, single-owner channels intended for this segment. */
+  readonly channels: readonly ComponentMotionChannel[];
 }
 
 export interface StructuralTimingRequest {
@@ -118,35 +88,18 @@ export interface StructuralMotionPlan {
 
 export type StructuralMotionObserver = (plan: StructuralMotionPlan) => void;
 
-function finiteOpacity(value: string | undefined): number {
-  const parsed = Number.parseFloat(value || '1');
-  return Number.isFinite(parsed) ? parsed : 1;
-}
-
-function snapshotValue(value: unknown): StructuralValueSnapshot {
-  if (value === null || value === undefined) return value;
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : Object.freeze({ kind: 'non-finite-number' });
-  }
-  if (typeof value === 'string' || typeof value === 'boolean') return value;
-  return Object.freeze({ kind: 'opaque' });
-}
-
 function snapshotChannels(
   channels: readonly Readonly<{ target: string; property: string }>[] | undefined,
-): readonly StructuralMotionChannel[] {
+): readonly ComponentMotionChannel[] {
   const seen = new Set<string>();
-  const result: StructuralMotionChannel[] = [];
+  const result: ComponentMotionChannel[] = [];
   for (const channel of channels ?? []) {
     if ((channel.target !== 'host' && channel.target !== 'visual')
       || (channel.property !== 'transform' && channel.property !== 'opacity')) continue;
     const key = `${channel.target}:${channel.property}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    result.push(Object.freeze({
-      target: channel.target,
-      property: channel.property,
-    }));
+    result.push(key as ComponentMotionChannel);
   }
   return Object.freeze(result);
 }
@@ -156,35 +109,11 @@ export function createStructuralMotionDraft(input: Readonly<{
   presence: StructuralPresence;
   provenance: StructuralProvenance;
   visualSubject?: unknown;
-  from?: OffsetGeometry;
-  to?: OffsetGeometry;
   viewportFrom?: ViewportGeometry;
   viewportTo?: ViewportGeometry;
   inversion?: FlipGeometry;
-  beforeTransform?: string;
-  afterTransform?: string;
-  beforeProperties?: Readonly<Record<string, unknown>>;
-  afterProperties?: Readonly<Record<string, unknown>>;
-  animatingProperties?: readonly string[];
-  beforeOpacity?: string;
-  afterOpacity?: string;
   channels?: readonly Readonly<{ target: string; property: string }>[];
 }>): StructuralMotionDraft {
-  const properties = (input.animatingProperties ?? []).flatMap(name => {
-    const before = input.beforeProperties?.[name];
-    const after = input.afterProperties?.[name];
-    return before === after
-      ? []
-      : [Object.freeze({
-        name,
-        before: snapshotValue(before),
-        after: snapshotValue(after),
-      })];
-  });
-  const beforeTransform = input.beforeTransform ?? '';
-  const afterTransform = input.afterTransform ?? '';
-  const beforeOpacity = finiteOpacity(input.beforeOpacity);
-  const afterOpacity = finiteOpacity(input.afterOpacity);
   const visualSubject = sanitizeMotionSubjectSnapshot(input.visualSubject);
   return Object.freeze({
     subjectId: input.subjectId,
@@ -192,24 +121,11 @@ export function createStructuralMotionDraft(input: Readonly<{
     provenance: Object.freeze({ ...input.provenance }),
     ...(visualSubject ? { visualSubject } : {}),
     ...(input.viewportFrom && input.viewportTo ? {
-      viewport: Object.freeze({
+      path: Object.freeze({
+        kind: input.inversion?.changed ? 'travel' as const : 'stationary' as const,
         from: input.viewportFrom,
         to: input.viewportTo,
       }),
-    } : {}),
-    ...(input.inversion?.changed ? {
-      spatial: Object.freeze({
-        ...(input.from ? { offsetFrom: input.from } : {}),
-        ...(input.to ? { offsetTo: input.to } : {}),
-        inversion: input.inversion,
-      }),
-    } : {}),
-    ...(beforeTransform !== afterTransform ? {
-      transform: Object.freeze({ before: beforeTransform, after: afterTransform }),
-    } : {}),
-    properties: Object.freeze(properties),
-    ...(Math.abs(beforeOpacity - afterOpacity) > 0.01 ? {
-      opacity: Object.freeze({ before: beforeOpacity, after: afterOpacity }),
     } : {}),
     channels: snapshotChannels(input.channels),
   });

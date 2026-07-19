@@ -286,7 +286,8 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
       phase: 'settled',
       segments: [{
         execution: { status: 'finished' },
-        viewport: {
+        path: {
+          kind: 'travel',
           from: { space: 'viewport', left: 20, top: 30 },
           to: { space: 'viewport', left: 200, top: 100 },
         },
@@ -440,9 +441,9 @@ test('structural plans publish before playback and invalidate on interruption', 
             subjectId: string;
             presence: string;
             provenance: { kind: string };
-            transform?: { before: string; after: string };
-            channels: Array<{ target: string; property: string }>;
-            viewport?: {
+            channels: string[];
+            path?: {
+              kind: string;
               from: { space: string; left: number; top: number };
               to: { space: string; left: number; top: number };
             };
@@ -560,8 +561,8 @@ test('structural plans publish before playback and invalidate on interruption', 
       subjectId: 'card-plan',
       presence: 'retained',
       provenance: { kind: 'identity' },
-      transform: { before: '', after: 'translateX(40px)' },
-      channels: [{ target: 'host', property: 'transform' }],
+      path: { kind: 'stationary' },
+      channels: ['host:transform'],
       timingRequest: { policy: 'version', delayMs: 0, durationMs: 80 },
       execution: {
         status: 'started',
@@ -571,10 +572,7 @@ test('structural plans publish before playback and invalidate on interruption', 
     expect(result.second.generation).toBe(result.first.generation + 1);
     expect(result.second.phase).toBe('settled');
     expect(result.second.segment.execution.status).toBe('finished');
-    expect(result.second.segment.transform).toEqual({
-      before: 'translateX(40px)',
-      after: 'translateX(80px)',
-    });
+    expect(result.second.segment.path.kind).toBe('stationary');
     expect(result.observed).toEqual([
       { generation: 1, phase: 'planned', status: 'planned' },
       { generation: 1, phase: 'executing', status: 'started' },
@@ -709,7 +707,8 @@ test('structural plans preserve uncertainty for inferred appearance and departur
         stackId: result.sourceId,
         evidence: 'runner-up',
       },
-      viewport: {
+      path: {
+        kind: 'travel',
         from: { space: 'viewport' },
         to: { space: 'viewport' },
       },
@@ -724,7 +723,8 @@ test('structural plans preserve uncertainty for inferred appearance and departur
         stackId: result.sourceId,
         evidence: 'ambiguous',
       },
-      viewport: {
+      path: {
+        kind: 'travel',
         from: { space: 'viewport' },
         to: { space: 'viewport' },
       },

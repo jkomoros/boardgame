@@ -665,7 +665,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
 
   private _motionEvent(event: StructuralMotionEvent): void {
     if (event.source !== 'flip') return;
-    const endpoints = event.segment.viewport;
+    const endpoints = event.segment.path;
     if ((event.kind === 'started' || event.kind === 'finished') && !endpoints) {
       const missing = Object.freeze({
         kind: 'result',
@@ -801,7 +801,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   ): InternalHandle {
     const { segment } = event;
     if (!segment.visualSubject) return skipped('missing-subject');
-    if (!segment.viewport || !segment.spatial?.inversion.changed) return skipped('no-motion-path');
+    if (!segment.path || segment.path.kind !== 'travel') return skipped('no-motion-path');
     if (segment.execution.status !== 'started') return skipped('motion-skipped');
 
     const spatialTiming = segment.execution.animations.find(
@@ -828,8 +828,8 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     const lagMs = finite(effect.advanced?.lagMs, defaults.lagMs, 4, 80);
     const opacity = finite(effect.advanced?.opacity, defaults.opacity, 0.05, 0.7);
     const palette = this._palette(policy.tone, effect.advanced?.palette);
-    const from = segment.viewport.from;
-    const to = segment.viewport.to;
+    const from = segment.path.from;
+    const to = segment.path.to;
     const fromCenter = geometryCenter(from);
     const toCenter = geometryCenter(to);
     const shape = segment.visualSubject.shape;

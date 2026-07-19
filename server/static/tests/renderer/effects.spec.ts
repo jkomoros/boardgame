@@ -200,11 +200,11 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
       const segment = {
         subjectId: 'card-17',
         visualSubject: { kind: 'silhouette', shape: 'rounded-rectangle' },
-        viewport: {
+        path: {
+          kind: 'travel',
           from: { space: 'viewport', left: 20, top: 30, width: 40, height: 20 },
           to: { space: 'viewport', left: 200, top: 100, width: 60, height: 40 },
         },
-        spatial: { inversion: { changed: true } },
         execution: {
           status: 'started',
           animations: [{
@@ -286,7 +286,11 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
       const stationary = layer.playTransition(fx.trail({ subject: 'stationary-card' }));
       for (const observer of eventObservers) observer({
         source: 'flip', generation: 5, kind: 'started', subjectId: 'stationary-card',
-        segment: { ...segment, subjectId: 'stationary-card', spatial: undefined },
+        segment: {
+          ...segment,
+          subjectId: 'stationary-card',
+          path: { ...segment.path, kind: 'stationary' },
+        },
       });
       const stationaryResult = await stationary.finished;
 
@@ -404,7 +408,8 @@ test('reduced motion substitutes a stationary emphasis', async ({ page }) => {
         source: 'flip', generation: 1, kind: 'finished', subjectId: 'reduced-card',
         segment: {
           subjectId: 'reduced-card',
-          viewport: {
+          path: {
+            kind: 'travel',
             from: { space: 'viewport', left: 10, top: 20, width: 40, height: 20 },
             to: { space: 'viewport', left: 100, top: 80, width: 40, height: 20 },
           },

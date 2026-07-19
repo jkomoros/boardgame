@@ -21,46 +21,35 @@ const viewportTo = Object.freeze({
 });
 
 describe('structural motion plans', () => {
-  it('keeps spatial, property, transform, and opacity changes orthogonal', () => {
+  it('publishes only a safe path, subject capability, provenance, and named channels', () => {
     const draft = createStructuralMotionDraft({
       subjectId: 'card-7',
       presence: 'retained',
       provenance: { kind: 'identity' },
       visualSubject: { kind: 'silhouette', shape: 'rounded-rectangle' },
-      from,
-      to,
       viewportFrom,
       viewportTo,
       inversion: solveFlipGeometry(from, to),
-      beforeTransform: 'rotate(1deg)',
-      afterTransform: 'rotate(2deg)',
-      beforeProperties: { faceUp: false, rotated: false },
-      afterProperties: { faceUp: true, rotated: false },
-      animatingProperties: ['faceUp', 'rotated'],
-      beforeOpacity: '0.4',
-      afterOpacity: '1',
       channels: [
         { target: 'host', property: 'transform' },
         { target: 'host', property: 'opacity' },
         { target: 'visual', property: 'transform' },
       ],
     });
-    assert.equal(draft.spatial?.offsetFrom, from);
     assert.deepEqual(draft.visualSubject, {
       kind: 'silhouette', shape: 'rounded-rectangle',
     });
-    assert.equal(draft.viewport?.from, viewportFrom);
-    assert.equal(draft.viewport?.to, viewportTo);
-    assert.deepEqual(draft.transform, { before: 'rotate(1deg)', after: 'rotate(2deg)' });
-    assert.deepEqual(draft.properties, [{ name: 'faceUp', before: false, after: true }]);
-    assert.deepEqual(draft.opacity, { before: 0.4, after: 1 });
+    assert.deepEqual(draft.path, {
+      kind: 'travel', from: viewportFrom, to: viewportTo,
+    });
     assert.deepEqual(draft.channels, [
-      { target: 'host', property: 'transform' },
-      { target: 'host', property: 'opacity' },
-      { target: 'visual', property: 'transform' },
+      'host:transform',
+      'host:opacity',
+      'visual:transform',
     ]);
     assert.equal(Object.isFrozen(draft), true);
-    assert.equal(Object.isFrozen(draft.properties), true);
+    assert.equal(Object.isFrozen(draft.path), true);
+    assert.equal(Object.isFrozen(draft.channels), true);
   });
 
   it('publishes an immutable generation-bound plan with requested timing', () => {
@@ -70,8 +59,6 @@ describe('structural motion plans', () => {
       provenance: {
         kind: 'stack-history', endpoint: 'source', stackId: 'deck', evidence: 'runner-up',
       },
-      from,
-      to,
       viewportFrom,
       viewportTo,
       inversion: solveFlipGeometry(from, to),
@@ -97,8 +84,6 @@ describe('structural motion plans', () => {
       subjectId: 'card-9',
       presence: 'retained',
       provenance: { kind: 'identity' },
-      from,
-      to,
       viewportFrom,
       viewportTo,
       inversion: solveFlipGeometry(from, to),
@@ -139,24 +124,25 @@ describe('structural motion plans', () => {
     assert.equal(settled.segments[0].execution.status, 'cancelled');
   });
 
-  it('replaces mutable property values with opaque immutable snapshots', () => {
+  it('does not retain primitive or object-valued component history', () => {
     const draft = createStructuralMotionDraft({
       subjectId: 'card-private',
       presence: 'retained',
       provenance: { kind: 'identity' },
-      from,
-      to,
       viewportFrom,
       viewportTo,
       inversion: solveFlipGeometry(from, to),
       beforeProperties: { custom: { secret: 'before' } },
       afterProperties: { custom: { secret: 'after' } },
       animatingProperties: ['custom'],
-    });
-    assert.deepEqual(draft.properties, [{
-      name: 'custom', before: { kind: 'opaque' }, after: { kind: 'opaque' },
-    }]);
-    assert.equal(Object.isFrozen(draft.properties[0].before), true);
+      beforeTransform: 'rotate(1deg)',
+      afterTransform: 'rotate(2deg)',
+      beforeOpacity: '0.4',
+      afterOpacity: '1',
+    } as Parameters<typeof createStructuralMotionDraft>[0] & Record<string, unknown>);
+    assert.equal('properties' in draft, false);
+    assert.equal('transform' in draft, false);
+    assert.equal('opacity' in draft, false);
   });
 
   it('retains viewport endpoints for a stationary morph without claiming travel', () => {
@@ -164,18 +150,13 @@ describe('structural motion plans', () => {
       subjectId: 'card-flip',
       presence: 'retained',
       provenance: { kind: 'identity' },
-      from,
-      to: from,
       viewportFrom,
       viewportTo: viewportFrom,
       inversion: solveFlipGeometry(from, from),
-      beforeProperties: { faceUp: false },
-      afterProperties: { faceUp: true },
-      animatingProperties: ['faceUp'],
     });
-    assert.equal(draft.spatial, undefined);
-    assert.deepEqual(draft.viewport, { from: viewportFrom, to: viewportFrom });
-    assert.deepEqual(draft.properties, [{ name: 'faceUp', before: false, after: true }]);
+    assert.deepEqual(draft.path, {
+      kind: 'stationary', from: viewportFrom, to: viewportFrom,
+    });
   });
 
   it('drops malformed or content-bearing visual subject snapshots', () => {

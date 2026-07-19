@@ -907,20 +907,9 @@ export class BoardgameComponentAnimator extends LitElement {
             presence: hadExactBefore ? 'retained' : presence,
             provenance,
             visualSubject: record.visualSubject,
-            from: record.offsets!,
-            to: record.newOffsets!,
             viewportFrom: record.viewportOffsets!,
             viewportTo: record.newViewportOffsets!,
             inversion: geometry,
-            beforeTransform: hadExactBefore
-              ? record.beforeInlineTransform
-              : record.beforeTransform,
-            afterTransform: record.afterTransform,
-            beforeProperties: record.before,
-            afterProperties: record.after,
-            animatingProperties: component.animatingProperties,
-            beforeOpacity: record.beforeOpacity,
-            afterOpacity: record.afterOpacity,
             channels: record.motionTracks,
           });
 
@@ -1020,18 +1009,9 @@ export class BoardgameComponentAnimator extends LitElement {
           evidence: anonRecord.winnerAmbiguous ? 'ambiguous' : 'latest-seen',
         },
         visualSubject: record.visualSubject,
-        from: oldLocation,
-        to: stackLocation,
         viewportFrom: oldViewportLocation,
         viewportTo: stackViewportLocation,
         inversion: geometry,
-        beforeTransform: record.beforeInlineTransform ?? record.beforeTransform,
-        afterTransform: animatingRecord.afterTransform,
-        beforeProperties: animatingRecord.before,
-        afterProperties: animatingRecord.after,
-        animatingProperties: component.animatingProperties,
-        beforeOpacity: animatingRecord.beforeOpacity,
-        afterOpacity: animatingRecord.afterOpacity,
         channels: animatingRecord.motionTracks,
       });
 

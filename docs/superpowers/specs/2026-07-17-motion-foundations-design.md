@@ -103,30 +103,24 @@ interface StructuralMotionSegment {
   readonly visualSubject?: MotionSubjectSnapshot;
   readonly presence: 'retained' | 'appearing' | 'departing';
   readonly provenance: StructuralProvenance;
-  readonly viewport?: {
+  readonly path?: {
+    readonly kind: 'stationary' | 'travel';
     readonly from: ViewportGeometry;
     readonly to: ViewportGeometry;
   };
-  readonly spatial?: {
-    readonly offsetFrom?: OffsetGeometry;
-    readonly offsetTo?: OffsetGeometry;
-    readonly inversion: FlipGeometry;
-  };
-  readonly transform?: { readonly before: string; readonly after: string };
-  readonly properties: readonly StructuralPropertyChange[];
-  readonly opacity?: { readonly before: number; readonly after: number };
-  readonly channels: readonly StructuralMotionChannel[];
+  readonly channels: readonly ComponentMotionChannel[];
   readonly timingRequest: StructuralTimingRequest;
   readonly execution: StructuralExecution;
 }
 ```
 
-Spatial, property, transform, and opacity changes are orthogonal rather than
-collapsed into one exclusive `kind`. Viewport endpoints describe where the
-subject was and is even for a stationary morph; `spatial` exists only when it
-actually traveled or resized and retains the legacy FLIP offset coordinates.
-Property values that cannot be safely and immutably represented are marked
-`opaque`; plans never retain arbitrary game objects.
+The published plan is a capability, not a mirror of animator internals. Its
+viewport path says where a safe subject was and is, and distinguishes stationary
+morphs from travel. Its channel names say what the executor owns. Raw FLIP
+offsets, inversion transforms, opacity endpoints, animating-property names, and
+before/after property values remain private to planning and playback. This both
+shrinks the consumer contract and makes it impossible for a decoration observer
+to learn primitive hidden-state values merely because a component animates them.
 
 ### Component motion tracks
 
