@@ -312,9 +312,10 @@ when the same typed local profile needs both an ordered start cadence and a
 success flourish.
 
 Hidden or sanitized components sometimes lack an exact visible endpoint. The
-framework uses collection history only when it identifies one unambiguous
-external collection; tied, malformed, or same-collection-only evidence skips
-that inferred motion. Motion-bound effects must treat `motion-skipped` as an
+default preserves the historical ordered winner/runner-up collection inference,
+including ties and same-collection fallbacks, so existing card travel does not
+disappear. The pure continuity resolver also offers strict ambiguity rejection
+for new integrations. Motion-bound effects must treat `motion-skipped` as an
 ordinary deterministic outcome, not as an error.
 
 ### Declaring retained-carrier transfers

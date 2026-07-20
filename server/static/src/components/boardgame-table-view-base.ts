@@ -45,7 +45,8 @@ export interface SeatPresentation {
  * Lit's reactive contract.
  *
  * The opt-in helpers are implemented here, including avatar/host chrome,
- * outcome UI, the fake-deck row, and declarative Table deal presentation.
+ * outcome UI, the fake-deck row, and compatibility-preserving Table deal
+ * presentation.
  */
 export class BoardgameTableViewBase<
   S extends FullGameState<object, object, object, object, object>,
@@ -83,11 +84,12 @@ export class BoardgameTableViewBase<
   isHost = false;
 
   /**
-   * When true (the default), the base purely compares adjacent authoritative
-   * snapshots and declares one retained-stub transfer for each player whose
-   * aggregate sanitized hand count grows. The element marked id="deal-source"
-   * supplies geometry for the projector half of the cross-screen deal.
-   * Missing source or stub becomes an ordinary terminal skipped segment.
+   * When true (the default), the base preserves the historical decorative,
+   * concurrent stub flight for each player whose aggregate sanitized hand
+   * count grows. The element marked id="deal-source" supplies geometry for
+   * the projector half of the cross-screen deal. These flights do not join
+   * structural settlement. New choreography can disable this default and use
+   * motionTransfersForTransition().
    * Hand size = total length of all Stack-shaped playerState properties
    * (sanitized stacks still carry placeholder indexes, so counts survive
    * hiding). Set false for bespoke animation wiring.
@@ -95,25 +97,35 @@ export class BoardgameTableViewBase<
   @property({ type: Boolean })
   autoFlyDeals = true;
 
+  // Compatibility baseline: the first visible snapshot establishes counts
+  // without replaying deals that happened before this renderer mounted.
+  private _prevHandSizes: number[] | null = null;
+
+  protected override updated(changedProperties: Map<PropertyKey, unknown>) {
+    super.updated?.(changedProperties);
+    if (!changedProperties.has('state')) return;
+    const sizes = this.state ? this._handSizes(this.state) : [];
+    const previous = this._prevHandSizes;
+    this._prevHandSizes = sizes;
+    if (!this.autoFlyDeals || previous === null) return;
+    const source = this.shadowRoot?.getElementById('deal-source');
+    if (!source) return;
+    const grew = sizes
+      .map((size, playerIndex) => size > (previous[playerIndex] ?? 0) ? playerIndex : -1)
+      .filter(playerIndex => playerIndex >= 0);
+    if (grew.length === 0) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const playerIndex of grew) {
+        const stub = this.shadowRoot?.getElementById(`stub:p${playerIndex}:hand`);
+        if (stub) void this.animator?.animateBetween(stub, source, 600);
+      }
+    }));
+  }
+
   override motionTransfersForTransition(
     context: EffectTransitionContext<S, MN>,
   ): readonly MotionTransferDeclaration[] {
-    const inherited = super.motionTransfersForTransition(context);
-    if (context.kind === 'initial' || !this.autoFlyDeals) return inherited;
-    const before = this._handSizes(context.before);
-    const after = this._handSizes(context.after);
-    const arrivals = after.flatMap((size, playerIndex) => (
-      size > (before[playerIndex] ?? 0)
-        ? [Object.freeze({
-          key: `auto-table:p${playerIndex}:hand-growth`,
-          subjectId: `player-${playerIndex}-hand-growth`,
-          source: 'deal-source',
-          carrier: `stub:p${playerIndex}:hand`,
-          durationMs: 600,
-        })]
-        : []
-    ));
-    return Object.freeze([...inherited, ...arrivals]);
+    return super.motionTransfersForTransition(context);
   }
 
   private _handSizes(state: S): number[] {

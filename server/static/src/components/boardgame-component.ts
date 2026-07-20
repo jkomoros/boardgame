@@ -207,6 +207,32 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return [];
   }
 
+  /**
+   * @deprecated Override propertyMotionTracks() so motion can be planned and
+   * observed. Kept as an opaque playback adapter for existing components.
+   */
+  playPropertyAnimation(
+    _before: Record<string, any>,
+    _after: Record<string, any>,
+    _delayMs: number = 0,
+  ): void {
+    // Legacy subclasses may start their own gated animations here.
+  }
+
+  /** Internal bridge: opaque legacy property work cannot become a fake track. */
+  legacyPropertyMotionRequested(
+    before: Record<string, any>,
+    after: Record<string, any>,
+  ): boolean {
+    const ownsLegacyPlayback = this.playPropertyAnimation
+        !== BoardgameComponent.prototype.playPropertyAnimation
+      || this.playAnimation !== BoardgameComponent.prototype.playAnimation;
+    const ownsPlannedPlayback = this.propertyMotionTracks
+      !== BoardgameComponent.prototype.propertyMotionTracks;
+    return ownsLegacyPlayback && !ownsPlannedPlayback
+      && this.animatingProperties.some(property => before[property] !== after[property]);
+  }
+
   protected motionTrackTarget(target: ComponentMotionTarget): HTMLElement | null {
     return target === 'host' ? this : this.innerElement ?? null;
   }
@@ -225,24 +251,54 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     // the final source of truth after WAAPI settles.
     if (rec.needsHostTransition) this.style.transform = rec.finalTransform;
     this.style.opacity = rec.finalOpacity;
+    // A component that adopted propertyMotionTracks owns its visual channels
+    // declaratively. Otherwise preserve the old imperative customization
+    // point; animations it starts still join settled() through play().
+    if (this.propertyMotionTracks === BoardgameComponent.prototype.propertyMotionTracks) {
+      this.playPropertyAnimation(rec.before, rec.after, delayMs);
+    }
     return result.status === 'started'
       ? Object.freeze(result.playbacks.map(playback => playback.animation))
       : Object.freeze([]);
   }
 
   /** Prepare a fresh, inert component host to carry departing motion. */
-  prepareMotionCarrier(_defaults: Readonly<Record<string, unknown>>): void {
-    // Do nothing; subclasses might do something.
+  prepareMotionCarrier(
+    _defaults: Readonly<Record<string, unknown>>,
+    stack?: any,
+  ): void {
+    this.prepareForBeingAnimatingComponent(stack);
+  }
+
+  /** @deprecated Override prepareMotionCarrier(). */
+  prepareForBeingAnimatingComponent(_stack: any): void {
+    // Legacy subclasses may configure a faux component.
   }
 
   /** Opt in only to cloning already-rendered default-slot presentation. */
   get historicalPresentationPolicy(): HistoricalPresentationPolicy {
-    return 'none';
+    return this.cloneContent ? 'clone-default-slot' : 'none';
+  }
+
+  /** @deprecated Override historicalPresentationPolicy. */
+  get cloneContent(): boolean {
+    return false;
   }
 
   /** Finite box-axis fact consumed by structural geometry. */
   motionEndpointOrientation(_state: Readonly<Record<string, unknown>>): MotionEndpointOrientation {
     return 'natural';
+  }
+
+  /**
+   * @deprecated Override motionEndpointOrientation(). The animator still
+   * consults this pairwise hook for components that have not migrated.
+   */
+  animationRotates(
+    _beforeProps: Record<string, any>,
+    _afterProps: Record<string, any>,
+  ): boolean {
+    return false;
   }
 
   handleTap(e: Event) {

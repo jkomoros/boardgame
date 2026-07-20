@@ -439,17 +439,21 @@ ownership:
     through every host/visual track, and migrate Hand arrivals off imperative
     lifecycle/frame inference. Viewport deltas fail closed under transformed
     ancestors pending a reviewed affine projection primitive.
-23. **Done:** replace guessed-duration `animationOverlap()` timers with a
-    generation-bound structural progress barrier. A pure declaration selects
-    exact subjects or all armed FLIP/transfer primaries; one WAAPI sampler
-    observes executed active intervals; opaque install-cycle IDs make progress
-    release and settlement idempotent and stale-safe. The contract is named as
-    destructive buffered-queue cutover, not concurrent generations.
-24. **Done:** migrate the remaining Table deal default from `updated()` state
-    baselines and imperative flight to the same pure transition-local transfer
-    declarations as Hand. Sanitized count growth remains an explicitly lossy
-    default policy; ordinary transfer ownership, endpoint resolution, timing,
-    lifecycle, and settlement explain its execution.
+23. **Done:** add a generation-bound structural progress barrier for new
+    renderers. A pure declaration selects exact subjects or all armed
+    FLIP/transfer primaries; one WAAPI sampler observes executed active
+    intervals; opaque install-cycle IDs make progress release and settlement
+    idempotent and stale-safe. The contract is named as destructive
+    buffered-queue cutover, not concurrent generations. The successor-aware
+    `animationOverlap()` state-clock contract remains as a compatibility lane
+    and takes precedence when overridden; it cannot be represented by a
+    current-transition-only structural declaration.
+24. **Compatibility correction:** authored Table/Hand choreography uses pure
+    transition-local transfer declarations, but the zero-author defaults retain
+    their master behavior through `animateBetween()`: local baselines, concurrent
+    final-pose Hand arrivals, and decorative ungated Table stubs. Moving those
+    defaults onto the richer lifecycle is a visual change and requires explicit
+    product approval.
 25. **Deferred:** replace local, lossy Table/Hand inference with a
     privacy-reviewed server transfer envelope when games need zero-author
     defaults or true cross-surface correlation. A source-carried departure also

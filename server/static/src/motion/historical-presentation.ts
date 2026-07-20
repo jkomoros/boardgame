@@ -1,4 +1,9 @@
-export type HistoricalPresentationPolicy = 'none' | 'clone-default-slot';
+export type HistoricalPresentationPolicy =
+  | 'none'
+  /** Master-compatible clone: preserves authored IDs and reference attributes. */
+  | 'clone-default-slot'
+  /** Safer clone for new components that do not depend on document identity. */
+  | 'clone-default-slot-safe';
 
 export interface HistoricalPresentationSource extends HTMLElement {
   readonly historicalPresentationPolicy?: HistoricalPresentationPolicy;
@@ -6,6 +11,7 @@ export interface HistoricalPresentationSource extends HTMLElement {
 
 export interface HistoricalPresentation {
   readonly kind: 'cloned-default-slot';
+  readonly identity: 'preserve' | 'strip';
 }
 
 const presentations = new WeakMap<HistoricalPresentation, Readonly<{
@@ -29,17 +35,22 @@ function stripDocumentIdentity(node: Node): void {
 export function captureHistoricalPresentation(
   source: HistoricalPresentationSource,
 ): HistoricalPresentation | null {
-  if ((source.historicalPresentationPolicy ?? 'none') !== 'clone-default-slot') return null;
+  const policy = source.historicalPresentationPolicy ?? 'none';
+  if (policy === 'none') return null;
+  const stripIdentity = policy === 'clone-default-slot-safe';
   const nodes: Node[] = [];
   for (const child of source.childNodes) {
     if (child instanceof HTMLElement && child.slot) continue;
     if (child instanceof Element && child.localName === 'dom-bind') continue;
     const clone = child.cloneNode(true);
-    stripDocumentIdentity(clone);
+    if (stripIdentity) stripDocumentIdentity(clone);
     nodes.push(clone);
   }
   if (nodes.length === 0) return null;
-  const presentation = Object.freeze({ kind: 'cloned-default-slot' as const });
+  const presentation = Object.freeze({
+    kind: 'cloned-default-slot' as const,
+    identity: stripIdentity ? 'strip' as const : 'preserve' as const,
+  });
   presentations.set(presentation, Object.freeze({
     sourceTagName: source.localName,
     nodes: Object.freeze(nodes),
@@ -53,14 +64,16 @@ export function installHistoricalPresentation(
   presentation: HistoricalPresentation,
 ): boolean {
   const capturedPresentation = presentations.get(presentation);
-  if (!capturedPresentation || target.localName !== capturedPresentation.sourceTagName) return false;
+  if (!capturedPresentation) return false;
+  if (presentation.identity === 'strip'
+    && target.localName !== capturedPresentation.sourceTagName) return false;
   try {
     for (const existing of [...target.children]) {
       if ((existing as HTMLElement).slot === 'motion-history') existing.remove();
     }
     for (const captured of capturedPresentation.nodes) {
       const clone = captured.cloneNode(true);
-      stripDocumentIdentity(clone);
+      if (presentation.identity === 'strip') stripDocumentIdentity(clone);
       if (clone instanceof HTMLElement) clone.slot = 'motion-history';
       target.append(clone);
     }

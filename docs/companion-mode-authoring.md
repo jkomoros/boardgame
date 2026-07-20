@@ -145,11 +145,9 @@ Works out of the box for card games:
   appearing in your player's own stacks flies in from the top edge.
 - **Table side** (`autoFlyDeals`, default on): mark your draw pile with
   `id="deal-source"`; when a player's hand grows, their name-stub flies
-  from the deck toward the bottom edge. The base derives this from the pure
-  before/after transition snapshots and emits the same `motion.transfer()`
-  declaration used by bespoke motion. Missing source or stub is recorded as a
-  terminal skipped segment; it cannot hang the cycle or start partial
-  lifecycle work.
+  from the deck toward the bottom edge. These compatibility flights preserve
+  the existing concurrent, decorative `animateBetween()` behavior: they do not
+  join structural settlement or acquire stack stagger/presence policy.
 - Bespoke needs: set the flags false and call
   `this.animator?.fly({ subjectId, source, carrier, durationMs })`.
   `carrier` is the retained element that animates from `source` geometry back
@@ -165,10 +163,9 @@ Works out of the box for card games:
   `{ timing: { localStartAtMs: someTimestamp } }`.
 
 The Table default knows only that a sanitized aggregate count grew, not which
-private card crossed screens. Its synthetic subject and `auto-table:*` key are
-transition-local presentation identity. Subclasses that override
-`motionTransfersForTransition()` must spread `super` and must not also claim
-the reserved `stub:pN:hand` carriers. Games that need exact cross-device card
+private card crossed screens. Subclasses that override
+`motionTransfersForTransition()` should spread `super`, but the compatibility
+default itself does not claim declarative subjects or carriers. Games that need exact cross-device card
 correlation require a privacy-reviewed server transfer envelope; the client
 does not infer it from hidden IDs.
 
@@ -186,12 +183,13 @@ cycle late receives only its remaining visible-motion budget, so it cannot
 spill into the next slot. If timing is unavailable or no visible budget remains,
 the context is discarded completely and state installs immediately.
 
-The automatic Table and Hand detections are deliberately local and lossy. The
+The automatic Table and Hand detections are deliberately local, lossy
+compatibility policies. The
 Table knows only that a player's visible hand count grew; the Hand can know its
 new private card ids. They share a version slot, but the framework does not yet
 claim that those observations are a correlated cross-device transfer event.
-`animateBetween()` remains as a deprecated source-compatible wrapper while
-games migrate; its argument order should not be used in new code.
+`animateBetween()` remains as a source- and behavior-compatible lane for these
+defaults while games migrate; its argument order should not be used in new code.
 
 For authoritative game-authored presentation, prefer
 `motionTransfersForTransition(context)` and return `motion.transfer(...)`

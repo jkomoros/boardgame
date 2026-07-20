@@ -8,6 +8,13 @@ export interface MotionCollectionHistory {
   readonly lastSeen: Readonly<Record<string, number>>;
 }
 
+/**
+ * `legacy` preserves the historical animator's ordered winner/runner-up
+ * inference, including ties and same-collection fallbacks. `strict` rejects
+ * ambiguous or same-collection history instead of inventing continuity.
+ */
+export type MotionContinuityPolicy = 'legacy' | 'strict';
+
 export type MotionContinuityEndpoint =
   | Readonly<{ kind: 'subject'; phase: 'before' | 'after'; collectionId: string }>
   | Readonly<{ kind: 'collection'; collectionId: string }>;
@@ -50,14 +57,16 @@ function unresolved(
 
 /**
  * Resolve logical continuity without retaining DOM, geometry, or history
- * versions. Exact sightings dominate history. Inferred endpoints are selected
- * only when the highest remaining history version names exactly one collection.
+ * versions. Exact sightings dominate history. Legacy inference is the default
+ * compatibility contract; callers may explicitly request strict ambiguity
+ * rejection for new experiences.
  */
 export function resolveStructuralContinuity(
   subjectId: string,
   beforeExact: readonly MotionExactSighting[],
   afterExact: readonly MotionExactSighting[],
   histories: readonly MotionCollectionHistory[],
+  policy: MotionContinuityPolicy = 'legacy',
 ): MotionContinuityResolution {
   const before = beforeExact.filter(sighting => sighting.subjectId === subjectId);
   const after = afterExact.filter(sighting => sighting.subjectId === subjectId);
@@ -95,16 +104,35 @@ export function resolveStructuralContinuity(
       invalid = true;
       continue;
     }
-    if (history.collectionId !== exactCollectionId) {
+    if (policy === 'legacy' || history.collectionId !== exactCollectionId) {
       candidates.push({ collectionId: history.collectionId, version });
     }
   }
   if (invalid) return unresolved(subjectId, endpoint, 'invalid-history');
   if (candidates.length === 0) return unresolved(subjectId, endpoint, 'missing-history');
-  const highestVersion = Math.max(...candidates.map(candidate => candidate.version));
-  const highest = candidates.filter(candidate => candidate.version === highestVersion);
-  if (highest.length !== 1) return unresolved(subjectId, endpoint, 'ambiguous-history');
-  const inferred = collectionEndpoint(highest[0].collectionId);
+  let inferredCandidate: { collectionId: string; version: number };
+  if (policy === 'strict') {
+    const highestVersion = Math.max(...candidates.map(candidate => candidate.version));
+    const highest = candidates.filter(candidate => candidate.version === highestVersion);
+    if (highest.length !== 1) return unresolved(subjectId, endpoint, 'ambiguous-history');
+    inferredCandidate = highest[0];
+  } else {
+    // Reproduce the old `_ingestStack` contract. Histories are in stack
+    // registration order. An appearing subject usually has its current stack
+    // as the winner, so the prior animator selected the runner-up when present.
+    let winner = candidates[0];
+    let runnerUp: typeof winner | undefined;
+    for (const candidate of candidates.slice(1)) {
+      if (candidate.version > winner.version) {
+        runnerUp = winner;
+        winner = candidate;
+      } else if (!runnerUp || candidate.version > runnerUp.version) {
+        runnerUp = candidate;
+      }
+    }
+    inferredCandidate = before.length === 0 && runnerUp ? runnerUp : winner;
+  }
+  const inferred = collectionEndpoint(inferredCandidate.collectionId);
 
   return before.length === 0
     ? Object.freeze({

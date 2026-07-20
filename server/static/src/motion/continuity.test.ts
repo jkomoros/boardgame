@@ -22,13 +22,13 @@ describe('structural continuity', () => {
 
   test('resolves appearing and departing symmetrically from unique external history', () => {
     const histories = [history('current', { card: 8 }), history('other', { card: 7 })];
-    assert.deepEqual(resolveStructuralContinuity('card', [], [exact('card', 'current')], histories), {
+    assert.deepEqual(resolveStructuralContinuity('card', [], [exact('card', 'current')], histories, 'strict'), {
       status: 'resolved', subjectId: 'card', presence: 'appearing',
       from: { kind: 'collection', collectionId: 'other' },
       to: { kind: 'subject', phase: 'after', collectionId: 'current' },
       evidence: 'history',
     });
-    assert.deepEqual(resolveStructuralContinuity('card', [exact('card', 'current')], [], histories), {
+    assert.deepEqual(resolveStructuralContinuity('card', [exact('card', 'current')], [], histories, 'strict'), {
       status: 'resolved', subjectId: 'card', presence: 'departing',
       from: { kind: 'subject', phase: 'before', collectionId: 'current' },
       to: { kind: 'collection', collectionId: 'other' },
@@ -45,14 +45,18 @@ describe('structural continuity', () => {
     const expected = {
       status: 'unresolved', subjectId: 'card', endpoint: 'source', reason: 'ambiguous-history',
     };
-    assert.deepEqual(resolveStructuralContinuity('card', [], [exact('card', 'current')], histories), expected);
-    assert.deepEqual(resolveStructuralContinuity('card', [], [exact('card', 'current')], [...histories].reverse()), expected);
+    assert.deepEqual(resolveStructuralContinuity('card', [], [exact('card', 'current')], histories, 'strict'), expected);
+    assert.deepEqual(resolveStructuralContinuity(
+      'card', [], [exact('card', 'current')], [...histories].reverse(), 'strict',
+    ), expected);
   });
 
   test('fails closed for duplicate identity, same-stack-only, malformed, and absent evidence', () => {
     assert.equal(resolveStructuralContinuity('card', [exact('card', 'a'), exact('card', 'b')], [], []).reason,
       'duplicate-exact-sighting');
-    assert.equal(resolveStructuralContinuity('card', [], [exact('card', 'a')], [history('a', { card: 1 })]).reason,
+    assert.equal(resolveStructuralContinuity(
+      'card', [], [exact('card', 'a')], [history('a', { card: 1 })], 'strict',
+    ).reason,
       'missing-history');
     assert.equal(resolveStructuralContinuity('card', [], [exact('card', 'a')], [history('b', { card: NaN })]).reason,
       'invalid-history');
@@ -65,5 +69,38 @@ describe('structural continuity', () => {
     ]);
     assert.equal(JSON.stringify(result).includes('3'), false);
     assert.equal(JSON.stringify(result).includes('4'), false);
+  });
+
+  test('defaults to the historical ordered winner/runner-up behavior', () => {
+    assert.deepEqual(resolveStructuralContinuity('card', [], [exact('card', 'current')], [
+      history('current', { card: 9 }),
+      history('previous', { card: 8 }),
+    ]), {
+      status: 'resolved', subjectId: 'card', presence: 'appearing',
+      from: { kind: 'collection', collectionId: 'previous' },
+      to: { kind: 'subject', phase: 'after', collectionId: 'current' },
+      evidence: 'history',
+    });
+
+    assert.deepEqual(resolveStructuralContinuity('card', [], [exact('card', 'current')], [
+      history('first', { card: 7 }),
+      history('second', { card: 7 }),
+      history('third', { card: 7 }),
+    ]), {
+      status: 'resolved', subjectId: 'card', presence: 'appearing',
+      from: { kind: 'collection', collectionId: 'second' },
+      to: { kind: 'subject', phase: 'after', collectionId: 'current' },
+      evidence: 'history',
+    });
+  });
+
+  test('preserves the legacy same-collection fallback when no runner-up exists', () => {
+    const result = resolveStructuralContinuity('card', [], [exact('card', 'current')], [
+      history('current', { card: 3 }),
+    ]);
+    assert.equal(result.status, 'resolved');
+    if (result.status === 'resolved') {
+      assert.deepEqual(result.from, { kind: 'collection', collectionId: 'current' });
+    }
   });
 });

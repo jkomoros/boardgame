@@ -291,6 +291,12 @@ export class BoardgameCard extends BoardgameComponent {
     this.rotated = !!defaults.rotated;
   }
 
+  /** @deprecated Compatibility adapter for pre-motion component callers. */
+  override prepareForBeingAnimatingComponent(stack: any): void {
+    this.noContent = true;
+    this.rotated = !!stack?.stackDefault?.('rotated');
+  }
+
   override get animatingProperties(): string[] {
     return super.animatingProperties.concat(['rotated', 'faceUp']);
   }
@@ -319,14 +325,41 @@ export class BoardgameCard extends BoardgameComponent {
     }];
   }
 
+  /** @deprecated Compatibility adapter; framework playback uses planned tracks. */
+  override playPropertyAnimation(
+    before: Record<string, any>,
+    after: Record<string, any>,
+    delayMs: number = 0,
+  ): void {
+    if (before.faceUp === after.faceUp && before.rotated === after.rotated) return;
+    if (!this.innerElement) return;
+    this.play(this.innerElement, [
+      { transform: this._innerTransformFor(!!before.faceUp, !!before.rotated) },
+      { transform: this._innerTransformFor(!!after.faceUp, !!after.rotated) },
+    ], { delay: delayMs });
+  }
+
   override get historicalPresentationPolicy(): 'none' | 'clone-default-slot' {
     return this.noContent ? 'none' : 'clone-default-slot';
+  }
+
+  /** @deprecated Compatibility adapter for pre-motion component callers. */
+  override get cloneContent(): boolean {
+    return !this.noContent;
   }
 
   override motionEndpointOrientation(
     state: Readonly<Record<string, unknown>>,
   ): 'natural' | 'quarter-turned' {
     return state.rotated ? 'quarter-turned' : 'natural';
+  }
+
+  /** @deprecated Compatibility adapter for pre-motion geometry callers. */
+  override animationRotates(
+    beforeProps: Record<string, any>,
+    afterProps: Record<string, any>,
+  ): boolean {
+    return beforeProps.rotated !== afterProps.rotated;
   }
 
   private _frontChanged() {

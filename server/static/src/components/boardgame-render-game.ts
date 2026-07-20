@@ -181,6 +181,10 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Number, attribute: false })
   motionCycleId = 0;
 
+  /** True when the renderer's successor-aware compatibility hook owns cutover. */
+  @property({ type: Boolean, attribute: false })
+  legacyAnimationOverlapConfigured = false;
+
   @property({ type: Number, attribute: false })
   proposingAsPlayer = 0;
 
@@ -832,7 +836,7 @@ class BoardgameRenderGame extends LitElement {
         // The compiler is atomic: malformed intent starts no partial batch.
         console.error('[motion] transition transfer planning failed:', error);
       }
-      if (this.animationContext === null) {
+      if (this.animationContext === null && !this.legacyAnimationOverlapConfigured) {
         try {
           const release = renderer.motionReleaseForTransition(context);
           this._animator?.installMotionRelease(

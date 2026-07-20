@@ -18,6 +18,17 @@ export interface MotionReleaseParticipant {
   readonly animation: Animation;
 }
 
+/** Accept one release source exactly once for the currently installed cycle. */
+export function isCurrentMotionCycleRelease(
+  cycleId: unknown,
+  activeCycleId: number,
+  releasedCycleId: number,
+): cycleId is number {
+  return Number.isInteger(cycleId)
+    && cycleId === activeCycleId
+    && cycleId !== releasedCycleId;
+}
+
 function nonempty(value: unknown, label: string): string {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`motion release ${label} must be a nonempty string`);

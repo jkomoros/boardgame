@@ -62,10 +62,22 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
   altShadow: boolean;
 
   /** Private historical-presentation capture policy. */
-  historicalPresentationPolicy: 'none' | 'clone-default-slot';
+  historicalPresentationPolicy: 'none' | 'clone-default-slot' | 'clone-default-slot-safe';
 
   /** Prepare a fresh inert host for temporary departing motion. */
-  prepareMotionCarrier(defaults: Readonly<Record<string, unknown>>): void;
+  prepareMotionCarrier(defaults: Readonly<Record<string, unknown>>, stack?: unknown): void;
+
+  /** @deprecated Override prepareMotionCarrier(). */
+  prepareForBeingAnimatingComponent(stack: unknown): void;
+
+  /** @deprecated Override historicalPresentationPolicy. */
+  readonly cloneContent: boolean;
+
+  /** @deprecated Override motionEndpointOrientation(). */
+  animationRotates(before: AnimatingProps, after: AnimatingProps): boolean;
+
+  /** Internal compatibility bridge for opaque legacy property playback. */
+  legacyPropertyMotionRequested(before: AnimatingProps, after: AnimatingProps): boolean;
 
   /**
    * Compute properties that should animate between states.

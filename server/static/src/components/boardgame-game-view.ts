@@ -369,6 +369,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Object, attribute: false })
   _animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
 
+  @property({ type: Boolean, attribute: false })
+  _legacyAnimationOverlapConfigured = false;
+
   @property({ type: Object, attribute: false })
   _chest: GameChest | null = null;
 
@@ -692,6 +695,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .snapshotEpoch=${this._moveSnapshotEpoch}
           .projectedMoveChoicesWire=${this._projectedMoveChoices}
           .motionCycleId=${this._motionCycleId}
+          .legacyAnimationOverlapConfigured=${this._legacyAnimationOverlapConfigured}
           .proposingAsPlayer=${this._proposingAsPlayer}
           .proposingAsAdmin=${this._admin}
           .moveTransport=${this._moveTransport}
@@ -1485,6 +1489,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._moveInputSchemaFingerprint = null;
     this._animationContext = null;
     this._motionCycleId = 0;
+    this._legacyAnimationOverlapConfigured = false;
     this._installedMove = null;
     this._projectedMoveChoices = null;
     this._moveSnapshotEpoch += 1;
@@ -1497,6 +1502,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // the new state to the game renderer.
     this._animationContext = bundle.animationContext ?? null;
     this._motionCycleId = bundle.motionCycleId ?? 0;
+    this._legacyAnimationOverlapConfigured = bundle.legacyAnimationOverlapConfigured === true;
     this._installedMove = bundle.move;
     this._projectedMoveChoices = bundle.projectedMoveChoices;
     this._moveSnapshotEpoch += 1;

@@ -118,7 +118,7 @@ test('motion track playback preflights every owned target before starting any ch
   }
 });
 
-test('historical presentation is opaque, compatible, cloned, and identity-free', async ({ page }) => {
+test('historical presentation preserves legacy artwork identity with an opt-in safe mode', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
     const result = await page.evaluate(async () => {
@@ -140,26 +140,42 @@ test('historical presentation is opaque, compatible, cloned, and identity-free',
       source.append(visible, named);
       const presentation = captureHistoricalPresentation(source)!;
       const target = document.createElement('boardgame-card');
+      const safeSource = source.cloneNode(true) as HTMLElement & {
+        historicalPresentationPolicy: string;
+      };
+      Object.defineProperty(safeSource, 'historicalPresentationPolicy', {
+        value: 'clone-default-slot-safe',
+      });
+      const safeTarget = document.createElement('boardgame-card');
+      const safePresentation = captureHistoricalPresentation(safeSource)!;
+      installHistoricalPresentation(safeTarget, safePresentation);
       const mismatch = document.createElement('boardgame-token');
+      const safeMismatch = document.createElement('boardgame-token');
       const installed = installHistoricalPresentation(target, presentation);
       return {
         installed,
         mismatch: installHistoricalPresentation(mismatch, presentation),
-        forged: installHistoricalPresentation(target, { kind: 'cloned-default-slot' }),
+        safeMismatch: installHistoricalPresentation(safeMismatch, safePresentation),
+        forged: installHistoricalPresentation(target, {
+          kind: 'cloned-default-slot', identity: 'preserve',
+        }),
         serialized: JSON.stringify(presentation),
         text: target.textContent,
         historyCount: target.querySelectorAll('[slot="motion-history"]').length,
         identityCount: target.querySelectorAll('[id], [tabindex], [autofocus]').length,
+        safeIdentityCount: safeTarget.querySelectorAll('[id], [tabindex], [autofocus]').length,
       };
     });
     expect(result).toEqual({
       installed: true,
-      mismatch: false,
+      mismatch: true,
+      safeMismatch: false,
       forged: false,
-      serialized: '{"kind":"cloned-default-slot"}',
+      serialized: '{"kind":"cloned-default-slot","identity":"preserve"}',
       text: 'visible historical art',
       historyCount: 1,
-      identityCount: 0,
+      identityCount: 1,
+      safeIdentityCount: 0,
     });
     diagnostics.assertEmpty();
   } finally {
@@ -330,26 +346,9 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
     // real center = (210, 105), stub center = (40, 45).
     expect(result.keyframes[0]).toBe('translate(-170px, -60px)');
     expect(result.keyframes[1]).toBe('none');
-    expect(result.plan).toMatchObject({
-      source: 'explicit',
-      phase: 'settled',
-      segments: [{
-        execution: { status: 'finished' },
-        path: {
-          kind: 'travel',
-          from: { space: 'viewport', left: 20, top: 30 },
-          to: { space: 'viewport', left: 200, top: 100 },
-        },
-      }],
-    });
-    expect(result.unresolved).toMatchObject({
-      source: 'explicit',
-      phase: 'settled',
-      segments: [{
-        provenance: { kind: 'unresolved', endpoint: 'source' },
-        execution: { status: 'skipped', reason: 'missing-endpoint' },
-      }],
-    });
+    // Compatibility calls do not claim declarative lifecycle ownership.
+    expect(result.plan).toBeNull();
+    expect(result.unresolved).toBeNull();
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();
@@ -564,7 +563,12 @@ test('explicit motion cannot override reduced-motion scheduling', async ({ page 
       const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
         updateComplete: Promise<unknown>;
         animationContext: object | null;
-        animateBetween(real: HTMLElement, stub: HTMLElement, duration: number): Promise<void>;
+        fly(request: {
+          subjectId: string;
+          source: HTMLElement;
+          carrier: HTMLElement;
+          durationMs: number;
+        }): Promise<void>;
         observeStructuralMotionEvents(observer: (event: { source: string; kind: string }) => void): () => void;
         _lastExplicitMotionPlan: null | {
           segments: Array<{
@@ -592,7 +596,9 @@ test('explicit motion cannot override reduced-motion scheduling', async ({ page 
         if (event.source === 'explicit') lifecycle.push(event.kind);
       });
       const startedAt = performance.now();
-      await animator.animateBetween(real, stub, 900);
+      await animator.fly({
+        subjectId: 'reduced-explicit', source: stub, carrier: real, durationMs: 900,
+      });
       unobserve();
       return {
         elapsedMs: performance.now() - startedAt,
@@ -896,7 +902,7 @@ test('structural plans publish before playback and invalidate on interruption', 
   }
 });
 
-test('structural continuity resolves unique history and skips ambiguous history', async ({ page }) => {
+test('structural continuity preserves legacy ordered ties and supports declared history', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
@@ -993,8 +999,8 @@ test('structural continuity resolves unique history and skips ambiguous history'
       await animator.animateFlip();
       const appearing = animator._solvedMotionPlan?.segments[0];
 
-      // The real host disappears, but two external stacks offer equally recent
-      // destinations. Continuity must not select one by registration order.
+      // The real host disappears and equally recent stacks retain the old
+      // registration-order winner/runner behavior for visual compatibility.
       animator.prepare();
       source.stack = stackData([], [], { 'inferred-card': 4 });
       destination.stack = stackData([], [], { 'inferred-card': 4 });
@@ -1065,7 +1071,18 @@ test('structural continuity resolves unique history and skips ambiguous history'
       path: { kind: 'travel', from: { space: 'viewport' }, to: { space: 'viewport' } },
       execution: { status: 'finished' },
     });
-    expect(result.departing).toBeUndefined();
+    expect(result.departing).toMatchObject({
+      subjectId: 'inferred-card',
+      presence: 'departing',
+      provenance: {
+        kind: 'stack-history',
+        endpoint: 'destination',
+        stackId: result.sourceId,
+        evidence: 'latest-seen',
+      },
+      path: { kind: 'travel' },
+      execution: { status: 'finished' },
+    });
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();
@@ -1152,7 +1169,8 @@ test('departing motion uses a fresh inert carrier without publishing presentatio
       ariaHidden: 'true',
       pointerEvents: 'none',
       text: 'VISIBLE SOURCE ART',
-      duplicateIds: 0,
+      // Master-compatible artwork cloning preserves SVG/CSS identity refs.
+      duplicateIds: 1,
       presentationPublished: false,
       carrierAtPlayback: {
         inlineTransform: '',
@@ -1466,12 +1484,30 @@ test('buffered queue release follows every real staggered primary, not nominal w
   }
 });
 
-test('Table deal defaults are pure transition-local transfer declarations', async ({ page }) => {
+test('Table deal defaults preserve decorative compatibility flights and baselines', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
     const result = await page.evaluate(async () => {
       const { BoardgameTableViewBase } = await import('/src/components/boardgame-table-view-base.ts');
-      class TestTableDefaults extends BoardgameTableViewBase<any, any, any, any> {}
+      const { html } = await import('/src/client.ts');
+      class TestTableDefaults extends BoardgameTableViewBase<any, any, any, any> {
+        calls: Array<{ carrier: string; source: string; duration: number }> = [];
+        protected override get animator(): any {
+          return {
+            animateBetween: (carrier: HTMLElement, source: HTMLElement, duration: number) => {
+              this.calls.push({ carrier: carrier.id, source: source.id, duration });
+            },
+          };
+        }
+        override render() {
+          return html`
+            <div id="deal-source"></div>
+            <div id="stub:p0:hand"></div>
+            <div id="stub:p1:hand"></div>
+            <div id="stub:p2:hand"></div>
+          `;
+        }
+      }
       customElements.define('test-table-motion-defaults', TestTableDefaults);
       const table = document.createElement('test-table-motion-defaults') as TestTableDefaults;
       const stack = (indexes: number[]) => ({ Indexes: indexes });
@@ -1486,33 +1522,45 @@ test('Table deal defaults are pure transition-local transfer declarations', asyn
         { A: stack([0]), B: stack([1]) },
         { A: stack([-1, -1]) },
       ]);
-      const transition = { kind: 'transition', before, after } as any;
-      const declared = table.motionTransfersForTransition(transition);
+      document.body.append(table);
+      table.state = before as any;
+      await table.updateComplete;
+      table.state = after as any;
+      await table.updateComplete;
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      const first = [...table.calls];
       table.autoFlyDeals = false;
-      const disabled = table.motionTransfersForTransition(transition);
+      table.state = state([
+        { A: stack([-1, -1, -1]) },
+        { A: stack([0, 1, 2]) },
+        { A: stack([-1, -1, -1]) },
+      ]) as any;
+      await table.updateComplete;
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      const disabled = [...table.calls];
       table.autoFlyDeals = true;
-      const initial = table.motionTransfersForTransition({ kind: 'initial', after } as any);
-      return { declared, disabled, initial };
+      table.state = state([
+        { A: stack([-1, -1, -1]) },
+        { A: stack([0, 1, 2, 3]) },
+        { A: stack([-1, -1, -1]) },
+      ]) as any;
+      await table.updateComplete;
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      return { first, disabled, final: table.calls };
     });
 
-    expect(result.declared).toEqual([
-      {
-        key: 'auto-table:p0:hand-growth',
-        subjectId: 'player-0-hand-growth',
-        source: 'deal-source',
-        carrier: 'stub:p0:hand',
-        durationMs: 600,
-      },
-      {
-        key: 'auto-table:p2:hand-growth',
-        subjectId: 'player-2-hand-growth',
-        source: 'deal-source',
-        carrier: 'stub:p2:hand',
-        durationMs: 600,
-      },
+    expect(result.first).toEqual([
+      { carrier: 'stub:p0:hand', source: 'deal-source', duration: 600 },
+      { carrier: 'stub:p2:hand', source: 'deal-source', duration: 600 },
     ]);
-    expect(result.disabled).toEqual([]);
-    expect(result.initial).toEqual([]);
+    expect(result.disabled).toEqual(result.first);
+    expect(result.final).toEqual([
+      ...result.first,
+      { carrier: 'stub:p1:hand', source: 'deal-source', duration: 600 },
+    ]);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

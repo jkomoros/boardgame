@@ -504,7 +504,12 @@ export class BoardgameBaseGameRenderer<
     return 0;
   }
 
-  /** @deprecated Use motionReleaseForTransition(); this guessed-duration hook is no longer consulted. */
+  /**
+   * Compatibility state-clock cutover. Unlike motionReleaseForTransition(),
+   * this can inspect the already-buffered successor and retains its historical
+   * fraction-of-animationLength semantics. An override takes precedence over
+   * motionReleaseForTransition() for that renderer.
+   */
   animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }

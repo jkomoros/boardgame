@@ -3,8 +3,16 @@ import test from 'node:test';
 import {
   animationReachedMotionProgress,
   compileMotionRelease,
+  isCurrentMotionCycleRelease,
   selectMotionReleaseParticipants,
 } from './release.ts';
+
+test('cycle release accepts only the current unreleased installation', () => {
+  assert.equal(isCurrentMotionCycleRelease(7, 7, 6), true);
+  assert.equal(isCurrentMotionCycleRelease(6, 7, 6), false);
+  assert.equal(isCurrentMotionCycleRelease(7, 7, 7), false);
+  assert.equal(isCurrentMotionCycleRelease(undefined, 7, 6), false);
+});
 
 test('motion release compilation is strict, normalized, and immutable', () => {
   const compiled = compileMotionRelease({

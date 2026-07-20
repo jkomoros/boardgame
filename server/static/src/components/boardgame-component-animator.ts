@@ -6,6 +6,7 @@ import { animHooks } from '../utils/anim-test-hooks.js';
 import {
   finiteTimingMs,
   resolveMotionTiming,
+  usableAnimationContext,
 } from '../motion/timing.js';
 import type {
   AnimationTimingPolicy,
@@ -110,7 +111,6 @@ export interface ComponentAnimatorAPI {
 
 interface ComponentRecord {
   beforeCollectionIds?: string[];
-  sourceTagName?: string;
   historicalPresentation?: HistoricalPresentation;
   offsets?: OffsetGeometry;
   newOffsets?: OffsetGeometry;
@@ -405,7 +405,6 @@ export class BoardgameComponentAnimator extends LitElement {
 
         record.beforeCollectionIds ??= [];
         record.beforeCollectionIds.push(collection.id);
-        record.sourceTagName = component.localName;
 
         this._beforeSeenIds.add(component.id);
 
@@ -583,6 +582,35 @@ export class BoardgameComponentAnimator extends LitElement {
         finalOpacity: input.finalOpacity,
       });
     }
+  }
+
+  private _motionEndpointOrientations(
+    component: {
+      motionEndpointOrientation: (state: Readonly<Record<string, unknown>>) =>
+        'natural' | 'quarter-turned';
+      animationRotates?: (
+        before: Record<string, unknown>,
+        after: Record<string, unknown>,
+      ) => boolean;
+    },
+    before: Record<string, unknown>,
+    after: Record<string, unknown>,
+  ): Readonly<{
+    beforeOrientation: 'natural' | 'quarter-turned';
+    afterOrientation: 'natural' | 'quarter-turned';
+  }> {
+    const beforeOrientation = component.motionEndpointOrientation(before);
+    let afterOrientation = component.motionEndpointOrientation(after);
+    // Pairwise axis-change was the old extension contract. It cannot describe
+    // each endpoint independently, but remains sufficient to preserve its
+    // scale-axis behavior while components migrate to endpoint orientation.
+    if (beforeOrientation === afterOrientation
+      && component.animationRotates?.(before, after)) {
+      afterOrientation = beforeOrientation === 'natural'
+        ? 'quarter-turned'
+        : 'natural';
+    }
+    return Object.freeze({ beforeOrientation, afterOrientation });
   }
 
   private _restoreNoAnimateBarrier(): void {
@@ -878,23 +906,71 @@ export class BoardgameComponentAnimator extends LitElement {
     await anim.finished.catch(() => {});
   }
 
-  /** @deprecated Prefer fly(), whose source/carrier direction is explicit. */
-  animateBetween(
+  /**
+   * Compatibility flight with the exact historical scheduling, ownership,
+   * and settlement contract. New code should prefer fly().
+   */
+  async animateBetween(
     realId: string | HTMLElement,
     stubId: string | HTMLElement,
     durationMs: number = 500,
     opts?: AnimateBetweenOptions,
   ): Promise<void> {
-    const subjectId = typeof realId === 'string'
-      ? realId
-      : realId.id || `explicit-motion-${this._explicitMotionSequence + 1}`;
-    return this.fly({
-      subjectId,
-      source: stubId,
-      carrier: realId,
-      durationMs,
-      timing: opts?.timing,
-    });
+    const real = this._resolveAnimationTarget(realId);
+    const stub = this._resolveAnimationTarget(stubId);
+    if (!real || !stub) {
+      console.warn('[animator] animateBetween: could not resolve',
+        !real ? realId : stubId, '— animation skipped');
+      return;
+    }
+    const realRect = real.getBoundingClientRect();
+    const stubRect = stub.getBoundingClientRect();
+    const dx = (stubRect.left + stubRect.width / 2) - (realRect.left + realRect.width / 2);
+    const dy = (stubRect.top + stubRect.height / 2) - (realRect.top + realRect.height / 2);
+    if (dx === 0 && dy === 0) return;
+
+    const timing = opts?.timing ?? 'version';
+    const now = Date.now();
+    const candidateContext = timing === 'version' ? this.animationContext : null;
+    const context = candidateContext ? usableAnimationContext(candidateContext, now) : null;
+    const startAtMs = timing === 'immediate'
+      ? null
+      : timing === 'version'
+        ? context?.startAtMs ?? null
+        : timing.localStartAtMs;
+    let effectiveDurationMs = durationMs;
+    if (context && durationMs > context.maxAnimationDurationMs) {
+      console.warn(
+        `[animator] synchronized animation requested ${durationMs}ms; ` +
+        `capping to the version slot's ${context.maxAnimationDurationMs}ms contract. ` +
+        `Use { timing: 'immediate' } for a longer local-only effect.`,
+      );
+      effectiveDurationMs = context.maxAnimationDurationMs;
+    }
+    const delay = startAtMs !== null && startAtMs !== undefined
+      ? Math.max(0, startAtMs - now)
+      : 0;
+    const fill: FillMode = delay > 0 ? 'backwards' : 'none';
+    const keyframes: Keyframe[] = [
+      { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
+      { transform: real.style.transform || 'none' },
+    ];
+    const realTag = real.tagName.toLowerCase() + (real.id ? `#${real.id}` : '');
+    if (typeof (real as any).play === 'function') {
+      const animation = (real as any).play(real, keyframes,
+        { duration: effectiveDurationMs, delay, easing: 'ease-out', fill },
+        { timing: 'immediate' }, { recordActive: false });
+      if (animation) {
+        this._recordAnimationActive(animation, delay, 'fly:' + realTag, context);
+        await animation.finished.catch(() => {});
+        if (typeof (real as any).settled === 'function') await (real as any).settled();
+      }
+      return;
+    }
+    const animation = real.animate(keyframes,
+      { duration: effectiveDurationMs, delay, easing: 'ease-out', fill });
+    this._recordAnimationActive(animation, delay, 'fly:' + realTag, context);
+    await animation.finished.catch(() => {});
   }
 
   private _startInstalledMotionTransfers(generation: number): Readonly<{
@@ -1210,7 +1286,7 @@ export class BoardgameComponentAnimator extends LitElement {
           record.before = component.animatingPropDefaults(poseStack);
           record.afterOpacity = component.style.opacity;
           record.afterTransform = component.style.transform;
-          const presenceStyle = motionPresenceHostStyle(poseStack.motionPresenceFacts());
+          const presenceStyle = poseStack.motionPresenceStyleFor(component);
           record.beforeTransform = presenceStyle.transform;
           record.beforeOpacity = presenceStyle.opacity;
           record.motionTiming = {
@@ -1249,7 +1325,7 @@ export class BoardgameComponentAnimator extends LitElement {
           record.afterOpacity = component.style.opacity;
           record.afterTransform = component.style.transform;
 
-          const presenceStyle = motionPresenceHostStyle(theStack.motionPresenceFacts());
+          const presenceStyle = theStack.motionPresenceStyleFor(component);
           record.beforeTransform = presenceStyle.transform;
           record.beforeOpacity = presenceStyle.opacity;
         } else {
@@ -1271,10 +1347,11 @@ export class BoardgameComponentAnimator extends LitElement {
           ).inversion
           : record.motionSkipReason
             ? Object.freeze({ translateX: 0, translateY: 0, scale: 1, changed: false })
-            : solveFlipGeometry(record.offsets!, record.newOffsets!, {
-              beforeOrientation: component.motionEndpointOrientation(record.before),
-              afterOrientation: component.motionEndpointOrientation(record.after),
-            });
+            : solveFlipGeometry(
+              record.offsets!,
+              record.newOffsets!,
+              this._motionEndpointOrientations(component, record.before || {}, record.after || {}),
+            );
 
         // Determine whether the host element's CSS transform will actually
         // change during the FLIP animation. The browser only fires
@@ -1300,7 +1377,13 @@ export class BoardgameComponentAnimator extends LitElement {
           needsHostTransition: record.needsHostTransition,
         });
         record.motionTracks = motionTracks;
-        record.needsAnimation = motionTracks.length > 0 || !!record.motionSkipReason;
+        const legacyPropertyMotion = component.legacyPropertyMotionRequested?.(
+          record.before || {},
+          record.after || {},
+        ) ?? false;
+        record.needsAnimation = motionTracks.length > 0
+          || legacyPropertyMotion
+          || !!record.motionSkipReason;
 
         // We used to only bother setting transforms for items that had
         // physically moved. However, the browser is smart enough to ignore
@@ -1353,14 +1436,14 @@ export class BoardgameComponentAnimator extends LitElement {
       const record = this._infoById[id];
       const carrier = destinationStack.newMotionCarrier();
       const component = carrier.component;
-      if (record.sourceTagName !== component.localName
-        || (record.historicalPresentation
-          && !installHistoricalPresentation(component, record.historicalPresentation))) {
+      if (record.historicalPresentation
+          && !installHistoricalPresentation(component, record.historicalPresentation)) {
         if (typeof component.beforeOrphaned === 'function') component.beforeOrphaned();
         component.remove();
         continue;
       }
-      const carrierPresenceStyle = motionPresenceHostStyle(carrier.presence);
+      const carrierPresenceStyle = carrier.presenceStyle
+        ?? motionPresenceHostStyle(carrier.presence);
 
       record.after = carrier.defaults;
 
@@ -1385,10 +1468,11 @@ export class BoardgameComponentAnimator extends LitElement {
 
       if (!stackLocation || !stackViewportLocation || !oldLocation || !oldViewportLocation) continue;
 
-      const geometry = solveFlipGeometry(oldLocation, stackLocation, {
-        beforeOrientation: component.motionEndpointOrientation(record.before),
-        afterOrientation: component.motionEndpointOrientation(record.after),
-      });
+      const geometry = solveFlipGeometry(
+        oldLocation,
+        stackLocation,
+        this._motionEndpointOrientations(component, record.before || {}, record.after || {}),
+      );
 
       // We used to only bother setting transforms for items that had
       // physically moved. However, the browser is smart enough to ignore
@@ -1609,16 +1693,27 @@ export class BoardgameComponentAnimator extends LitElement {
       settled: Promise<boolean[]>;
     }> = [];
     for (const item of playback) {
-      const animations = item.skipReason
+      const playbackResult = item.skipReason
         ? Object.freeze([])
-        : item.component.playAnimation(item.config) as readonly Animation[];
+        : item.component.playAnimation(item.config) as readonly Animation[] | Animation | void;
+      const opaqueLegacyPlayback = playbackResult === undefined;
+      const animations: readonly Animation[] = Array.isArray(playbackResult)
+        ? playbackResult
+        : playbackResult instanceof Animation
+          ? Object.freeze([playbackResult])
+          : Object.freeze([]);
       const tracks = item.config.tracks ?? [];
       if (item.motionDraft) {
         const segmentIndex = item.motionSegmentIndex!;
         if (animations.length === 0 || animations.length !== tracks.length) {
-          for (const animation of animations) {
-            void animation.finished.catch(() => undefined);
-            animation.cancel();
+          // A legacy playAnimation() returned void and owned opaque gated
+          // playback. Keep it alive and let component.settled() hold the queue;
+          // it cannot honestly participate in declarative lifecycle events.
+          if (!opaqueLegacyPlayback) {
+            for (const animation of animations) {
+              void animation.finished.catch(() => undefined);
+              animation.cancel();
+            }
           }
           executionUpdates.set(segmentIndex, {
             status: 'skipped',

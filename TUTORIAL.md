@@ -3845,6 +3845,16 @@ Declared anchor geometry is currently limited to carriers without transformed
 ancestors. Such a case skips explicitly until the framework has a reviewed
 viewport-to-local affine projection primitive; it never silently mixes spaces.
 
+Existing companion defaults deliberately sit one layer beside authored
+transfers. `autoFlyIncoming` and `autoFlyDeals` retain their established
+`animateBetween()` choreography: simultaneous Hand arrivals in their final
+visual pose and decorative Table-stub flights that do not hold structural
+settlement. This compatibility lane also preserves transformed-layout behavior
+and the historical version-slot schedule. Disable the relevant flag before
+replacing a default with `motionTransfersForTransition()`; a declaration adds
+structural ownership, lifecycle reporting, presence tracks, and settlement, so
+that migration is an intentional visual/temporal choice rather than a refactor.
+
 To add one flourish only after an exact set of automatic component motions
 finishes successfully, return `fx.afterMotion({ subjects, effect })` from
 `effectsForTransition()`. It is prepared before playback, skips if a listed
@@ -3880,8 +3890,16 @@ the successor terminalizes the current carriers and lifecycle-bound effects.
 The release applies only to a successor that is already buffered; a state that
 arrives later follows the existing live-arrival policy. Opaque cycle IDs make
 both progress release and ordinary settlement exactly-once, so stale completion
-from an interrupted generation cannot skip a later bundle. `animationOverlap()`
-is deprecated and no longer consulted.
+from an interrupted generation cannot skip a later bundle.
+
+Existing renderers that override `animationOverlap(fromMove, toMove)` retain
+their historical compatibility behavior: the framework passes the installed
+move and already-buffered successor, clamps the returned fraction, and schedules
+cutover at that fraction of `animationLength`. Because this is a state-clock
+policy rather than a structural-progress policy, an override takes precedence
+over `motionReleaseForTransition()`. New renderers should prefer
+`motionReleaseForTransition()` when their policy can be expressed in terms of
+the current transition's real structural motion.
 
 These controls are deliberately layered: `animationLength` controls requested
 motion duration (or skips a buffered intermediate bundle with a negative

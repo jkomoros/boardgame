@@ -21,8 +21,8 @@ import type { MotionTransferDeclaration } from '../motion/transfer.js';
  * animation hooks, then adds a `playerState` convenience getter that
  * returns this.state.Players[this.viewingAs]. That's intentionally
  * sparse: the Hand view has no avatar strip or host controls (those are
- * Table-view-only). It also supplies the top-edge anchor and a declarative
- * incoming-card default for cross-screen presentation.
+ * Table-view-only). It also supplies the top-edge anchor and the historical
+ * incoming-card compatibility default for cross-screen presentation.
  */
 export class BoardgameHandViewBase<
   S extends FullGameState<object, object, object, object, object>,
@@ -67,14 +67,18 @@ export class BoardgameHandViewBase<
   }
 
   /**
-   * When true (the default), the base derives transition-local transfer
-   * declarations for card IDs newly appearing in this player's own stacks.
-   * Moving among the player's stacks does not retrigger. Games whose incoming
-   * semantics do not fit set this false and override
-   * motionTransfersForTransition(); imperative fly() is for local feedback.
+   * When true (the default), the base preserves the existing automatic Hand
+   * choreography: new own-card IDs launch simultaneous animateBetween flights
+   * from the top edge in their already-final visual pose. Moving among the
+   * player's stacks does not retrigger. New authored choreography belongs in
+   * motionTransfersForTransition(); set this false when opting into it.
    */
   @property({ type: Boolean })
   autoFlyIncoming = true;
+
+  // Compatibility baseline. A first render or identity change records the
+  // visible hand without replaying cards that were already present.
+  private _prevOwnCardIds: Set<string> | null = null;
 
   // Buzz the phone when it becomes this player's turn — the player's eyes
   // are usually on the projector, so a local haptic is the natural cue.
@@ -84,6 +88,7 @@ export class BoardgameHandViewBase<
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
+    if (changedProperties.has('viewingAsPlayer')) this._prevOwnCardIds = null;
     const myTurn = this.isCurrentPlayer && !this.gameFinished;
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a
@@ -93,26 +98,23 @@ export class BoardgameHandViewBase<
       }
     }
     this._wasMyTurn = myTurn;
+    if (!changedProperties.has('state')) return;
+    const ids = this._collectCardIds(this.playerState);
+    const previous = this._prevOwnCardIds;
+    this._prevOwnCardIds = ids;
+    if (!this.autoFlyIncoming || previous === null) return;
+    const incoming = [...ids].filter(id => !previous.has(id));
+    if (incoming.length === 0) return;
+    const anchor = this.shadowRoot?.getElementById('hand-top-edge') ?? 'hand-top-edge';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const id of incoming) void this.animator?.animateBetween(id, anchor, 600);
+    }));
   }
 
   override motionTransfersForTransition(
     context: EffectTransitionContext<S, MN>,
   ): readonly MotionTransferDeclaration[] {
-    const inherited = super.motionTransfersForTransition(context);
-    if (context.kind === 'initial' || !this.autoFlyIncoming) return inherited;
-    const before = this._collectCardIds(context.before.Players[this.viewingAs]);
-    const after = this._collectCardIds(context.after.Players[this.viewingAs]);
-    const incoming = [...after].filter(id => !before.has(id)).sort();
-    return Object.freeze([
-      ...inherited,
-      ...incoming.map((id, index) => Object.freeze({
-        key: `auto-hand:${index}`,
-        subjectId: id,
-        source: 'hand-top-edge',
-        carrier: id,
-        durationMs: 600,
-      })),
-    ]);
+    return super.motionTransfersForTransition(context);
   }
 
   private _collectCardIds(player: S['Players'][number] | undefined): Set<string> {
@@ -200,11 +202,9 @@ export class BoardgameHandViewBase<
    * edge of the Hand view, representing "from/to the Table". Cards dealt
    * to this player should be animated from this anchor; cards played
    * should exit through it. The element has a stable id ("hand-top-edge")
-   * so transfer declarations can name it as arrival geometry. With
-   * `autoFlyIncoming` enabled, the base derives declarations from adjacent
-   * authoritative snapshots; games with more precise deal semantics override
-   * motionTransfersForTransition(). Imperative fly() remains for genuinely
-   * local interaction feedback, not authoritative state reactions.
+   * so both compatibility flights and transfer declarations can name it as
+   * arrival geometry. Games with more precise deal semantics disable the
+   * compatibility default and override motionTransfersForTransition().
    */
   protected renderTopEdgeAnchor(): TemplateResult {
     return html`<div class="hand-top-edge-anchor" id="hand-top-edge"></div>`;

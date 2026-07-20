@@ -70,6 +70,6 @@ export interface AnimatingComponent extends HTMLElement {
   /** Returns current values of all animating properties */
   animatingPropValues(): AnimatingProps;
   /** Private historical-presentation capture policy. */
-  historicalPresentationPolicy?: 'none' | 'clone-default-slot';
+  historicalPresentationPolicy?: 'none' | 'clone-default-slot' | 'clone-default-slot-safe';
   motionEndpointOrientation?(state: AnimatingProps): 'natural' | 'quarter-turned';
 }
