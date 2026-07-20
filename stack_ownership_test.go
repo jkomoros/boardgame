@@ -139,6 +139,12 @@ func TestMoveAllRejectsInvalidOwnersEvenWhenEmpty(t *testing.T) {
 	if err := emptyFirst.MoveAllTo(emptySecond); err == nil || !strings.Contains(err.Error(), "different states") {
 		t.Fatalf("cross-state empty MoveAllTo error = %v", err)
 	}
+	if err := emptyFirst.MayMoveCountTo(emptySecond, 0); err == nil || !strings.Contains(err.Error(), "different states") {
+		t.Fatalf("cross-state empty MayMoveCountTo error = %v", err)
+	}
+	if err := emptyFirst.MoveCountTo(emptySecond, 0); err == nil || !strings.Contains(err.Error(), "different states") {
+		t.Fatalf("cross-state empty MoveCountTo error = %v", err)
+	}
 	if err := firstState.DrawDeck.MoveAllTo(nil); err == nil {
 		t.Fatal("MoveAllTo(nil) unexpectedly succeeded")
 	}
@@ -197,6 +203,8 @@ func TestStaleAndSanitizedStacksRejectNonMoveMutators(t *testing.T) {
 			return stale.AddConstraint(func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil })
 		}},
 		{"swap preflight", func() error { return stale.MaySwapComponents(0, 1) }},
+		{"count preflight", func() error { return stale.MayMoveCountTo(gameState.DrawDeck, 0) }},
+		{"count move", func() error { return stale.MoveCountTo(gameState.DrawDeck, 0) }},
 	}
 	for _, check := range checks {
 		if err := check.run(); err == nil || (!strings.Contains(err.Error(), "stale") && !strings.Contains(err.Error(), "attached")) {
@@ -211,6 +219,9 @@ func TestStaleAndSanitizedStacksRejectNonMoveMutators(t *testing.T) {
 	sanitizedGame, _ := concreteStates(sanitized)
 	if err := sanitizedGame.OtherStack.ExpandSize(1); err == nil || !strings.Contains(err.Error(), "sanitized") {
 		t.Fatalf("sanitized resize error = %v", err)
+	}
+	if err := sanitizedGame.OtherStack.MayMoveCountTo(sanitizedGame.DrawDeck, 0); err == nil || !strings.Contains(err.Error(), "sanitized") {
+		t.Fatalf("sanitized count preflight error = %v", err)
 	}
 }
 

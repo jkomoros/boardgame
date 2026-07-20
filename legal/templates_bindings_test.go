@@ -43,6 +43,7 @@ func TestDefaultTemplatePlaceholdersCoveredByEmittedBindings(t *testing.T) {
 		"mayMoveTo":                        MayMoveTo("game.SrcStack", "game.DstStack", "move.SomeIndex"),
 		"mayMoveToSlot":                    MayMoveToSlot("game.SrcStack", "game.DstStack", "move.SomeIndex", "move.SomeSlot"),
 		"mayMoveAllTo":                     MayMoveAllTo("game.SrcStack", "game.DstStack"),
+		"mayMoveCountTo":                   MayMoveCountTo("game.SrcStack", "game.DstStack", "move.SomeCount"),
 		"maySwapComponents":                MaySwapComponents("game.SrcStack", "move.SomeIndex", "move.OtherIndex"),
 		"maySwapComponentsByKey":           MaySwapComponentsByKey("game.SrcStack", "move.SomeKey", "move.OtherKey"),
 		"allActivePlayers":                 AllActivePlayers(PlayerBool("SomeBool")),

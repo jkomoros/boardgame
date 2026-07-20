@@ -46,7 +46,7 @@ PlayerBoolAt, PlayerHasSubmitted, PlayerHasNotSubmitted, PlayerIsActive,
 PlayerIsInactive, PlayerSeatIsFilled, PlayerSeatIsClosed, PlayerIsAdmin,
 StackCount, StackEmpty, StackNotEmpty, PropEquals, PropNotEquals,
 ComponentPresentAt, ComponentAbsentAt, ComponentPresentAtKey, MayMoveTo,
-MayMoveToSlot, MayMoveToSameSlot, MayMoveAllTo, MaySwapComponents,
+MayMoveToSlot, MayMoveToSameSlot, MayMoveCountTo, MayMoveAllTo, MaySwapComponents,
 MaySwapComponentsByKey, Any, AllActivePlayers, RevealableCardAt,
 ComponentPropEqualsCurrentPlayer, ProposerIsCurrentPlayer, InPhase,
 StackConstraints — the full, current list is DefaultConstructors()).

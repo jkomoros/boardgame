@@ -140,6 +140,122 @@ func noStartPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveC
 	)
 }
 
+func countedTransferMoveInstaller(target int) func(*boardgame.GameManager) []boardgame.MoveConfig {
+	return func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return AddForPhase(phaseSetUp,
+			auto.MustConfig(
+				new(MoveCountComponents),
+				WithMoveName("Move Counted Components"),
+				WithSourceProperty("DrawStack"),
+				WithDestinationProperty("DiscardStack"),
+				WithTargetCount(target),
+				WithIsFixUp(false),
+			),
+		)
+	}
+}
+
+func thresholdTransferMoveInstaller(move AutoConfigurableMove, target int, name string) func(*boardgame.GameManager) []boardgame.MoveConfig {
+	return func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return AddForPhase(phaseSetUp,
+			auto.MustConfig(
+				move,
+				WithMoveName(name),
+				WithSourceProperty("DrawStack"),
+				WithDestinationProperty("DiscardStack"),
+				WithTargetCount(target),
+				WithIsFixUp(false),
+			),
+		)
+	}
+}
+
+func TestMoveCountComponentsPreflightsRemainingSequence(t *testing.T) {
+	t.Run("insufficient source", func(t *testing.T) {
+		manager, err := newGameManager(countedTransferMoveInstaller(53))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		move := game.MoveByName("Move Counted Components")
+		if err := move.Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "cannot move 53") {
+			t.Fatalf("Legal error = %v", err)
+		}
+		gameState, _ := concreteStates(game.CurrentState())
+		if got := gameState.DrawStack.NumComponents(); got != 52 {
+			t.Fatalf("source count = %d, want 52", got)
+		}
+		if got := gameState.DiscardStack.NumComponents(); got != 0 {
+			t.Fatalf("destination count = %d, want 0", got)
+		}
+	})
+
+	t.Run("insufficient destination capacity", func(t *testing.T) {
+		manager, err := newGameManager(countedTransferMoveInstaller(2))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		gameState, _ := concreteStates(game.CurrentState())
+		if err := gameState.DiscardStack.SetSize(1); err != nil {
+			t.Fatalf("set destination capacity: %v", err)
+		}
+
+		move := game.MoveByName("Move Counted Components")
+		if err := move.Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "space") {
+			t.Fatalf("Legal error = %v", err)
+		}
+		if got := gameState.DrawStack.NumComponents(); got != 52 {
+			t.Fatalf("source count = %d, want 52", got)
+		}
+		if got := gameState.DiscardStack.NumComponents(); got != 0 {
+			t.Fatalf("destination count = %d, want 0", got)
+		}
+	})
+}
+
+func TestMoveComponentThresholdsDoNotRunAwayAfterOvershoot(t *testing.T) {
+	t.Run("destination already above reached target", func(t *testing.T) {
+		manager, err := newGameManager(thresholdTransferMoveInstaller(new(MoveComponentsUntilCountReached), 1, "Until Reached"))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		gameState, _ := concreteStates(game.CurrentState())
+		if err := gameState.DrawStack.MoveCountTo(gameState.DiscardStack, 2); err != nil {
+			t.Fatalf("seed destination: %v", err)
+		}
+		if err := game.MoveByName("Until Reached").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "condition was met") {
+			t.Fatalf("Legal error = %v, want completed-condition rejection", err)
+		}
+	})
+
+	t.Run("source already below left target", func(t *testing.T) {
+		manager, err := newGameManager(thresholdTransferMoveInstaller(new(MoveComponentsUntilCountLeft), 53, "Until Left"))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		if err := game.MoveByName("Until Left").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "condition was met") {
+			t.Fatalf("Legal error = %v, want completed-condition rejection", err)
+		}
+	})
+}
+
 func TestAddOrderedForPhaseEndsWithStartPhase(t *testing.T) {
 	_, err := newGameManager(noStartPhaseMoveInstaller)
 	assert.For(t).ThatActual(err).IsNotNil()

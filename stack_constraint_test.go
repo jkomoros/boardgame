@@ -468,7 +468,7 @@ func TestMoveAllToSuccessMatchesCheckedSequenceAcrossStackKinds(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := moveAllToChecked(expectedSource, expectedDestination, source.NumComponents()); err != nil {
+			if err := moveComponentsToChecked(expectedSource, expectedDestination, source.NumComponents()); err != nil {
 				t.Fatal("checked sequence:", err)
 			}
 

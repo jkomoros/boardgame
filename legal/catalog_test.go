@@ -466,6 +466,45 @@ func TestMayMoveToSlot(t *testing.T) {
 	}
 }
 
+func TestMayMoveCountTo(t *testing.T) {
+	spec := legal.MayMoveCountTo("game.HiddenCards", "game.VisibleCards", "player.CardsLeftToReveal")
+	if spec.Name != "mayMoveCountTo" {
+		t.Fatalf("Name = %q, want mayMoveCountTo", spec.Name)
+	}
+	pred := resolvePredicateForTest(t, spec)
+	if pred.ClientEvaluable {
+		t.Fatal("MayMoveCountTo unexpectedly marked client-evaluable")
+	}
+	if len(pred.Reads) != 3 {
+		t.Fatalf("Reads = %+v, want source, destination, and count", pred.Reads)
+	}
+	if got := pred.RequiredReadTypes["player.CardsLeftToReveal"]; got != boardgame.TypeInt {
+		t.Fatalf("count required type = %v, want TypeInt", got)
+	}
+
+	fixture := buildLegalFixture(t, "memoryDefault")
+	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("two-component transfer: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+
+	sameStack := resolvePredicateForTest(t, legal.MayMoveCountTo("game.HiddenCards", "game.HiddenCards", "player.CardsLeftToReveal"))
+	if v := sameStack.Evaluate(fixture.context(0)); v.Outcome != legal.Fail || v.Message == nil || v.Message.Template != legal.TemplateMayNotMoveCountTo {
+		t.Fatalf("same-stack verdict = %+v, want %q failure", v, legal.TemplateMayNotMoveCountTo)
+	}
+
+	game, state := newMemoryGame(t)
+	negative := legalFixture{state: state, move: memoryMoveWithCardIndex(t, game, -1), chest: game.Manager().Chest()}
+	negativePred := resolvePredicateForTest(t, legal.MayMoveCountTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"))
+	if v := negativePred.Evaluate(negative.context(0)); v.Outcome != legal.Fail {
+		t.Fatalf("negative count verdict = %+v, want Fail", v)
+	}
+
+	noMove := buildLegalFixture(t, "memoryNoMove")
+	if v := negativePred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("missing count move verdict = %+v, want Unknown", v)
+	}
+}
+
 // findRead returns the Read in reads whose Path matches path, and whether
 // one was found.
 func findRead(reads []legal.Read, path string) (legal.Read, bool) {
@@ -598,6 +637,7 @@ func TestDefaultConstructors(t *testing.T) {
 		"mayMoveTo":                        true,
 		"mayMoveToSlot":                    true,
 		"mayMoveAllTo":                     true,
+		"mayMoveCountTo":                   true,
 		"maySwapComponents":                true,
 		"maySwapComponentsByKey":           true,
 		"allActivePlayers":                 true,
@@ -657,6 +697,7 @@ func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 		legal.TemplateNoComponentToMove,
 		legal.TemplateMayNotMoveTo,
 		legal.TemplateMayNotMoveAllTo,
+		legal.TemplateMayNotMoveCountTo,
 		legal.TemplateMayNotSwapComponents,
 		legal.TemplateAllActivePlayers,
 		legal.TemplateProposerTargetInvalid,

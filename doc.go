@@ -32,8 +32,9 @@ Constraints are validation predicates, not event callbacks. They may capture
 immutable configuration, but must resolve runtime game objects through their
 supplied arguments. They must be deterministic, free of side effects, and
 produce the same result for a logical state and its copy. This lets
-MayMoveAllTo and transactional MoveAllTo validate an ordered multi-component
-transfer on a disposable state before committing it.
+MayMoveCountTo, MayMoveAllTo, and their transactional mutating counterparts
+validate an ordered multi-component transfer on a disposable state before
+committing it.
 
 ImmutableComponentInstance provides "May" methods for pre-validating
 component moves in Legal() before actually performing them in Apply():
@@ -44,8 +45,11 @@ component moves in Legal() before actually performing them in Apply():
   - MayMoveToSlot(dest, slotIndex) additionally checks that a specific
     slot is valid and available.
 
-ImmutableStack also provides MayMoveAllTo(dest) and MaySwapComponents(i, j)
-for pre-validating those operations.
+ImmutableStack also provides MayMoveCountTo(dest, count), MayMoveAllTo(dest),
+and MaySwapComponents(i, j) for pre-validating those operations. Pair
+MayMoveCountTo with Stack.MoveCountTo when exactly N components should move as
+one notional move; use moves.MoveCountComponents when they should instead have
+separate persistence and animation boundaries.
 
 These methods are designed so that if Legal() passes, Apply() will succeed
 for the corresponding operation. The moves package uses them internally,

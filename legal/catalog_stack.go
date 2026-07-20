@@ -40,6 +40,9 @@ const (
 	// TemplateMayNotMoveAllTo is the default Fail template key for
 	// MayMoveAllTo. Bindings: "detail", the underlying error message.
 	TemplateMayNotMoveAllTo = "legal.may_not_move_all_to"
+	// TemplateMayNotMoveCountTo is the default Fail template key for
+	// MayMoveCountTo. Bindings: "detail", the underlying error message.
+	TemplateMayNotMoveCountTo = "legal.may_not_move_count_to"
 	// TemplateMayNotSwapComponents is the default Fail template key for
 	// MaySwapComponents and MaySwapComponentsByKey. Bindings: "detail", the
 	// underlying error message.
@@ -86,6 +89,7 @@ var defaultTemplateKeys = []string{
 	TemplateNoComponentToMove,
 	TemplateMayNotMoveTo,
 	TemplateMayNotMoveAllTo,
+	TemplateMayNotMoveCountTo,
 	TemplateMayNotSwapComponents,
 	// Task 5 (catalog_players.go / catalog_purpose.go) additions:
 	TemplateAllActivePlayers,
@@ -181,6 +185,14 @@ func MayMoveToSameSlot(srcPath, dstPath, indexField string) Spec {
 // state while simulating the transfer.
 func MayMoveAllTo(srcPath, dstPath string) Spec {
 	return Spec{Name: "mayMoveAllTo", Args: []string{srcPath, dstPath}}
+}
+
+// MayMoveCountTo returns a server-evaluated Spec that passes when exactly the
+// number of components in countField could be moved from srcPath to dstPath
+// transactionally. It is not client-evaluable because custom stack
+// constraints may inspect other runtime state while simulating the transfer.
+func MayMoveCountTo(srcPath, dstPath, countField string) Spec {
+	return Spec{Name: "mayMoveCountTo", Args: []string{srcPath, dstPath, countField}}
 }
 
 // MaySwapComponents returns a Spec that passes when the two int-valued move
@@ -579,6 +591,61 @@ func mayMoveAllToConstructor() *PredicateConstructor {
 	}
 }
 
+func mayMoveCountToConstructor() *PredicateConstructor {
+	return &PredicateConstructor{
+		Name: "mayMoveCountTo",
+		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+			if len(spec.Args) != 3 {
+				return nil, fmt.Errorf("legal: mayMoveCountTo requires 3 args (srcPath, dstPath, countField), got %d", len(spec.Args))
+			}
+			srcPath, dstPath, countField := spec.Args[0], spec.Args[1], spec.Args[2]
+			template := spec.Message
+			if template == "" {
+				template = TemplateMayNotMoveCountTo
+			}
+			return &Predicate{
+				Name:            "mayMoveCountTo",
+				ClientEvaluable: false,
+				Args:            spec.Args,
+				Reads: []Read{
+					{Path: PropPath(srcPath), Facet: boardgame.LegalFacetValues},
+					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
+					{Path: PropPath(countField), Facet: boardgame.LegalFacetValues},
+				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(srcPath):    boardgame.TypeStack,
+					PropPath(dstPath):    boardgame.TypeStack,
+					PropPath(countField): boardgame.TypeInt,
+				},
+				Cost:             boardgame.LegalCostExpensive,
+				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"detail"}},
+				Evaluate: func(ctx Context) Verdict {
+					src, err := resolveStackPath(srcPath, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					dst, err := resolveStackPath(dstPath, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					count, err := resolveIntPath(countField, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					if src == nil || dst == nil {
+						return UnknownVerdict("legal: source or destination stack path resolved to nil")
+					}
+					if err := src.MayMoveCountTo(dst, count); err != nil {
+						return FailT(template, map[string]BindingValue{"detail": String(err.Error())})
+					}
+					return PassVerdict()
+				},
+			}, nil
+		},
+	}
+}
+
 func maySwapComponentsConstructor(name string, keyed bool) *PredicateConstructor {
 	return &PredicateConstructor{
 		Name: name,
@@ -687,6 +754,7 @@ func DefaultConstructors() []*PredicateConstructor {
 		mayMoveToConstructor(),
 		mayMoveToSlotConstructor(),
 		mayMoveAllToConstructor(),
+		mayMoveCountToConstructor(),
 		maySwapComponentsConstructor("maySwapComponents", false),
 		maySwapComponentsConstructor("maySwapComponentsByKey", true),
 		allActivePlayersConstructor(),

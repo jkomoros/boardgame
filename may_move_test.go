@@ -1,11 +1,174 @@
 package boardgame
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/workfit/tester/assert"
 )
+
+func TestMoveCountTo(t *testing.T) {
+	t.Run("MovesExactCountInOrder", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		source := gs.DrawDeck
+		destination := ps[0].Hand
+		first := source.First()
+		second := source.ComponentAt(1)
+
+		if err := source.MayMoveCountTo(destination, 2); err != nil {
+			t.Fatalf("MayMoveCountTo: %v", err)
+		}
+		if got := destination.NumComponents(); got != 0 {
+			t.Fatalf("MayMoveCountTo mutated destination: got %d components", got)
+		}
+		if err := source.MoveCountTo(destination, 2); err != nil {
+			t.Fatalf("MoveCountTo: %v", err)
+		}
+		if got := destination.ComponentAt(0); got != first {
+			t.Fatalf("destination[0] = %v, want original first component", got)
+		}
+		if got := destination.ComponentAt(1); got != second {
+			t.Fatalf("destination[1] = %v, want original second component", got)
+		}
+		verifyContainingComponent(t, game.CurrentState(), game.Manager().Chest().Deck("test"))
+	})
+
+	t.Run("RejectsInvalidCountsWithoutMutation", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		before, err := game.CurrentState().(*state).copy(false)
+		if err != nil {
+			t.Fatalf("copy state: %v", err)
+		}
+
+		for _, count := range []int{-1, gs.DrawDeck.NumComponents() + 1} {
+			if err := gs.DrawDeck.MayMoveCountTo(ps[0].Hand, count); err == nil {
+				t.Errorf("MayMoveCountTo count %d unexpectedly succeeded", count)
+			}
+			if err := gs.DrawDeck.MoveCountTo(ps[0].Hand, count); err == nil {
+				t.Errorf("MoveCountTo count %d unexpectedly succeeded", count)
+			}
+			assertPersistedStatesEqual(t, game.CurrentState(), before)
+		}
+	})
+
+	t.Run("ZeroStillValidatesEndpoints", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		if err := gs.DrawDeck.MoveCountTo(ps[0].Hand, 0); err != nil {
+			t.Fatalf("zero-count move: %v", err)
+		}
+		if err := gs.DrawDeck.MoveCountTo(nil, 0); err == nil {
+			t.Fatal("zero-count move to nil unexpectedly succeeded")
+		}
+		if err := gs.DrawDeck.MayMoveCountTo(gs.DrawDeck, 0); err == nil {
+			t.Fatal("zero-count preflight to same stack unexpectedly succeeded")
+		}
+	})
+
+	t.Run("RejectsInsufficientDestinationCapacity", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		if err := gs.DrawDeck.MayMoveCountTo(ps[0].Hand, 3); err == nil || !strings.Contains(err.Error(), "space") {
+			t.Fatalf("capacity preflight error = %v", err)
+		}
+		if err := gs.DrawDeck.MoveCountTo(ps[0].Hand, 3); err == nil || !strings.Contains(err.Error(), "space") {
+			t.Fatalf("capacity move error = %v", err)
+		}
+		if got := ps[0].Hand.NumComponents(); got != 0 {
+			t.Fatalf("failed transfer moved %d components", got)
+		}
+	})
+
+	t.Run("LateConstraintFailureIsAtomic", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		calls := 0
+		if err := ps[0].Hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, _ ImmutableState) error {
+			calls++
+			if dest.NumComponents()+len(proposed) > 1 {
+				return errors.New("only one component allowed")
+			}
+			return nil
+		}); err != nil {
+			t.Fatalf("add constraint: %v", err)
+		}
+		before, err := game.CurrentState().(*state).copy(false)
+		if err != nil {
+			t.Fatalf("copy state: %v", err)
+		}
+
+		err = gs.DrawDeck.MayMoveCountTo(ps[0].Hand, 2)
+		if err == nil || !strings.Contains(err.Error(), "only one") {
+			t.Fatalf("MayMoveCountTo error = %v", err)
+		}
+		if calls != 2 {
+			t.Fatalf("MayMoveCountTo constraint calls = %d, want 2", calls)
+		}
+		assertPersistedStatesEqual(t, game.CurrentState(), before)
+
+		calls = 0
+		err = gs.DrawDeck.MoveCountTo(ps[0].Hand, 2)
+		if err == nil || !strings.Contains(err.Error(), "only one") {
+			t.Fatalf("MoveCountTo error = %v", err)
+		}
+		if calls != 2 {
+			t.Fatalf("constraint calls = %d, want 2", calls)
+		}
+		assertPersistedStatesEqual(t, game.CurrentState(), before)
+		verifyContainingComponent(t, game.CurrentState(), game.Manager().Chest().Deck("test"))
+	})
+
+	t.Run("SuccessfulConstraintRunsOncePerComponent", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		calls := 0
+		if err := ps[0].Hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, _ ImmutableState) error {
+			calls++
+			if dest.NumComponents()+len(proposed) > 2 {
+				return errors.New("too many components")
+			}
+			return nil
+		}); err != nil {
+			t.Fatalf("add constraint: %v", err)
+		}
+
+		if err := gs.DrawDeck.MoveCountTo(ps[0].Hand, 2); err != nil {
+			t.Fatalf("MoveCountTo: %v", err)
+		}
+		if calls != 2 {
+			t.Fatalf("constraint calls = %d, want 2", calls)
+		}
+		if got := ps[0].Hand.NumComponents(); got != 2 {
+			t.Fatalf("destination count = %d, want 2", got)
+		}
+		verifyContainingComponent(t, game.CurrentState(), game.Manager().Chest().Deck("test"))
+	})
+
+	t.Run("SparseSizedSourceUsesComponentOrder", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		source := game.Manager().Chest().Deck("test").NewSizedStack(4)
+		attachStackForPrimitiveTest(game.CurrentState().(*state), source)
+		first := gs.DrawDeck.First()
+		if err := first.MoveTo(source, 1); err != nil {
+			t.Fatalf("seed source slot 1: %v", err)
+		}
+		second := gs.DrawDeck.First()
+		if err := second.MoveTo(source, 3); err != nil {
+			t.Fatalf("seed source slot 3: %v", err)
+		}
+
+		if err := source.MoveCountTo(ps[0].Hand, 2); err != nil {
+			t.Fatalf("MoveCountTo: %v", err)
+		}
+		if ps[0].Hand.ComponentAt(0) != first || ps[0].Hand.ComponentAt(1) != second {
+			t.Fatal("sparse sized source did not preserve first-to-last component order")
+		}
+	})
+}
 
 func TestMayMoveTo(t *testing.T) {
 	game := testGameWithMutableConstraints(t)

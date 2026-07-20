@@ -92,10 +92,11 @@ documentation for details.
 
 Automatic source/destination checking proposes the source's first component.
 That is sufficient for a one-component Apply, but not for an Apply that calls
-MoveAllTo: a later component can violate an order-dependent constraint. Such a
-move should call source.MayMoveAllTo(destination) in Legal(). MoveAllTo repeats
-the full validation transactionally in Apply, so an ignored or handled error
-still cannot expose a partial transfer.
+MoveCountTo or MoveAllTo: a later component can violate an order-dependent
+constraint. Such a move should call source.MayMoveCountTo(destination, count)
+or source.MayMoveAllTo(destination) in Legal(). The mutating methods repeat the
+full validation transactionally in Apply, so an ignored or handled error still
+cannot expose a partial transfer.
 
 # Future Work
 
