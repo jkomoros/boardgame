@@ -85,12 +85,15 @@ export function resolveMotionTiming(
   if (options.reducedMotion) {
     // Reduced motion is a complete scheduling policy, not a default that an
     // explicit duration can accidentally override. Do not wait for a remote
-    // version slot or retain decorative post-delay occupancy.
+    // version slot, but preserve end delay: callers use it for semantic holds
+    // (for example, keeping a revealed matching pair visible before capture),
+    // not merely for moving pixels.
+    const endDelay = Math.max(0, finiteTimingMs(timing.endDelay));
     return Object.freeze({
       kind: 'play',
-      timing: { ...timing, delay: 0, duration: 0, endDelay: 0 },
+      timing: { ...timing, delay: 0, duration: 0, endDelay },
       activeContext: null,
-      expectedSettleMs: 0,
+      expectedSettleMs: endDelay,
     });
   }
   const policy = options.policy ?? 'version';

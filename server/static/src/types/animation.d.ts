@@ -72,4 +72,5 @@ export interface AnimatingComponent extends HTMLElement {
   /** Private historical-presentation capture policy. */
   historicalPresentationPolicy?: 'none' | 'clone-default-slot' | 'clone-default-slot-safe';
   motionEndpointOrientation?(state: AnimatingProps): 'natural' | 'quarter-turned';
+  legacyAnimationRotationRequested?(before: AnimatingProps, after: AnimatingProps): boolean | null;
 }

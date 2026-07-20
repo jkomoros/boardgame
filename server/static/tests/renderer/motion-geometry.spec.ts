@@ -63,7 +63,7 @@ test('card face motion is a planned component-owned visual track', async ({ page
   }
 });
 
-test('motion track playback preflights every owned target before starting any channel', async ({ page }) => {
+test('an unavailable visual target does not suppress valid host motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
@@ -100,17 +100,147 @@ test('motion track playback preflights every owned target before starting any ch
       };
       const tracks = component.planMotionTracks(record);
       const animations = component.playAnimation({ ...record, tracks });
-      return {
+      const result = {
         channels: tracks.map(track => `${track.target}:${track.property}`),
         returnedAnimations: animations.length,
         hostAnimations: component.getAnimations().length,
       };
+      for (const animation of animations) animation.finish();
+      return result;
     });
 
     expect(result).toEqual({
-      channels: ['host:transform', 'visual:transform'],
-      returnedAnimations: 0,
-      hostAnimations: 0,
+      channels: ['host:transform'],
+      returnedAnimations: 1,
+      hostAnimations: 1,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('a visual target disappearing at the playback barrier still preserves host travel', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { BoardgameComponent } = await import('/src/components/boardgame-component.ts');
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { componentView } = await import('/src/components/component-view.ts');
+      class VanishingVisual extends BoardgameComponent {
+        turned = false;
+        visualResolutions = 0;
+        override get animatingProperties() { return ['turned']; }
+        protected override propertyMotionTracks(before: any, after: any) {
+          return before.turned === after.turned ? [] : [{
+            target: 'visual' as const, property: 'transform' as const,
+            from: 'rotate(0deg)', to: 'rotate(90deg)',
+          }];
+        }
+        protected override motionTrackTarget(target: 'host' | 'visual'): HTMLElement | null {
+          if (target === 'host') return this;
+          return this.visualResolutions++ === 0 ? this : null;
+        }
+      }
+      customElements.define('vanishing-motion-visual', VanishingVisual);
+      const animator = document.createElement('boardgame-component-animator') as any;
+      const stack = document.createElement('boardgame-component-stack') as any;
+      Object.assign(stack.style, { position: 'fixed', left: '20px', top: '20px' });
+      stack.style.setProperty('--animation-length', '20ms');
+      stack.componentView = componentView(
+        () => document.createElement('vanishing-motion-visual'),
+        { properties: ({ component }: any) => ({ turned: !!component.Values.turned }) },
+      );
+      const data = (turned: boolean) => ({
+        Deck: 'pieces', Indexes: [0], IDs: ['vanishing-visual'], IDsLastSeen: {},
+        ShuffleCount: 0, Size: 1, GameName: 'target-race', Components: [{
+          ID: 'vanishing-visual', Index: 0, Deck: 'pieces', GameName: 'target-race',
+          Values: { turned },
+        }],
+      });
+      stack.stack = data(false);
+      document.body.append(animator, stack);
+      await Promise.all([animator.updateComplete, stack.updateComplete]);
+      animator.prepare();
+      stack.style.left = '220px';
+      stack.stack = data(true);
+      await stack.updateComplete;
+      await animator.animateFlip();
+      const segment = animator._solvedMotionPlan?.segments[0];
+      return {
+        channels: segment?.channels,
+        status: segment?.execution.status,
+        resolutions: stack.Components[0].visualResolutions,
+      };
+    });
+
+    expect(result).toEqual({
+      channels: ['host:transform'],
+      status: 'finished',
+      resolutions: 2,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('retained travel preserves the historical final-opacity snap', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { cardView } = await import('/src/client.ts');
+      const animator = document.createElement('boardgame-component-animator') as any;
+      const stack = document.createElement('boardgame-component-stack') as any;
+      Object.assign(stack.style, { position: 'fixed', left: '20px', top: '20px' });
+      stack.style.setProperty('--animation-length', '20ms');
+      stack.componentView = cardView({});
+      stack.stack = {
+        Deck: 'cards', Indexes: [0], IDs: ['opacity-card'], IDsLastSeen: {},
+        ShuffleCount: 0, Size: 1, GameName: 'opacity-compatibility',
+        Components: [{
+          ID: 'opacity-card', Index: 0, Deck: 'cards', GameName: 'opacity-compatibility',
+          Values: {},
+        }],
+      };
+      document.body.append(animator, stack);
+      await Promise.all([animator.updateComplete, stack.updateComplete]);
+      const card = stack.Components[0] as HTMLElement;
+      card.style.opacity = '0.2';
+      const prototype = customElements.get('boardgame-card')!.prototype as any;
+      const original = prototype.playAnimation;
+      let observed: any = null;
+      prototype.playAnimation = function(record: any) {
+        if (this.id === 'opacity-card') {
+          observed = {
+            beforeOpacity: record.beforeOpacity,
+            finalOpacity: record.finalOpacity,
+            channels: record.tracks.map((track: any) => `${track.target}:${track.property}`),
+          };
+        }
+        return original.call(this, record);
+      };
+      try {
+        animator.prepare();
+        stack.style.left = '220px';
+        card.style.opacity = '0.8';
+        await new Promise(requestAnimationFrame);
+        await animator.animateFlip();
+        return observed;
+      } finally {
+        prototype.playAnimation = original;
+      }
+    });
+
+    expect(result).toEqual({
+      beforeOpacity: '0.8',
+      finalOpacity: '0.8',
+      channels: ['host:transform'],
     });
     diagnostics.assertEmpty();
   } finally {
@@ -130,6 +260,7 @@ test('historical presentation preserves legacy artwork identity with an opt-in s
       } = await import('/src/motion/historical-presentation.ts');
       const source = document.createElement('boardgame-card');
       source.noContent = false;
+      source.append(document.createTextNode('bare text must remain absent'));
       const visible = document.createElement('span');
       visible.id = 'must-not-duplicate';
       visible.tabIndex = 0;
@@ -137,7 +268,12 @@ test('historical presentation preserves legacy artwork identity with an opt-in s
       const named = document.createElement('span');
       named.slot = 'back';
       named.textContent = 'named private content';
-      source.append(visible, named);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.append(document.createElementNS('http://www.w3.org/2000/svg', 'circle'));
+      const namedSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      namedSvg.setAttribute('slot', 'back');
+      namedSvg.append(document.createElementNS('http://www.w3.org/2000/svg', 'rect'));
+      source.append(visible, named, svg, namedSvg);
       const presentation = captureHistoricalPresentation(source)!;
       const target = document.createElement('boardgame-card');
       const safeSource = source.cloneNode(true) as HTMLElement & {
@@ -162,6 +298,10 @@ test('historical presentation preserves legacy artwork identity with an opt-in s
         serialized: JSON.stringify(presentation),
         text: target.textContent,
         historyCount: target.querySelectorAll('[slot="motion-history"]').length,
+        svgHistoryCount: target.querySelectorAll('svg[slot="motion-history"]').length,
+        fallbackCount: target.querySelectorAll('[slot="fallback"]').length,
+        svgFallbackCount: target.querySelectorAll('svg[slot="fallback"]').length,
+        safeHistoryCount: safeTarget.querySelectorAll('[slot="motion-history"]').length,
         identityCount: target.querySelectorAll('[id], [tabindex], [autofocus]').length,
         safeIdentityCount: safeTarget.querySelectorAll('[id], [tabindex], [autofocus]').length,
       };
@@ -173,7 +313,11 @@ test('historical presentation preserves legacy artwork identity with an opt-in s
       forged: false,
       serialized: '{"kind":"cloned-default-slot","identity":"preserve"}',
       text: 'visible historical art',
-      historyCount: 1,
+      historyCount: 0,
+      svgHistoryCount: 0,
+      fallbackCount: 2,
+      svgFallbackCount: 1,
+      safeHistoryCount: 2,
       identityCount: 1,
       safeIdentityCount: 0,
     });
@@ -615,6 +759,47 @@ test('explicit motion cannot override reduced-motion scheduling', async ({ page 
     expect(result.lifecycle).toEqual([
       'planned', 'armed', 'active-observed', 'finished', 'generation-settled',
     ]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('reduced motion removes movement but preserves semantic post-animation holds', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { BoardgameAnimatableItem } = await import('/src/components/boardgame-animatable-item.ts');
+      class SemanticHoldItem extends BoardgameAnimatableItem {}
+      customElements.define('semantic-hold-item', SemanticHoldItem);
+      const item = document.createElement('semantic-hold-item') as SemanticHoldItem;
+      item.postAnimationDelay = 1000;
+      item.waitForAnimation = true;
+      let expectedSettleMs: number | null = null;
+      item.addEventListener('will-animate', (event: Event) => {
+        expectedSettleMs = (event as CustomEvent).detail.expectedSettleMs;
+      });
+      document.body.append(item);
+      await item.updateComplete;
+      const animation = item.play(
+        item,
+        [{ transform: 'translateX(40px)' }, { transform: 'translateX(0)' }],
+        { duration: 500 },
+        { timing: 'immediate' },
+      )!;
+      const timing = (animation.effect as KeyframeEffect).getTiming();
+      const observed = {
+        duration: timing.duration,
+        endDelay: timing.endDelay,
+        expectedSettleMs,
+      };
+      animation.finish();
+      await animation.finished;
+      return observed;
+    });
+
+    expect(result).toEqual({ duration: 0, endDelay: 1000, expectedSettleMs: 1000 });
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();
@@ -1116,6 +1301,7 @@ test('departing motion uses a fresh inert carrier without publishing presentatio
             inlineOpacity: this.style.opacity,
             finalTransform: record.finalTransform,
             finalOpacity: record.finalOpacity,
+            beforeOpacity: record.beforeOpacity,
           };
         }
         return originalPlayAnimation.call(this, record);
@@ -1133,6 +1319,7 @@ test('departing motion uses a fresh inert carrier without publishing presentatio
       document.body.append(animator, source, destination);
       await Promise.all([animator.updateComplete, source.updateComplete, destination.updateComplete]);
       const live = source.Components[0] as HTMLElement;
+      live.style.opacity = '0.35';
       const art = document.createElement('span');
       art.id = 'visible-art-id';
       art.textContent = 'VISIBLE SOURCE ART';
@@ -1177,8 +1364,81 @@ test('departing motion uses a fresh inert carrier without publishing presentatio
         inlineOpacity: '',
         finalTransform: 'scale(0.6)',
         finalOpacity: '0',
+        beforeOpacity: '1.0',
       },
       carriersAfterClear: 0,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('last visible card artwork survives an intervening hidden generation', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { cardView } = await import('/src/client.ts');
+      const animator = document.createElement('boardgame-component-animator') as any;
+      const makeStack = (left: number) => {
+        const stack = document.createElement('boardgame-component-stack') as any;
+        Object.assign(stack.style, { position: 'fixed', left: `${left}px`, top: '20px' });
+        stack.style.setProperty('--animation-length', '20ms');
+        stack.componentView = cardView({});
+        return stack;
+      };
+      const source = makeStack(20);
+      const destination = makeStack(220);
+      const visible = {
+        ID: 'remembered-card', Index: 0, Deck: 'cards', GameName: 'history-cache', Values: {},
+      };
+      const data = (
+        components: readonly unknown[],
+        ids: readonly string[],
+        seen: number | null,
+      ) => ({
+        Deck: 'cards', Indexes: components.map((_item, index) => index), IDs: ids,
+        IDsLastSeen: seen === null ? {} : { 'remembered-card': seen },
+        ShuffleCount: 0, Size: components.length, GameName: 'history-cache',
+        Components: components,
+      });
+      source.stack = data([visible], ['remembered-card'], 1);
+      destination.stack = data([], [], null);
+      document.body.append(animator, source, destination);
+      await Promise.all([animator.updateComplete, source.updateComplete, destination.updateComplete]);
+      const art = document.createElement('span');
+      art.textContent = 'remembered visible face';
+      source.Components[0].append(art);
+
+      animator.prepare();
+      source.stack = data([], [], 1);
+      destination.stack = data([], [], 2);
+      await Promise.all([source.updateComplete, destination.updateComplete]);
+      await animator.animateFlip();
+      animator.clearAnimatingComponents();
+
+      // No exact card is visible during this prepare. Reappearance must use
+      // the bounded viewer-local presentation cache, not transition-local DOM.
+      animator.prepare();
+      source.stack = data([], [], 2);
+      destination.stack = data([visible], ['remembered-card'], 3);
+      await Promise.all([source.updateComplete, destination.updateComplete]);
+      await animator.animateFlip();
+      const returned = destination.Components[0] as HTMLElement;
+      return {
+        text: returned.textContent,
+        fallbackCount: returned.querySelectorAll('[slot="fallback"]').length,
+        cacheSize: animator._historicalPresentationById.size,
+      };
+    });
+
+    expect(result).toEqual({
+      text: 'remembered visible face',
+      fallbackCount: 1,
+      cacheSize: 1,
     });
     diagnostics.assertEmpty();
   } finally {

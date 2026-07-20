@@ -76,6 +76,9 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
   /** @deprecated Override motionEndpointOrientation(). */
   animationRotates(before: AnimatingProps, after: AnimatingProps): boolean;
 
+  /** Internal bridge; null delegates to endpoint orientation. */
+  legacyAnimationRotationRequested(before: AnimatingProps, after: AnimatingProps): boolean | null;
+
   /** Internal compatibility bridge for opaque legacy property playback. */
   legacyPropertyMotionRequested(before: AnimatingProps, after: AnimatingProps): boolean;
 

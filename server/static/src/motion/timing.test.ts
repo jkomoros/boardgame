@@ -41,23 +41,23 @@ describe('motion timing', () => {
         duration: 0,
         easing: 'ease-in-out',
         fill: 'none',
-        endDelay: 0,
+        endDelay: 40,
       },
       activeContext: null,
-      expectedSettleMs: 0,
+      expectedSettleMs: 40,
     });
 
-    // Explicit timing cannot override the accessibility policy or wait for a
-    // synchronized version slot.
+    // Explicit motion cannot override the accessibility policy or wait for a
+    // synchronized version slot, but its semantic hold remains.
     const explicit = resolveMotionTiming(
       { delay: 40, duration: 125, endDelay: 30 },
       { policy: 'version', context, defaults: { duration: 250 }, reducedMotion: true },
     );
     assert.deepEqual(explicit, {
       kind: 'play',
-      timing: { delay: 0, duration: 0, endDelay: 0 },
+      timing: { delay: 0, duration: 0, endDelay: 30 },
       activeContext: null,
-      expectedSettleMs: 0,
+      expectedSettleMs: 30,
     });
   });
 

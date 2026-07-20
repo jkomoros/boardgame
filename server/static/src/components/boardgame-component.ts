@@ -189,14 +189,25 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 
   /** Purely describe every host and component-owned channel that will play. */
   planMotionTracks(rec: FlipRecord): readonly ComponentMotionTrack[] {
-    return compileComponentMotionTracks({
+    // An overridden imperative hook was the complete property-motion owner on
+    // the legacy Card path. Do not layer a modern default visual track beneath
+    // it: a no-op override historically suppressed the default flip entirely.
+    const visualTracks = this.shouldPlayLegacyPropertyAnimation()
+      ? []
+      : this.propertyMotionTracks(rec.before, rec.after);
+    const tracks = compileComponentMotionTracks({
       needsHostTransition: rec.needsHostTransition,
       invertedTransform: rec.invertedTransform,
       finalTransform: rec.finalTransform,
       beforeOpacity: rec.beforeOpacity,
       finalOpacity: rec.finalOpacity,
-      visualTracks: this.propertyMotionTracks(rec.before, rec.after),
+      visualTracks,
     });
+    // Legacy playback treated property targets independently: a temporarily
+    // unavailable inner surface skipped its effect but never cancelled valid
+    // host travel. Filter unavailable component-owned channels at planning so
+    // the published track list remains the exact executable set.
+    return Object.freeze(tracks.filter(track => this.motionTrackTarget(track.target)));
   }
 
   /** Subclasses describe visual consequences without starting WAAPI. */
@@ -219,17 +230,20 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     // Legacy subclasses may start their own gated animations here.
   }
 
+  /** Whether a legacy property hook owns additional opaque visual work. */
+  protected shouldPlayLegacyPropertyAnimation(): boolean {
+    return this.propertyMotionTracks === BoardgameComponent.prototype.propertyMotionTracks
+      && this.playPropertyAnimation !== BoardgameComponent.prototype.playPropertyAnimation;
+  }
+
   /** Internal bridge: opaque legacy property work cannot become a fake track. */
   legacyPropertyMotionRequested(
     before: Record<string, any>,
     after: Record<string, any>,
   ): boolean {
-    const ownsLegacyPlayback = this.playPropertyAnimation
-        !== BoardgameComponent.prototype.playPropertyAnimation
+    const ownsLegacyPlayback = this.shouldPlayLegacyPropertyAnimation()
       || this.playAnimation !== BoardgameComponent.prototype.playAnimation;
-    const ownsPlannedPlayback = this.propertyMotionTracks
-      !== BoardgameComponent.prototype.propertyMotionTracks;
-    return ownsLegacyPlayback && !ownsPlannedPlayback
+    return ownsLegacyPlayback
       && this.animatingProperties.some(property => before[property] !== after[property]);
   }
 
@@ -254,7 +268,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     // A component that adopted propertyMotionTracks owns its visual channels
     // declaratively. Otherwise preserve the old imperative customization
     // point; animations it starts still join settled() through play().
-    if (this.propertyMotionTracks === BoardgameComponent.prototype.propertyMotionTracks) {
+    if (this.shouldPlayLegacyPropertyAnimation()) {
       this.playPropertyAnimation(rec.before, rec.after, delayMs);
     }
     return result.status === 'started'
@@ -299,6 +313,15 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     _afterProps: Record<string, any>,
   ): boolean {
     return false;
+  }
+
+  /** Null means endpoint orientation owns the modern policy. */
+  legacyAnimationRotationRequested(
+    beforeProps: Record<string, any>,
+    afterProps: Record<string, any>,
+  ): boolean | null {
+    if (this.animationRotates === BoardgameComponent.prototype.animationRotates) return null;
+    return this.animationRotates(beforeProps, afterProps);
   }
 
   handleTap(e: Event) {

@@ -159,6 +159,10 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   private _infoById: { [id: string]: ComponentRecord } = {};
+  // Viewer-local, presentation-only continuity for this animator/game surface.
+  // Preserve every subject master remembered without publishing nodes or
+  // component state into structural plans; disposal of the surface releases it.
+  private _historicalPresentationById = new Map<string, HistoricalPresentation>();
   private _beforeSeenIds = new Set<string>();
   private _animatingComponents: AnimatingComponentRecord[] = [];
   private _beforeCollectionOffsets = new Map<string, OffsetGeometry>();
@@ -187,6 +191,14 @@ export class BoardgameComponentAnimator extends LitElement {
     declaration: CompiledMotionReleaseDeclaration;
   }> | null = null;
   private _consumedTransferKeys = new Set<string>();
+
+  private _rememberHistoricalPresentation(
+    subjectId: string,
+    presentation: HistoricalPresentation,
+  ): void {
+    this._historicalPresentationById.delete(subjectId);
+    this._historicalPresentationById.set(subjectId, presentation);
+  }
   private readonly _activationMonitor = new MotionActivationMonitor();
   private readonly _releaseMonitor = new MotionReleaseMonitor();
   private readonly _explicitAnimations = new Map<Animation, HTMLElement>();
@@ -430,10 +442,15 @@ export class BoardgameComponentAnimator extends LitElement {
         record.beforeOpacity = component.style.opacity || '1';
 
         try {
-          record.historicalPresentation = captureHistoricalPresentation(component) ?? undefined;
+          const capturedPresentation = captureHistoricalPresentation(component);
+          if (capturedPresentation) {
+            this._rememberHistoricalPresentation(component.id, capturedPresentation);
+          }
+          record.historicalPresentation = capturedPresentation
+            ?? this._historicalPresentationById.get(component.id);
         } catch (error) {
           console.error('[animator] historical presentation capture failed:', error);
-          record.historicalPresentation = undefined;
+          record.historicalPresentation = this._historicalPresentationById.get(component.id);
         }
         result[component.id] = record;
       }
@@ -592,6 +609,10 @@ export class BoardgameComponentAnimator extends LitElement {
         before: Record<string, unknown>,
         after: Record<string, unknown>,
       ) => boolean;
+      legacyAnimationRotationRequested?: (
+        before: Record<string, unknown>,
+        after: Record<string, unknown>,
+      ) => boolean | null;
     },
     before: Record<string, unknown>,
     after: Record<string, unknown>,
@@ -599,6 +620,13 @@ export class BoardgameComponentAnimator extends LitElement {
     beforeOrientation: 'natural' | 'quarter-turned';
     afterOrientation: 'natural' | 'quarter-turned';
   }> {
+    const legacyRotation = component.legacyAnimationRotationRequested?.(before, after) ?? null;
+    if (legacyRotation !== null) {
+      return Object.freeze({
+        beforeOrientation: 'natural' as const,
+        afterOrientation: legacyRotation ? 'quarter-turned' as const : 'natural' as const,
+      });
+    }
     const beforeOrientation = component.motionEndpointOrientation(before);
     let afterOrientation = component.motionEndpointOrientation(after);
     // Pairwise axis-change was the old extension contract. It cannot describe
@@ -1201,7 +1229,9 @@ export class BoardgameComponentAnimator extends LitElement {
         afterExact.push({ subjectId: component.id, collectionId: collection.id });
         let record = this._infoById[component.id];
         if (!record) {
-          record = {};
+          record = {
+            historicalPresentation: this._historicalPresentationById.get(component.id),
+          };
           this._infoById[component.id] = record;
         }
         record.newOffsets = captureOffsetGeometry(component, this.ancestorOffsetParent);
@@ -1331,6 +1361,11 @@ export class BoardgameComponentAnimator extends LitElement {
         } else {
           record.afterOpacity = component.style.opacity;
           record.afterTransform = component.style.transform;
+          // Retained components historically snapped authored opacity to its
+          // final value before FLIP began. Presence fades belong exclusively
+          // to appearing/departing carriers; treating an ordinary style
+          // change as presence motion is a visible compatibility regression.
+          record.beforeOpacity = record.afterOpacity;
         }
 
         // Mark that we've seen where this one is going.
@@ -1456,7 +1491,10 @@ export class BoardgameComponentAnimator extends LitElement {
         afterTransform: carrierPresenceStyle.transform,
         afterOpacity: carrierPresenceStyle.opacity,
         invertedTransform: '',
-        beforeOpacity: record.beforeOpacity || '1.0',
+        // Historical faux carriers always began fully visible, regardless of
+        // the source component's authored opacity, before fading into the
+        // destination stack's presence style.
+        beforeOpacity: '1.0',
         needsHostTransition: true
       };
       this._animatingComponents.push(animatingRecord);
@@ -1633,6 +1671,21 @@ export class BoardgameComponentAnimator extends LitElement {
         timingPolicy: 'version',
         delayMs: 0,
       });
+    }
+
+    // Components may finish an update between structural measurement and this
+    // playback barrier. Re-resolve their finite target surfaces now so a
+    // vanished optional visual surface drops only its own channel; valid host
+    // travel remains executable and the published plan stays exact.
+    for (const item of playback) {
+      const tracks = this._planMotionTracks(item.component, item.config);
+      item.config.tracks = tracks;
+      if (item.motionDraft) {
+        item.motionDraft = Object.freeze({
+          ...item.motionDraft,
+          channels: Object.freeze(tracks.map(componentMotionChannel)),
+        });
+      }
     }
 
     const installedCohorts = this._motionCohorts?.generation === generation

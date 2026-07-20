@@ -513,12 +513,12 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 - `examples/pig` exercises the standalone die's shared `visual:transform`
   track executor. Its roll stays version-timed and queue-gated without being
   misrepresented as structural travel.
-- Companion Table/Hand bases derive pure `motion.transfer()` batches from
-  adjacent sanitized snapshots. Stack arrivals arbitrate into automatic FLIP;
-  retained Table stubs execute as an explicit batch, under the same structural
-  timing and settlement contracts. The two local observations are not a shared
-  cross-device transfer identity. Imperative `fly()` is the retained-carrier
-  escape hatch for genuinely local presentation, not the automatic default.
+- Companion Table/Hand bases preserve their established local choreography
+  with `animateBetween()` compatibility flights derived from adjacent sanitized
+  snapshots. Hand arrivals launch together from their final pose; Table stub
+  flights remain decorative and do not gate structural settlement. Authored
+  cross-stack motion uses `motion.transfer()` declarations. The two local
+  observations are not a shared cross-device transfer identity.
 
 What is not configurable yet is equally important: games cannot subscribe to
 the private structural-motion plan, replace automatic FLIP, or request artwork

@@ -185,3 +185,72 @@ test('legacy void playAnimation does not abort structural settlement', async ({ 
     diagnostics.stop();
   }
 });
+
+test('card subclass compatibility hooks remain authoritative', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { BoardgameCard } = await import('/src/components/boardgame-card.ts');
+      const { BoardgameComponentStack } = await import('/src/components/boardgame-component-stack.ts');
+      const { componentView } = await import('/src/components/component-view.ts');
+
+      class LegacyCard extends BoardgameCard {
+        propertyCalls = 0;
+        preparedBy = '';
+        override playPropertyAnimation(): void { this.propertyCalls++; }
+        override prepareForBeingAnimatingComponent(stack: HTMLElement): void {
+          this.preparedBy = stack.id;
+        }
+        override get cloneContent(): boolean { return false; }
+        override animationRotates(): boolean { return false; }
+      }
+      customElements.define('legacy-hook-card', LegacyCard);
+      const card = document.createElement('legacy-hook-card') as LegacyCard;
+      document.body.append(card);
+      await card.updateComplete;
+      const record = {
+        before: { faceUp: false, rotated: false },
+        after: { faceUp: true, rotated: true },
+        invertedTransform: '', finalTransform: '',
+        beforeOpacity: '1', finalOpacity: '1', needsHostTransition: false,
+      };
+      const tracks = card.planMotionTracks(record);
+      const animations = card.playAnimation({ ...record, tracks });
+      for (const animation of animations) animation.finish();
+
+      class LegacyCardStack extends BoardgameComponentStack {}
+      customElements.define('legacy-hook-card-stack', LegacyCardStack);
+      const stack = document.createElement('legacy-hook-card-stack') as LegacyCardStack;
+      stack.id = 'legacy-card-stack';
+      stack.componentView = componentView(
+        () => document.createElement('legacy-hook-card'),
+        {},
+      );
+      document.body.append(stack);
+      await stack.updateComplete;
+      const carrier = stack.newMotionCarrier();
+
+      return {
+        propertyCalls: card.propertyCalls,
+        plannedChannels: tracks.map(track => `${track.target}:${track.property}`),
+        historicalPresentationPolicy: card.historicalPresentationPolicy,
+        legacyRotation: card.legacyAnimationRotationRequested(record.before, record.after),
+        stackId: stack.id,
+        carrierPreparedBy: carrier.component.preparedBy,
+      };
+    });
+
+    expect(result).toEqual({
+      propertyCalls: 1,
+      plannedChannels: [],
+      historicalPresentationPolicy: 'none',
+      legacyRotation: false,
+      stackId: result.stackId,
+      carrierPreparedBy: result.stackId,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});

@@ -286,7 +286,15 @@ export class BoardgameCard extends BoardgameComponent {
     return `--component-aspect-ratio: ${aspectRatio};`;
   }
 
-  override prepareMotionCarrier(defaults: Readonly<Record<string, unknown>>): void {
+  override prepareMotionCarrier(
+    defaults: Readonly<Record<string, unknown>>,
+    stack?: any,
+  ): void {
+    if (this.prepareForBeingAnimatingComponent
+      !== BoardgameCard.prototype.prepareForBeingAnimatingComponent) {
+      this.prepareForBeingAnimatingComponent(stack);
+      return;
+    }
     this.noContent = true;
     this.rotated = !!defaults.rotated;
   }
@@ -339,8 +347,12 @@ export class BoardgameCard extends BoardgameComponent {
     ], { delay: delayMs });
   }
 
+  protected override shouldPlayLegacyPropertyAnimation(): boolean {
+    return this.playPropertyAnimation !== BoardgameCard.prototype.playPropertyAnimation;
+  }
+
   override get historicalPresentationPolicy(): 'none' | 'clone-default-slot' {
-    return this.noContent ? 'none' : 'clone-default-slot';
+    return this.cloneContent ? 'clone-default-slot' : 'none';
   }
 
   /** @deprecated Compatibility adapter for pre-motion component callers. */
@@ -360,6 +372,15 @@ export class BoardgameCard extends BoardgameComponent {
     afterProps: Record<string, any>,
   ): boolean {
     return beforeProps.rotated !== afterProps.rotated;
+  }
+
+  /** Legacy subclass rotation policy is authoritative when overridden. */
+  override legacyAnimationRotationRequested(
+    beforeProps: Record<string, any>,
+    afterProps: Record<string, any>,
+  ): boolean | null {
+    if (this.animationRotates === BoardgameCard.prototype.animationRotates) return null;
+    return this.animationRotates(beforeProps, afterProps);
   }
 
   private _frontChanged() {

@@ -94,8 +94,8 @@ compiled through orthogonal layers:
    is not rendered, unique privacy-safe stack history may establish an
    appearing or departing subject; ties and contradictions fail closed.
 2. **Provenance and presentation.** The plan records why an endpoint is known.
-   A missing DOM endpoint uses a fresh inert carrier with a bounded historical
-   presentation or the destination stack's safe defaults. Sanitized history
+   A missing DOM endpoint uses a fresh inert carrier with a surface-scoped
+   historical presentation or the destination stack's safe defaults. Sanitized history
    never reconstructs private card content or an exact hidden position.
 3. **Geometry and path.** Before/after measurements are immutable and branded
    by coordinate space. The solver produces numeric translation/scale and an
@@ -122,8 +122,9 @@ compiled through orthogonal layers:
 The concrete DOM cases are consequences of those layers. A card rendered at
 both endpoints uses exact continuity and its retained host. A virtualized or
 departing endpoint uses an inert carrier. `IDsLastSeen` supplies only ambiguous
-or unique provenance, never content. Table/Hand defaults emit ordinary transfer
-declarations from sanitized adjacent snapshots. A face flip, rotation, resize,
+or unique provenance, never content. Table/Hand defaults preserve their local
+compatibility choreography through `animateBetween()`; authored cross-stack
+motion uses transfer declarations. A face flip, rotation, resize,
 fade, spatial move, trail, and arrival effect can therefore coexist without a
 new card-specific execution path.
 

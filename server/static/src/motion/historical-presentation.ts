@@ -39,8 +39,10 @@ export function captureHistoricalPresentation(
   if (policy === 'none') return null;
   const stripIdentity = policy === 'clone-default-slot-safe';
   const nodes: Node[] = [];
-  for (const child of source.childNodes) {
-    if (child instanceof HTMLElement && child.slot) continue;
+  // Master captured element children only. Bare text/comments were never
+  // historical artwork and must not become visible on a faux carrier.
+  for (const child of source.children) {
+    if (child.getAttribute('slot')) continue;
     if (child instanceof Element && child.localName === 'dom-bind') continue;
     const clone = child.cloneNode(true);
     if (stripIdentity) stripDocumentIdentity(clone);
@@ -69,12 +71,18 @@ export function installHistoricalPresentation(
     && target.localName !== capturedPresentation.sourceTagName) return false;
   try {
     for (const existing of [...target.children]) {
-      if ((existing as HTMLElement).slot === 'motion-history') existing.remove();
+      const slot = existing.getAttribute('slot');
+      if (slot === 'motion-history' || slot === 'fallback') existing.remove();
     }
     for (const captured of capturedPresentation.nodes) {
       const clone = captured.cloneNode(true);
       if (presentation.identity === 'strip') stripDocumentIdentity(clone);
-      if (clone instanceof HTMLElement) clone.slot = 'motion-history';
+      // Identity-preserving mode is the exact legacy contract, including the
+      // public fallback slot custom card CSS may target. Safer new components
+      // use the framework-reserved slot. Explicit attributes also cover SVG.
+      if (clone instanceof Element) clone.setAttribute(
+        'slot', presentation.identity === 'preserve' ? 'fallback' : 'motion-history',
+      );
       target.append(clone);
     }
     return true;

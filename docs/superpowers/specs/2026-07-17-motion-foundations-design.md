@@ -154,10 +154,11 @@ Track endpoints are execution descriptions, not game-author effect APIs.
 Semantic effects still observe lifecycle/geometry and never acquire a write
 channel on either component surface.
 
-Reduced motion is resolved by the shared timing compiler as a complete policy:
-requested delays, explicit durations, synchronized version waits, and
-post-animation delays all collapse to zero. An explicit `animateBetween()`
-duration cannot bypass that policy. Decorative recipes that remain useful
+Reduced motion is resolved by the shared timing compiler as a complete visual
+policy: requested delays, explicit durations, and synchronized version waits
+collapse to zero, while semantic post-animation holds remain as `endDelay` so
+state such as a matched pair is still readable before capture. An explicit
+`animateBetween()` duration cannot bypass that policy. Decorative recipes that remain useful
 without travel opt into their own short stationary opacity substitute before
 calling the motion kernel.
 
@@ -168,9 +169,9 @@ compiler, reduced-motion policy, completion gate, and settlement bookkeeping.
 The Pig die's selected-face spin is a `visual:transform` track rather than a
 direct `play()` call.
 
-Execution resolves every target before it starts any channel. A missing visual
-surface therefore skips the complete component plan instead of allowing a host
-transform to start alone. If a later WAAPI start fails, the executor cancels
+Execution resolves the finite target surfaces during planning and again at the
+playback barrier. A missing optional visual surface drops its channel without
+cancelling valid host travel. If a later WAAPI start fails, the executor cancels
 the channels already started in that plan. Component planning is similarly
 isolated: a throwing component visual hook is reported, then the animator
 falls back to compiler-owned host transform/opacity tracks so its measurement
@@ -328,13 +329,18 @@ public structural provenance contains only the selected collection and coarse
 evidence.
 
 Historical presentation and temporary embodiment are separate private
-capabilities. A component may opt into capturing clones of its already
-rendered, visible default-slot light DOM. The resulting runtime-branded token
-contains no public state and is installed only into a compatible host's
-reserved `motion-history` slot; document IDs and focus hooks are stripped and
-fresh clones are used for every installation. It supports both a retained host
-whose current rendering has become opaque and a departing subject that no
-longer has a live host.
+capabilities. A component may opt into capturing element clones of its already
+rendered, visible default-slot light DOM; bare text, named slots, and
+`dom-bind` are excluded. The runtime-branded token contains no public state,
+and fresh clones are used for every installation. Identity-preserving legacy
+cards retain their established `fallback` slot and document identity behavior;
+new safe-mode components use the reserved `motion-history` slot, strip IDs and
+focus hooks, and require the same host tag. A viewer-local cache scoped to the
+animator/game-surface lifetime, refreshed only from exact visible subjects,
+preserves last-visible artwork through hidden generations without publishing
+it in structural plans. It
+supports a retained host whose current rendering has become opaque, a
+departing subject with no live host, and a later reappearance.
 
 Only the latter requires a motion carrier. The destination collection creates
 a fresh host from its ordinary component recipe, prepares it from closed
@@ -342,8 +348,9 @@ default property data, and places it in the generation-owned animation
 container. That carrier has no subject DOM ID and is inert, pointer-free, and
 `aria-hidden`; ordinary retained hosts are never made inert. Presentation stays
 inside the animator/component boundary and is never added to structural plans,
-events, silhouettes, or effects. Capture is transition-local, so a component
-that is already hidden cannot resurrect stale artwork from an older cycle.
+events, silhouettes, or effects. Only an exact visible subject refreshes the
+surface-scoped cache; hidden state and stack history can reuse that viewer-known
+presentation but can never create or update artwork.
 
 An inferred collection endpoint has a finite, collection-owned presence
 policy: `scale-fade` or `travel-only`. The pure compiler turns that semantic
