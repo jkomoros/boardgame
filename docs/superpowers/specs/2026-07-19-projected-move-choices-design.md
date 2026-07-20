@@ -90,16 +90,22 @@ moves.WithChoices(
 
 moves.WithChoices(
     "TargetCard",
-    moves.FromCurrentPlayerStack("Hand"),
+    moves.FromProposingPlayerStack("Hand"),
 )
 ```
 
 The resolved creator-input codec infers the sealed source: player-index fields
 enumerate the roster, while ordinary enum fields enumerate canonical enum
 values. Integer fields require an explicit framework-owned stack locator;
-`FromCurrentPlayerStack` and `FromGameStack` enumerate only occupied indexes in
+`FromProposingPlayerStack` and `FromGameStack` enumerate only occupied indexes in
 the named stack on the pinned state. Stack locators are property names, not
 game-authored enumerator callbacks.
+
+`FromProposingPlayerStack` means the authenticated concrete proposer, not the
+delegate's current-player value. Admin has no proposing-player stack and cannot
+submit such a move; V1 does not infer an actor from conventionally named move
+fields. Stack enumeration rejects spans beyond the protocol's inspected-slot
+limit before walking them, independently of the occupied-candidate limit.
 
 `ExcludeChoices` removes implementation sentinels and also constrains the
 canonical proposal domain, so forged submissions cannot use a value omitted

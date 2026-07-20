@@ -8,7 +8,7 @@ import type { PlayerPresentation } from '../status/player-presentation.js';
 export const MOVE_CHOICE_PROJECTION_SCHEMA_VERSION = 1;
 
 export interface MoveChoiceStackSourceSchema {
-  readonly scope: 'actor-player' | 'game';
+  readonly scope: 'proposing-player' | 'game';
   readonly property: string;
 }
 

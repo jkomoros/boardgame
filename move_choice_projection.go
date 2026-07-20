@@ -22,6 +22,10 @@ const (
 	MoveChoiceProjectionMaxSets             = 8
 	MoveChoiceProjectionMaxCandidatesPerSet = 64
 	MoveChoiceProjectionMaxLegalEvaluations = 128
+	// Dynamic stack sources are scanned by slot so sparse sized stacks retain
+	// their canonical indexes. Bound the inspected span independently from the
+	// occupied-candidate count.
+	MoveChoiceProjectionMaxStackSlotsInspected = 64
 	// Static values get half of the total wire budget; the remainder is
 	// reserved for move/field identity, candidate status, and envelope data.
 	// The server still measures the complete viewer-specific JSON before Legal.
@@ -41,13 +45,13 @@ const (
 )
 
 // MoveChoiceStackScope identifies the framework-owned state container from
-// which occupied stack slots are enumerated. ActorPlayer always means the
+// which occupied stack slots are enumerated. ProposingPlayer always means the
 // authenticated proposing player, including during AnyPlayer phases.
 type MoveChoiceStackScope string
 
 const (
-	MoveChoiceStackScopeActorPlayer MoveChoiceStackScope = "actor-player"
-	MoveChoiceStackScopeGame        MoveChoiceStackScope = "game"
+	MoveChoiceStackScopeProposingPlayer MoveChoiceStackScope = "proposing-player"
+	MoveChoiceStackScopeGame            MoveChoiceStackScope = "game"
 )
 
 // MoveChoiceStackSource is a sealed, inspectable locator for a stack-backed
@@ -145,15 +149,10 @@ func validateMoveChoiceInputDomain(move Move, state ImmutableState, proposer Pla
 		if err != nil {
 			return fmt.Errorf("read stack-slot choice field %q: %w", projection.FieldName, err)
 		}
-		stackActor := proposer
-		if proposer == AdminPlayerIndex && projection.StackSource != nil && projection.StackSource.Scope == MoveChoiceStackScopeActorPlayer {
-			target, targetErr := move.ReadSetter().PlayerIndexProp("TargetPlayerIndex")
-			if targetErr != nil || target < 0 || int(target) >= len(state.ImmutablePlayerStates()) {
-				return fmt.Errorf("resolve stack-slot choice field %q for admin: move has no concrete acting player", projection.FieldName)
-			}
-			stackActor = target
+		if proposer == AdminPlayerIndex && projection.StackSource != nil && projection.StackSource.Scope == MoveChoiceStackScopeProposingPlayer {
+			return fmt.Errorf("resolve stack-slot choice field %q: admin has no proposing-player stack", projection.FieldName)
 		}
-		stack, err := ResolveMoveChoiceStack(state, stackActor, projection.StackSource)
+		stack, err := ResolveMoveChoiceStack(state, proposer, projection.StackSource)
 		if err != nil {
 			return fmt.Errorf("resolve stack-slot choice field %q: %w", projection.FieldName, err)
 		}
@@ -423,7 +422,7 @@ func ResolveMoveChoiceStack(state ImmutableState, actor PlayerIndex, source *Mov
 	}
 	var reader PropertyReader
 	switch source.Scope {
-	case MoveChoiceStackScopeActorPlayer:
+	case MoveChoiceStackScopeProposingPlayer:
 		reader = state.ImmutablePlayerStates()[actor].Reader()
 	case MoveChoiceStackScopeGame:
 		reader = state.ImmutableGameState().Reader()
@@ -450,7 +449,7 @@ func validateMoveChoiceStackSource(state ImmutableState, actor PlayerIndex, sour
 	}
 	var reader PropertyReader
 	switch source.Scope {
-	case MoveChoiceStackScopeActorPlayer:
+	case MoveChoiceStackScopeProposingPlayer:
 		players := state.ImmutablePlayerStates()
 		if actor < 0 || int(actor) >= len(players) {
 			return fmt.Errorf("stack-slot actor %d is invalid", actor)

@@ -31,7 +31,7 @@ const inputSchema = [
 const projectionSchema = [
   { moveName: 'Choose Player', fieldName: 'TargetPlayer', source: 'players', disclosure: 'actor-exact' },
   { moveName: 'Guess Card', fieldName: 'GuessedCard', source: 'enum-values', candidateValues: ['Guard', 'Priest'], disclosure: 'actor-exact' },
-  { moveName: 'Choose Card', fieldName: 'TargetCard', source: 'stack-slots', stackSource: { scope: 'actor-player', property: 'Hand' }, disclosure: 'actor-exact' },
+  { moveName: 'Choose Card', fieldName: 'TargetCard', source: 'stack-slots', stackSource: { scope: 'proposing-player', property: 'Hand' }, disclosure: 'actor-exact' },
 ] as const;
 
 function actions(): <K extends keyof Projections & string>(

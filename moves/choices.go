@@ -32,12 +32,12 @@ func ExcludeChoices(values ...string) ChoiceOption {
 	})
 }
 
-// FromCurrentPlayerStack enumerates occupied indexes in the named stack on
+// FromProposingPlayerStack enumerates occupied indexes in the named stack on
 // the proposing player's state. The projected move field must be an integer.
 // Opting in explicitly discloses occupied-slot membership and exact legality
 // to that actor for the pinned state snapshot.
-func FromCurrentPlayerStack(property string) ChoiceOption {
-	return fromStack(boardgame.MoveChoiceStackScopeActorPlayer, property)
+func FromProposingPlayerStack(property string) ChoiceOption {
+	return fromStack(boardgame.MoveChoiceStackScopeProposingPlayer, property)
 }
 
 // FromGameStack enumerates occupied indexes in the named game-state stack.
@@ -60,7 +60,7 @@ func fromStack(scope boardgame.MoveChoiceStackScope, property string) ChoiceOpti
 // WithChoices presents one finite required creator-input field as choices to
 // the move's acting player. Player-index fields enumerate the player roster,
 // ordinary enum fields enumerate their canonical values, and integer fields
-// may opt into an explicit FromCurrentPlayerStack or FromGameStack locator.
+// may opt into an explicit FromProposingPlayerStack or FromGameStack locator.
 // Stack sources enumerate occupied slots only. Each complete binding is
 // evaluated by the move's canonical Legal method.
 //

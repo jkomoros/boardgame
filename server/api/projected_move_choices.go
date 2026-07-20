@@ -452,6 +452,9 @@ func projectedMoveChoiceSourceValues(state boardgame.ImmutableState, actor board
 		if err != nil {
 			return nil, err
 		}
+		if stack.Len() > boardgame.MoveChoiceProjectionMaxStackSlotsInspected {
+			return nil, fmt.Errorf("stack has %d slots; inspected-slot limit is %d", stack.Len(), boardgame.MoveChoiceProjectionMaxStackSlotsInspected)
+		}
 		result := make([]projectedMoveChoiceSourceValue, 0, stack.NumComponents())
 		for index := 0; index < stack.Len(); index++ {
 			if stack.ImmutableComponentAt(index) == nil {

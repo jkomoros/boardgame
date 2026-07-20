@@ -87,7 +87,7 @@ func TestGenerateTypeScriptEmitsExactNarrowedChoiceProjectionMap(t *testing.T) {
 		Disclosure: boardgame.MoveChoiceDisclosureActorExact,
 	}, {
 		MoveName: "Choose Card", FieldName: "TargetCard", Source: boardgame.MoveChoiceSourceStackSlots,
-		StackSource: &boardgame.MoveChoiceStackSource{Scope: boardgame.MoveChoiceStackScopeActorPlayer, Property: "Hand"},
+		StackSource: &boardgame.MoveChoiceStackSource{Scope: boardgame.MoveChoiceStackScopeProposingPlayer, Property: "Hand"},
 		Disclosure:  boardgame.MoveChoiceDisclosureActorExact,
 	}}
 
@@ -101,7 +101,7 @@ func TestGenerateTypeScriptEmitsExactNarrowedChoiceProjectionMap(t *testing.T) {
 		"readonly value: number;",
 		`readonly field: "TargetCard";`,
 		`"source": "stack-slots"`,
-		`"scope": "actor-player"`,
+		`"scope": "proposing-player"`,
 		`"property": "Hand"`,
 		"moveChoiceProjectionSchemaFingerprint",
 	} {

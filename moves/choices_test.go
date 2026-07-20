@@ -52,7 +52,7 @@ func TestStackChoiceSourcesAreSealedAndDefensivelyCopied(t *testing.T) {
 		scope    boardgame.MoveChoiceStackScope
 		property string
 	}{
-		{"current player", FromCurrentPlayerStack("Hand"), boardgame.MoveChoiceStackScopeActorPlayer, "Hand"},
+		{"proposing player", FromProposingPlayerStack("Hand"), boardgame.MoveChoiceStackScopeProposingPlayer, "Hand"},
 		{"game", FromGameStack("Market"), boardgame.MoveChoiceStackScopeGame, "Market"},
 	}
 	for _, test := range tests {
@@ -79,7 +79,7 @@ func TestStackChoiceSourcesAreSealedAndDefensivelyCopied(t *testing.T) {
 
 func TestWithChoicesRejectsMultipleStackSources(t *testing.T) {
 	config := boardgame.PropertyCollection{}
-	WithChoices("Slot", FromCurrentPlayerStack("Hand"), FromGameStack("Market"))(config)
+	WithChoices("Slot", FromProposingPlayerStack("Hand"), FromGameStack("Market"))(config)
 	declaration := config[configPropMoveChoiceProjections].([]moveChoiceProjectionDeclaration)[0]
 	if declaration.err == "" {
 		t.Fatalf("multiple sources were silently accepted: %#v", declaration)
@@ -92,7 +92,7 @@ func TestStackChoiceDomainRejectsForgedEmptySlotBeforeLegal(t *testing.T) {
 		return []boardgame.MoveConfig{auto.MustConfig(
 			new(stackDomainMove),
 			WithMoveName("Choose Token Slot"),
-			WithChoices("TargetLocation", FromCurrentPlayerStack("TokenLocation")),
+			WithChoices("TargetLocation", FromProposingPlayerStack("TokenLocation")),
 		)}
 	})
 	if err != nil {
@@ -110,13 +110,38 @@ func TestStackChoiceDomainRejectsForgedEmptySlotBeforeLegal(t *testing.T) {
 	}
 }
 
+func TestProposingPlayerStackChoiceRejectsAdminWithoutInferringAnActor(t *testing.T) {
+	manager, err := newGameManager(func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return []boardgame.MoveConfig{auto.MustConfig(
+			new(stackDomainMove),
+			WithMoveName("Choose Token Slot"),
+			WithChoices("TargetLocation", FromProposingPlayerStack("TokenLocation")),
+		)}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	move := game.MoveByName("Choose Token Slot").(*stackDomainMove)
+	move.TargetPlayerIndex = 0
+	move.TargetLocation = 0
+	err = <-game.ProposeMove(move, boardgame.AdminPlayerIndex)
+	if err == nil || !strings.Contains(err.Error(), "admin has no proposing-player stack") {
+		t.Fatalf("admin proposing-player stack error = %v", err)
+	}
+}
+
 func TestStackChoiceLocatorFailsManagerBoot(t *testing.T) {
 	_, err := newGameManager(func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
 		return []boardgame.MoveConfig{auto.MustConfig(
 			new(stackDomainMove),
 			WithMoveName("Invalid Stack Choice"),
-			WithChoices("TargetLocation", FromCurrentPlayerStack("Counter")),
+			WithChoices("TargetLocation", FromProposingPlayerStack("Counter")),
 		)}
 	})
 	if err == nil || !strings.Contains(err.Error(), "not a stack") {

@@ -102,7 +102,7 @@ func TestResolveMoveChoiceProjectionAcceptsOnlyLocatedIntegerStackSlots(t *testi
 	integerMove := MoveInputSchemaMove{Name: "Choose Card", Fields: []MoveInputSchemaField{{
 		Name: "TargetCard", Disposition: string(MoveInputRequired), Codec: string(MoveInputCodecInteger),
 	}}}
-	source := &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Hand"}
+	source := &MoveChoiceStackSource{Scope: MoveChoiceStackScopeProposingPlayer, Property: "Hand"}
 	got, err := resolveMoveChoiceProjection(integerMove, MoveChoiceProjection{
 		FieldName: "TargetCard", StackSource: source, Disclosure: MoveChoiceDisclosureActorExact,
 	})
@@ -143,9 +143,9 @@ func TestResolveMoveChoiceStackValidatesScopeAndProperty(t *testing.T) {
 		want   string
 	}{
 		{"game stack", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeGame, Property: "OtherStack"}, ""},
-		{"player stack", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Hand"}, ""},
+		{"player stack", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeProposingPlayer, Property: "Hand"}, ""},
 		{"non-stack", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeGame, Property: "CurrentPlayer"}, "not a stack"},
-		{"missing", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Missing"}, "not a stack"},
+		{"missing", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeProposingPlayer, Property: "Missing"}, "not a stack"},
 		{"empty property", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeGame}, "property is empty"},
 		{"unknown scope", &MoveChoiceStackSource{Scope: "unknown", Property: "Hand"}, "unsupported"},
 	}
@@ -180,7 +180,7 @@ func TestMoveChoiceProjectionFingerprintTracksCandidateUniverse(t *testing.T) {
 func TestMoveChoiceProjectionFingerprintTracksStackLocator(t *testing.T) {
 	first := []MoveChoiceProjectionSchema{{
 		MoveName: "Choose Card", FieldName: "TargetCard", Source: MoveChoiceSourceStackSlots,
-		StackSource: &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Hand"},
+		StackSource: &MoveChoiceStackSource{Scope: MoveChoiceStackScopeProposingPlayer, Property: "Hand"},
 		Disclosure:  MoveChoiceDisclosureActorExact,
 	}}
 	second := cloneMoveChoiceProjectionSchema(first)

@@ -209,6 +209,41 @@ func TestStackSlotSourceEnumeratesOnlyOccupiedIndexesInOrder(t *testing.T) {
 	}
 }
 
+func TestStackSlotSourceRejectsOversizedSparseSpanBeforeEnumeration(t *testing.T) {
+	manager, err := boardgame.NewGameManager(memory.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	copied, err := game.CurrentState().Copy(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := copied.(boardgame.State)
+	hidden, err := state.GameState().ReadSetter().StackProp("HiddenCards")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := hidden.SetSize(boardgame.MoveChoiceProjectionMaxStackSlotsInspected + 1); err != nil {
+		t.Fatal(err)
+	}
+	if hidden.NumComponents() > boardgame.MoveChoiceProjectionMaxCandidatesPerSet {
+		t.Fatalf("fixture is not sparse: %d occupied slots", hidden.NumComponents())
+	}
+	schema := boardgame.MoveChoiceProjectionSchema{
+		MoveName: "Reveal Card", FieldName: "CardIndex", Source: boardgame.MoveChoiceSourceStackSlots,
+		StackSource: &boardgame.MoveChoiceStackSource{Scope: boardgame.MoveChoiceStackScopeGame, Property: "HiddenCards"},
+		Disclosure:  boardgame.MoveChoiceDisclosureActorExact,
+	}
+	_, err = projectedMoveChoiceSourceValues(state, 0, schema)
+	if err == nil || !strings.Contains(err.Error(), "inspected-slot limit") {
+		t.Fatalf("oversized sparse stack error = %v", err)
+	}
+}
+
 func TestProjectMoveChoicesIsActorOnlyAndRespectsMoveNameVisibility(t *testing.T) {
 	delegate := newProjectedChoicesDelegate()
 	game := newProjectedChoicesGame(t, delegate)
