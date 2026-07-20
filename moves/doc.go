@@ -384,11 +384,13 @@ general for Deal and Collect type moves, the condition is met when all pairs of
 stacks meet the end condition.
 
 {Move,Deal,Collect}CountComponents apply that many moves and validate each
-scheduled transfer before it occurs. MoveCountComponents additionally
-preflights its complete remaining sequence before the first transfer. Move names that
-end in CountReached operate until the destination stacks all have TargetCount or
-more items. Move names that end in CountLeft operate until the source stacks all
-have TargetCount or fewer items in them.
+scheduled transfer before it occurs. With its default Apply implementation,
+MoveCountComponents additionally preflights its complete remaining sequence
+before the first transfer. An embedding move that overrides Apply is responsible
+for matching its own Legal preflight to that custom mutation. Move names that end
+in CountReached operate until the destination stacks all have TargetCount or more
+items. Move names that end in CountLeft operate until the source stacks all have
+TargetCount or fewer items in them.
 
 Since a common configuration of these moves is to use
 {Move,Deal,Collect}ComponentsUntil*Reached with a TargetCount of 0, each also

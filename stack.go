@@ -345,9 +345,10 @@ type Stack interface {
 	//it has not changed framework-owned state; on success it commits without
 	//evaluating constraints a second time.
 	//
-	//All transferred components belong to one notional game Move and animate
-	//together. Use moves.MoveCountComponents when each component should have a
-	//distinct persistence and animation boundary.
+	//All transferred components belong to the enclosing engine Move and animate
+	//together; this method does not create a Move or persistence boundary itself.
+	//Use moves.MoveCountComponents when each component should have a distinct
+	//persistence and animation boundary.
 	MoveCountTo(other Stack, count int) error
 
 	//Shuffle shuffles the order of the stack, so that it has the same items,
@@ -1539,6 +1540,7 @@ type componentTransferPlan struct {
 	source      Stack
 	destination Stack
 	count       int
+	operation   string
 }
 
 // prepareComponentTransfer captures everything commit needs after validating
@@ -1573,6 +1575,7 @@ func preparePhysicalComponentTransfer(physicalFrom Stack, dest ImmutableStack, c
 		source:      physicalFrom,
 		destination: physicalDest,
 		count:       count,
+		operation:   "component transfer",
 	}, nil
 }
 
@@ -1581,7 +1584,12 @@ func prepareAllComponentTransfer(from ImmutableStack, dest ImmutableStack, capac
 	if err != nil {
 		return nil, err
 	}
-	return preparePhysicalComponentTransfer(physicalFrom, dest, physicalFrom.NumComponents(), capacityError)
+	plan, err := preparePhysicalComponentTransfer(physicalFrom, dest, physicalFrom.NumComponents(), capacityError)
+	if err != nil {
+		return nil, err
+	}
+	plan.operation = "MoveAllTo"
+	return plan, nil
 }
 
 // validateComponentTransferPlan performs every potentially failing component
@@ -1647,7 +1655,7 @@ func validateUnconstrainedComponentTransferPlan(plan *componentTransferPlan) err
 		validated++
 	}
 	if validated != plan.count {
-		return errors.New("source component count changed while validating component transfer")
+		return errors.New("source component count changed while validating " + plan.operation)
 	}
 	return nil
 }

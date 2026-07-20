@@ -264,6 +264,15 @@ declared in `auto.MustConfig` with
 `legal.MayMoveCountTo("game.DrawStack", "game.Market", "move.Count")`, leaving
 only `Apply` on the move struct.
 
+For a fixed rule such as “draw exactly 2,” no dummy move field is necessary:
+
+```go
+legal.MayMoveFixedCountTo("game.DrawStack", "player.Hand", 2)
+```
+
+Both forms are server-evaluated. `MayMoveCountTo` accepts any integer property
+path—not only move state—so a game- or player-derived count is equally valid.
+
 #### boardgame-util codegen
 
 Both of the State objects also have a cryptic comment above them: `//boardgame:codegen`. These are actually a critical concept to understand about the core engine.
@@ -809,7 +818,8 @@ The most common catalog predicates (full list: `legal.DefaultConstructors()`; re
 | `legal.MayMoveTo(srcPath, dstPath, idxField string)` | the component at `idxField` in `srcPath` could legally move into `dstPath` (`ImmutableComponentInstance.MayMoveTo`) | values |
 | `legal.MayMoveToSlot(srcPath, dstPath, sourceIndexField, destinationSlotField string)` | like above, but validates an explicit destination slot selected independently from the source component | occupancy (src) + values (dst, both indices) |
 | `legal.MayMoveToSameSlot(srcPath, dstPath, indexField string)` | convenience for mirrored stacks where one field selects both the source component and destination slot | occupancy (src) + values (dst, index) |
-| `legal.MayMoveCountTo(srcPath, dstPath, countField string)` | exactly the move-supplied count could move transactionally; evaluated on the server because custom constraints may inspect broader state | values |
+| `legal.MayMoveCountTo(srcPath, dstPath, countPath string)` | exactly the count resolved from a game, player, or move integer property could move transactionally; server-evaluated because custom constraints may inspect broader state | values |
+| `legal.MayMoveFixedCountTo(srcPath, dstPath string, count int)` | exactly the fixed count could move transactionally, without adding a dummy move property; server-evaluated | values |
 | `legal.MayMoveAllTo(srcPath, dstPath string)` | every component could move transactionally; evaluated on the server because custom constraints may inspect broader state | values |
 | `legal.MaySwapComponents(stackPath, firstIndexField, secondIndexField string)` | the two int fields select distinct, in-range slots that can be swapped | count + index values |
 | `legal.MaySwapComponentsByKey(stackPath, firstKeyField, secondKeyField string)` | enum-keyed counterpart for spatial boards | count + key values |

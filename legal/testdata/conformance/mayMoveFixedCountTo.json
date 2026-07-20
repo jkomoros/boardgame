@@ -1,0 +1,25 @@
+{
+  "predicate": "mayMoveFixedCountTo",
+  "cases": [
+    {
+      "spec": {"name": "mayMoveFixedCountTo", "args": ["game.HiddenCards", "game.VisibleCards", "2"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "mayMoveFixedCountTo", "args": ["game.HiddenCards", "game.HiddenCards", "2"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.may_not_move_count_to"
+    },
+    {
+      "spec": {"name": "mayMoveFixedCountTo", "args": ["game.HiddenCards", "game.VisibleCards", "-1"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.may_not_move_count_to"
+    }
+  ]
+}

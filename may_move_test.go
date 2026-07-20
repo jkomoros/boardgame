@@ -168,6 +168,66 @@ func TestMoveCountTo(t *testing.T) {
 			t.Fatal("sparse sized source did not preserve first-to-last component order")
 		}
 	})
+
+	t.Run("ExactAllEmptiesSource", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, _ := concreteStates(game.CurrentState())
+		source, destination := gs.OtherStack, gs.MyBoard.SpaceAt(0)
+		for slot := 0; slot < source.Len(); slot++ {
+			if err := gs.DrawDeck.First().MoveTo(source, slot); err != nil {
+				t.Fatalf("seed source slot %d: %v", slot, err)
+			}
+		}
+		if err := source.MoveCountTo(destination, source.NumComponents()); err != nil {
+			t.Fatalf("MoveCountTo exact-all: %v", err)
+		}
+		if source.NumComponents() != 0 || destination.NumComponents() != 2 {
+			t.Fatalf("counts after exact-all = source %d, destination %d", source.NumComponents(), destination.NumComponents())
+		}
+	})
+
+	t.Run("MayAndMoveErrorsMatch", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		otherDeckDestination := NewDeck().NewSizedStack(1)
+		attachStackForPrimitiveTest(game.CurrentState().(*state), otherDeckDestination)
+
+		tests := []struct {
+			name  string
+			dest  ImmutableStack
+			count int
+		}{
+			{name: "nil", dest: nil, count: 0},
+			{name: "same", dest: gs.DrawDeck, count: 0},
+			{name: "cross deck", dest: otherDeckDestination, count: 0},
+			{name: "insufficient source", dest: ps[0].Hand, count: gs.DrawDeck.NumComponents() + 1},
+			{name: "insufficient capacity", dest: ps[0].Hand, count: ps[0].Hand.Len() + 1},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				mayErr := gs.DrawDeck.MayMoveCountTo(test.dest, test.count)
+				moveDest, _ := test.dest.(Stack)
+				moveErr := gs.DrawDeck.MoveCountTo(moveDest, test.count)
+				if mayErr == nil || moveErr == nil {
+					t.Fatalf("errors = MayMoveCountTo %v, MoveCountTo %v; want both non-nil", mayErr, moveErr)
+				}
+				if mayErr.Error() != moveErr.Error() {
+					t.Fatalf("errors differ: MayMoveCountTo %q, MoveCountTo %q", mayErr, moveErr)
+				}
+			})
+		}
+	})
+
+	t.Run("MergedEndpointsAreRejected", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, _ := concreteStates(game.CurrentState())
+		if err := gs.DrawDeck.MayMoveCountTo(gs.MyMergedStack, 0); err == nil || !strings.Contains(err.Error(), "physical stack") {
+			t.Fatalf("merged destination error = %v", err)
+		}
+		if err := gs.MyMergedStack.MayMoveCountTo(gs.DrawDeck, 0); err == nil || !strings.Contains(err.Error(), "MergedStacks") {
+			t.Fatalf("merged source error = %v", err)
+		}
+	})
 }
 
 func TestMayMoveTo(t *testing.T) {

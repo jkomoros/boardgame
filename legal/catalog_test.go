@@ -1,6 +1,7 @@
 package legal_test
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -483,8 +484,28 @@ func TestMayMoveCountTo(t *testing.T) {
 	}
 
 	fixture := buildLegalFixture(t, "memoryDefault")
+	gameStateReader := fixture.state.ImmutableGameState().Reader()
+	hidden, err := gameStateReader.ImmutableStackProp("HiddenCards")
+	if err != nil {
+		t.Fatal("read HiddenCards:", err)
+	}
+	visible, err := gameStateReader.ImmutableStackProp("VisibleCards")
+	if err != nil {
+		t.Fatal("read VisibleCards:", err)
+	}
+	beforeHidden, beforeVisible := hidden.NumComponents(), visible.NumComponents()
 	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
 		t.Fatalf("two-component transfer: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+	if hidden.NumComponents() != beforeHidden || visible.NumComponents() != beforeVisible {
+		t.Fatalf("predicate mutated stacks: hidden %d→%d, visible %d→%d", beforeHidden, hidden.NumComponents(), beforeVisible, visible.NumComponents())
+	}
+
+	game, state := newMemoryGame(t)
+	zero := legalFixture{state: state, move: memoryMoveWithCardIndex(t, game, 0), chest: game.Manager().Chest()}
+	zeroPred := resolvePredicateForTest(t, legal.MayMoveCountTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"))
+	if v := zeroPred.Evaluate(zero.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("zero count verdict = %+v, want Pass", v)
 	}
 
 	sameStack := resolvePredicateForTest(t, legal.MayMoveCountTo("game.HiddenCards", "game.HiddenCards", "player.CardsLeftToReveal"))
@@ -492,7 +513,6 @@ func TestMayMoveCountTo(t *testing.T) {
 		t.Fatalf("same-stack verdict = %+v, want %q failure", v, legal.TemplateMayNotMoveCountTo)
 	}
 
-	game, state := newMemoryGame(t)
 	negative := legalFixture{state: state, move: memoryMoveWithCardIndex(t, game, -1), chest: game.Manager().Chest()}
 	negativePred := resolvePredicateForTest(t, legal.MayMoveCountTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"))
 	if v := negativePred.Evaluate(negative.context(0)); v.Outcome != legal.Fail {
@@ -502,6 +522,65 @@ func TestMayMoveCountTo(t *testing.T) {
 	noMove := buildLegalFixture(t, "memoryNoMove")
 	if v := negativePred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
 		t.Fatalf("missing count move verdict = %+v, want Unknown", v)
+	}
+
+	game.Manager().Internals().AllowMutableConstraints(game)
+	visibleMutable, err := state.GameState().ReadSetter().StackProp("VisibleCards")
+	if err != nil {
+		t.Fatal("read mutable VisibleCards:", err)
+	}
+	if err := visibleMutable.AddConstraint(func(boardgame.ImmutableStack, []boardgame.ImmutableComponentInstance, boardgame.ImmutableState) error {
+		return errors.New("declarative constraint rejection")
+	}); err != nil {
+		t.Fatal("add constraint:", err)
+	}
+	constraintFixture := legalFixture{state: state, move: memoryMoveWithCardIndex(t, game, 1), chest: game.Manager().Chest()}
+	hiddenMutable, err := state.GameState().ReadSetter().StackProp("HiddenCards")
+	if err != nil {
+		t.Fatal("read mutable HiddenCards:", err)
+	}
+	beforeHidden = hiddenMutable.NumComponents()
+	beforeVisible = visibleMutable.NumComponents()
+	if v := negativePred.Evaluate(constraintFixture.context(0)); v.Outcome != legal.Fail {
+		t.Fatalf("constraint verdict = %+v, want Fail", v)
+	}
+	if hiddenMutable.NumComponents() != beforeHidden || visibleMutable.NumComponents() != beforeVisible {
+		t.Fatal("constraint evaluation mutated live stacks")
+	}
+}
+
+func TestMayMoveFixedCountTo(t *testing.T) {
+	spec := legal.MayMoveFixedCountTo("game.HiddenCards", "game.VisibleCards", 2)
+	if spec.Name != "mayMoveFixedCountTo" {
+		t.Fatalf("Name = %q, want mayMoveFixedCountTo", spec.Name)
+	}
+	pred := resolvePredicateForTest(t, spec)
+	if pred.ClientEvaluable {
+		t.Fatal("MayMoveFixedCountTo unexpectedly marked client-evaluable")
+	}
+	if len(pred.Reads) != 2 {
+		t.Fatalf("Reads = %+v, want only source and destination", pred.Reads)
+	}
+	if v := pred.Evaluate(buildLegalFixture(t, "memoryDefault").context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("fixed two-component transfer = %+v, want Pass", v)
+	}
+	zero := resolvePredicateForTest(t, legal.MayMoveFixedCountTo("game.HiddenCards", "game.VisibleCards", 0))
+	if v := zero.Evaluate(buildLegalFixture(t, "memoryDefault").context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("fixed zero-component transfer = %+v, want Pass", v)
+	}
+	overCapacity := resolvePredicateForTest(t, legal.MayMoveFixedCountTo("game.HiddenCards", "game.VisibleCards", 41))
+	if v := overCapacity.Evaluate(buildLegalFixture(t, "memoryDefault").context(0)); v.Outcome != legal.Fail {
+		t.Fatalf("over-capacity fixed transfer = %+v, want Fail", v)
+	}
+
+	negative := resolvePredicateForTest(t, legal.MayMoveFixedCountTo("game.HiddenCards", "game.VisibleCards", -1))
+	if v := negative.Evaluate(buildLegalFixture(t, "memoryDefault").context(0)); v.Outcome != legal.Fail {
+		t.Fatalf("negative fixed count = %+v, want Fail", v)
+	}
+
+	malformed := legal.Spec{Name: "mayMoveFixedCountTo", Args: []string{"game.HiddenCards", "game.VisibleCards", "not-an-int"}}
+	if _, err := resolveSpecViaRegistry(malformed, legal.DefaultConstructors(), nil); err == nil {
+		t.Fatal("malformed fixed count unexpectedly constructed")
 	}
 }
 
@@ -638,6 +717,7 @@ func TestDefaultConstructors(t *testing.T) {
 		"mayMoveToSlot":                    true,
 		"mayMoveAllTo":                     true,
 		"mayMoveCountTo":                   true,
+		"mayMoveFixedCountTo":              true,
 		"maySwapComponents":                true,
 		"maySwapComponentsByKey":           true,
 		"allActivePlayers":                 true,

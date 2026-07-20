@@ -49,6 +49,7 @@ func TestTutorialSnippetCatalogPredicates(t *testing.T) {
 		"mayMoveToSameSlot":                legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 		"mayMoveAllTo":                     legal.MayMoveAllTo("game.HiddenCards", "game.VisibleCards"),
 		"mayMoveCountTo":                   legal.MayMoveCountTo("game.HiddenCards", "game.VisibleCards", "player.CardsLeftToReveal"),
+		"mayMoveFixedCountTo":              legal.MayMoveFixedCountTo("game.HiddenCards", "game.VisibleCards", 2),
 		"maySwapComponents":                legal.MaySwapComponents("game.Spaces", "move.FromIndex", "move.ToIndex"),
 		"maySwapComponentsByKey":           legal.MaySwapComponentsByKey("game.Spaces", "move.FromSpace", "move.ToSpace"),
 		"any":                              legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),

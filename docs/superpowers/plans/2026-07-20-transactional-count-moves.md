@@ -111,10 +111,16 @@ Resolution, type, negative-count, ownership, capacity, and constraint errors are
 reported through the normal declarative legality diagnostics. The predicate is
 server-evaluated because custom stack constraints are arbitrary Go predicates.
 
-Do not add a constant-count variant yet. Built-in moves cover the common fixed
-count through `moves.WithTargetCount`; custom input moves naturally carry their
-count as a typed field. Another constructor would enlarge the catalog without a
-demonstrated authoring case.
+Fixed-rule custom moves should not need a dummy persisted count field merely to
+express legality. The catalog therefore also provides:
+
+```go
+legal.MayMoveFixedCountTo("game.DrawStack", "player.Hand", 2)
+```
+
+The distinct constructor preserves compile-time argument typing and keeps the
+path-backed form unambiguous; a variadic or `interface{}` count would be a larger
+foot-gun.
 
 ## Internal design
 
@@ -167,6 +173,13 @@ the first proposal:
 `source.MoveCountTo(destination, 1)` so the mutation and preflight paths share
 one implementation. The engine still commits one version per application.
 
+Because each application is proposed independently, the complete-remainder
+check is repeated as the sequence advances: N components entail N+(N-1)+…+1
+component checks. Constrained destinations additionally require one disposable
+whole-state copy per proposal. This deliberately buys fail-before-the-first-move
+semantics for predictable fix-ups; the benchmark suite characterizes both paths
+so unusually large transfers can choose one atomic `Stack.MoveCountTo` instead.
+
 ### Deal/collect round robins
 
 `DealCountComponents` and `CollectCountComponents` can have custom player
@@ -184,6 +197,9 @@ round-robin-plan API would require its own design and evidence.
 ## Compatibility and foot-gun controls
 
 - No existing method is removed or weakened.
+- The stack interfaces are intentionally framework-owned and already sealed by
+  unexported methods, so adding the paired methods cannot break an external
+  implementation. Package-internal test doubles must implement the new methods.
 - No automatic conversion from multiple move records to one move record occurs.
 - Exact-count failure is explicit; the API never means “up to count.”
 - Zero is a no-op, while negative counts and invalid endpoints remain loud.
