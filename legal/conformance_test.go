@@ -8,11 +8,11 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/enum"
 	blackjackgame "github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/checkers"
 	memorygame "github.com/jkomoros/boardgame/examples/memory"
+	"github.com/jkomoros/boardgame/legal"
 	storagememory "github.com/jkomoros/boardgame/storage/memory"
 )
 
@@ -54,10 +54,10 @@ type legalFixture struct {
 // context builds a legal.Context from the fixture for the given proposer.
 func (f legalFixture) context(proposer boardgame.PlayerIndex) legal.Context {
 	return legal.Context{
-		State:    f.state,
-		Move:     f.move,
+		State:               f.state,
+		Move:                f.move,
 		ProposerPlayerIndex: proposer,
-		Chest:    f.chest,
+		Chest:               f.chest,
 	}
 }
 
@@ -151,6 +151,19 @@ func checkersMoveWithTokenIndex(t *testing.T, game *boardgame.Game, key int) boa
 	}
 	t.Fatal("legal: no checkers move with a TokenIndexToMove property found")
 	return nil
+}
+
+func checkersMoveWithIndexes(t *testing.T, game *boardgame.Game, tokenIndex, spaceIndex int) boardgame.Move {
+	t.Helper()
+	move := checkersMoveWithTokenIndex(t, game, tokenIndex)
+	space, err := move.ReadSetter().EnumProp("SpaceIndex")
+	if err != nil {
+		t.Fatalf("legal: reading SpaceIndex enum prop: %v", err)
+	}
+	if err := space.SetValue(enum.EnumKey(spaceIndex)); err != nil {
+		t.Fatalf("legal: setting SpaceIndex: %v", err)
+	}
+	return move
 }
 
 // firstOccupiedIndex returns the lowest index in stack with a non-nil
@@ -305,6 +318,22 @@ var legalFixtureBuilders = map[string]func(t *testing.T) legalFixture{
 	"checkersNoMove": func(t *testing.T) legalFixture {
 		game, state := newCheckersGame(t)
 		return legalFixture{state: state, move: nil, chest: game.Manager().Chest()}
+	},
+	// checkersDistinctSpaces supplies two distinct, valid enum-valued move
+	// fields for MaySwapComponentsByKey's pass case.
+	"checkersDistinctSpaces": func(t *testing.T) legalFixture {
+		game, state := newCheckersGame(t)
+		spaces, err := state.GameState().ReadSetter().StackProp("Spaces")
+		if err != nil {
+			t.Fatalf("legal: reading Spaces: %v", err)
+		}
+		first := firstOccupiedIndex(spaces)
+		second := firstEmptyIndex(spaces)
+		if first < 0 || second < 0 || first == second {
+			t.Fatal("legal: checkers fixture does not have two distinct valid spaces")
+		}
+		move := checkersMoveWithIndexes(t, game, first, second)
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
 	},
 	// checkersOwnToken: checkersDefault, but move.TokenIndexToMove is set to
 	// a space occupied by a token whose Color matches the CURRENT player's
@@ -543,10 +572,10 @@ func outcomeString(o legal.Outcome) string {
 
 // conformanceCase is one row of a conformance corpus file's "cases" array.
 type conformanceCase struct {
-	Spec     legal.Spec   `json:"spec"`
-	Fixture  string `json:"fixture"`
-	Proposer int    `json:"proposer"`
-	Expect   string `json:"expect"`
+	Spec     legal.Spec `json:"spec"`
+	Fixture  string     `json:"fixture"`
+	Proposer int        `json:"proposer"`
+	Expect   string     `json:"expect"`
 	// Template, if set, pins the Fail template key this case's Verdict must
 	// carry (Verdict.Message.Template). Optional — most useful (and, by
 	// convention, always populated) on "fail" cases, where it is what

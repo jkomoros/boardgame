@@ -596,6 +596,39 @@ func TestSort(t *testing.T) {
 
 }
 
+func TestSortComponentsFailureLeavesStackUnchanged(t *testing.T) {
+	game := testDefaultGame(t, false)
+	st := game.CurrentState().(*state)
+	deck := game.Manager().Chest().Deck("test")
+	stack := deck.NewStack(0)
+	attachStackForPrimitiveTest(st, stack)
+	for _, component := range deck.Components()[:4] {
+		stack.insertNext(component.ImmutableInstance(st))
+	}
+
+	before := append([]string(nil), stack.IDs()...)
+	if err := stack.SortComponents(nil); err == nil {
+		t.Fatal("SortComponents(nil) returned nil error")
+	}
+	if !reflect.DeepEqual(stack.IDs(), before) {
+		t.Fatalf("SortComponents(nil) mutated stack: got %v, want %v", stack.IDs(), before)
+	}
+
+	var recovered interface{}
+	func() {
+		defer func() { recovered = recover() }()
+		_ = stack.SortComponents(func(i, j ImmutableComponentInstance) bool {
+			panic("comparison failed")
+		})
+	}()
+	if recovered == nil {
+		t.Fatal("SortComponents comparator panic did not propagate")
+	}
+	if !reflect.DeepEqual(stack.IDs(), before) {
+		t.Fatalf("comparator panic mutated stack: got %v, want %v", stack.IDs(), before)
+	}
+}
+
 func stackSorted(stack Stack) bool {
 	last := -1
 

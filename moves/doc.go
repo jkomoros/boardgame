@@ -196,7 +196,7 @@ from the [legal] package's predicate catalog:
 	    moves.WithLegalPreconditions(
 	        legal.PropAtLeast("player.CardsLeftToReveal", 1),
 	        legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-	        legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+	        legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 	    ),
 	)
 

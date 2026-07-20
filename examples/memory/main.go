@@ -319,7 +319,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		moves.WithLegalPreconditions(
 			legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("reveal.no_cards_left"),
 			legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-			legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+			legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 		),
 	)
 

@@ -64,6 +64,8 @@ var defaultTemplates = map[string]string{
 	TemplateComponentMissingKey:           "there is no component at key {key}",
 	TemplateNoComponentToMove:             "there is no component at index {index} to move",
 	TemplateMayNotMoveTo:                  "{detail}",
+	TemplateMayNotMoveAllTo:               "{detail}",
+	TemplateMayNotSwapComponents:          "{detail}",
 	TemplateAllActivePlayers:              "not every active player satisfies the required condition",
 	TemplateProposerTargetInvalid:         "{detail}",
 	TemplateProposerNotYourTurn:           "{detail}",

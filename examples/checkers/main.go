@@ -107,11 +107,12 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				// test): Legal() is deleted (see moves.go); this plan
 				// replaces it exactly, in the same order the old imperative
 				// chain ran (the phase check and CurrentPlayer's proposer
-				// check are contributed automatically ahead of these three,
-				// then these three in declaration order, then LegalCustom's
+				// check are contributed automatically ahead of these four,
+				// then these four in declaration order, then LegalCustom's
 				// capture-graph-walk residue — see moves.go's comment for
 				// the full mapping).
 				moves.WithLegalPreconditions(
+					legal.MaySwapComponentsByKey("game.Spaces", "move.TokenIndexToMove", "move.SpaceIndex"),
 					legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove").
 						WithMessage("checkers.no_token_there"),
 					legal.ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color").
@@ -192,8 +193,8 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 // since it isn't part of legal.DefaultTemplates() — and one
 // ("checkers.no_more_components") retargets movePlaceToken's StackNotEmpty
 // precondition to the exact string its deleted Legal()'s first gate returned.
-// See moves.go's moveMoveToken LegalCustom doc comment for why
-// "checkers.illegal_dest" now covers what were three distinct legacy strings.
+// See moves.go's moveMoveToken LegalCustom doc comment for the remaining
+// graph-walk residue represented by "checkers.illegal_dest".
 func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 	return map[string]string{
 		"checkers.no_token_there":     "That space does not have a component in it",

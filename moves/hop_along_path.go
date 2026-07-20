@@ -40,6 +40,10 @@ func (h *HopAlongPath) Legal(state boardgame.ImmutableState, proposer boardgame.
 		return errors.New("no location behavior has remaining path hops")
 	}
 
+	if err := behavior.MayMoveTo(behavior.LocRemainingPath[1]); err != nil {
+		return errors.New("cannot execute next path hop: " + err.Error())
+	}
+
 	return nil
 }
 

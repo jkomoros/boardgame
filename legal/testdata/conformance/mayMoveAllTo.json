@@ -1,0 +1,24 @@
+{
+  "predicate": "mayMoveAllTo",
+  "cases": [
+    {
+      "spec": {"name": "mayMoveAllTo", "args": ["game.HiddenCards", "game.VisibleCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "mayMoveAllTo", "args": ["game.HiddenCards", "game.HiddenCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.may_not_move_all_to"
+    },
+    {
+      "spec": {"name": "mayMoveAllTo", "args": ["move.Source", "game.VisibleCards"]},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}
