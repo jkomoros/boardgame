@@ -573,9 +573,8 @@ func TestMayMoveFixedCountTo(t *testing.T) {
 		t.Fatalf("over-capacity fixed transfer = %+v, want Fail", v)
 	}
 
-	negative := resolvePredicateForTest(t, legal.MayMoveFixedCountTo("game.HiddenCards", "game.VisibleCards", -1))
-	if v := negative.Evaluate(buildLegalFixture(t, "memoryDefault").context(0)); v.Outcome != legal.Fail {
-		t.Fatalf("negative fixed count = %+v, want Fail", v)
+	if _, err := resolveSpecViaRegistry(legal.MayMoveFixedCountTo("game.HiddenCards", "game.VisibleCards", -1), legal.DefaultConstructors(), nil); err == nil {
+		t.Fatal("negative fixed count unexpectedly constructed")
 	}
 
 	malformed := legal.Spec{Name: "mayMoveFixedCountTo", Args: []string{"game.HiddenCards", "game.VisibleCards", "not-an-int"}}

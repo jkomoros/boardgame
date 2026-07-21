@@ -334,9 +334,10 @@ type Stack interface {
 	//required of constraint functions.
 	//
 	//This will fail if other has fewer SlotsRemaining than this stack has
-	//components. All components are moved as one notional game Move, so clients
-	//animate them at once. Use moves.MoveAllComponents when each component
-	//should instead have a distinct Move and animation boundary.
+	//components. All transferred components belong to the enclosing engine Move
+	//and animate together; this method does not create a Move or persistence
+	//boundary itself. Use moves.MoveAllComponents when each component should
+	//instead have a distinct Move and animation boundary.
 	MoveAllTo(other Stack) error
 
 	//MoveCountTo moves exactly count components from this stack, in
@@ -1543,19 +1544,26 @@ type componentTransferPlan struct {
 	operation   string
 }
 
+func countedUnit(count int, singular string) string {
+	if count == 1 {
+		return singular
+	}
+	return singular + "s"
+}
+
 // prepareComponentTransfer captures everything commit needs after validating
 // conditions that do not change during a synchronous transfer. Per-component
 // constraints are intentionally left to validateComponentTransferPlan's
 // ordered simulation.
-func prepareComponentTransfer(from ImmutableStack, dest ImmutableStack, count int, capacityError string) (*componentTransferPlan, error) {
+func prepareComponentTransfer(from ImmutableStack, dest ImmutableStack, count int, historicalCapacityError string) (*componentTransferPlan, error) {
 	physicalFrom, err := requirePhysicalStack(from, "source")
 	if err != nil {
 		return nil, err
 	}
-	return preparePhysicalComponentTransfer(physicalFrom, dest, count, capacityError)
+	return preparePhysicalComponentTransfer(physicalFrom, dest, count, historicalCapacityError)
 }
 
-func preparePhysicalComponentTransfer(physicalFrom Stack, dest ImmutableStack, count int, capacityError string) (*componentTransferPlan, error) {
+func preparePhysicalComponentTransfer(physicalFrom Stack, dest ImmutableStack, count int, historicalCapacityError string) (*componentTransferPlan, error) {
 	physicalDest, err := validateComponentTransferEndpoints(physicalFrom, dest)
 	if err != nil {
 		return nil, err
@@ -1567,8 +1575,12 @@ func preparePhysicalComponentTransfer(physicalFrom Stack, dest ImmutableStack, c
 	if count > physicalFrom.NumComponents() {
 		return nil, errors.New("source stack has " + strconv.Itoa(physicalFrom.NumComponents()) + " components, cannot move " + strconv.Itoa(count))
 	}
-	if physicalDest.SlotsRemaining() < count {
-		return nil, errors.New(capacityError)
+	available := physicalDest.SlotsRemaining()
+	if available < count {
+		if historicalCapacityError != "" {
+			return nil, errors.New(historicalCapacityError)
+		}
+		return nil, errors.New("destination stack has " + strconv.Itoa(available) + " " + countedUnit(available, "slot") + " remaining; cannot move " + strconv.Itoa(count) + " " + countedUnit(count, "component"))
 	}
 
 	return &componentTransferPlan{
@@ -1579,12 +1591,12 @@ func preparePhysicalComponentTransfer(physicalFrom Stack, dest ImmutableStack, c
 	}, nil
 }
 
-func prepareAllComponentTransfer(from ImmutableStack, dest ImmutableStack, capacityError string) (*componentTransferPlan, error) {
+func prepareAllComponentTransfer(from ImmutableStack, dest ImmutableStack, historicalCapacityError string) (*componentTransferPlan, error) {
 	physicalFrom, err := requirePhysicalStack(from, "source")
 	if err != nil {
 		return nil, err
 	}
-	plan, err := preparePhysicalComponentTransfer(physicalFrom, dest, physicalFrom.NumComponents(), capacityError)
+	plan, err := preparePhysicalComponentTransfer(physicalFrom, dest, physicalFrom.NumComponents(), historicalCapacityError)
 	if err != nil {
 		return nil, err
 	}
@@ -1690,7 +1702,7 @@ func mayMoveAllToImpl(from ImmutableStack, dest ImmutableStack) error {
 }
 
 func mayMoveCountToImpl(from ImmutableStack, dest ImmutableStack, count int) error {
-	plan, err := prepareComponentTransfer(from, dest, count, "not enough space in the destination stack")
+	plan, err := prepareComponentTransfer(from, dest, count, "")
 	if err != nil {
 		return err
 	}
@@ -1781,7 +1793,7 @@ func moveAllToImpl(from Stack, to Stack) error {
 }
 
 func moveCountToImpl(from Stack, to Stack, count int) error {
-	plan, err := prepareComponentTransfer(from, to, count, "not enough space in the destination stack")
+	plan, err := prepareComponentTransfer(from, to, count, "")
 	if err != nil {
 		return err
 	}

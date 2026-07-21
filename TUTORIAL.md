@@ -242,7 +242,13 @@ This single `MayMoveToSlot` call replaces what would otherwise be several manual
 
 If `MayMoveTo` or `MayMoveToSlot` returns nil in `Legal()`, the corresponding `MoveTo` or `MoveToNextSlot` call in `Apply()` is guaranteed to succeed. Likewise, pair `MayMoveCountTo` with `MoveCountTo`, and `MayMoveAllTo` with `MoveAllTo`.
 
-The `moves` package (DealCountComponents, MoveCountComponents, etc.) performs these checks internally, so if you use those moves, constraint checking happens automatically. `MoveCountComponents` deliberately creates a separate engine move—and therefore a separate persistence and animation boundary—for every component. Use `stack.MoveCountTo` when exactly N components should move together as one logical move. A custom move whose `Apply()` calls `MoveCountTo` or `MoveAllTo` should use the matching `May*` method in `Legal()`, because a second or later component may be the first one rejected by an order-dependent constraint. Both mutators validate transactionally during `Apply()`: on any returned error, they leave framework-owned state unchanged.
+The `moves` package (DealCountComponents, MoveCountComponents, etc.) performs these checks internally, so if you use those moves, constraint checking happens automatically. `MoveCountComponents` deliberately creates a separate engine move—and therefore a separate persistence and animation boundary—for every component. Use `stack.MoveCountTo` when exactly N components should move together within the current engine move. A custom move whose `Apply()` calls `MoveCountTo` or `MoveAllTo` should use the matching `May*` method in `Legal()`, because a second or later component may be the first one rejected by an order-dependent constraint. Both mutators validate transactionally during `Apply()`: on any returned error, they leave framework-owned state unchanged.
+
+That stronger repeated-move guarantee has a deliberate cost: moving N
+components through `MoveCountComponents` checks N+(N-1)+...+1 planned
+insertions, and a constrained destination copies the state once per proposal.
+For large transfers that do not need separate history and animation boundaries,
+prefer one `MoveCountTo` call.
 
 For an exact-count custom move, the imperative pairing is intentionally
 symmetrical:
@@ -269,6 +275,10 @@ For a fixed rule such as “draw exactly 2,” no dummy move field is necessary:
 ```go
 legal.MayMoveFixedCountTo("game.DrawStack", "player.Hand", 2)
 ```
+
+A negative fixed count is rejected when the game manager boots, where the
+authoring mistake can be fixed, rather than becoming a permanently illegal
+move.
 
 Both forms are server-evaluated. `MayMoveCountTo` accepts any integer property
 path—not only move state—so a game- or player-derived count is equally valid.

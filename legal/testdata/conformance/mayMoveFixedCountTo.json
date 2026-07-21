@@ -15,11 +15,10 @@
       "template": "legal.may_not_move_count_to"
     },
     {
-      "spec": {"name": "mayMoveFixedCountTo", "args": ["game.HiddenCards", "game.VisibleCards", "-1"]},
+      "spec": {"name": "mayMoveFixedCountTo", "args": ["game.NoSuchStack", "game.VisibleCards", "2"]},
       "fixture": "memoryDefault",
       "proposer": 0,
-      "expect": "fail",
-      "template": "legal.may_not_move_count_to"
+      "expect": "unknown"
     }
   ]
 }

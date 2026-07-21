@@ -247,7 +247,7 @@ func TestMoveCountComponentsPreflightsRemainingSequence(t *testing.T) {
 		}
 
 		move := game.MoveByName("Move Counted Components")
-		if err := move.Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "space") {
+		if err := move.Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "1 slot remaining; cannot move 2 components") {
 			t.Fatalf("Legal error = %v", err)
 		}
 		if got := gameState.DrawStack.NumComponents(); got != 52 {
@@ -355,10 +355,8 @@ func TestMoveCountComponentSubclassesPreflightExactRemainder(t *testing.T) {
 			if err := game.MoveByName("Threshold Transfer").Legal(game.CurrentState(), 0); err != nil {
 				t.Fatalf("Legal: %v", err)
 			}
-			// Default.Legal checks the first proposed component once, then
-			// MoveCountComponents checks both components in the remaining plan.
-			if calls != 3 {
-				t.Fatalf("constraint calls = %d, want one default check plus exact remainder 2", calls)
+			if calls != 2 {
+				t.Fatalf("constraint calls = %d, want each of the 2 remaining components checked exactly once", calls)
 			}
 		})
 	}

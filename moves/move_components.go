@@ -31,6 +31,13 @@ type MoveCountComponents struct {
 	ApplyCountTimes
 }
 
+// preflightsCompleteStackConstraints suppresses Default's weaker generic
+// first-component constraint check. Legal below checks the entire remaining
+// ordered transfer, including that first component, exactly once.
+func (m *MoveCountComponents) preflightsCompleteStackConstraints() {}
+
+var _ completeStackConstraintPreflighter = (*MoveCountComponents)(nil)
+
 // ValidConfiguration checks to make sure that SourceStack and DestinationStack
 // both exist and return non-nil stacks.
 func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) error {

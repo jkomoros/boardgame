@@ -349,9 +349,10 @@ that knows how many times to apply itself in a row, which is finicky and error-
 prone.
 
 This collection is intentionally different from [boardgame.Stack.MoveCountTo].
-MoveCountTo transfers exactly N components as one atomic stack operation and
-one animation boundary. The move types below produce a distinct persisted game
-move for each component, which is usually preferable when dealing cards or
+MoveCountTo transfers exactly N components atomically within its caller's
+enclosing game move; it does not create a move or persistence boundary itself.
+The move types below produce a distinct persisted game move and animation
+boundary for each component, which is usually preferable when dealing cards or
 showing a sequence of token movements.
 
 There is a collection of 9 moves that all do basically the same thing for moving
@@ -391,6 +392,12 @@ for matching its own Legal preflight to that custom mutation. Move names that en
 in CountReached operate until the destination stacks all have TargetCount or more
 items. Move names that end in CountLeft operate until the source stacks all have
 TargetCount or fewer items in them.
+
+The complete-remainder guarantee intentionally performs N+(N-1)+...+1 checks
+over an N-component sequence. A constrained destination also requires one
+disposable whole-state copy per proposal. For a large transfer that does not
+need separate move records and animations, prefer one [boardgame.Stack.MoveCountTo]
+call and its matching May preflight.
 
 Since a common configuration of these moves is to use
 {Move,Deal,Collect}ComponentsUntil*Reached with a TargetCount of 0, each also

@@ -71,10 +71,11 @@ func TestMoveCountTo(t *testing.T) {
 	t.Run("RejectsInsufficientDestinationCapacity", func(t *testing.T) {
 		game := testGameWithMutableConstraints(t)
 		gs, ps := concreteStates(game.CurrentState())
-		if err := gs.DrawDeck.MayMoveCountTo(ps[0].Hand, 3); err == nil || !strings.Contains(err.Error(), "space") {
+		const want = "destination stack has 2 slots remaining; cannot move 3 components"
+		if err := gs.DrawDeck.MayMoveCountTo(ps[0].Hand, 3); err == nil || err.Error() != want {
 			t.Fatalf("capacity preflight error = %v", err)
 		}
-		if err := gs.DrawDeck.MoveCountTo(ps[0].Hand, 3); err == nil || !strings.Contains(err.Error(), "space") {
+		if err := gs.DrawDeck.MoveCountTo(ps[0].Hand, 3); err == nil || err.Error() != want {
 			t.Fatalf("capacity move error = %v", err)
 		}
 		if got := ps[0].Hand.NumComponents(); got != 0 {

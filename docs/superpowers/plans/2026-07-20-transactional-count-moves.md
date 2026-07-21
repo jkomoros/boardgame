@@ -120,7 +120,10 @@ legal.MayMoveFixedCountTo("game.DrawStack", "player.Hand", 2)
 
 The distinct constructor preserves compile-time argument typing and keeps the
 path-backed form unambiguous; a variadic or `interface{}` count would be a larger
-foot-gun.
+foot-gun. A negative fixed count is rejected while the predicate registry is
+assembled, making it a boot-time authoring error rather than a move that can
+never become legal. A negative path-derived runtime value remains an ordinary
+legality failure.
 
 ## Internal design
 
@@ -172,6 +175,10 @@ the first proposal:
 `Apply` continues to move exactly one component, but uses
 `source.MoveCountTo(destination, 1)` so the mutation and preflight paths share
 one implementation. The engine still commits one version per application.
+
+`MoveCountComponents` marks that it owns complete stack-constraint preflight,
+so `Default` suppresses its weaker generic first-component check. Each planned
+component's constraint is therefore evaluated exactly once per proposal.
 
 Because each application is proposed independently, the complete-remainder
 check is repeated as the sequence advances: N components entail N+(N-1)+…+1

@@ -641,6 +641,9 @@ func mayMoveFixedCountToConstructor() *PredicateConstructor {
 			if err != nil {
 				return nil, fmt.Errorf("legal: mayMoveFixedCountTo: arg 3 (count) must be an integer: %w", err)
 			}
+			if count < 0 {
+				return nil, fmt.Errorf("legal: mayMoveFixedCountTo: count must be non-negative, got %d", count)
+			}
 			template := spec.Message
 			if template == "" {
 				template = TemplateMayNotMoveCountTo
