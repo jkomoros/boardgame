@@ -801,6 +801,53 @@ func BenchmarkRemainingCountPreflightConstrained(b *testing.B) {
 	benchmarkRemainingCountPreflight(b, true)
 }
 
+func benchmarkMoveCountOne(b *testing.B, constrained bool, unrelatedSlots int) {
+	manager, err := NewGameManager(defaultTestGameDelegate(0), newTestStorageManager())
+	if err != nil {
+		b.Fatal(err)
+	}
+	game, err := manager.newGameImpl("", "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	if err := game.setUp(0, nil, nil); err != nil {
+		b.Fatal(err)
+	}
+	manager.Internals().AllowMutableConstraints(game)
+	gameState, playerStates := concreteStates(game.CurrentState())
+	if err := gameState.DownSizeStack.ExpandSize(unrelatedSlots); err != nil {
+		b.Fatal(err)
+	}
+	left, right := gameState.OtherStack, playerStates[0].Hand
+	if err := gameState.DrawDeck.First().MoveToNextSlot(left); err != nil {
+		b.Fatal(err)
+	}
+	if constrained {
+		accept := func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil }
+		mustAddStackConstraint(b, left, accept)
+		mustAddStackConstraint(b, right, accept)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := left.MoveCountTo(right, 1); err != nil {
+			b.Fatal(err)
+		}
+		if err := right.MoveCountTo(left, 1); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMoveCountOneUnconstrainedLargeState(b *testing.B) {
+	benchmarkMoveCountOne(b, false, 10_000)
+}
+
+func BenchmarkMoveCountOneConstrainedLargeState(b *testing.B) {
+	benchmarkMoveCountOne(b, true, 10_000)
+}
+
 func TestClearConstraints(t *testing.T) {
 	game := testGameWithMutableConstraints(t)
 

@@ -52,6 +52,17 @@ type moveCurrentPlayerDraw struct {
 	CurrentPlayer
 }
 
+// moveBypassesMoveCountLegal represents a creator override that deliberately
+// calls a lower embedded Legal method instead of MoveCountComponents.Legal.
+// Default's generic stack check must remain active on this path.
+type moveBypassesMoveCountLegal struct {
+	MoveCountComponents
+}
+
+func (m *moveBypassesMoveCountLegal) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	return m.ApplyCountTimes.Legal(state, proposer)
+}
+
 func (m *moveCurrentPlayerDraw) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
@@ -169,6 +180,20 @@ func countedFixUpTransferMoveInstaller(target int) func(*boardgame.GameManager) 
 			),
 		)
 	}
+}
+
+func bypassedCountLegalMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(manager.Delegate())
+	return AddForPhase(phaseSetUp,
+		auto.MustConfig(
+			new(moveBypassesMoveCountLegal),
+			WithMoveName("Bypass Move Count Legal"),
+			WithSourceProperty("DrawStack"),
+			WithDestinationProperty("DiscardStack"),
+			WithTargetCount(2),
+			WithIsFixUp(false),
+		),
+	)
 }
 
 func thresholdTransferMoveInstaller(move AutoConfigurableMove, target int, name string) func(*boardgame.GameManager) []boardgame.MoveConfig {
@@ -305,6 +330,32 @@ func TestMoveCountComponentsKeepsSeparateMoveRecords(t *testing.T) {
 		t.Fatalf("version = %d, want one version per component", game.Version())
 	}
 	historicalMovesCount(t, []string{"Move Counted Components As FixUp"}, []int{3}, game.MoveRecords(-1))
+}
+
+func TestMoveCountComponentsLegalSuppressionDoesNotLeakThroughEmbedding(t *testing.T) {
+	manager, err := newGameManager(bypassedCountLegalMoveInstaller)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	manager.Internals().AllowMutableConstraints(game)
+	gameState, _ := concreteStates(game.CurrentState())
+	calls := 0
+	if err := gameState.DiscardStack.AddConstraint(func(boardgame.ImmutableStack, []boardgame.ImmutableComponentInstance, boardgame.ImmutableState) error {
+		calls++
+		return errors.New("generic constraint check remained active")
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := game.MoveByName("Bypass Move Count Legal").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "generic constraint") {
+		t.Fatalf("Legal error = %v, want generic constraint rejection", err)
+	}
+	if calls != 1 {
+		t.Fatalf("constraint calls = %d, want exactly one generic check", calls)
+	}
 }
 
 func TestMoveCountComponentSubclassesPreflightExactRemainder(t *testing.T) {

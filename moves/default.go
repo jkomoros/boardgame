@@ -337,6 +337,18 @@ func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) b
 // move progression, implement interfaces.AllowMultipleInProgression() and
 // return true.
 func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	return d.legalWithStackConstraints(state, proposer, true)
+}
+
+// legalWithoutStackConstraints runs Default's ordinary legality chain except
+// for its generic first-component stack check. It is intentionally private:
+// framework move bases may use it only when their own Legal method immediately
+// performs a stronger stack preflight.
+func (d *Default) legalWithoutStackConstraints(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	return d.legalWithStackConstraints(state, proposer, false)
+}
+
+func (d *Default) legalWithStackConstraints(state boardgame.ImmutableState, proposer boardgame.PlayerIndex, checkStackConstraints bool) error {
 
 	// Declarative-legality seam (design spec "prime guarantee"). These two
 	// checks run FIRST THING and are pure sugar for un-opted-in moves:
@@ -368,16 +380,10 @@ func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.Playe
 		return err
 	}
 
-	return d.legalStackConstraints(state)
-
-}
-
-// completeStackConstraintPreflighter is implemented by framework move bases
-// whose Legal method validates a complete, ordered transfer itself. The marker
-// prevents Default's generic first-component check from redundantly evaluating
-// the same destination constraint before the stronger preflight runs.
-type completeStackConstraintPreflighter interface {
-	preflightsCompleteStackConstraints()
+	if checkStackConstraints {
+		return d.legalStackConstraints(state)
+	}
+	return nil
 }
 
 // legalStackConstraints checks stack constraints for moves that declare
@@ -387,10 +393,6 @@ type completeStackConstraintPreflighter interface {
 // would accept it. This gives early feedback at Legal() time, complementing
 // the safety-net check in moveComponentImpl during Apply().
 func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
-	if _, ok := d.Info().ConcreteMove().(completeStackConstraintPreflighter); ok {
-		return nil
-	}
-
 	config := d.CustomConfiguration()
 
 	srcName, ok := config[configPropSourceProperty].(string)

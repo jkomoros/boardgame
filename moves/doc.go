@@ -394,10 +394,11 @@ items. Move names that end in CountLeft operate until the source stacks all have
 TargetCount or fewer items in them.
 
 The complete-remainder guarantee intentionally performs N+(N-1)+...+1 checks
-over an N-component sequence. A constrained destination also requires one
-disposable whole-state copy per proposal. For a large transfer that does not
-need separate move records and animations, prefer one [boardgame.Stack.MoveCountTo]
-call and its matching May preflight.
+over an N-component sequence. A constrained destination also requires a
+disposable whole-state copy whenever more than one component remains in a
+proposal; single-component checks use a direct live-state preflight. For a large
+transfer that does not need separate move records and animations, prefer one
+[boardgame.Stack.MoveCountTo] call and its matching May preflight.
 
 Since a common configuration of these moves is to use
 {Move,Deal,Collect}ComponentsUntil*Reached with a TargetCount of 0, each also

@@ -1611,8 +1611,8 @@ func validateComponentTransferPlan(plan *componentTransferPlan) error {
 	if plan.count == 0 {
 		return nil
 	}
-	if !stackHasConstraints(plan.destination) {
-		return validateUnconstrainedComponentTransferPlan(plan)
+	if plan.count == 1 || !stackHasConstraints(plan.destination) {
+		return validateLiveComponentTransferPlan(plan)
 	}
 
 	origState := plan.source.state()
@@ -1648,11 +1648,12 @@ func stackHasConstraints(stack Stack) bool {
 	}
 }
 
-// validateUnconstrainedComponentTransferPlan checks the selected source
-// components against the live endpoints without modifying either stack. With
-// no destination constraints, all remaining checks are structural and
-// aggregate capacity guarantees that each successive next slot exists.
-func validateUnconstrainedComponentTransferPlan(plan *componentTransferPlan) error {
+// validateLiveComponentTransferPlan checks selected source components against
+// the live endpoints without modifying either stack. This is sufficient when
+// the destination has no constraints, or when exactly one component moves: a
+// single constraint check cannot depend on an earlier insertion in the same
+// transaction. Aggregate capacity guarantees each successive next slot exists.
+func validateLiveComponentTransferPlan(plan *componentTransferPlan) error {
 	validated := 0
 	for _, component := range plan.source.Components() {
 		if component == nil {

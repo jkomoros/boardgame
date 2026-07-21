@@ -246,7 +246,8 @@ The `moves` package (DealCountComponents, MoveCountComponents, etc.) performs th
 
 That stronger repeated-move guarantee has a deliberate cost: moving N
 components through `MoveCountComponents` checks N+(N-1)+...+1 planned
-insertions, and a constrained destination copies the state once per proposal.
+insertions, and a constrained destination copies the state when more than one
+component remains in a proposal. Single-component checks avoid that copy.
 For large transfers that do not need separate history and animation boundaries,
 prefer one `MoveCountTo` call.
 

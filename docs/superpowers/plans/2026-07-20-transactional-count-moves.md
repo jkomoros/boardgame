@@ -176,16 +176,23 @@ the first proposal:
 `source.MoveCountTo(destination, 1)` so the mutation and preflight paths share
 one implementation. The engine still commits one version per application.
 
-`MoveCountComponents` marks that it owns complete stack-constraint preflight,
-so `Default` suppresses its weaker generic first-component check. Each planned
-component's constraint is therefore evaluated exactly once per proposal.
+`MoveCountComponents.Legal` explicitly runs the inherited legality chain without
+`Default`'s weaker generic first-component check, then immediately performs its
+complete preflight. The suppression is scoped to that call path rather than a
+promoted marker on embedding creator types: an override that bypasses
+`MoveCountComponents.Legal` retains `Default`'s ordinary safety check. Each
+planned component's constraint is therefore evaluated exactly once per normal
+proposal without weakening custom overrides.
 
 Because each application is proposed independently, the complete-remainder
 check is repeated as the sequence advances: N components entail N+(N-1)+…+1
 component checks. Constrained destinations additionally require one disposable
-whole-state copy per proposal. This deliberately buys fail-before-the-first-move
-semantics for predictable fix-ups; the benchmark suite characterizes both paths
-so unusually large transfers can choose one atomic `Stack.MoveCountTo` instead.
+whole-state copy per proposal while more than one component remains. Count-one
+transfers validate directly against live immutable state, because no earlier
+insertion in the same transaction can affect their constraint result. This
+deliberately buys fail-before-the-first-move semantics for predictable fix-ups;
+the benchmark suite characterizes both paths so unusually large transfers can
+choose one atomic `Stack.MoveCountTo` instead.
 
 ### Deal/collect round robins
 

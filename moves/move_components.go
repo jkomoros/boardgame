@@ -31,13 +31,6 @@ type MoveCountComponents struct {
 	ApplyCountTimes
 }
 
-// preflightsCompleteStackConstraints suppresses Default's weaker generic
-// first-component constraint check. Legal below checks the entire remaining
-// ordered transfer, including that first component, exactly once.
-func (m *MoveCountComponents) preflightsCompleteStackConstraints() {}
-
-var _ completeStackConstraintPreflighter = (*MoveCountComponents)(nil)
-
 // ValidConfiguration checks to make sure that SourceStack and DestinationStack
 // both exist and return non-nil stacks.
 func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) error {
@@ -147,7 +140,11 @@ func (m *MoveCountComponents) stackNames(state boardgame.ImmutableState) (starte
 // Legal checks that source and destiantion stacks exist, that enough components
 // to move exist.
 func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := m.ApplyCountTimes.Legal(state, proposer); err != nil {
+	// This exact call path deliberately omits Default's generic first-component
+	// stack check because the complete remaining transfer is checked below. An
+	// outer move that bypasses MoveCountComponents.Legal does not inherit any
+	// suppression and therefore retains Default's ordinary safety check.
+	if err := m.ApplyUntil.legalWithBase(state, proposer, m.Default.legalWithoutStackConstraints); err != nil {
 		return err
 	}
 

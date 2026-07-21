@@ -148,6 +148,43 @@ func TestMoveCountTo(t *testing.T) {
 		verifyContainingComponent(t, game.CurrentState(), game.Manager().Chest().Deck("test"))
 	})
 
+	t.Run("SingleConstrainedComponentDoesNotCopyState", func(t *testing.T) {
+		game := testGameWithMutableConstraints(t)
+		gs, ps := concreteStates(game.CurrentState())
+		delegate, ok := game.Manager().Delegate().(*testGameDelegate)
+		if !ok {
+			t.Fatalf("delegate type = %T, want *testGameDelegate", game.Manager().Delegate())
+		}
+		constructionsBefore := delegate.gameStateConstructions
+		proposed := gs.DrawDeck.First()
+		calls := 0
+		if err := ps[0].Hand.AddConstraint(func(dest ImmutableStack, components []ImmutableComponentInstance, st ImmutableState) error {
+			calls++
+			if dest != ps[0].Hand || st != game.CurrentState() {
+				return errors.New("single-component check did not use live logical state")
+			}
+			if len(components) != 1 || components[0] != proposed {
+				return errors.New("single-component check received the wrong proposal")
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := gs.DrawDeck.MayMoveCountTo(ps[0].Hand, 1); err != nil {
+			t.Fatal("MayMoveCountTo:", err)
+		}
+		if err := gs.DrawDeck.MoveCountTo(ps[0].Hand, 1); err != nil {
+			t.Fatal("MoveCountTo:", err)
+		}
+		if calls != 2 {
+			t.Fatalf("constraint calls = %d, want one per public call", calls)
+		}
+		if delegate.gameStateConstructions != constructionsBefore {
+			t.Fatalf("game-state constructions = %d, want unchanged %d", delegate.gameStateConstructions, constructionsBefore)
+		}
+	})
+
 	t.Run("SparseSizedSourceUsesComponentOrder", func(t *testing.T) {
 		game := testGameWithMutableConstraints(t)
 		gs, ps := concreteStates(game.CurrentState())
