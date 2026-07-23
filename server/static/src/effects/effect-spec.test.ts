@@ -41,8 +41,90 @@ describe('effect descriptors', () => {
   it('rejects ambiguous identity, anchor, point, and timing inputs', () => {
     assert.throws(() => fx.anchor('  '), /anchor name/);
     assert.throws(() => fx.point(Number.NaN, 0), /finite/);
+    assert.throws(() => fx.motion('  '), /motion subject ID/);
+    assert.throws(() => fx.motion('card', 'middle' as never), /motion moment/);
     assert.throws(() => fx.pulse({ at: fx.point(0, 0), key: '' }), /effect key/);
     assert.throws(() => fx.sequence([], { gapMs: -1 }), /gapMs/);
+  });
+
+  it('describes privacy-safe structural departure and arrival points', () => {
+    const arrival = fx.motion('card-17');
+    const departure = fx.motion('card-17', 'departure');
+    assert.deepEqual(arrival, {
+      kind: 'motion', subjectId: 'card-17', moment: 'arrival',
+    });
+    assert.deepEqual(departure, {
+      kind: 'motion', subjectId: 'card-17', moment: 'departure',
+    });
+    assert.equal(Object.isFrozen(arrival), true);
+  });
+
+  it('describes a structural trail without independent timing', () => {
+    const descriptor = fx.trail({
+      subject: 'card-22',
+      tone: 'magic',
+      intensity: 'subtle',
+      advanced: { echoes: 3, lagMs: 18, opacity: 0.4, palette: ['violet'] },
+    });
+    assert.deepEqual(descriptor, {
+      kind: 'trail',
+      subject: 'card-22',
+      tone: 'magic',
+      intensity: 'subtle',
+      advanced: { echoes: 3, lagMs: 18, opacity: 0.4, palette: ['violet'] },
+    });
+    assert.equal(Object.isFrozen(descriptor), true);
+    assert.equal(Object.isFrozen(descriptor.advanced), true);
+    assert.equal(Object.isFrozen(descriptor.advanced?.palette), true);
+    assert.throws(() => fx.trail({ subject: ' ' }), /trail subject ID/);
+  });
+
+  it('groups lifecycle-bound motion decoration as immutable data', () => {
+    const descriptor = fx.decorateMotion({
+      subject: 'card-22',
+      trail: { tone: 'magic', intensity: 'small' },
+      arrival: fx.burst({ at: fx.motion('card-22'), tone: 'reward' }),
+    });
+    assert.equal(descriptor.kind, 'decorate-motion');
+    assert.equal(descriptor.subject, 'card-22');
+    assert.deepEqual(descriptor.effects.map(effect => effect.kind), ['trail', 'burst']);
+    assert.equal(Object.isFrozen(descriptor), true);
+    assert.equal(Object.isFrozen(descriptor.effects), true);
+    assert.throws(
+      () => fx.decorateMotion({ subject: 'card-22' }),
+      /requires a trail, departure, or arrival/,
+    );
+  });
+
+  it('describes an exact successful-FLIP completion barrier', () => {
+    const subjects = ['card-1', 'card-2'];
+    const descriptor = fx.afterMotion({
+      subjects,
+      effect: fx.burst({ at: fx.anchor('hand'), tone: 'reward' }),
+      key: 'deal-complete',
+    });
+    subjects.push('card-3');
+    assert.equal(descriptor.kind, 'after-motion');
+    assert.deepEqual(descriptor.subjects, ['card-1', 'card-2']);
+    assert.equal(Object.isFrozen(descriptor), true);
+    assert.equal(Object.isFrozen(descriptor.subjects), true);
+    assert.throws(
+      () => fx.afterMotion({ subjects: [], effect: fx.pulse({ at: fx.point(0, 0) }) }),
+      /must not be empty/,
+    );
+    assert.throws(
+      () => fx.afterMotion({
+        subjects: ['card-1', 'card-1'], effect: fx.pulse({ at: fx.point(0, 0) }),
+      }),
+      /unique/,
+    );
+    assert.throws(
+      () => fx.afterMotion({
+        subjects: ['card-1'],
+        effect: fx.trail({ subject: 'card-1' }),
+      }),
+      /lifecycle subscription/,
+    );
   });
 
   it('copies and freezes game-local themes', () => {
@@ -69,7 +151,7 @@ describe('effect descriptors', () => {
     const transition = createEffectTransitionContext({
       before: { score: 1, label: 'A' },
       after: { score: 2, label: 'A' },
-      move: { Name: 'Score', Version: 2 },
+      move: { AnimationKey: 'Score', Version: 2 },
       version: 2,
       snapshotEpoch: 5,
     });

@@ -2,6 +2,17 @@ import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
 import { html, css, CSSResult, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { motionSilhouette } from '../motion/subject.js';
+import type { MotionSubjectSnapshot } from '../motion/subject.js';
+import { compileComponentMotionTracks } from '../motion/component-track.js';
+import type {
+  ComponentMotionTrack,
+  ComponentMotionTarget,
+  VisualMotionTrackInput,
+} from '../motion/component-track.js';
+import type { HistoricalPresentationPolicy } from '../motion/historical-presentation.js';
+import type { MotionEndpointOrientation } from '../motion/endpoint-pose.js';
+import type { AnimationTimingPolicy } from '../motion/timing.js';
 
 // FlipRecord is the bundle the animator computes for each animating
 // component and hands to playAnimation(). before/after are the
@@ -16,6 +27,9 @@ export interface FlipRecord {
   finalOpacity: string;
   needsHostTransition: boolean;      // host transform keyframes worth playing
   delayMs?: number;                  // per-component start delay, from a stack's stagger attribute (#728)
+  durationMs?: number;
+  timingPolicy?: AnimationTimingPolicy;
+  tracks?: readonly ComponentMotionTrack[]; // planned once; executor consumes exactly these channels
 }
 
 export class BoardgameComponent extends BoardgameAnimatableItem {
@@ -143,6 +157,14 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return [];
   }
 
+  /**
+   * Privacy-safe capability for overlay decoration that follows this component.
+   * Override with null to opt out; never return DOM or hidden game content.
+   */
+  motionSubjectSnapshot(): MotionSubjectSnapshot | null {
+    return motionSilhouette('rectangle');
+  }
+
   // Returns the bundle of properties, as configured by
   // animatingProperties(), at their current value.
   animatingPropValues(): Record<string, any> {
@@ -165,58 +187,141 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return result;
   }
 
-  // playAnimation is the WAAPI replacement for the old
-  // prepareAnimation/startAnimation pair. The animator computed the FLIP
-  // delta; we translate it into keyframes. Property-driven inner effects
-  // (card flip, die spin) are handled by subclasses via
-  // playPropertyAnimation, so the databinding dance (setting before-props
-  // then after-props) is gone entirely.
-  playAnimation(rec: FlipRecord): void {
+  /** Purely describe every host and component-owned channel that will play. */
+  planMotionTracks(rec: FlipRecord): readonly ComponentMotionTrack[] {
+    // An overridden imperative hook was the complete property-motion owner on
+    // the legacy Card path. Do not layer a modern default visual track beneath
+    // it: a no-op override historically suppressed the default flip entirely.
+    const visualTracks = this.shouldPlayLegacyPropertyAnimation()
+      ? []
+      : this.propertyMotionTracks(rec.before, rec.after);
+    const tracks = compileComponentMotionTracks({
+      needsHostTransition: rec.needsHostTransition,
+      invertedTransform: rec.invertedTransform,
+      finalTransform: rec.finalTransform,
+      beforeOpacity: rec.beforeOpacity,
+      finalOpacity: rec.finalOpacity,
+      visualTracks,
+    });
+    // Legacy playback treated property targets independently: a temporarily
+    // unavailable inner surface skipped its effect but never cancelled valid
+    // host travel. Filter unavailable component-owned channels at planning so
+    // the published track list remains the exact executable set.
+    return Object.freeze(tracks.filter(track => this.motionTrackTarget(track.target)));
+  }
+
+  /** Subclasses describe visual consequences without starting WAAPI. */
+  protected propertyMotionTracks(
+    _before: Record<string, any>,
+    _after: Record<string, any>,
+  ): readonly VisualMotionTrackInput[] {
+    return [];
+  }
+
+  /**
+   * @deprecated Override propertyMotionTracks() so motion can be planned and
+   * observed. Kept as an opaque playback adapter for existing components.
+   */
+  playPropertyAnimation(
+    _before: Record<string, any>,
+    _after: Record<string, any>,
+    _delayMs: number = 0,
+  ): void {
+    // Legacy subclasses may start their own gated animations here.
+  }
+
+  /** Whether a legacy property hook owns additional opaque visual work. */
+  protected shouldPlayLegacyPropertyAnimation(): boolean {
+    return this.propertyMotionTracks === BoardgameComponent.prototype.propertyMotionTracks
+      && this.playPropertyAnimation !== BoardgameComponent.prototype.playPropertyAnimation;
+  }
+
+  /** Internal bridge: opaque legacy property work cannot become a fake track. */
+  legacyPropertyMotionRequested(
+    before: Record<string, any>,
+    after: Record<string, any>,
+  ): boolean {
+    const ownsLegacyPlayback = this.shouldPlayLegacyPropertyAnimation()
+      || this.playAnimation !== BoardgameComponent.prototype.playAnimation;
+    return ownsLegacyPlayback
+      && this.animatingProperties.some(property => before[property] !== after[property]);
+  }
+
+  protected motionTrackTarget(target: ComponentMotionTarget): HTMLElement | null {
+    return target === 'host' ? this : this.innerElement ?? null;
+  }
+
+  // Execute the already-planned track descriptions through the one shared
+  // timing/gating kernel. Planning and playback no longer independently guess
+  // which component property transitions exist.
+  playAnimation(rec: FlipRecord): readonly Animation[] {
     const delayMs = rec.delayMs ?? 0;
-    if (rec.needsHostTransition) {
-      this.play(this, [
-        { transform: rec.invertedTransform },
-        { transform: rec.finalTransform || 'none' },
-      ], { delay: delayMs });
-      // The element's resting inline transform must be the final one; the
-      // animation is an overlay (fill: 'none').
-      this.style.transform = rec.finalTransform;
-    }
-    const beforeO = parseFloat(rec.beforeOpacity || '1');
-    const afterO = parseFloat(rec.finalOpacity || '1');
-    if (Math.abs(beforeO - afterO) > 0.01) {
-      this.play(this, [{ opacity: String(beforeO) }, { opacity: String(afterO) }], { delay: delayMs });
-    }
+    const result = this.playMotionTracks(
+      rec.tracks ?? this.planMotionTracks(rec),
+      { delay: delayMs, ...(rec.durationMs === undefined ? {} : { duration: rec.durationMs }) },
+      { timing: rec.timingPolicy ?? 'version' },
+    );
+    // Host tracks are overlays (fill:'none'); authored resting styles remain
+    // the final source of truth after WAAPI settles.
+    if (rec.needsHostTransition) this.style.transform = rec.finalTransform;
     this.style.opacity = rec.finalOpacity;
-    this.playPropertyAnimation(rec.before, rec.after, delayMs);
+    // A component that adopted propertyMotionTracks owns its visual channels
+    // declaratively. Otherwise preserve the old imperative customization
+    // point; animations it starts still join settled() through play().
+    if (this.shouldPlayLegacyPropertyAnimation()) {
+      this.playPropertyAnimation(rec.before, rec.after, delayMs);
+    }
+    return result.status === 'started'
+      ? Object.freeze(result.playbacks.map(playback => playback.animation))
+      : Object.freeze([]);
   }
 
-  // playPropertyAnimation animates the visual consequences of
-  // animatingProperties changing (e.g. a card's faceUp flip). Base: no-op.
-  // delayMs (from a stack's stagger attribute, #728) should be threaded
-  // into any play() call subclasses make here.
-  playPropertyAnimation(before: Record<string, any>, after: Record<string, any>, delayMs: number = 0): void {
-    // Subclasses override.
+  /** Prepare a fresh, inert component host to carry departing motion. */
+  prepareMotionCarrier(
+    _defaults: Readonly<Record<string, unknown>>,
+    stack?: any,
+  ): void {
+    this.prepareForBeingAnimatingComponent(stack);
   }
 
-  // prepareForBeingAnimatingComponent is called if the component is going
-  // to be an animating component; that is it was created within
-  // stack.newAnimatingComponent().
-  prepareForBeingAnimatingComponent(stack: any) {
-    // Do nothing; subclasses might do something.
+  /** @deprecated Override prepareMotionCarrier(). */
+  prepareForBeingAnimatingComponent(_stack: any): void {
+    // Legacy subclasses may configure a faux component.
   }
 
-  // cloneContent returns whether we should clone the content of this
-  // element during animating. Defaults to false; subclasses might
-  // override.
+  /** Opt in only to cloning already-rendered default-slot presentation. */
+  get historicalPresentationPolicy(): HistoricalPresentationPolicy {
+    return this.cloneContent ? 'clone-default-slot' : 'none';
+  }
+
+  /** @deprecated Override historicalPresentationPolicy. */
   get cloneContent(): boolean {
     return false;
   }
 
-  // animationRotates should return true if the before and after have a
-  // different rotated property.
-  animationRotates(beforeProps: Record<string, any>, afterProps: Record<string, any>): boolean {
+  /** Finite box-axis fact consumed by structural geometry. */
+  motionEndpointOrientation(_state: Readonly<Record<string, unknown>>): MotionEndpointOrientation {
+    return 'natural';
+  }
+
+  /**
+   * @deprecated Override motionEndpointOrientation(). The animator still
+   * consults this pairwise hook for components that have not migrated.
+   */
+  animationRotates(
+    _beforeProps: Record<string, any>,
+    _afterProps: Record<string, any>,
+  ): boolean {
     return false;
+  }
+
+  /** Null means endpoint orientation owns the modern policy. */
+  legacyAnimationRotationRequested(
+    beforeProps: Record<string, any>,
+    afterProps: Record<string, any>,
+  ): boolean | null {
+    if (this.animationRotates === BoardgameComponent.prototype.animationRotates) return null;
+    return this.animationRotates(beforeProps, afterProps);
   }
 
   handleTap(e: Event) {

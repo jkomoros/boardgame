@@ -44,10 +44,6 @@ export interface ComponentAnimationRecord {
   beforeOpacity: string;
   /** Opacity after the state change */
   afterOpacity: string;
-  /** Whether this component rotates during animation */
-  rotates: boolean;
-  /** Whether this component should clone its content for animation */
-  cloneContent: boolean;
 }
 
 /**
@@ -73,11 +69,8 @@ export interface AnimatingComponent extends HTMLElement {
   animatingProperties: string[];
   /** Returns current values of all animating properties */
   animatingPropValues(): AnimatingProps;
-  /** Whether this component should clone its content during animation */
-  cloneContent?: boolean;
-  /**
-   * Returns true if this component rotates between before and after states.
-   * Used to optimize transform calculations.
-   */
-  animationRotates?(before: AnimatingProps, after: AnimatingProps): boolean;
+  /** Private historical-presentation capture policy. */
+  historicalPresentationPolicy?: 'none' | 'clone-default-slot' | 'clone-default-slot-safe';
+  motionEndpointOrientation?(state: AnimatingProps): 'natural' | 'quarter-turned';
+  legacyAnimationRotationRequested?(before: AnimatingProps, after: AnimatingProps): boolean | null;
 }

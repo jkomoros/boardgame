@@ -2,6 +2,8 @@ import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, CSSResult, TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { motionSilhouette } from '../motion/subject.js';
+import type { MotionSubjectSnapshot } from '../motion/subject.js';
 
 @customElement('boardgame-token')
 export class BoardgameToken extends BoardgameComponent {
@@ -141,6 +143,14 @@ export class BoardgameToken extends BoardgameComponent {
       'orange',
       'black',
     ];
+  }
+
+  override motionSubjectSnapshot(): MotionSubjectSnapshot {
+    return motionSilhouette(
+      this.type === 'token' || this.type === 'chip' || this.type === 'disc'
+        ? 'circle'
+        : 'rounded-rectangle',
+    );
   }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {

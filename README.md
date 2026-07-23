@@ -41,5 +41,12 @@ Many more small things are still rough or not implemented. Please file issues or
 
 **Table+Hand Companion Mode (May 2026):** Games can now opt into a Jackbox-style "projector + phones" mode where a shared screen (Table view) shows the public board and each player's phone (Hand view) shows their private state. Opt in by creating `boardgame-render-game-<name>-table.ts` and `-hand.ts` renderers extending `BoardgameTableViewBase` / `BoardgameHandViewBase`. Hidden-role games get automatic privacy via `behaviors.PlayerRole` (default `sanitize:"other:hidden"`). See [examples/werewolf](examples/werewolf) for a complete working example with asymmetric hidden roles and the [companion-mode authoring guide](docs/companion-mode-authoring.md) for the public API and animation contract.
 
-**Lit 3 Migration (February 2026):** The frontend has been migrated from Polymer 3 to modern Lit 3 with TypeScript support. All example games have been updated. External games will need to be migrated - see [server/static/GAME_RENDERER_MIGRATION.md](server/static/GAME_RENDERER_MIGRATION.md) for a complete guide and [server/static/BREAKING_CHANGES.md](server/static/BREAKING_CHANGES.md) for breaking changes.
+**Animation effects:** Games can add deterministic bursts, pulses, travel,
+structural motion trails, and composed semantic effects without managing
+particles, cleanup, synchronization, or accessibility themselves. Effects can
+anchor to stable DOM landmarks or follow the measured lifecycle of a real game
+piece without taking ownership of its transform. See the
+[animation effects guide](docs/animation-effects.md) and the working
+`examples/memory`, `examples/pig`, and `examples/debuganimations` renderers.
 
+**Lit 3 Migration (February 2026):** The frontend has been migrated from Polymer 3 to modern Lit 3 with TypeScript support. All example games have been updated. External games will need to be migrated - see [server/static/GAME_RENDERER_MIGRATION.md](server/static/GAME_RENDERER_MIGRATION.md) for a complete guide and [server/static/BREAKING_CHANGES.md](server/static/BREAKING_CHANGES.md) for breaking changes.

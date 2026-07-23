@@ -29,6 +29,7 @@ export interface BoardgameAnimatableItemElement extends HTMLElement {
    * Called during FIRST phase of FLIP to capture state before change.
    */
   animatingPropValues(): AnimatingProps;
+  animatingPropDefaults(stack: any): AnimatingProps;
 }
 
 /**
@@ -60,14 +61,26 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
   /** If true, use alternate shadow (for rotated cards) */
   altShadow: boolean;
 
-  /** Whether to clone content during animation */
-  cloneContent: boolean;
+  /** Private historical-presentation capture policy. */
+  historicalPresentationPolicy: 'none' | 'clone-default-slot' | 'clone-default-slot-safe';
 
-  /**
-   * Prepare this component for use as an animating (faux) component.
-   * Called after creation in newAnimatingComponent.
-   */
-  prepareForBeingAnimatingComponent(stack: any): void;
+  /** Prepare a fresh inert host for temporary departing motion. */
+  prepareMotionCarrier(defaults: Readonly<Record<string, unknown>>, stack?: unknown): void;
+
+  /** @deprecated Override prepareMotionCarrier(). */
+  prepareForBeingAnimatingComponent(stack: unknown): void;
+
+  /** @deprecated Override historicalPresentationPolicy. */
+  readonly cloneContent: boolean;
+
+  /** @deprecated Override motionEndpointOrientation(). */
+  animationRotates(before: AnimatingProps, after: AnimatingProps): boolean;
+
+  /** Internal bridge; null delegates to endpoint orientation. */
+  legacyAnimationRotationRequested(before: AnimatingProps, after: AnimatingProps): boolean | null;
+
+  /** Internal compatibility bridge for opaque legacy property playback. */
+  legacyPropertyMotionRequested(before: AnimatingProps, after: AnimatingProps): boolean;
 
   /**
    * Compute properties that should animate between states.
@@ -75,11 +88,7 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
    */
   computeAnimatingProps(): AnimatingProps;
 
-  /**
-   * Returns true if component rotates between before/after states.
-   * Used to optimize transform calculations during FLIP.
-   */
-  animationRotates(before: AnimatingProps, after: AnimatingProps): boolean;
+  motionEndpointOrientation(state: AnimatingProps): 'natural' | 'quarter-turned';
 }
 
 /**

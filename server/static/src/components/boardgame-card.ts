@@ -2,6 +2,9 @@ import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { motionSilhouette } from '../motion/subject.js';
+import type { MotionSubjectSnapshot } from '../motion/subject.js';
+import type { VisualMotionTrackInput } from '../motion/component-track.js';
 
 export class BoardgameCard extends BoardgameComponent {
   static override styles = [
@@ -228,6 +231,11 @@ export class BoardgameCard extends BoardgameComponent {
   @query('#front-slot')
   private frontSlot!: HTMLSlotElement;
 
+  override motionSubjectSnapshot(): MotionSubjectSnapshot {
+    // Shape only: card face/back/content never crosses this boundary.
+    return motionSilhouette('rounded-rectangle');
+  }
+
   private _boundFrontChanged?: () => void;
 
   override connectedCallback() {
@@ -278,9 +286,23 @@ export class BoardgameCard extends BoardgameComponent {
     return `--component-aspect-ratio: ${aspectRatio};`;
   }
 
-  override prepareForBeingAnimatingComponent(stack: any) {
+  override prepareMotionCarrier(
+    defaults: Readonly<Record<string, unknown>>,
+    stack?: any,
+  ): void {
+    if (this.prepareForBeingAnimatingComponent
+      !== BoardgameCard.prototype.prepareForBeingAnimatingComponent) {
+      this.prepareForBeingAnimatingComponent(stack);
+      return;
+    }
     this.noContent = true;
-    this.rotated = stack.stackDefault('rotated');
+    this.rotated = !!defaults.rotated;
+  }
+
+  /** @deprecated Compatibility adapter for pre-motion component callers. */
+  override prepareForBeingAnimatingComponent(stack: any): void {
+    this.noContent = true;
+    this.rotated = !!stack?.stackDefault?.('rotated');
   }
 
   override get animatingProperties(): string[] {
@@ -298,7 +320,25 @@ export class BoardgameCard extends BoardgameComponent {
     ].join(' ');
   }
 
-  override playPropertyAnimation(before: Record<string, any>, after: Record<string, any>, delayMs: number = 0): void {
+  protected override propertyMotionTracks(
+    before: Record<string, any>,
+    after: Record<string, any>,
+  ): readonly VisualMotionTrackInput[] {
+    if (before.faceUp === after.faceUp && before.rotated === after.rotated) return [];
+    return [{
+      target: 'visual',
+      property: 'transform',
+      from: this._innerTransformFor(!!before.faceUp, !!before.rotated),
+      to: this._innerTransformFor(!!after.faceUp, !!after.rotated),
+    }];
+  }
+
+  /** @deprecated Compatibility adapter; framework playback uses planned tracks. */
+  override playPropertyAnimation(
+    before: Record<string, any>,
+    after: Record<string, any>,
+    delayMs: number = 0,
+  ): void {
     if (before.faceUp === after.faceUp && before.rotated === after.rotated) return;
     if (!this.innerElement) return;
     this.play(this.innerElement, [
@@ -307,12 +347,40 @@ export class BoardgameCard extends BoardgameComponent {
     ], { delay: delayMs });
   }
 
+  protected override shouldPlayLegacyPropertyAnimation(): boolean {
+    return this.playPropertyAnimation !== BoardgameCard.prototype.playPropertyAnimation;
+  }
+
+  override get historicalPresentationPolicy(): 'none' | 'clone-default-slot' {
+    return this.cloneContent ? 'clone-default-slot' : 'none';
+  }
+
+  /** @deprecated Compatibility adapter for pre-motion component callers. */
   override get cloneContent(): boolean {
     return !this.noContent;
   }
 
-  override animationRotates(beforeProps: Record<string, any>, afterProps: Record<string, any>): boolean {
+  override motionEndpointOrientation(
+    state: Readonly<Record<string, unknown>>,
+  ): 'natural' | 'quarter-turned' {
+    return state.rotated ? 'quarter-turned' : 'natural';
+  }
+
+  /** @deprecated Compatibility adapter for pre-motion geometry callers. */
+  override animationRotates(
+    beforeProps: Record<string, any>,
+    afterProps: Record<string, any>,
+  ): boolean {
     return beforeProps.rotated !== afterProps.rotated;
+  }
+
+  /** Legacy subclass rotation policy is authoritative when overridden. */
+  override legacyAnimationRotationRequested(
+    beforeProps: Record<string, any>,
+    afterProps: Record<string, any>,
+  ): boolean | null {
+    if (this.animationRotates === BoardgameCard.prototype.animationRotates) return null;
+    return this.animationRotates(beforeProps, afterProps);
   }
 
   private _frontChanged() {
@@ -387,7 +455,7 @@ export class BoardgameCard extends BoardgameComponent {
               </slot>
             </div>
             <div class="fallback">
-              <slot name="fallback"></slot>
+              <slot name="motion-history"><slot name="fallback"></slot></slot>
             </div>
           </div>
           <div id="back">

@@ -29,7 +29,7 @@ export class BoardgameRenderGamePig extends GameRenderer {
   override effectsForTransition(
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
-    if (context.kind === 'initial' || context.move?.Name !== MoveNames.RollDice) return [];
+    if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.RollDice) return [];
     const die = context.after.Game.Die.Components[0];
     if (!isVisibleComponent(die)) return [];
     const value = die.DynamicValues?.Value;

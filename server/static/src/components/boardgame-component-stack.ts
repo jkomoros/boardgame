@@ -6,6 +6,8 @@ import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 import type { BoardgameComponent } from './boardgame-component.js';
 import type { ComponentView } from './component-view.js';
 import { createComponentForView, sameComponentViewRecipe, updateComponentFromView } from './component-view.js';
+import { compileMotionPresence } from '../motion/presence.js';
+import type { MotionPresenceFacts, MotionPresencePolicy } from '../motion/presence.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -332,6 +334,10 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   stagger = 0;
 
+  /** Visual policy for an inferred collection endpoint with no exact host. */
+  @property({ attribute: false })
+  motionPresence: MotionPresencePolicy = 'scale-fade';
+
   @query('#container')
   private container!: HTMLElement;
 
@@ -566,31 +572,109 @@ export class BoardgameComponentStack extends LitElement {
     return maxVal;
   }
 
-  setUnknownAnimationState(card: any) {
+  motionPresenceFacts(): MotionPresenceFacts {
+    return compileMotionPresence(this.motionPresence);
+  }
+
+  /** @deprecated Configure motionPresence instead. */
+  setUnknownAnimationState(card: any): void {
     card.style.transform = 'scale(0.6)';
     card.style.opacity = '0.0';
   }
 
-  newAnimatingComponent(): any {
-    // Animating orphans must be fresh hosts; borrowing a live/pool host would
-    // corrupt stable identity and ownership in the source or destination stack.
-
+  private _freshAnimatingComponent(): any {
     if (!this.componentView) {
       throw new Error('boardgame-component-stack: cannot animate without .componentView');
     }
-    const component = createComponentForView(this.componentView);
+    return createComponentForView(this.componentView);
+  }
+
+  /**
+   * @deprecated Use newMotionCarrier(). This retains the old mutable carrier
+   * contract for stack subclasses and direct callers.
+   */
+  newAnimatingComponent(): any {
+    const component = this._freshAnimatingComponent();
+    const typedComponent = component as unknown as BoardgameComponentElement & {
+      prepareForBeingAnimatingComponent?: (stack: any) => void;
+    };
+    typedComponent.noAnimate = true;
+    typedComponent.prepareForBeingAnimatingComponent?.(this);
+    this.setUnknownAnimationState(component);
+    this.animatingComponentsContainer.appendChild(component);
+    return component;
+  }
+
+  /** Capture a legacy presence override without changing a live component's rest style. */
+  motionPresenceStyleFor(component: any): Readonly<{ transform: string; opacity: string }> {
+    const facts = this.motionPresenceFacts();
+    if (this.setUnknownAnimationState
+      === BoardgameComponentStack.prototype.setUnknownAnimationState) {
+      return Object.freeze({
+        transform: facts.scale === 1 ? '' : `scale(${facts.scale})`,
+        opacity: String(facts.opacity),
+      });
+    }
+    const transform = component.style.transform;
+    const opacity = component.style.opacity;
+    try {
+      this.setUnknownAnimationState(component);
+      return Object.freeze({
+        transform: component.style.transform,
+        opacity: component.style.opacity || '1',
+      });
+    } finally {
+      component.style.transform = transform;
+      component.style.opacity = opacity;
+    }
+  }
+
+  newMotionCarrier(): {
+    component: any;
+    defaults: Readonly<Record<string, unknown>>;
+    presence: MotionPresenceFacts;
+    presenceStyle?: Readonly<{ transform: string; opacity: string }>;
+  } {
+    // Animating orphans must be fresh hosts; borrowing a live/pool host would
+    // corrupt stable identity and ownership in the source or destination stack.
+
+    const legacyFactory = this.newAnimatingComponent
+      !== BoardgameComponentStack.prototype.newAnimatingComponent;
+    const component = legacyFactory
+      ? this.newAnimatingComponent()
+      : this._freshAnimatingComponent();
 
     const typedComponent = component as unknown as BoardgameComponentElement;
     typedComponent.noAnimate = true;
 
-    // Defensive check: Only call if method exists (safety net)
-    if (typeof typedComponent.prepareForBeingAnimatingComponent === 'function') {
-      typedComponent.prepareForBeingAnimatingComponent(this);
+    const defaults = Object.freeze({ ...typedComponent.animatingPropDefaults(this) });
+    if (!legacyFactory && typeof typedComponent.prepareMotionCarrier === 'function') {
+      typedComponent.prepareMotionCarrier(defaults, this);
     }
 
-    this.setUnknownAnimationState(component);
-    this.animatingComponentsContainer.appendChild(component);
-    return component;
+    const presence = this.motionPresenceFacts();
+    let presenceStyle: Readonly<{ transform: string; opacity: string }> | undefined;
+    if (legacyFactory) {
+      presenceStyle = Object.freeze({
+        transform: component.style.transform,
+        opacity: component.style.opacity || '1',
+      });
+    } else if (this.setUnknownAnimationState
+      !== BoardgameComponentStack.prototype.setUnknownAnimationState) {
+      this.setUnknownAnimationState(component);
+      presenceStyle = Object.freeze({
+        transform: component.style.transform,
+        opacity: component.style.opacity || '1',
+      });
+    }
+    component.id = '';
+    component.inert = true;
+    component.setAttribute('aria-hidden', 'true');
+    component.style.pointerEvents = 'none';
+    if (component.parentNode !== this.animatingComponentsContainer) {
+      this.animatingComponentsContainer.appendChild(component);
+    }
+    return Object.freeze({ component, defaults, presence, ...(presenceStyle ? { presenceStyle } : {}) });
   }
 
   clearAnimatingComponents() {

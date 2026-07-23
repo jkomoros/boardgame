@@ -369,6 +369,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Object, attribute: false })
   _animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
 
+  @property({ type: Boolean, attribute: false })
+  _legacyAnimationOverlapConfigured = false;
+
   @property({ type: Object, attribute: false })
   _chest: GameChest | null = null;
 
@@ -574,6 +577,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   private _tableLeaseRefreshSignature = '';
   private _tableSessionStateSignature = '';
   private _focusedTableTerminalSignature = '';
+  private _motionCycleId = 0;
 
   @property({ type: Object, attribute: false }) private _tableTransferOffer: TableTransferOffer | null = null;
   @property({ type: Boolean, attribute: false }) private _tableTransferOpen = false;
@@ -604,6 +608,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.addEventListener('install-state-bundle', (e: Event) => this._handleStateBundle(e as CustomEvent));
     this.addEventListener('install-game-static-info', (e: Event) => this._handleGameStaticInfo(e as CustomEvent));
     this.addEventListener('all-animations-done', (e: Event) => this._handleAllAnimationsDone(e));
+    this.addEventListener('motion-cycle-release', (e: Event) => this._handleMotionCycleRelease(e as CustomEvent));
     this.addEventListener('set-animation-length', (e: Event) => this._handleSetAnimationLength(e as CustomEvent));
     this.addEventListener('animating-changed', (e: Event) => this._handleAnimatingChanged(e as CustomEvent));
     this.addEventListener(TIMER_SERVICE_REQUEST_EVENT, (event: Event) => {
@@ -689,6 +694,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .gameVersion=${this.game ? this.game.Version : 0}
           .snapshotEpoch=${this._moveSnapshotEpoch}
           .projectedMoveChoicesWire=${this._projectedMoveChoices}
+          .motionCycleId=${this._motionCycleId}
+          .legacyAnimationOverlapConfigured=${this._legacyAnimationOverlapConfigured}
           .proposingAsPlayer=${this._proposingAsPlayer}
           .proposingAsAdmin=${this._admin}
           .moveTransport=${this._moveTransport}
@@ -1423,15 +1430,27 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner, bundle.companionInfo));
   }
 
-  private _handleAllAnimationsDone(e: Event) {
+  private _forwardCycleRelease(cycleId: unknown): void {
+    if (!Number.isInteger(cycleId) || cycleId !== this._motionCycleId) return;
     // Dispatch custom event for animation coordination
     // The manager element will listen for this and handle it
     if (this._managerEle) {
       this._managerEle.dispatchEvent(new CustomEvent('ready-for-next-state', {
         bubbles: true,
-        composed: true
+        composed: true,
+        detail: Object.freeze({ cycleId }),
       }));
     }
+  }
+
+  private _handleAllAnimationsDone(e: Event) {
+    this._forwardCycleRelease((e as CustomEvent).detail?.cycleId);
+  }
+
+  private _handleMotionCycleRelease(e: CustomEvent) {
+    // Companion slots are server-owned; local progress must never advance them.
+    if (this._animationContext !== null) return;
+    this._forwardCycleRelease(e.detail?.cycleId);
   }
 
   private _handleSetAnimationLength(e: CustomEvent) {
@@ -1469,6 +1488,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.viewingAsPlayer = 0;
     this._moveInputSchemaFingerprint = null;
     this._animationContext = null;
+    this._motionCycleId = 0;
+    this._legacyAnimationOverlapConfigured = false;
     this._installedMove = null;
     this._projectedMoveChoices = null;
     this._moveSnapshotEpoch += 1;
@@ -1480,6 +1501,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // render-game wrapper applies it to the shared animator before assigning
     // the new state to the game renderer.
     this._animationContext = bundle.animationContext ?? null;
+    this._motionCycleId = bundle.motionCycleId ?? 0;
+    this._legacyAnimationOverlapConfigured = bundle.legacyAnimationOverlapConfigured === true;
     this._installedMove = bundle.move;
     this._projectedMoveChoices = bundle.projectedMoveChoices;
     this._moveSnapshotEpoch += 1;

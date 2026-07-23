@@ -5,6 +5,8 @@ import type { FullGameState } from '../types/boardgame-types.js';
 import type { MoveChoiceProjectionTypes } from '../moves/projected-choices.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
+import type { EffectTransitionContext } from '../effects/effect-spec.js';
+import type { MotionTransferDeclaration } from '../motion/transfer.js';
 
 /**
  * BoardgameHandViewBase is the base class for the Hand view renderer that
@@ -19,8 +21,8 @@ import { glyphForSlug } from './companion-avatar-catalog.js';
  * animation hooks, then adds a `playerState` convenience getter that
  * returns this.state.Players[this.viewingAs]. That's intentionally
  * sparse: the Hand view has no avatar strip or host controls (those are
- * Table-view-only). Phase 4's top-edge off-screen anchor for cross-screen
- * animations is also wired here; V1 ships the prop surface only.
+ * Table-view-only). It also supplies the top-edge anchor and the historical
+ * incoming-card compatibility default for cross-screen presentation.
  */
 export class BoardgameHandViewBase<
   S extends FullGameState<object, object, object, object, object>,
@@ -65,21 +67,17 @@ export class BoardgameHandViewBase<
   }
 
   /**
-   * When true (the default), the base watches this player's own state for
-   * newly-arrived card ids and flies them in from the top-edge anchor
-   * automatically — the phone half of the cross-screen deal animation,
-   * with zero author wiring. "Newly arrived" means an id that appears in
-   * any Stack-shaped property of playerState and was not present in ANY
-   * of them on the previous state (so cards shuffling between the
-   * player's own stacks don't retrigger). Games whose incoming-card
-   * semantics don't fit (or that wire bespoke animations) set this false
-   * and call this.animator.animateBetween themselves.
+   * When true (the default), the base preserves the existing automatic Hand
+   * choreography: new own-card IDs launch simultaneous animateBetween flights
+   * from the top edge in their already-final visual pose. Moving among the
+   * player's stacks does not retrigger. New authored choreography belongs in
+   * motionTransfersForTransition(); set this false when opting into it.
    */
   @property({ type: Boolean })
   autoFlyIncoming = true;
 
-  // null = no baseline yet (first render / reload mid-game): we record
-  // what's already there without animating it.
+  // Compatibility baseline. A first render or identity change records the
+  // visible hand without replaying cards that were already present.
   private _prevOwnCardIds: Set<string> | null = null;
 
   // Buzz the phone when it becomes this player's turn — the player's eyes
@@ -90,15 +88,7 @@ export class BoardgameHandViewBase<
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
-    if (changedProperties.has('viewingAsPlayer')) {
-      // The first state can install while we're still resolving as an
-      // observer — playerState is undefined then, and a baseline recorded
-      // at that moment is empty-but-non-null. When the seat identity
-      // resolves a beat later, every long-held card would diff as
-      // "incoming" and the whole hand would replay from the top edge.
-      // Identity changed ⇒ start the baseline over.
-      this._prevOwnCardIds = null;
-    }
+    if (changedProperties.has('viewingAsPlayer')) this._prevOwnCardIds = null;
     const myTurn = this.isCurrentPlayer && !this.gameFinished;
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a
@@ -109,30 +99,27 @@ export class BoardgameHandViewBase<
     }
     this._wasMyTurn = myTurn;
     if (!changedProperties.has('state')) return;
-    // Keep the baseline current even when auto-fly is off, so toggling
-    // the flag back on doesn't diff against a stale snapshot and fly in
-    // every card at once.
-    const ids = this._collectOwnCardIds();
-    const prev = this._prevOwnCardIds;
+    const ids = this._collectCardIds(this.playerState);
+    const previous = this._prevOwnCardIds;
     this._prevOwnCardIds = ids;
-    if (!this.autoFlyIncoming) return;
-    if (prev === null) return;
-    const incoming = [...ids].filter((id) => !prev.has(id));
+    if (!this.autoFlyIncoming || previous === null) return;
+    const incoming = [...ids].filter(id => !previous.has(id));
     if (incoming.length === 0) return;
     const anchor = this.shadowRoot?.getElementById('hand-top-edge') ?? 'hand-top-edge';
-    // The card elements are rendered by child <boardgame-component-stack>
-    // elements that re-render asynchronously after receiving the new
-    // state; wait two frames so the new cards exist before we measure.
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      for (const id of incoming) {
-        this.animator?.animateBetween(id, anchor, 600);
-      }
+      for (const id of incoming) void this.animator?.animateBetween(id, anchor, 600);
     }));
   }
 
-  private _collectOwnCardIds(): Set<string> {
+  override motionTransfersForTransition(
+    context: EffectTransitionContext<S, MN>,
+  ): readonly MotionTransferDeclaration[] {
+    return super.motionTransfersForTransition(context);
+  }
+
+  private _collectCardIds(player: S['Players'][number] | undefined): Set<string> {
     const out = new Set<string>();
-    const ps = this.playerState as Record<string, unknown> | undefined;
+    const ps = player as Record<string, unknown> | undefined;
     if (!ps) return out;
     for (const value of Object.values(ps)) {
       const ids = (value as { IDs?: unknown })?.IDs;
@@ -215,13 +202,9 @@ export class BoardgameHandViewBase<
    * edge of the Hand view, representing "from/to the Table". Cards dealt
    * to this player should be animated from this anchor; cards played
    * should exit through it. The element has a stable id ("hand-top-edge")
-   * so authors can call this.animator.animateBetween(realCardId,
-   * "hand-top-edge", durationMs) to wire deal/play animations.
-   *
-   * V1 ships the anchor element only — game authors wire the actual
-   * animation calls from their own renderer's state-change reactions.
-   * The base doesn't auto-detect deals because deal-ness is game-
-   * specific (which moves count as "incoming card from Table"?).
+   * so both compatibility flights and transfer declarations can name it as
+   * arrival geometry. Games with more precise deal semantics disable the
+   * compatibility default and override motionTransfersForTransition().
    */
   protected renderTopEdgeAnchor(): TemplateResult {
     return html`<div class="hand-top-edge-anchor" id="hand-top-edge"></div>`;

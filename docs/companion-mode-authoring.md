@@ -145,32 +145,61 @@ Works out of the box for card games:
   appearing in your player's own stacks flies in from the top edge.
 - **Table side** (`autoFlyDeals`, default on): mark your draw pile with
   `id="deal-source"`; when a player's hand grows, their name-stub flies
-  from the deck toward the bottom edge. No element = no animation — the
-  id's presence is the entire opt-in.
+  from the deck toward the bottom edge. These compatibility flights preserve
+  the existing concurrent, decorative `animateBetween()` behavior: they do not
+  join structural settlement or acquire stack stagger/presence policy.
 - Bespoke needs: set the flags false and call
-  `this.animator?.animateBetween(cardIdOrElement, targetIdOrElement, ms)`.
-  The first argument visually ARRIVES FROM the second's position. The framework
+  `this.animator?.fly({ subjectId, source, carrier, durationMs })`.
+  `carrier` is the retained element that animates from `source` geometry back
+  to its own natural position. This is intentionally an arrival primitive, not
+  an arbitrary from/to path or a source-carried departure. The framework
   automatically schedules this against the current version's cross-screen
   timeline; there is no timing property to pass through your renderer.
 - For an intentionally local effect (for example, a tap flourish that has no
   matching event on another screen), opt out explicitly:
-  `this.animator?.animateBetween(card, source, 300, { timing: 'immediate' })`.
+  `this.animator?.fly({ subjectId: card.id, source, carrier: card,
+  durationMs: 300, timing: 'immediate' })`.
   Advanced code may instead use
   `{ timing: { localStartAtMs: someTimestamp } }`.
+
+The Table default knows only that a sanitized aggregate count grew, not which
+private card crossed screens. Subclasses that override
+`motionTransfersForTransition()` should spread `super`, but the compatibility
+default itself does not claim declarative subjects or carriers. Games that need exact cross-device card
+correlation require a privacy-reviewed server transfer envelope; the client
+does not infer it from hidden IDs.
 
 Each game version owns its own animation slot. Rapid automatic/fix-up moves are
 spaced on the server's per-game lane, and queued HTTP state bundles retain their
 matching slot. The protocol currently reserves 800ms per synchronized version:
 up to 600ms of visible motion and 200ms to prepare the next queued state. The
 framework applies the slot to its whole animation pipeline: ordinary FLIP
-movement, card/die property effects, automatic deals, and `animateBetween`
-calls. Visible motion is capped at 600ms and `animationOverlap` is disabled for
+movement, card/die property effects, automatic deals, and `fly()`
+calls. Visible motion is capped at 600ms and early structural queue release is disabled for
 those cycles; use immediate timing for a longer effect that has no cross-screen
 counterpart. State installs during the 200ms preparation window before the
 target, and WAAPI holds each opening frame until launch. A client joining a
 cycle late receives only its remaining visible-motion budget, so it cannot
 spill into the next slot. If timing is unavailable or no visible budget remains,
 the context is discarded completely and state installs immediately.
+
+The automatic Table and Hand detections are deliberately local, lossy
+compatibility policies. The
+Table knows only that a player's visible hand count grew; the Hand can know its
+new private card ids. They share a version slot, but the framework does not yet
+claim that those observations are a correlated cross-device transfer event.
+`animateBetween()` remains as a source- and behavior-compatible lane for these
+defaults while games migrate; its argument order should not be used in new code.
+
+For authoritative game-authored presentation, prefer
+`motionTransfersForTransition(context)` and return `motion.transfer(...)`
+declarations derived from `context.move.AnimationKey` and explicitly disclosed
+move properties. The framework validates and publishes the ordered declarations
+as one batch. Non-stack carriers such as Table stubs execute explicitly;
+after-only Hand cards consume the declaration inside automatic FLIP, preserving
+one owner for travel, presence, and card visual tracks. Declaration keys are local
+to one transition. Identical Table/Hand event correlation requires a shared,
+privacy-reviewed server token and is not inferred from local state deltas.
 
 Custom components that call the framework's `play()` inherit this policy too.
 Use `{ timing: 'immediate' }` as the fourth argument for a tap flourish or

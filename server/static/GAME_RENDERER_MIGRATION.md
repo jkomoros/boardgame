@@ -398,6 +398,13 @@ override delayAnimation(fromMove: any, toMove: any): number {
 
 ### animationOverlap(fromMove, toMove): number
 
+> Compatibility note: this hook remains supported with its original
+> successor-aware, fraction-of-`animationLength` behavior. It takes precedence
+> over `motionReleaseForTransition()` when overridden. New renderers should use
+> `motionReleaseForTransition()` for cutover tied to actual structural progress;
+> that newer hook intentionally does not replace policies that inspect
+> `toMove`.
+
 **Purpose:** Allow the next state to be installed before the current animation finishes, creating overlapping animations.
 
 **Return Values:**

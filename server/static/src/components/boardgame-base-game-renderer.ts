@@ -13,6 +13,9 @@ import type {
   EffectTheme,
   EffectTransitionContext,
 } from '../effects/effect-spec.js';
+import type { MotionStaggerCohortSpec } from '../motion/cohort.js';
+import type { MotionTransferDeclaration } from '../motion/transfer.js';
+import type { MotionReleaseDeclaration } from '../motion/release.js';
 import {
   serializeCreatorMoveInputForServer,
   validateCreatorMoveInput,
@@ -240,7 +243,8 @@ export class BoardgameBaseGameRenderer<
    * The FLIP animator that wraps this renderer. Renderers live inside
    * boardgame-render-game's #container, a sibling of the #animator element
    * in the same shadow root. Use for one-off cross-screen animations:
-   * `this.animator?.animateBetween(cardId, 'hand-top-edge')`. Null before
+   * `this.animator?.fly({ subjectId: cardId, source: 'hand-top-edge',
+   * carrier: cardId })`. Null before
    * the renderer is attached (or in tests outside boardgame-render-game).
    */
   protected get animator(): ComponentAnimatorAPI | null {
@@ -272,6 +276,39 @@ export class BoardgameBaseGameRenderer<
    */
   effectsForTransition(_context: EffectTransitionContext<S, MN>): readonly EffectSpec[] {
     return [];
+  }
+
+  /**
+   * Pure structural start scheduling for one authoritative transition.
+   * Subject array order is the cadence order. Effects remain observational
+   * and cannot retime this motion.
+   */
+  motionCohortsForTransition(
+    _context: EffectTransitionContext<S, MN>,
+  ): readonly MotionStaggerCohortSpec[] {
+    return [];
+  }
+
+  /**
+   * Pure, transition-local retained-carrier presentation intent. `key` is
+   * unique only within this installed transition; it is not cross-device
+   * identity unless the server exposes an identical safe token to each view.
+   */
+  motionTransfersForTransition(
+    _context: EffectTransitionContext<S, MN>,
+  ): readonly MotionTransferDeclaration[] {
+    return [];
+  }
+
+  /**
+   * Pure policy for admitting an already-buffered successor before this
+   * structural cycle settles. This is a destructive cutover: the next install
+   * terminalizes this generation; it is not concurrent multi-generation motion.
+   */
+  motionReleaseForTransition(
+    _context: EffectTransitionContext<S, MN>,
+  ): MotionReleaseDeclaration | null {
+    return null;
   }
 
   /**
@@ -462,16 +499,17 @@ export class BoardgameBaseGameRenderer<
   // animation length (in milliseconds) by setting `--animation-length` on the
   // renderer. Zero will specify default animation length (that is, unset an
   // override style). A negative return value will skip the animation entirely.
-  // The default one returns 0 for all combinations. See also animationOverlap.
+  // The default one returns 0 for all combinations.
   animationLength(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }
 
-  // animationOverlap returns a fraction (0-1) of the animation length after
-  // which the next state can be installed, even if the current animation is
-  // still running. 0 (default) = wait for animation to complete (no overlap).
-  // 0.5 = start next animation when this one is halfway done. Values outside
-  // 0-1 are clamped. See also animationLength.
+  /**
+   * Compatibility state-clock cutover. Unlike motionReleaseForTransition(),
+   * this can inspect the already-buffered successor and retains its historical
+   * fraction-of-animationLength semantics. An override takes precedence over
+   * motionReleaseForTransition() for that renderer.
+   */
   animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }

@@ -97,4 +97,8 @@ export interface StateBundle {
   projectedMoveChoices: ProjectedMoveChoicesWire | null;
   /** Scoped animation policy reserved for this exact companion version. */
   animationContext?: VersionAnimationContext | null;
+  /** Opaque local identity for exactly one installed animation cycle. */
+  motionCycleId?: number;
+  /** This cycle is governed by the renderer's legacy state-clock overlap hook. */
+  legacyAnimationOverlapConfigured?: boolean;
 }

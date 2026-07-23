@@ -3719,24 +3719,35 @@ burst when the second revealed card matches:
 override effectsForTransition(
   context: EffectTransitionContext<State, MoveName>,
 ): readonly EffectSpec[] {
-  if (context.kind === 'initial' || context.move?.Name !== MoveNames.RevealCard) {
+  if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.RevealCard) {
     return [];
   }
   const revealed = context.after.Game.VisibleCards.Components
     .filter(isVisibleComponent);
+  const previouslyRevealed = new Set(
+    context.before.Game.VisibleCards.Components
+      .filter(isVisibleComponent)
+      .map(card => card.ID),
+  );
+  const newlyRevealed = revealed.find(card => !previouslyRevealed.has(card.ID));
   const isMatch = revealed.length === 2
     && revealed[0]!.Values.Type === revealed[1]!.Values.Type;
+  const revealPoint = newlyRevealed
+    ? fx.motion(newlyRevealed.ID)
+    : fx.anchor('memory-cards');
 
   return [fx.parallel([
     fx.pulse({
-      at: fx.anchor('memory-cards'),
+      at: revealPoint,
       tone: isMatch ? 'reward' : 'attention',
       intensity: isMatch ? 'medium' : 'small',
+      timing: newlyRevealed ? 'immediate' : 'version',
     }),
     ...(isMatch ? [fx.burst({
-      at: fx.anchor('memory-cards'),
+      at: revealPoint,
       tone: 'reward',
       intensity: 'medium',
+      timing: newlyRevealed ? 'immediate' : 'version',
     })] : []),
   ], {
     key: 'reveal-card',
@@ -3745,7 +3756,11 @@ override effectsForTransition(
 }
 ```
 
-The renderer marks the corresponding element with a scoped, stable anchor:
+`fx.motion(id)` follows the framework's measured structural lifecycle for that
+component ID, including a stationary card-face morph. It reads immutable
+geometry and timing; it does not clone the card or compete for its transform.
+The stable DOM anchor is an honest fallback when there is no newly revealed
+subject. The renderer marks that fallback with a scoped name:
 
 ```ts
 html`<boardgame-component-stack
@@ -3765,55 +3780,50 @@ For feedback that is genuinely local—such as acknowledging a selection before
 it proposes a move—use `this.effects?.play(fx.pulse({ at: element, ... }))`.
 Do not use that imperative path for authoritative outcomes. See
 [`docs/animation-effects.md`](docs/animation-effects.md) for composition,
-themes, disappearing anchors, lifecycle results, and advanced customization.
+themes, disappearing anchors, lifecycle results, `fx.trail()` effects that
+follow real structural travel, and advanced customization.
 
-The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
+#### Choosing the right animation layer
 
-Sometimes you want animations to overlap rather than playing fully sequentially. For example, when dealing cards to players, you might want the next card to start moving before the previous one has finished. If your game renderer defines `animationOverlap(fromMove, toMove)`, it will be consulted before each state bundle is installed. The return value is a fraction between 0 and 1 representing how much of the current animation should play before the next state is installed. A return value of 0 (the default) means the current animation must complete entirely before the next state is applied. A value of 0.5 means the next state will be installed when the current animation is 50% complete. Values outside the 0-1 range are clamped. This is useful for cascade effects where multiple animations should overlap smoothly instead of playing one after another.
+Most games should stop with automatic component motion plus
+`effectsForTransition()`. The framework already makes a card or piece travel,
+resize, appear, disappear, turn, flip, and settle as one coherent transition.
+Effects observe that transition to explain its meaning; they do not replace its
+movement or hold the state queue.
 
-These controls compose cleanly: `animationLength` controls motion duration (or
-skips an intermediate bundle with a negative value), `post-animation-delay`
-holds a component's completed state, and `animationOverlap` lets a solo cycle
-install its next state before the current cycle finishes.
+When a game genuinely needs more choreography, use the narrowest extension
+point that expresses it:
 
-Companion Table/Hand surfaces add one deliberate constraint: animation cycles
-that must agree across physical screens use the framework's version timeline.
-The current protocol gives each version an 800ms slot—at most 600ms of motion
-plus 200ms to render and pre-arm the next state. For these synchronized cycles,
-the framework budgets each component's stagger, visible duration, and
-`post-animation-delay` together inside the remaining 600ms motion window. An
-effect whose stagger would begin after that window is omitted; an oversized
-hold shortens visible motion rather than delaying later slots. Ordinary FLIP
-and property effects use the same policy as `animateBetween`, and
-`animationOverlap` is disabled. Solo games and explicitly local effects retain
-the normal behavior above.
+- `fx.decorateMotion()` and `fx.afterMotion()` attach trails, endpoint cues, or
+  a completion flourish to automatic structural motion.
+- `motionCohortsForTransition()` with `motion.stagger()` gives several moving
+  components an explicit, deterministic start order.
+- `motionTransfersForTransition()` with `motion.transfer()` declares that a
+  retained presentation carrier should arrive from named source geometry.
+- `motionReleaseForTransition()` with `motion.release()` is the advanced escape
+  hatch for admitting an already-buffered solo state after real structural
+  motion reaches a milestone.
 
-Game renderers normally need no timing code. A call such as
-`this.animator?.animateBetween(card, source, 300)` automatically uses the
-installed version's companion slot. For an effect that exists only on this
-screen, say so explicitly:
+These layers stay separate on purpose: effects communicate meaning, cohorts
+schedule starts, transfers supply spatial intent, and releases control queue
+cutover. Prefer small typed helpers returning `EffectSpec` over a global preset
+registry when a game repeats a visual phrase.
 
-```ts
-this.animator?.animateBetween(card, source, 900, { timing: 'immediate' });
-```
+Animation hooks see only viewer-safe state and `ClientMove` metadata. A local
+effect or transfer key does not reveal hidden component identity and must not
+be treated as a cross-device correlation token. Companion Table and Hand
+surfaces use framework-owned version timing; ordinary game renderers rarely
+need custom timing code.
 
-Custom animatable components use the identical policy through `play()`:
-
-```ts
-this.play(this, keyframes, { duration: 300 }); // current version slot
-this.play(this, keyframes, { duration: 300 }, { timing: 'immediate' });
-```
-
-Advanced test or orchestration code can instead pass
-`{ timing: { localStartAtMs: timestamp } }`. See
-`docs/companion-mode-authoring.md` for the complete Table/Hand conventions.
-That framework also owns the end of the companion journey: after a finished
-game, its Table and Hands can play again with the same seats and identities and
-will automatically follow the single prepared successor. Game renderers do not
-implement rematch controls or state copying.
-
-For a more thorough overview of how the animation system actually works, check
-out `server/static/src/ARCHITECTURE.md`.
+The complete subsystem guide is
+[`docs/animation-effects.md`](docs/animation-effects.md). It documents every
+recipe and hook, structural-motion decoration, composition, transfers,
+cohorts, release barriers, companion timing, reduced motion, lifecycle results,
+budgets, themes, configuration limits, and working examples. See
+[`docs/companion-mode-authoring.md`](docs/companion-mode-authoring.md) for the
+Table/Hand protocol and `server/static/src/ARCHITECTURE.md` for implementation
+internals such as continuity, geometry, track ownership, settlement, and queue
+gating.
 
 ### Creating a more production-ready server
 

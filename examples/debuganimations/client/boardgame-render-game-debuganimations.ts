@@ -11,9 +11,14 @@ import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
-import { cardView, fx, isStackLayout, tokenView } from '../../src/client.js';
+import { cardView, fx, isStackLayout, motion, tokenView } from '../../src/client.js';
 import type { ClientMove, StackLayout } from '../../src/client.js';
-import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
+import type {
+  EffectSpec,
+  EffectTransitionContext,
+  MotionReleaseDeclaration,
+  MotionStaggerCohortSpec,
+} from '../../src/client.js';
 import type { GameState, State } from './_types.js';
 import type { MoveName } from './_move_names.js';
 
@@ -195,33 +200,66 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
     return 0;
   }
 
-  override animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
-    if (!this.slowAnimations) return 0;
-    // When slow animations are enabled, overlap by 30% so multiple
-    // animations visually cascade instead of playing fully sequentially.
-    return 0.3;
+  override motionReleaseForTransition(
+    context: EffectTransitionContext<State, MoveName>,
+  ): MotionReleaseDeclaration | null {
+    if (!this.slowAnimations || context.kind === 'initial') return null;
+    return motion.release({ key: 'slow-animation-cutover', progress: 0.3 });
   }
 
   override effectsForTransition(
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
-    if (context.kind === 'initial' || context.move?.Name !== MoveNames.MoveToken) return [];
-    return [fx.sequence([
-      fx.travel({
-        from: fx.anchor('token-source'),
-        to: fx.anchor('token-destination'),
+    if (context.kind === 'initial') return [];
+    if (context.move?.AnimationKey === MoveNames.VisibleShuffle) {
+      const priorIndex = new Map(
+        context.before.Game.FanStack.IDs.map((id, index) => [id, index]),
+      );
+      const moved = context.after.Game.FanStack.IDs.filter(
+        (id, index) => priorIndex.get(id) !== index,
+      );
+      return moved.length === 0 ? [] : [fx.afterMotion({
+        key: 'visible-shuffle-complete',
+        subjects: moved,
+        effect: fx.burst({
+          at: fx.anchor('visible-shuffle'),
+          tone: 'magic',
+          intensity: 'small',
+          timing: 'immediate',
+        }),
+      })];
+    }
+    if (context.move?.AnimationKey !== MoveNames.MoveToken) return [];
+    const beforeFrom = new Set(context.before.Game.TokensFrom.IDs);
+    const movedTokenId = context.after.Game.TokensFrom.IDs.find(id => !beforeFrom.has(id))
+      ?? context.before.Game.TokensFrom.IDs.find(
+        id => !context.after.Game.TokensFrom.IDs.includes(id),
+      );
+    if (!movedTokenId) return [];
+    return [fx.decorateMotion({
+      subject: movedTokenId,
+      trail: {
         tone: 'magic',
         intensity: 'small',
-      }),
-      fx.burst({
-        at: fx.anchor('token-destination'),
+      },
+      arrival: fx.burst({
+        at: fx.motion(movedTokenId),
         tone: 'reward',
         intensity: 'small',
+        timing: 'immediate',
       }),
-    ], {
       key: 'token-transfer',
-      timing: 'version',
-      gapMs: 20,
+    })];
+  }
+
+  override motionCohortsForTransition(
+    context: EffectTransitionContext<State, MoveName>,
+  ): readonly MotionStaggerCohortSpec[] {
+    if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.VisibleShuffle) return [];
+    return [motion.stagger({
+      key: 'visible-shuffle-cascade',
+      subjects: context.after.Game.FanStack.IDs,
+      intervalMs: 45,
     })];
   }
 
@@ -356,7 +394,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           <boardgame-action-button .action=${this.move(MoveNames.FlipCardBetweenHiddenAndRevealed)}>Flip</boardgame-action-button>
         </div>
 
-        <div id="fan">
+        <div id="fan" data-effect-anchor="visible-shuffle">
           <boardgame-component-stack
             layout="${this.fromStackLayout}"
             ?messy="${this.messy}"

@@ -8,6 +8,8 @@ import { apiHttpPost, buildGameUrl, type ApiResponse } from '../api.js';
 import { decodeHostActionResponse } from '../types/host-action-response.js';
 import { apiPath } from '../util.js';
 import './boardgame-game-outcome.js';
+import type { EffectTransitionContext } from '../effects/effect-spec.js';
+import type { MotionTransferDeclaration } from '../motion/transfer.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -42,10 +44,9 @@ export interface SeatPresentation {
  * does NOT auto-inject anything into light DOM — that would conflict with
  * Lit's reactive contract.
  *
- * V1 ships the property surface; the helper-render IMPLEMENTATIONS are
- * stubs returning empty templates. Phase 3 fills in renderAvatarStrip /
- * renderHostControls once seatPresentation + presence wiring lands on the
- * client. Phase 4 fills in renderFakeDeckRow for cross-screen animations.
+ * The opt-in helpers are implemented here, including avatar/host chrome,
+ * outcome UI, the fake-deck row, and compatibility-preserving Table deal
+ * presentation.
  */
 export class BoardgameTableViewBase<
   S extends FullGameState<object, object, object, object, object>,
@@ -83,11 +84,12 @@ export class BoardgameTableViewBase<
   isHost = false;
 
   /**
-   * When true (the default), the base watches each player's hand size and,
-   * when it grows, flies that player's fake-deck-row stub in from the
-   * element the author marked id="deal-source" (typically the draw pile) —
-   * the projector half of the cross-screen deal animation. Rendering a
-   * #deal-source element is the entire opt-in; no element, no animation.
+   * When true (the default), the base preserves the historical decorative,
+   * concurrent stub flight for each player whose aggregate sanitized hand
+   * count grows. The element marked id="deal-source" supplies geometry for
+   * the projector half of the cross-screen deal. These flights do not join
+   * structural settlement. New choreography can disable this default and use
+   * motionTransfersForTransition().
    * Hand size = total length of all Stack-shaped playerState properties
    * (sanitized stacks still carry placeholder indexes, so counts survive
    * hiding). Set false for bespoke animation wiring.
@@ -95,41 +97,39 @@ export class BoardgameTableViewBase<
   @property({ type: Boolean })
   autoFlyDeals = true;
 
-  // null = no baseline yet; record without animating (reload mid-game).
+  // Compatibility baseline: the first visible snapshot establishes counts
+  // without replaying deals that happened before this renderer mounted.
   private _prevHandSizes: number[] | null = null;
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
     if (!changedProperties.has('state')) return;
-    // Keep the baseline current even when auto-fly is off, so toggling
-    // the flag back on doesn't diff against a stale snapshot and play a
-    // burst of spurious animations.
-    const sizes = this._handSizes();
-    const prev = this._prevHandSizes;
+    const sizes = this.state ? this._handSizes(this.state) : [];
+    const previous = this._prevHandSizes;
     this._prevHandSizes = sizes;
-    if (!this.autoFlyDeals) return;
-    if (prev === null) return;
+    if (!this.autoFlyDeals || previous === null) return;
     const source = this.shadowRoot?.getElementById('deal-source');
     if (!source) return;
     const grew = sizes
-      .map((n, i) => (n > (prev[i] ?? 0) ? i : -1))
-      .filter((i) => i >= 0);
+      .map((size, playerIndex) => size > (previous[playerIndex] ?? 0) ? playerIndex : -1)
+      .filter(playerIndex => playerIndex >= 0);
     if (grew.length === 0) return;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       for (const playerIndex of grew) {
         const stub = this.shadowRoot?.getElementById(`stub:p${playerIndex}:hand`);
-        if (!stub) continue;
-        // The stub starts at the deal source and flies to its spot at the
-        // bottom edge — visually, a card leaving the deck toward that
-        // player. The matching arrival plays on their phone (see
-        // BoardgameHandViewBase.autoFlyIncoming).
-        this.animator?.animateBetween(stub, source, 600);
+        if (stub) void this.animator?.animateBetween(stub, source, 600);
       }
     }));
   }
 
-  private _handSizes(): number[] {
-    const players = this.state?.Players ?? [];
+  override motionTransfersForTransition(
+    context: EffectTransitionContext<S, MN>,
+  ): readonly MotionTransferDeclaration[] {
+    return super.motionTransfersForTransition(context);
+  }
+
+  private _handSizes(state: S): number[] {
+    const players = state.Players ?? [];
     return players.map((p) => {
       let total = 0;
       for (const value of Object.values(p as Record<string, unknown>)) {
@@ -414,17 +414,15 @@ export class BoardgameTableViewBase<
    * Table view (spec §8). One stub stack per seated player, left-to-right
    * in seat order. Each stub element has id "stub:p<N>:hand" — a
    * synthetic ID distinct from any real component.id, so the FLIP
-   * animator's flat _infoById map can be addressed against it via
-   * animateBetween(realId, stubId) without colliding with real cards.
+   * animator's flat _infoById map cannot collide with real cards. The id is
+   * a private DOM anchor detail, not motion subject identity.
    *
-   * V1: stubs are rendered with low opacity at the bottom of the screen,
-   * one per seated player, with the seat's display-name visible. The
-   * actual card-flying animation is triggered by the game's renderer
-   * calling this.animator.animateBetween(...) when it detects a deal —
-   * the base doesn't auto-wire deal detection because that's game-
-   * specific (which moves are "deals" varies). The stub PRESENCE is the
-   * V1 deliverable; the animation TRIGGERING is left to the game author
-   * with a clear hook.
+   * Stubs are rendered with low opacity at the bottom of the screen, one per
+   * seated player, with the seat's display name visible. `autoFlyDeals`
+   * declares an arrival from #deal-source whenever adjacent sanitized
+   * snapshots show that player's aggregate hand count grow. Games with more
+   * precise semantics disable that lossy default and override
+   * motionTransfersForTransition().
    *
    * Future polish: position stubs at the screen edge (off-viewport) so
    * cards visually "fly off" toward the player; for V1 they're visible

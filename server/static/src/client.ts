@@ -12,22 +12,38 @@ export { BoardgameTableViewBase } from './components/boardgame-table-view-base.j
 export { BoardgameHandViewBase } from './components/boardgame-hand-view-base.js';
 export type { SeatPresentation } from './components/boardgame-table-view-base.js';
 export { defineEffectTheme, fx } from './effects/effect-spec.js';
+export { motion } from './motion/cohort.js';
+export type { MotionStaggerCohortSpec } from './motion/cohort.js';
+export type { MotionTransferDeclaration } from './motion/transfer.js';
+export type { MotionReleaseDeclaration } from './motion/release.js';
+export { motionSilhouette } from './motion/subject.js';
+export type {
+  MotionSilhouetteShape,
+  MotionSilhouetteSnapshot,
+  MotionSubjectSnapshot,
+} from './motion/subject.js';
 export type {
   BurstEffectSpec,
+  AfterMotionEffectSpec,
+  DecorateMotionEffectSpec,
   EffectAnchor,
   EffectHandle,
   EffectHostAPI,
   EffectIntensity,
+  EffectPointAnchor,
   EffectResult,
   EffectSpec,
   EffectTheme,
   EffectTone,
   EffectTransitionContext,
   NamedEffectAnchor,
+  MotionEffectAnchor,
+  MotionEffectMoment,
   ParallelEffectSpec,
   PointEffectAnchor,
   PulseEffectSpec,
   SequenceEffectSpec,
+  TrailEffectSpec,
   TravelEffectSpec,
 } from './effects/effect-spec.js';
 export { glyphForSlug } from './components/companion-avatar-catalog.js';

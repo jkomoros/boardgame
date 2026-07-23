@@ -48,7 +48,13 @@ import type { MoveForm, ProjectedMoveChoicesWire, ServerStateBundle } from '../t
 import { clientMoveFromWire } from '../types/client-move.js';
 import { decodeSocketFrame } from '../types/socket-frame.js';
 import type { HostedGameRenderer } from './boardgame-render-game.js';
+import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { retryDelayMs } from '../utils/retry-policy.js';
+import {
+  compileLegacyAnimationOverlap,
+  hasLegacyAnimationOverlap,
+} from '../motion/legacy-overlap.js';
+import { isCurrentMotionCycleRelease } from '../motion/release.js';
 
 // Matches --animation-length: 0.5s default in boardgame-game-view.ts
 const DEFAULT_ANIMATION_LENGTH_MS = 500;
@@ -154,11 +160,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Boolean, attribute: false })
   private _infoFetching = false;
 
-  private _overlapTimerId: ReturnType<typeof setTimeout> | null = null;
   private _scheduledInstallTimerId: ReturnType<typeof setTimeout> | null = null;
+  private _overlapTimerId: ReturnType<typeof setTimeout> | null = null;
   private _waitingForTimingVersion: number | null = null;
   // Invalidates timeout/RAF callbacks when a newer scheduling decision wins.
   private _installScheduleGeneration = 0;
+  private _motionCycleSequence = 0;
+  private _activeMotionCycleId = 0;
+  private _releasedMotionCycleId = 0;
 
   // Track previous values for change detection
   private _prevTargetVersion = -1;
@@ -192,7 +201,8 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _handleReadyForNextState(e: Event) {
-    this.readyForNextState();
+    const cycleId = (e as CustomEvent<{ cycleId?: number }>).detail?.cycleId;
+    this.readyForNextState(cycleId);
     e.stopPropagation();
   }
 
@@ -835,11 +845,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     this._clearInfoRetry(true);
     this._cancelInfoRequestFrame();
     this._installScheduleGeneration++;
+    this._activeMotionCycleId = ++this._motionCycleSequence;
+    this._releasedMotionCycleId = this._activeMotionCycleId;
     this._waitingForTimingVersion = null;
-    if (this._overlapTimerId !== null) {
-      clearTimeout(this._overlapTimerId);
-      this._overlapTimerId = null;
-    }
+    this._clearOverlapTimer();
     if (this._scheduledInstallTimerId !== null) {
       clearTimeout(this._scheduledInstallTimerId);
       this._scheduledInstallTimerId = null;
@@ -909,11 +918,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   // Called when gameView tells us to pass up the next state if we have one
   // (the animations are done).
-  readyForNextState() {
-    if (this._overlapTimerId !== null) {
-      clearTimeout(this._overlapTimerId);
-      this._overlapTimerId = null;
-    }
+  readyForNextState(cycleId?: number) {
+    if (!isCurrentMotionCycleRelease(
+      cycleId,
+      this._activeMotionCycleId,
+      this._releasedMotionCycleId,
+    )) return;
+    this._releasedMotionCycleId = cycleId;
+    this._clearOverlapTimer();
     if (this._scheduledInstallTimerId !== null) {
       clearTimeout(this._scheduledInstallTimerId);
       this._scheduledInstallTimerId = null;
@@ -930,7 +942,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     const generation = ++this._installScheduleGeneration;
     this._waitingForTimingVersion = null;
 
-    // A re-schedule (e.g. from readyForNextState(), the overlap timer, or a
+    // A re-schedule (e.g. from an exact-cycle release or a
     // fresh enqueue) supersedes any previously-armed scheduled-install
     // timer, so cancel it here to avoid arming a second timer that could
     // fire early or install twice within the up-to-2s companion-sync window.
@@ -1053,6 +1065,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     // Dequeue from Redux and fire event
     if (this._pendingBundles.length > 0) {
       const bundle = this._pendingBundles[0];
+      const motionCycleId = ++this._motionCycleSequence;
+      this._activeMotionCycleId = motionCycleId;
+      this._clearOverlapTimer();
+      const renderer = this.activeRenderer;
+      const legacyOverlapConfigured = !!renderer && hasLegacyAnimationOverlap(
+        renderer,
+        BoardgameBaseGameRenderer.prototype.animationOverlap,
+      );
       store.dispatch(dequeueStateBundle());
       if (animationContext) {
         animHooks.record('install', undefined, {
@@ -1063,30 +1083,43 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this.dispatchEvent(new CustomEvent('install-state-bundle', {
         composed: true,
         bubbles: true,
-        detail: { ...bundle, animationContext },
+        detail: {
+          ...bundle,
+          animationContext,
+          motionCycleId,
+          legacyAnimationOverlapConfigured: legacyOverlapConfigured,
+        },
       }));
       if (this.gameRoute && Number.isInteger(bundle.game?.Version)) {
         companionTimeline.forgetVersion(this.gameRoute.id, bundle.game.Version);
       }
-
-      // Check for overlap: start next animation early if renderer requests it
-      if (this._pendingBundles.length > 0 && animationContext === null) {
-        const renderer = this.activeRenderer;
-        if (renderer?.animationOverlap) {
-          const nextBundle = this._pendingBundles[0];
-          const fraction = Math.max(0, Math.min(1,
-            renderer.animationOverlap(bundle.move, nextBundle?.move ?? null)
-          ));
-          if (fraction > 0 && fraction < 1) {
-            const overlapMs = fraction * effectiveAnimationLength;
-            this._overlapTimerId = setTimeout(() => {
-              this._overlapTimerId = null;
-              this._scheduleNextStateBundle();
-            }, overlapMs);
-          }
+      // Preserve the historical hook exactly: it is a solo-only state-clock
+      // delay based on animationLength and the already-buffered successor. The
+      // callback still enters through the exact-cycle token gate, so a stale
+      // timeout can never advance a newer installation.
+      const successor = this._pendingBundles[0] ?? null;
+      if (renderer && successor && animationContext === null) {
+        const legacyOverlap = compileLegacyAnimationOverlap(
+          renderer,
+          BoardgameBaseGameRenderer.prototype.animationOverlap,
+          bundle.move,
+          successor.move,
+          effectiveAnimationLength,
+        );
+        if (legacyOverlap.delayMs !== null) {
+          this._overlapTimerId = setTimeout(() => {
+            this._overlapTimerId = null;
+            this.readyForNextState(motionCycleId);
+          }, legacyOverlap.delayMs);
         }
       }
     }
+  }
+
+  private _clearOverlapTimer(): void {
+    if (this._overlapTimerId === null) return;
+    clearTimeout(this._overlapTimerId);
+    this._overlapTimerId = null;
   }
 
   // Add the next state bundle to the end

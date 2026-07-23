@@ -27,7 +27,13 @@ Finally, when `game-state-manager` is told by `game-view` to render another stat
 
 To hold an item on screen for a beat after its animation completes (for example so players can see a matched pair before it's captured), renderers bind the declarative `post-animation-delay` attribute (milliseconds) on the relevant `boardgame-component-stack` or item, computed from current render-time state. This replaced an earlier imperative per-move delay hook on the renderer that the state manager used to consult directly before installing the next bundle.
 
-There's also `animationOverlap`, which returns a fraction between 0 and 1 representing how much of the current animation should play before the next state bundle is installed. A return value of 0 (the default) means the animation must complete entirely before the next state is applied. A value of 0.5 means the next state will be installed when the current animation is 50% done. Values outside 0-1 are clamped. This enables cascade effects like dealing cards, where each card starts moving before the previous one has finished landing.
+For buffered catch-up, `motionReleaseForTransition()` can declare an early
+cutover after selected structural primaries cross an actual active-progress
+fraction. The animator derives this from executed WAAPI timing, not
+`animationLength`. Both progress release and final settlement carry one opaque
+install-cycle ID; stale events cannot advance a newer cycle. Cutover
+terminalizes the old generation, so this is intentionally not described as
+concurrent overlap.
 
 `boardgame-game-view` also listens for `propose-move` events emanating from
 within the rendererd game, and then forwards them to the `boardgame-admin-
@@ -79,80 +85,56 @@ databound statically from the state. These animations are referred to as
 "internal" animations. They affect the layout properties of the component, but
 they are based on information set internally.
 
-Note that all animations of all types have a default length set by the CSS var
-`--animation-length`. If you want to change the animation, you can target a
-different CSS var at the item. You can also override renderer.animationLength to set a different animation value temporarily. Additionally, renderer.animationOverlap can be overridden to allow the next state to be installed before the current animation finishes, creating overlapping animations.
+## Structural motion pipeline
 
-Components have three types of transforms that can apply. The first is
-*internal*. These are transformations on the inner element. For cards this
-includes whether the card is faceUp and whether it's rotated. The next is
-*external*. These are transform tweaks applied by the `component-stack` to
-perturb the final layout, for example to make messy cards or fanned cards be
-in their final layout. (Normal layout is used for gross position; these are
-just small tweaks). The final are *inverse* transforms, which are applied by
-component animator during animations in order to position a component where it
-was in the last state, so it can animate to its new location. *External* and
-*inverse* transforms are in practice applied the same way currently, which
-means that animator has to figure out how to munge them toegether, setting
-what is properly an *external plus internal* transform.
+Card motion is not a list of special animation modes. One transition is
+compiled through orthogonal layers:
 
-This is all pretty straightforward. However, the real benefit of the engine is
-that it handles animations as components move between states well. At a high
-level, the game logic on the server has decided how granularly to break up
-moves. Correct animations can only happen between versions; the server game
-logic thus decides where full animations MAY happen. It's up to the client to
-actually calculate the animations to occur, set them in motion, and figure out
-when they're done. *In the future it will also be possible for the client to
-decide to skip certain states because it doesn't want to animate each state
-change individually, by looking at a before and after state and choosing to
-not databind the former.*
+1. **Continuity and presence.** Exact stable identity wins. When one endpoint
+   is not rendered, unique privacy-safe stack history may establish an
+   appearing or departing subject; ties and contradictions fail closed.
+2. **Provenance and presentation.** The plan records why an endpoint is known.
+   A missing DOM endpoint uses a fresh inert carrier with a surface-scoped
+   historical presentation or the destination stack's safe defaults. Sanitized history
+   never reconstructs private card content or an exact hidden position.
+3. **Geometry and path.** Before/after measurements are immutable and branded
+   by coordinate space. The solver produces numeric translation/scale and an
+   explicit stationary-or-travel path. A declared transfer anchor contributes
+   geometry only; it does not overwrite the card's semantic pose.
+4. **Owned tracks.** Host transform/opacity and component-owned visual tracks
+   such as card face and orientation are compiled separately, preflighted, and
+   played together. Ownership arbitration ensures a stack arrival is either
+   automatic FLIP or an explicit retained-carrier transfer, never both.
+5. **Timing and cohorts.** One timing compiler handles CSS/default duration,
+   reduced motion, companion version slots, clipping, delay, repeats, fill,
+   and settlement budget. `motion.stagger()` replaces start delays for an
+   explicit subject cohort without changing geometry or effects.
+6. **Execution and lifecycle.** The immutable generation-bound structural plan
+   is published before playback, then records armed, active, finished, skipped,
+   or cancelled outcomes from real WAAPI animations. `Animation.finished` is
+   settlement truth. Effects may observe exact structural points but cannot
+   own or retime them.
+7. **Queue policy.** Normal state admission waits for exact-cycle settlement.
+   A solo renderer may declare `motion.release()` for an already-buffered
+   successor; its barrier samples actual primary-animation progress. Cutover
+   terminalizes the old generation and is not concurrent overlap.
 
-At a high level, what we do is bind the first state, then bind the second
-state as a totally separate item. Items that just so happen to be in the same
-place might be re-used by Polymer's data-binding engine, but components that
-have logically moved to a different location from state to state (for example,
-a card that moved from the draw stack to the discard stack) are almost
-certainly represented by different physical DOM nodes before and after.
+The concrete DOM cases are consequences of those layers. A card rendered at
+both endpoints uses exact continuity and its retained host. A virtualized or
+departing endpoint uses an inert carrier. `IDsLastSeen` supplies only ambiguous
+or unique provenance, never content. Table/Hand defaults preserve their local
+compatibility choreography through `animateBetween()`; authored cross-stack
+motion uses transfer declarations. A face flip, rotation, resize,
+fade, spatial move, trail, and arrival effect can therefore coexist without a
+new card-specific execution path.
 
-Most of the magic is organized by `boardgame-component-animator`. Before a new
-state is bound, it goes through and collects the current location and state of
-all of the components, keeping track of which is which by comparing the "id".
-Then it allows the new state to be bound. It then goes through each element
-and sees where its new location is. (It does that in one pass before going on
-to the next step to avoid layout thrashing).
-
-Now for the hard part. It goes through and generates inverse transforms to
-move each component, visually, back to where it was in the previous state, and
-then applies a CSS transform to bring it back to the location it literally is
-in the DOM, by reducing those transforms to 0 in an animation. This
-transformation is referred to as the *inverse* transform. This is a very
-challenging calculation to do, especially because components have internal
-animations that could change their layout.
-
-Components who are represented by a literal DOM element before and after are
-(relatively) easy. Just calculate the inverse transform and apply it.
-
-Slightly more difficult are cases where either before or after had a literal
-DOM element, but the other end of the transition doesn't; perhaps it's going
-to a `boardgame-component-stack` with so many elements that we print only a
-handful of faux components instead of one per actual item. In those cases, we
-ask the stack that contains the component to generate a fake component to
-animate (the stack gives it a default position in the middle), that will act
-like the literal element. When the animation is over, the faux animating
-component is removed.
-
-The hardest case is when there is a component who either before or after is
-not known to be in a specific location in a stack. This happens, for exmaple,
-when a component moves from a normal stack to one that's sanitized with
-PolicyLen. That means that the actual list of component IDs is elided, and all
-that's left is stack.IDsLastSeen. This captures that the last time the given
-ID was seen was in this particular stack, but not _where_ in the stack it was
-seen. In this case `boardgame-component-animator` does a behavior like the one
-immediatley above. It creates a faux animating element. It positions the
-component in the middle of the stack, and styles the element to be very small
-and transparent, so as the component animates back to 0 state it's visually
-clear which stack the component went to in general, but not where in the
-component it went.
+`--animation-length` remains the component default, and
+`renderer.animationLength()` may temporarily override it or skip an
+intermediate buffered bundle with a negative value. That requested duration is
+only an input: executed timing may be reduced or clipped by the shared timing
+policy. Declarative transfer, cohort, release, and effect hooks are evaluated
+once from the authoritative before/after transition rather than Lit lifecycle
+callbacks.
 
 ## Animation timing: play() / settlement / the gate
 
@@ -315,7 +297,8 @@ though each screen receives its own WebSocket push and renders independently.
 - The common `play()` primitive resolves the installed context through the
   composed render tree, so stack FLIP, property effects, standalone dice, and
   game-authored animatable items share the same target automatically.
-  `animateBetween()` uses that policy too. Both APIs accept
+  `fly()` uses that policy too. It explicitly names a geometry-only source and
+  the retained carrier at its natural destination. Both APIs accept
   `{ timing: 'immediate' }` for a local effect or
   `{ timing: { localStartAtMs } }` for an explicit local timeline.
   Stagger, visible duration, and post-animation hold share one remaining-slot
@@ -325,7 +308,7 @@ though each screen receives its own WebSocket push and renders independently.
   outcome text) is gated on the mirrored `animating` flag described above,
   so the outcome banner can't race ahead of a still-in-flight companion
   flight. For that guarantee to hold, the flight itself must keep the gate
-  open: when `animateBetween`'s resolved `real` endpoint is an animatable
+  open: when `fly()`'s resolved carrier is an animatable
   item, it routes the flight through that item's `play()` (gated) rather
   than a raw `real.animate()`, so the departing/arriving card registers a
   will-animate/animation-done pair and the gate stays open — and the

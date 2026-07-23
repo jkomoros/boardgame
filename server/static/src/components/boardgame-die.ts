@@ -4,6 +4,8 @@ import { property } from 'lit/decorators.js';
 import { query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
+import { componentMotionTracks } from '../motion/component-track.js';
+import type { ComponentMotionTarget } from '../motion/component-track.js';
 
 class BoardgameDie extends BoardgameAnimatableItem {
   static override styles = [
@@ -235,14 +237,20 @@ class BoardgameDie extends BoardgameAnimatableItem {
     return `translateY(calc(-1 * var(--effective-die-size) * ${face}))`;
   }
 
+  protected override motionTrackTarget(target: ComponentMotionTarget): HTMLElement | null {
+    return target === 'host' ? this : this._innerElement ?? null;
+  }
+
   private _selectedFaceChanged(newValue: number, oldValue: number | undefined) {
     if (!this._innerElement) return;
     // On first render there's no meaningful spin to animate from.
     if (oldValue === undefined || oldValue === newValue) return;
-    this.play(this._innerElement, [
-      { transform: this._innerTransformForFace(oldValue) },
-      { transform: this._innerTransformForFace(newValue) },
-    ]);
+    this.playMotionTracks(componentMotionTracks([{
+      target: 'visual',
+      property: 'transform',
+      from: this._innerTransformForFace(oldValue),
+      to: this._innerTransformForFace(newValue),
+    }]));
   }
 
   private _itemChanged(newValue: any) {
