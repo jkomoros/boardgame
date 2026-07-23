@@ -276,12 +276,7 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 		return errors.New("Destination was nil")
 	}
 
-	first := source.ImmutableFirst()
-	if first == nil {
-		return errors.New("the stack to draw from doesn't have any components to move")
-	}
-
-	return first.MayMoveTo(destination)
+	return source.MayMoveCountTo(destination, 1)
 }
 
 // RoundRobinAction moves a component from the GameStack to the PlayerStack, as
@@ -294,13 +289,7 @@ func (d *DealCountComponents) RoundRobinAction(playerState boardgame.SubState) e
 		return err
 	}
 
-	first := gameStack.First()
-
-	if first == nil {
-		return errors.New("unexpectedly there's no first object")
-	}
-
-	return first.MoveToNextSlot(playerStack)
+	return gameStack.MoveCountTo(playerStack, 1)
 }
 
 // moveTypeInfo is used as a helper to generate sttrings for all of the MoveType getters.

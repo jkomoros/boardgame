@@ -468,7 +468,7 @@ func TestMoveAllToSuccessMatchesCheckedSequenceAcrossStackKinds(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := moveAllToChecked(expectedSource, expectedDestination, source.NumComponents()); err != nil {
+			if err := moveComponentsToChecked(expectedSource, expectedDestination, source.NumComponents()); err != nil {
 				t.Fatal("checked sequence:", err)
 			}
 
@@ -501,6 +501,134 @@ func TestMoveAllToSuccessMatchesCheckedSequenceAcrossStackKinds(t *testing.T) {
 				if stack != destination || slot != expectedSlots[component.DeckIndex()] {
 					t.Fatalf("component %d location = %v[%d], want destination[%d]", component.DeckIndex(), stack, slot, expectedSlots[component.DeckIndex()])
 				}
+			}
+		})
+	}
+}
+
+func TestMoveCountToSuccessMatchesCheckedSequenceAcrossStackKinds(t *testing.T) {
+	const count = 2
+	tests := []struct {
+		name  string
+		setup func(t *testing.T, gameState *testGameState) (Stack, Stack)
+	}{
+		{
+			name: "growable to growable with existing destination",
+			setup: func(t *testing.T, gameState *testGameState) (Stack, Stack) {
+				source, destination := gameState.MyBoard.SpaceAt(0), gameState.MyBoard.SpaceAt(2)
+				if err := gameState.DrawDeck.First().MoveToNextSlot(destination); err != nil {
+					t.Fatal(err)
+				}
+				for i := 0; i < 3; i++ {
+					if err := gameState.DrawDeck.First().MoveToNextSlot(source); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+		{
+			name: "growable to sparse sized",
+			setup: func(t *testing.T, gameState *testGameState) (Stack, Stack) {
+				source, destination := gameState.MyBoard.SpaceAt(0), gameState.DownSizeStack
+				if err := gameState.DrawDeck.First().MoveTo(destination, 1); err != nil {
+					t.Fatal(err)
+				}
+				for i := 0; i < 3; i++ {
+					if err := gameState.DrawDeck.First().MoveToNextSlot(source); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+		{
+			name: "sparse sized to growable with existing destination",
+			setup: func(t *testing.T, gameState *testGameState) (Stack, Stack) {
+				source, destination := gameState.DownSizeStack, gameState.MyBoard.SpaceAt(0)
+				if err := gameState.DrawDeck.First().MoveToNextSlot(destination); err != nil {
+					t.Fatal(err)
+				}
+				for _, slot := range []int{0, 2, 3} {
+					if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+		{
+			name: "sparse sized to sparse sized",
+			setup: func(t *testing.T, gameState *testGameState) (Stack, Stack) {
+				source, destination := gameState.DownSizeStack, gameState.OtherStack
+				if err := destination.ExpandSize(1); err != nil {
+					t.Fatal(err)
+				}
+				if err := gameState.DrawDeck.First().MoveTo(destination, 1); err != nil {
+					t.Fatal(err)
+				}
+				for _, slot := range []int{0, 2, 3} {
+					if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			game := testGameWithMutableConstraints(t)
+			gameState, _ := concreteStates(game.CurrentState())
+			source, destination := test.setup(t, gameState)
+			unmoved := source.Last()
+
+			mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+				if dest.state() != st {
+					return errors.New("destination is not owned by supplied state")
+				}
+				for _, component := range proposed {
+					if component.ImmutableState() != st {
+						return errors.New("proposed component is not owned by supplied state")
+					}
+				}
+				return nil
+			})
+
+			originalState := game.CurrentState().(*state)
+			expectedState, err := originalState.copy(false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedSource, err := findCorrespondingStack(source, originalState, expectedState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedDestination, err := findCorrespondingStack(destination, originalState, expectedState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := moveComponentsToChecked(expectedSource, expectedDestination, count); err != nil {
+				t.Fatal("checked sequence:", err)
+			}
+
+			if err := source.MoveCountTo(destination, count); err != nil {
+				t.Fatal("transactional MoveCountTo:", err)
+			}
+			gotJSON, err := json.Marshal(originalState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantJSON, err := json.Marshal(expectedState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(gotJSON) != string(wantJSON) {
+				t.Fatalf("transactional state differs from checked sequence\n got: %s\nwant: %s", gotJSON, wantJSON)
+			}
+			if source.NumComponents() != 1 || source.First() != unmoved {
+				t.Fatalf("partial transfer did not leave the final source component in place")
 			}
 		})
 	}
@@ -632,6 +760,92 @@ func BenchmarkMoveAllToUnconstrainedLargeState(b *testing.B) {
 
 func BenchmarkMoveAllToConstrainedLargeState(b *testing.B) {
 	benchmarkMoveAllTo(b, true, 10_000)
+}
+
+func benchmarkRemainingCountPreflight(b *testing.B, constrained bool) {
+	manager, err := NewGameManager(defaultTestGameDelegate(50), newTestStorageManager())
+	if err != nil {
+		b.Fatal(err)
+	}
+	game, err := manager.newGameImpl("", "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	if err := game.setUp(0, nil, nil); err != nil {
+		b.Fatal(err)
+	}
+	manager.Internals().AllowMutableConstraints(game)
+	gameState, _ := concreteStates(game.CurrentState())
+	source, destination := gameState.DrawDeck, gameState.MyBoard.SpaceAt(0)
+	if constrained {
+		mustAddStackConstraint(b, destination, func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil })
+	}
+	const target = 40
+	b.ReportAllocs()
+	b.ReportMetric(float64(target*(target+1)/2), "components_checked/op")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for remaining := target; remaining > 0; remaining-- {
+			if err := source.MayMoveCountTo(destination, remaining); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
+
+func BenchmarkRemainingCountPreflightUnconstrained(b *testing.B) {
+	benchmarkRemainingCountPreflight(b, false)
+}
+
+func BenchmarkRemainingCountPreflightConstrained(b *testing.B) {
+	benchmarkRemainingCountPreflight(b, true)
+}
+
+func benchmarkMoveCountOne(b *testing.B, constrained bool, unrelatedSlots int) {
+	manager, err := NewGameManager(defaultTestGameDelegate(0), newTestStorageManager())
+	if err != nil {
+		b.Fatal(err)
+	}
+	game, err := manager.newGameImpl("", "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	if err := game.setUp(0, nil, nil); err != nil {
+		b.Fatal(err)
+	}
+	manager.Internals().AllowMutableConstraints(game)
+	gameState, playerStates := concreteStates(game.CurrentState())
+	if err := gameState.DownSizeStack.ExpandSize(unrelatedSlots); err != nil {
+		b.Fatal(err)
+	}
+	left, right := gameState.OtherStack, playerStates[0].Hand
+	if err := gameState.DrawDeck.First().MoveToNextSlot(left); err != nil {
+		b.Fatal(err)
+	}
+	if constrained {
+		accept := func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil }
+		mustAddStackConstraint(b, left, accept)
+		mustAddStackConstraint(b, right, accept)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := left.MoveCountTo(right, 1); err != nil {
+			b.Fatal(err)
+		}
+		if err := right.MoveCountTo(left, 1); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMoveCountOneUnconstrainedLargeState(b *testing.B) {
+	benchmarkMoveCountOne(b, false, 10_000)
+}
+
+func BenchmarkMoveCountOneConstrainedLargeState(b *testing.B) {
+	benchmarkMoveCountOne(b, true, 10_000)
 }
 
 func TestClearConstraints(t *testing.T) {

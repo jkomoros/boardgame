@@ -345,8 +345,15 @@ Then check for the sentinel in your ReadyToStart implementation.
 Generally when moving components from one place to another it makes sense to
 move one component at a time, so that each component is animated separately.
 However, this is a pain to implement, because it requires implementing a move
-that knows how many times to apply itself in a row, which is fincky and error-
+that knows how many times to apply itself in a row, which is finicky and error-
 prone.
+
+This collection is intentionally different from [boardgame.Stack.MoveCountTo].
+MoveCountTo transfers exactly N components atomically within its caller's
+enclosing game move; it does not create a move or persistence boundary itself.
+The move types below produce a distinct persisted game move and animation
+boundary for each component, which is usually preferable when dealing cards or
+showing a sequence of token movements.
 
 There is a collection of 9 moves that all do basically the same thing for moving
 components, one at a time, from stack to stack. Move-type moves move components
@@ -377,11 +384,21 @@ operate on n pairs of stacks, where n is the number of players in the game. In
 general for Deal and Collect type moves, the condition is met when all pairs of
 stacks meet the end condition.
 
-{Move,Deal,Collect}CountComponents simply apply that many moves without regard
-to the number of components in the source or destination stacks. Move names that
-end in CountReached operate until the destination stacks all have TargetCount or
-more items. Move names that end in CountLeft operate until the source stacks all
-have TargetCount or fewer items in them.
+{Move,Deal,Collect}CountComponents apply that many moves and validate each
+scheduled transfer before it occurs. With its default Apply implementation,
+MoveCountComponents additionally preflights its complete remaining sequence
+before the first transfer. An embedding move that overrides Apply is responsible
+for matching its own Legal preflight to that custom mutation. Move names that end
+in CountReached operate until the destination stacks all have TargetCount or more
+items. Move names that end in CountLeft operate until the source stacks all have
+TargetCount or fewer items in them.
+
+The complete-remainder guarantee intentionally performs N+(N-1)+...+1 checks
+over an N-component sequence. A constrained destination also requires a
+disposable whole-state copy whenever more than one component remains in a
+proposal; single-component checks use a direct live-state preflight. For a large
+transfer that does not need separate move records and animations, prefer one
+[boardgame.Stack.MoveCountTo] call and its matching May preflight.
 
 Since a common configuration of these moves is to use
 {Move,Deal,Collect}ComponentsUntil*Reached with a TargetCount of 0, each also

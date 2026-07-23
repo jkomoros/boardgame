@@ -2,6 +2,7 @@ package legal
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/jkomoros/boardgame"
 )
@@ -40,6 +41,9 @@ const (
 	// TemplateMayNotMoveAllTo is the default Fail template key for
 	// MayMoveAllTo. Bindings: "detail", the underlying error message.
 	TemplateMayNotMoveAllTo = "legal.may_not_move_all_to"
+	// TemplateMayNotMoveCountTo is the default Fail template key for
+	// MayMoveCountTo. Bindings: "detail", the underlying error message.
+	TemplateMayNotMoveCountTo = "legal.may_not_move_count_to"
 	// TemplateMayNotSwapComponents is the default Fail template key for
 	// MaySwapComponents and MaySwapComponentsByKey. Bindings: "detail", the
 	// underlying error message.
@@ -86,6 +90,7 @@ var defaultTemplateKeys = []string{
 	TemplateNoComponentToMove,
 	TemplateMayNotMoveTo,
 	TemplateMayNotMoveAllTo,
+	TemplateMayNotMoveCountTo,
 	TemplateMayNotSwapComponents,
 	// Task 5 (catalog_players.go / catalog_purpose.go) additions:
 	TemplateAllActivePlayers,
@@ -181,6 +186,22 @@ func MayMoveToSameSlot(srcPath, dstPath, indexField string) Spec {
 // state while simulating the transfer.
 func MayMoveAllTo(srcPath, dstPath string) Spec {
 	return Spec{Name: "mayMoveAllTo", Args: []string{srcPath, dstPath}}
+}
+
+// MayMoveCountTo returns a server-evaluated Spec that passes when exactly the
+// number of components at countPath could be moved from srcPath to dstPath
+// transactionally. countPath may resolve an int from game, player, or move
+// state. It is not client-evaluable because custom stack constraints may
+// inspect other runtime state while simulating the transfer.
+func MayMoveCountTo(srcPath, dstPath, countPath string) Spec {
+	return Spec{Name: "mayMoveCountTo", Args: []string{srcPath, dstPath, countPath}}
+}
+
+// MayMoveFixedCountTo is the fixed-rule counterpart to MayMoveCountTo. It
+// passes when exactly count components could be moved from srcPath to dstPath
+// transactionally, without forcing the move to expose a dummy count property.
+func MayMoveFixedCountTo(srcPath, dstPath string, count int) Spec {
+	return Spec{Name: "mayMoveFixedCountTo", Args: []string{srcPath, dstPath, strconv.Itoa(count)}}
 }
 
 // MaySwapComponents returns a Spec that passes when the two int-valued move
@@ -579,6 +600,103 @@ func mayMoveAllToConstructor() *PredicateConstructor {
 	}
 }
 
+func mayMoveCountToConstructor() *PredicateConstructor {
+	return &PredicateConstructor{
+		Name: "mayMoveCountTo",
+		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+			if len(spec.Args) != 3 {
+				return nil, fmt.Errorf("legal: mayMoveCountTo requires 3 args (srcPath, dstPath, countPath), got %d", len(spec.Args))
+			}
+			srcPath, dstPath, countPath := spec.Args[0], spec.Args[1], spec.Args[2]
+			template := spec.Message
+			if template == "" {
+				template = TemplateMayNotMoveCountTo
+			}
+			reads := []Read{
+				{Path: PropPath(srcPath), Facet: boardgame.LegalFacetValues},
+				{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
+				{Path: PropPath(countPath), Facet: boardgame.LegalFacetValues},
+			}
+			requiredTypes := map[PropPath]boardgame.PropertyType{
+				PropPath(srcPath):   boardgame.TypeStack,
+				PropPath(dstPath):   boardgame.TypeStack,
+				PropPath(countPath): boardgame.TypeInt,
+			}
+			return newMayMoveCountPredicate("mayMoveCountTo", spec.Args, srcPath, dstPath, template, reads, requiredTypes, func(ctx Context) (int, error) {
+				return resolveIntPath(countPath, ctx)
+			}), nil
+		},
+	}
+}
+
+func mayMoveFixedCountToConstructor() *PredicateConstructor {
+	return &PredicateConstructor{
+		Name: "mayMoveFixedCountTo",
+		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+			if len(spec.Args) != 3 {
+				return nil, fmt.Errorf("legal: mayMoveFixedCountTo requires 3 args (srcPath, dstPath, count), got %d", len(spec.Args))
+			}
+			srcPath, dstPath := spec.Args[0], spec.Args[1]
+			count, err := strconv.Atoi(spec.Args[2])
+			if err != nil {
+				return nil, fmt.Errorf("legal: mayMoveFixedCountTo: arg 3 (count) must be an integer: %w", err)
+			}
+			if count < 0 {
+				return nil, fmt.Errorf("legal: mayMoveFixedCountTo: count must be non-negative, got %d", count)
+			}
+			template := spec.Message
+			if template == "" {
+				template = TemplateMayNotMoveCountTo
+			}
+			reads := []Read{
+				{Path: PropPath(srcPath), Facet: boardgame.LegalFacetValues},
+				{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
+			}
+			requiredTypes := map[PropPath]boardgame.PropertyType{
+				PropPath(srcPath): boardgame.TypeStack,
+				PropPath(dstPath): boardgame.TypeStack,
+			}
+			return newMayMoveCountPredicate("mayMoveFixedCountTo", spec.Args, srcPath, dstPath, template, reads, requiredTypes, func(Context) (int, error) {
+				return count, nil
+			}), nil
+		},
+	}
+}
+
+func newMayMoveCountPredicate(name string, args []string, srcPath, dstPath, template string, reads []Read, requiredTypes map[PropPath]boardgame.PropertyType, resolveCount func(Context) (int, error)) *Predicate {
+	return &Predicate{
+		Name:              name,
+		ClientEvaluable:   false,
+		Args:              args,
+		Reads:             reads,
+		RequiredReadTypes: requiredTypes,
+		Cost:              boardgame.LegalCostExpensive,
+		EmittedTemplates:  []string{template},
+		EmittedBindings:   map[string][]string{template: {"detail"}},
+		Evaluate: func(ctx Context) Verdict {
+			src, err := resolveStackPath(srcPath, ctx)
+			if err != nil {
+				return UnknownVerdict(err.Error())
+			}
+			dst, err := resolveStackPath(dstPath, ctx)
+			if err != nil {
+				return UnknownVerdict(err.Error())
+			}
+			count, err := resolveCount(ctx)
+			if err != nil {
+				return UnknownVerdict(err.Error())
+			}
+			if src == nil || dst == nil {
+				return UnknownVerdict("legal: source or destination stack path resolved to nil")
+			}
+			if err := src.MayMoveCountTo(dst, count); err != nil {
+				return FailT(template, map[string]BindingValue{"detail": String(err.Error())})
+			}
+			return PassVerdict()
+		},
+	}
+}
+
 func maySwapComponentsConstructor(name string, keyed bool) *PredicateConstructor {
 	return &PredicateConstructor{
 		Name: name,
@@ -687,6 +805,8 @@ func DefaultConstructors() []*PredicateConstructor {
 		mayMoveToConstructor(),
 		mayMoveToSlotConstructor(),
 		mayMoveAllToConstructor(),
+		mayMoveCountToConstructor(),
+		mayMoveFixedCountToConstructor(),
 		maySwapComponentsConstructor("maySwapComponents", false),
 		maySwapComponentsConstructor("maySwapComponentsByKey", true),
 		allActivePlayersConstructor(),

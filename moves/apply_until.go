@@ -46,7 +46,11 @@ func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
 
 // Legal returns an error until ConditionMet returns nil.
 func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := a.Default.Legal(state, proposer); err != nil {
+	return a.legalWithBase(state, proposer, a.Default.Legal)
+}
+
+func (a *ApplyUntil) legalWithBase(state boardgame.ImmutableState, proposer boardgame.PlayerIndex, baseLegal func(boardgame.ImmutableState, boardgame.PlayerIndex) error) error {
+	if err := baseLegal(state, proposer); err != nil {
 		return err
 	}
 
@@ -63,7 +67,6 @@ func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	}
 
 	return errors.New("the condition was met, so the move is no longer legal")
-
 }
 
 // FallbackName simply returns "Apply Until"

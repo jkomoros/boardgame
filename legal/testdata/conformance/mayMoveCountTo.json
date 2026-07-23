@@ -1,0 +1,24 @@
+{
+  "predicate": "mayMoveCountTo",
+  "cases": [
+    {
+      "spec": {"name": "mayMoveCountTo", "args": ["game.HiddenCards", "game.VisibleCards", "player.CardsLeftToReveal"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "mayMoveCountTo", "args": ["game.HiddenCards", "game.HiddenCards", "player.CardsLeftToReveal"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.may_not_move_count_to"
+    },
+    {
+      "spec": {"name": "mayMoveCountTo", "args": ["move.Source", "game.VisibleCards", "player.CardsLeftToReveal"]},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

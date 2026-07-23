@@ -1,10 +1,6 @@
 package moves
 
-import (
-	"errors"
-
-	"github.com/jkomoros/boardgame"
-)
+import "github.com/jkomoros/boardgame"
 
 /*
 CollectCountComponents is a type of RoundRobin move that collects components from
@@ -33,13 +29,7 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.SubState
 		return err
 	}
 
-	first := playerStack.First()
-
-	if first == nil {
-		return errors.New("unexpectedly there's no first object")
-	}
-
-	return first.MoveToNextSlot(gameStack)
+	return playerStack.MoveCountTo(gameStack, 1)
 
 }
 
@@ -84,13 +74,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boa
 		return err
 	}
 
-	first := playerStack.First()
-
-	if first == nil {
-		return errors.New("unexpectedly there's no first object")
-	}
-
-	return first.MoveToNextSlot(gameStack)
+	return playerStack.MoveCountTo(gameStack, 1)
 
 }
 
@@ -147,13 +131,7 @@ func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState bo
 		return err
 	}
 
-	first := playerStack.First()
-
-	if first == nil {
-		return errors.New("unexpectedly there's no first object")
-	}
-
-	return first.MoveToNextSlot(gameStack)
+	return playerStack.MoveCountTo(gameStack, 1)
 
 }
 

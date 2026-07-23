@@ -140,7 +140,11 @@ func (m *MoveCountComponents) stackNames(state boardgame.ImmutableState) (starte
 // Legal checks that source and destiantion stacks exist, that enough components
 // to move exist.
 func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := m.ApplyCountTimes.Legal(state, proposer); err != nil {
+	// This exact call path deliberately omits Default's generic first-component
+	// stack check because the complete remaining transfer is checked below. An
+	// outer move that bypasses MoveCountComponents.Legal does not inherit any
+	// suppression and therefore retains Default's ordinary safety check.
+	if err := m.ApplyUntil.legalWithBase(state, proposer, m.Default.legalWithoutStackConstraints); err != nil {
 		return err
 	}
 
@@ -154,12 +158,24 @@ func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 		return errors.New("Destination was nil")
 	}
 
-	first := source.ImmutableFirst()
-	if first == nil {
-		return errors.New("the stack to draw from doesn't have any components to move")
+	moveCounter, ok := m.Info().ConcreteMove().(counter)
+	if !ok {
+		return errors.New("concrete move unexpectedly did not implement Count/TargetCount")
+	}
+	count := moveCounter.Count(state)
+	target := moveCounter.TargetCount(state)
+	if count < 0 {
+		return errors.New("Count returned a negative value")
+	}
+	if target < 0 {
+		return errors.New("TargetCount returned a negative value")
+	}
+	remaining := target - count
+	if remaining < 0 {
+		remaining = -remaining
 	}
 
-	return first.MayMoveTo(destination)
+	return source.MayMoveCountTo(destination, remaining)
 
 }
 
@@ -177,13 +193,7 @@ func (m *MoveCountComponents) Apply(state boardgame.State) error {
 		return errors.New("Destination was nil")
 	}
 
-	first := source.First()
-
-	if first == nil {
-		return errors.New("unexpected error: no first object to move")
-	}
-
-	return first.MoveToNextSlot(destination)
+	return source.MoveCountTo(destination, 1)
 
 }
 
@@ -212,6 +222,25 @@ func (m *MoveCountComponents) FallbackHelpText() string {
 //boardgame:codegen
 type MoveComponentsUntilCountReached struct {
 	MoveCountComponents
+}
+
+// ConditionMet returns nil once DestinationStack has at least TargetCount
+// components. Using a threshold rather than exact equality makes an already
+// overfilled destination a completed operation instead of an endless sequence
+// that moves farther away from its goal.
+func (m *MoveComponentsUntilCountReached) ConditionMet(state boardgame.ImmutableState) error {
+	moveCounter, ok := m.Info().ConcreteMove().(counter)
+	if !ok {
+		return errors.New("concrete move unexpectedly did not implement Count/TargetCount")
+	}
+	count, target := moveCounter.Count(state), moveCounter.TargetCount(state)
+	if count < 0 || target < 0 {
+		return errors.New("count or target count is invalid")
+	}
+	if count >= target {
+		return nil
+	}
+	return errors.New("destination has not reached its target count")
 }
 
 // Count returns the number of components in DestinationStack().
@@ -252,6 +281,25 @@ func (m *MoveComponentsUntilCountReached) FallbackHelpText() string {
 //boardgame:codegen
 type MoveComponentsUntilCountLeft struct {
 	MoveCountComponents
+}
+
+// ConditionMet returns nil once SourceStack has at most TargetCount
+// components. Using a threshold rather than exact equality makes an already
+// undersized source a completed operation instead of moving farther away from
+// its goal.
+func (m *MoveComponentsUntilCountLeft) ConditionMet(state boardgame.ImmutableState) error {
+	moveCounter, ok := m.Info().ConcreteMove().(counter)
+	if !ok {
+		return errors.New("concrete move unexpectedly did not implement Count/TargetCount")
+	}
+	count, target := moveCounter.Count(state), moveCounter.TargetCount(state)
+	if count < 0 || target < 0 {
+		return errors.New("count or target count is invalid")
+	}
+	if count <= target {
+		return nil
+	}
+	return errors.New("source has not reached its target count")
 }
 
 // Count returns the number of components in the SourceStack().

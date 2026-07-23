@@ -52,6 +52,17 @@ type moveCurrentPlayerDraw struct {
 	CurrentPlayer
 }
 
+// moveBypassesMoveCountLegal represents a creator override that deliberately
+// calls a lower embedded Legal method instead of MoveCountComponents.Legal.
+// Default's generic stack check must remain active on this path.
+type moveBypassesMoveCountLegal struct {
+	MoveCountComponents
+}
+
+func (m *moveBypassesMoveCountLegal) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	return m.ApplyCountTimes.Legal(state, proposer)
+}
+
 func (m *moveCurrentPlayerDraw) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
@@ -138,6 +149,357 @@ func noStartPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveC
 			WithTargetCount(3),
 		),
 	)
+}
+
+func countedTransferMoveInstaller(target int) func(*boardgame.GameManager) []boardgame.MoveConfig {
+	return func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return AddForPhase(phaseSetUp,
+			auto.MustConfig(
+				new(MoveCountComponents),
+				WithMoveName("Move Counted Components"),
+				WithSourceProperty("DrawStack"),
+				WithDestinationProperty("DiscardStack"),
+				WithTargetCount(target),
+				WithIsFixUp(false),
+			),
+		)
+	}
+}
+
+func countedFixUpTransferMoveInstaller(target int) func(*boardgame.GameManager) []boardgame.MoveConfig {
+	return func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return AddForPhase(phaseSetUp,
+			auto.MustConfig(
+				new(MoveCountComponents),
+				WithMoveName("Move Counted Components As FixUp"),
+				WithSourceProperty("DrawStack"),
+				WithDestinationProperty("DiscardStack"),
+				WithTargetCount(target),
+			),
+		)
+	}
+}
+
+func bypassedCountLegalMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(manager.Delegate())
+	return AddForPhase(phaseSetUp,
+		auto.MustConfig(
+			new(moveBypassesMoveCountLegal),
+			WithMoveName("Bypass Move Count Legal"),
+			WithSourceProperty("DrawStack"),
+			WithDestinationProperty("DiscardStack"),
+			WithTargetCount(2),
+			WithIsFixUp(false),
+		),
+	)
+}
+
+func thresholdTransferMoveInstaller(move AutoConfigurableMove, target int, name string) func(*boardgame.GameManager) []boardgame.MoveConfig {
+	return func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return AddForPhase(phaseSetUp,
+			auto.MustConfig(
+				move,
+				WithMoveName(name),
+				WithSourceProperty("DrawStack"),
+				WithDestinationProperty("DiscardStack"),
+				WithTargetCount(target),
+				WithIsFixUp(false),
+			),
+		)
+	}
+}
+
+func roundRobinTransferPreflightInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(manager.Delegate())
+	return AddForPhase(phaseSetUp,
+		auto.MustConfig(
+			new(DealCountComponents),
+			WithMoveName("Deal One For Preflight"),
+			WithGameProperty("DrawStack"),
+			WithPlayerProperty("Hand"),
+			WithTargetCount(1),
+			WithIsFixUp(false),
+		),
+		auto.MustConfig(
+			new(CollectCountComponents),
+			WithMoveName("Collect One For Preflight"),
+			WithGameProperty("DiscardStack"),
+			WithPlayerProperty("Hand"),
+			WithTargetCount(1),
+			WithIsFixUp(false),
+		),
+	)
+}
+
+func TestMoveCountComponentsPreflightsRemainingSequence(t *testing.T) {
+	t.Run("insufficient source", func(t *testing.T) {
+		manager, err := newGameManager(countedTransferMoveInstaller(53))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		move := game.MoveByName("Move Counted Components")
+		if err := move.Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "cannot move 53") {
+			t.Fatalf("Legal error = %v", err)
+		}
+		gameState, _ := concreteStates(game.CurrentState())
+		if got := gameState.DrawStack.NumComponents(); got != 52 {
+			t.Fatalf("source count = %d, want 52", got)
+		}
+		if got := gameState.DiscardStack.NumComponents(); got != 0 {
+			t.Fatalf("destination count = %d, want 0", got)
+		}
+	})
+
+	t.Run("insufficient destination capacity", func(t *testing.T) {
+		manager, err := newGameManager(countedTransferMoveInstaller(2))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		gameState, _ := concreteStates(game.CurrentState())
+		if err := gameState.DiscardStack.SetSize(1); err != nil {
+			t.Fatalf("set destination capacity: %v", err)
+		}
+
+		move := game.MoveByName("Move Counted Components")
+		if err := move.Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "1 slot remaining; cannot move 2 components") {
+			t.Fatalf("Legal error = %v", err)
+		}
+		if got := gameState.DrawStack.NumComponents(); got != 52 {
+			t.Fatalf("source count = %d, want 52", got)
+		}
+		if got := gameState.DiscardStack.NumComponents(); got != 0 {
+			t.Fatalf("destination count = %d, want 0", got)
+		}
+	})
+
+	t.Run("late constraint rejection", func(t *testing.T) {
+		manager, err := newGameManager(countedTransferMoveInstaller(2))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		manager.Internals().AllowMutableConstraints(game)
+		gameState, _ := concreteStates(game.CurrentState())
+		beforeSource, beforeDestination := gameState.DrawStack.NumComponents(), gameState.DiscardStack.NumComponents()
+		if err := gameState.DiscardStack.AddConstraint(func(dest boardgame.ImmutableStack, proposed []boardgame.ImmutableComponentInstance, _ boardgame.ImmutableState) error {
+			if dest.NumComponents()+len(proposed) > 1 {
+				return errors.New("only one component accepted")
+			}
+			return nil
+		}); err != nil {
+			t.Fatalf("add constraint: %v", err)
+		}
+		move := game.MoveByName("Move Counted Components")
+		if err := move.Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "only one") {
+			t.Fatalf("Legal error = %v, want late constraint rejection", err)
+		}
+		if gameState.DrawStack.NumComponents() != beforeSource || gameState.DiscardStack.NumComponents() != beforeDestination {
+			t.Fatal("failed full-sequence preflight mutated live stacks")
+		}
+	})
+}
+
+func TestMoveCountComponentsKeepsSeparateMoveRecords(t *testing.T) {
+	manager, err := newGameManager(countedFixUpTransferMoveInstaller(3))
+	if err != nil {
+		t.Fatalf("new manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("new game: %v", err)
+	}
+	gameState, _ := concreteStates(game.CurrentState())
+	if gameState.DiscardStack.NumComponents() != 3 {
+		t.Fatalf("destination count = %d, want 3", gameState.DiscardStack.NumComponents())
+	}
+	if game.Version() != 3 {
+		t.Fatalf("version = %d, want one version per component", game.Version())
+	}
+	historicalMovesCount(t, []string{"Move Counted Components As FixUp"}, []int{3}, game.MoveRecords(-1))
+}
+
+func TestMoveCountComponentsLegalSuppressionDoesNotLeakThroughEmbedding(t *testing.T) {
+	manager, err := newGameManager(bypassedCountLegalMoveInstaller)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	manager.Internals().AllowMutableConstraints(game)
+	gameState, _ := concreteStates(game.CurrentState())
+	calls := 0
+	if err := gameState.DiscardStack.AddConstraint(func(boardgame.ImmutableStack, []boardgame.ImmutableComponentInstance, boardgame.ImmutableState) error {
+		calls++
+		return errors.New("generic constraint check remained active")
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := game.MoveByName("Bypass Move Count Legal").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "generic constraint") {
+		t.Fatalf("Legal error = %v, want generic constraint rejection", err)
+	}
+	if calls != 1 {
+		t.Fatalf("constraint calls = %d, want exactly one generic check", calls)
+	}
+}
+
+func TestMoveCountComponentSubclassesPreflightExactRemainder(t *testing.T) {
+	tests := []struct {
+		name   string
+		move   AutoConfigurableMove
+		target int
+		seed   func(t *testing.T, state *gameState)
+	}{
+		{
+			name:   "until destination reached",
+			move:   new(MoveComponentsUntilCountReached),
+			target: 3,
+			seed: func(t *testing.T, state *gameState) {
+				if err := state.DrawStack.MoveCountTo(state.DiscardStack, 1); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name:   "until source count left",
+			move:   new(MoveComponentsUntilCountLeft),
+			target: 50,
+			seed:   func(*testing.T, *gameState) {},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			manager, err := newGameManager(thresholdTransferMoveInstaller(test.move, test.target, "Threshold Transfer"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			game, err := manager.NewDefaultGame()
+			if err != nil {
+				t.Fatal(err)
+			}
+			manager.Internals().AllowMutableConstraints(game)
+			gameState, _ := concreteStates(game.CurrentState())
+			test.seed(t, gameState)
+			calls := 0
+			if err := gameState.DiscardStack.AddConstraint(func(boardgame.ImmutableStack, []boardgame.ImmutableComponentInstance, boardgame.ImmutableState) error {
+				calls++
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if err := game.MoveByName("Threshold Transfer").Legal(game.CurrentState(), 0); err != nil {
+				t.Fatalf("Legal: %v", err)
+			}
+			if calls != 2 {
+				t.Fatalf("constraint calls = %d, want each of the 2 remaining components checked exactly once", calls)
+			}
+		})
+	}
+}
+
+func TestRoundRobinTransfersPreflightNextScheduledComponent(t *testing.T) {
+	t.Run("deal rejects empty game source", func(t *testing.T) {
+		manager, err := newGameManager(roundRobinTransferPreflightInstaller)
+		if err != nil {
+			t.Fatal(err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatal(err)
+		}
+		gameState, _ := concreteStates(game.CurrentState())
+		if err := gameState.DrawStack.MoveAllTo(gameState.DiscardStack); err != nil {
+			t.Fatal(err)
+		}
+		if err := game.MoveByName("Deal One For Preflight").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "cannot move 1") {
+			t.Fatalf("deal Legal error = %v, want empty-source rejection", err)
+		}
+	})
+
+	t.Run("collect rejects empty player source", func(t *testing.T) {
+		manager, err := newGameManager(roundRobinTransferPreflightInstaller)
+		if err != nil {
+			t.Fatal(err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := game.MoveByName("Collect One For Preflight").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "cannot move 1") {
+			t.Fatalf("collect Legal error = %v, want empty-source rejection", err)
+		}
+	})
+
+	t.Run("deal rejects next destination constraint", func(t *testing.T) {
+		manager, err := newGameManager(roundRobinTransferPreflightInstaller)
+		if err != nil {
+			t.Fatal(err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatal(err)
+		}
+		manager.Internals().AllowMutableConstraints(game)
+		_, players := concreteStates(game.CurrentState())
+		if err := players[0].Hand.AddConstraint(func(boardgame.ImmutableStack, []boardgame.ImmutableComponentInstance, boardgame.ImmutableState) error {
+			return errors.New("scheduled hand rejects component")
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := game.MoveByName("Deal One For Preflight").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "scheduled hand") {
+			t.Fatalf("deal Legal error = %v, want destination constraint rejection", err)
+		}
+	})
+}
+
+func TestMoveComponentThresholdsDoNotRunAwayAfterOvershoot(t *testing.T) {
+	t.Run("destination already above reached target", func(t *testing.T) {
+		manager, err := newGameManager(thresholdTransferMoveInstaller(new(MoveComponentsUntilCountReached), 1, "Until Reached"))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		gameState, _ := concreteStates(game.CurrentState())
+		if err := gameState.DrawStack.MoveCountTo(gameState.DiscardStack, 2); err != nil {
+			t.Fatalf("seed destination: %v", err)
+		}
+		if err := game.MoveByName("Until Reached").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "condition was met") {
+			t.Fatalf("Legal error = %v, want completed-condition rejection", err)
+		}
+	})
+
+	t.Run("source already below left target", func(t *testing.T) {
+		manager, err := newGameManager(thresholdTransferMoveInstaller(new(MoveComponentsUntilCountLeft), 53, "Until Left"))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		if err := game.MoveByName("Until Left").Legal(game.CurrentState(), 0); err == nil || !strings.Contains(err.Error(), "condition was met") {
+			t.Fatalf("Legal error = %v, want completed-condition rejection", err)
+		}
+	})
 }
 
 func TestAddOrderedForPhaseEndsWithStartPhase(t *testing.T) {

@@ -235,13 +235,54 @@ This single `MayMoveToSlot` call replaces what would otherwise be several manual
 
 - **`component.MayMoveTo(dest)`** — slot-independent check; validates deck match, slots remaining, and all constraints. Covers `MoveToNextSlot`, `MoveToFirstSlot`, `MoveToLastSlot`, and `SecretMoveTo`.
 - **`component.MayMoveToSlot(dest, slotIndex)`** — like `MayMoveTo`, plus validates that the specific slot is in range and (for SizedStacks) unoccupied.
+- **`stack.MayMoveCountTo(dest, count)`** — validates that exactly `count` components could move, in order, as one operation.
 - **`stack.MayMoveAllTo(dest)`** — validates that *all* components in the source stack could be moved to the destination.
 - **`stack.MaySwapComponents(i, j)`** — validates that a swap would succeed.
 - **`locationBehavior.MayMoveTo(targetIndex)`** — validates behavior-backed spatial movement before `MoveTo` performs the swap.
 
-If `MayMoveTo` or `MayMoveToSlot` returns nil in `Legal()`, the corresponding `MoveTo` or `MoveToNextSlot` call in `Apply()` is guaranteed to succeed. Likewise, pair `MayMoveAllTo` in `Legal()` with `MoveAllTo` in `Apply()`.
+If `MayMoveTo` or `MayMoveToSlot` returns nil in `Legal()`, the corresponding `MoveTo` or `MoveToNextSlot` call in `Apply()` is guaranteed to succeed. Likewise, pair `MayMoveCountTo` with `MoveCountTo`, and `MayMoveAllTo` with `MoveAllTo`.
 
-The `moves` package (DealCountComponents, MoveCountComponents, etc.) uses `MayMoveTo` internally, so if you use those moves, constraint checking happens automatically. In a custom one-component move, the ordinary source/destination legality contribution checks the first proposed component. A custom move whose `Apply()` calls `MoveAllTo` must explicitly call `MayMoveAllTo` in `Legal()`, because a second or later component may be the first one rejected by an order-dependent constraint. `MoveAllTo` also validates transactionally during `Apply()`: on any returned error, it leaves framework-owned state unchanged.
+The `moves` package (DealCountComponents, MoveCountComponents, etc.) performs these checks internally, so if you use those moves, constraint checking happens automatically. `MoveCountComponents` deliberately creates a separate engine move—and therefore a separate persistence and animation boundary—for every component. Use `stack.MoveCountTo` when exactly N components should move together within the current engine move. A custom move whose `Apply()` calls `MoveCountTo` or `MoveAllTo` should use the matching `May*` method in `Legal()`, because a second or later component may be the first one rejected by an order-dependent constraint. Both mutators validate transactionally during `Apply()`: on any returned error, they leave framework-owned state unchanged.
+
+That stronger repeated-move guarantee has a deliberate cost: moving N
+components through `MoveCountComponents` checks N+(N-1)+...+1 planned
+insertions, and a constrained destination copies the state when more than one
+component remains in a proposal. Single-component checks avoid that copy.
+For large transfers that do not need separate history and animation boundaries,
+prefer one `MoveCountTo` call.
+
+For an exact-count custom move, the imperative pairing is intentionally
+symmetrical:
+
+```go
+func (m *moveRefillMarket) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	game := state.ImmutableGameState().(*gameState)
+	return game.DrawStack.MayMoveCountTo(game.Market, m.Count)
+}
+
+func (m *moveRefillMarket) Apply(state boardgame.State) error {
+	game := state.GameState().(*gameState)
+	return game.DrawStack.MoveCountTo(game.Market, m.Count)
+}
+```
+
+When `Count` is an ordinary typed move field, the same legality check can be
+declared in `auto.MustConfig` with
+`legal.MayMoveCountTo("game.DrawStack", "game.Market", "move.Count")`, leaving
+only `Apply` on the move struct.
+
+For a fixed rule such as “draw exactly 2,” no dummy move field is necessary:
+
+```go
+legal.MayMoveFixedCountTo("game.DrawStack", "player.Hand", 2)
+```
+
+A negative fixed count is rejected when the game manager boots, where the
+authoring mistake can be fixed, rather than becoming a permanently illegal
+move.
+
+Both forms are server-evaluated. `MayMoveCountTo` accepts any integer property
+path—not only move state—so a game- or player-derived count is equally valid.
 
 #### boardgame-util codegen
 
@@ -788,6 +829,8 @@ The most common catalog predicates (full list: `legal.DefaultConstructors()`; re
 | `legal.MayMoveTo(srcPath, dstPath, idxField string)` | the component at `idxField` in `srcPath` could legally move into `dstPath` (`ImmutableComponentInstance.MayMoveTo`) | values |
 | `legal.MayMoveToSlot(srcPath, dstPath, sourceIndexField, destinationSlotField string)` | like above, but validates an explicit destination slot selected independently from the source component | occupancy (src) + values (dst, both indices) |
 | `legal.MayMoveToSameSlot(srcPath, dstPath, indexField string)` | convenience for mirrored stacks where one field selects both the source component and destination slot | occupancy (src) + values (dst, index) |
+| `legal.MayMoveCountTo(srcPath, dstPath, countPath string)` | exactly the count resolved from a game, player, or move integer property could move transactionally; server-evaluated because custom constraints may inspect broader state | values |
+| `legal.MayMoveFixedCountTo(srcPath, dstPath string, count int)` | exactly the fixed count could move transactionally, without adding a dummy move property; server-evaluated | values |
 | `legal.MayMoveAllTo(srcPath, dstPath string)` | every component could move transactionally; evaluated on the server because custom constraints may inspect broader state | values |
 | `legal.MaySwapComponents(stackPath, firstIndexField, secondIndexField string)` | the two int fields select distinct, in-range slots that can be swapped | count + index values |
 | `legal.MaySwapComponentsByKey(stackPath, firstKeyField, secondKeyField string)` | enum-keyed counterpart for spatial boards | count + key values |
