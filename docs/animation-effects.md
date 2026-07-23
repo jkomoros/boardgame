@@ -1,8 +1,15 @@
-# Animation effects
+# Animation and effects
 
-Boardgame effects are immutable descriptions of presentation. Game truth stays
-in state; renderers describe a visual cue, and the framework owns measurement,
-timing, accessibility, budgeting, cancellation, and cleanup.
+This is the complete game-author guide to Boardgame's animation subsystem:
+automatic structural motion, semantic effects, their extension points, and the
+boundary between them. Game truth stays in state; renderers describe
+presentation, and the framework owns measurement, timing, accessibility,
+budgeting, cancellation, and cleanup.
+
+For the short path through ordinary game authoring, start with **Client
+animations** in [`TUTORIAL.md`](../TUTORIAL.md#client-animations). This guide is
+the reference for games that need custom choreography. Framework maintainers
+should also read [`server/static/src/ARCHITECTURE.md`](../server/static/src/ARCHITECTURE.md).
 
 ## What this system owns
 

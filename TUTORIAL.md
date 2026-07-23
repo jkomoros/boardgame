@@ -3783,201 +3783,47 @@ Do not use that imperative path for authoritative outcomes. See
 themes, disappearing anchors, lifecycle results, `fx.trail()` effects that
 follow real structural travel, and advanced customization.
 
-For a moving piece with several related cues, use `fx.decorateMotion()` to
-group a structural trail with departure and arrival effects. The framework
-prepares this lifecycle subscription before the piece moves, even when it is
-nested inside a sequence, so it cannot replay a cached start late. Repeated
-visual phrases should be small typed functions returning `EffectSpec`; there is
-no global string preset registry to drift across games.
+#### Choosing the right animation layer
 
-When multiple pieces move in the same installed state, declare their structural
-start order separately from their effects:
+Most games should stop with automatic component motion plus
+`effectsForTransition()`. The framework already makes a card or piece travel,
+resize, appear, disappear, turn, flip, and settle as one coherent transition.
+Effects observe that transition to explain its meaning; they do not replace its
+movement or hold the state queue.
 
-```ts
-override motionCohortsForTransition(context: EffectTransitionContext<State, MoveName>) {
-  if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.Deal) return [];
-  return [motion.stagger({
-    subjects: context.after.Game.Hand.IDs,
-    intervalMs: 45,
-  })];
-}
-```
+When a game genuinely needs more choreography, use the narrowest extension
+point that expresses it:
 
-The explicit ID order is stable across layouts and companion surfaces. This
-replaces stack stagger only for listed components and safely falls back to the
-stack configuration if declarations conflict. It coordinates motion within one
-state installation. Effects remain observers and cannot retime the pieces.
+- `fx.decorateMotion()` and `fx.afterMotion()` attach trails, endpoint cues, or
+  a completion flourish to automatic structural motion.
+- `motionCohortsForTransition()` with `motion.stagger()` gives several moving
+  components an explicit, deterministic start order.
+- `motionTransfersForTransition()` with `motion.transfer()` declares that a
+  retained presentation carrier should arrive from named source geometry.
+- `motionReleaseForTransition()` with `motion.release()` is the advanced escape
+  hatch for admitting an already-buffered solo state after real structural
+  motion reaches a milestone.
 
-For a retained, non-stack presentation carrier—such as a Table-side deal
-stub—declare transition-local flight intent in the same pure phase:
+These layers stay separate on purpose: effects communicate meaning, cohorts
+schedule starts, transfers supply spatial intent, and releases control queue
+cutover. Prefer small typed helpers returning `EffectSpec` over a global preset
+registry when a game repeats a visual phrase.
 
-```ts
-override motionTransfersForTransition(context: EffectTransitionContext<State, MoveName>) {
-  if (context.kind === 'initial'
-    || context.move?.AnimationKey !== MoveNames.Deal) return [];
-  const player = Number(context.move.Properties?.TargetPlayerIndex);
-  if (!Number.isSafeInteger(player)) return [];
-  return [motion.transfer({
-    key: `deal:${player}`,
-    subjectId: `player-${player}-hand-growth`,
-    source: 'deal-source',
-    carrier: `stub:p${player}:hand`,
-    durationMs: 600,
-  })];
-}
-```
+Animation hooks see only viewer-safe state and `ClientMove` metadata. A local
+effect or transfer key does not reveal hidden component identity and must not
+be treated as a cross-device correlation token. Companion Table and Hand
+surfaces use framework-owned version timing; ordinary game renderers rarely
+need custom timing code.
 
-The framework validates the complete ordered batch before DOM work, resolves
-endpoints only within roots registered to this renderer, publishes one explicit
-motion generation, and waits for its real settlement alongside automatic FLIP.
-Keys, subjects, and carriers must be unique in a batch; several cards need
-distinct ordinal declarations and carriers. An after-only stack card consumes
-its declaration inside automatic FLIP, so travel, presence, face/orientation
-tracks, gating, effects, and settlement share one segment and one owner.
-
-`AnimationKey`, `Version`, and disclosed `Properties` are authoritative,
-viewer-sanitized server facts. The transfer remains game-authored presentation
-intent. Its `key` is local to this transition, not cross-device card identity;
-a true shared Table/Hand transfer token requires a separately privacy-reviewed
-server wire contract.
-
-Declared anchor geometry is currently limited to carriers without transformed
-ancestors. Such a case skips explicitly until the framework has a reviewed
-viewport-to-local affine projection primitive; it never silently mixes spaces.
-
-Existing companion defaults deliberately sit one layer beside authored
-transfers. `autoFlyIncoming` and `autoFlyDeals` retain their established
-`animateBetween()` choreography: simultaneous Hand arrivals in their final
-visual pose and decorative Table-stub flights that do not hold structural
-settlement. This compatibility lane also preserves transformed-layout behavior
-and the historical version-slot schedule. Disable the relevant flag before
-replacing a default with `motionTransfersForTransition()`; a declaration adds
-structural ownership, lifecycle reporting, presence tracks, and settlement, so
-that migration is an intentional visual/temporal choice rather than a refactor.
-
-To add one flourish only after an exact set of automatic component motions
-finishes successfully, return `fx.afterMotion({ subjects, effect })` from
-`effectsForTransition()`. It is prepared before playback, skips if a listed
-piece did not participate, and cancels with the structural generation. It does
-not hold the state queue or include explicit retained-carrier `fly()` flights.
-
-The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
-
-When catch-up has already buffered another state, a solo renderer may admit
-that successor after the current structural motion reaches a real milestone:
-
-```ts
-override motionReleaseForTransition(context: EffectTransitionContext<State, MoveName>) {
-  if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.Deal) return null;
-  return motion.release({
-    key: 'deal-cutover',       // diagnostics only; not server identity
-    progress: 0.3,
-    // subjects: dealtCardIds, // optional exact selection
-  });
-}
-```
-
-The framework waits until every selected structural segment's actual primary
-WAAPI animation has crossed 30% of its active interval. With no `subjects`,
-all armed automatic FLIP and retained-carrier transfer primaries participate.
-Missing or ambiguous selected subjects fail closed to normal settlement.
-Stagger, clipping, playback rate, repeated duration, and late starts therefore
-cannot be bypassed by a guessed timeout; end delay and `post-animation-delay`
-are intentionally outside this active-progress milestone.
-
-This is queue **cutover**, not true concurrent animation generations. Installing
-the successor terminalizes the current carriers and lifecycle-bound effects.
-The release applies only to a successor that is already buffered; a state that
-arrives later follows the existing live-arrival policy. Opaque cycle IDs make
-both progress release and ordinary settlement exactly-once, so stale completion
-from an interrupted generation cannot skip a later bundle.
-
-Existing renderers that override `animationOverlap(fromMove, toMove)` retain
-their historical compatibility behavior: the framework passes the installed
-move and already-buffered successor, clamps the returned fraction, and schedules
-cutover at that fraction of `animationLength`. Because this is a state-clock
-policy rather than a structural-progress policy, an override takes precedence
-over `motionReleaseForTransition()`. New renderers should prefer
-`motionReleaseForTransition()` when their policy can be expressed in terms of
-the current transition's real structural motion.
-
-These controls are deliberately layered: `animationLength` controls requested
-motion duration (or skips a buffered intermediate bundle with a negative
-value), `post-animation-delay` holds a component's completed state, cohorts
-schedule starts within a cycle, and `motionReleaseForTransition()` declares an
-optional structural-progress cutover for an already-buffered successor.
-
-The old card-animation special cases now reduce to these layers:
-
-| Former special case | General explanation |
-| --- | --- |
-| Same card before and after | Exact continuity plus ordinary FLIP geometry |
-| Card appears or departs | Presence fact plus provenance-resolved endpoint |
-| Sanitized/virtual stack endpoint | Safe stack-default presentation on a fresh inert carrier |
-| Face flip or quarter-turn | Component-owned visual track beside the host spatial track |
-| Table/Hand deal anchor | Transition-local `motion.transfer()`; one owner chosen by arbitration |
-| Several cards cascading | `motion.stagger()` cohort over compiled structural timing |
-| Wait until everything lands | Exact WAAPI settlement and the animation gate |
-| Admit buffered state early | `motion.release()` over actual primary-animation progress |
-
-Identity, presence, presentation, geometry, tracks, timing, execution, and
-lifecycle are separate facts. A card can therefore travel, resize, turn, flip,
-fade, trail, and settle as one segment without inventing a new animation mode.
-
-Companion Table/Hand surfaces add one deliberate constraint: animation cycles
-that must agree across physical screens use the framework's version timeline.
-The current protocol gives each version an 800ms slot—at most 600ms of motion
-plus 200ms to render and pre-arm the next state. For these synchronized cycles,
-the framework budgets each component's stagger, visible duration, and
-`post-animation-delay` together inside the remaining 600ms motion window. An
-effect whose stagger would begin after that window is omitted; an oversized
-hold shortens visible motion rather than delaying later slots. Ordinary FLIP
-and property effects use the same policy as `fly()`, and
-early motion release is disabled. Solo games and explicitly local effects
-retain the normal behavior above.
-
-Game renderers normally need no timing code. For a card already rendered at
-its natural destination, name the geometry-only source and the retained
-carrier explicitly. The framework waits for registered component stacks to
-finish rendering, then uses the installed version's companion slot:
-
-```ts
-this.animator?.fly({
-  subjectId: card.id,
-  source: 'hand-top-edge',
-  carrier: card,
-  durationMs: 300,
-});
-```
-
-This is an arrival primitive: `source` supplies geometry and `carrier` is the
-element that moves back to its resting pose. It does not claim an arbitrary
-destination or a source-carried departure. For motion that exists only on this
-screen, set `timing: 'immediate'`. The older argument-order-based
-`animateBetween()` call remains only as a deprecated compatibility wrapper.
-
-Automatic companion deal flights are synchronized by version but their current
-Table and Hand detections are local observations: the Table knows a hand count
-grew, while the Hand may know private card ids. Do not treat those as a shared
-cross-device transfer identity.
-
-Custom animatable components use the identical policy through `play()`:
-
-```ts
-this.play(this, keyframes, { duration: 300 }); // current version slot
-this.play(this, keyframes, { duration: 300 }, { timing: 'immediate' });
-```
-
-Advanced test or orchestration code can instead pass
-`{ timing: { localStartAtMs: timestamp } }`. See
-`docs/companion-mode-authoring.md` for the complete Table/Hand conventions.
-That framework also owns the end of the companion journey: after a finished
-game, its Table and Hands can play again with the same seats and identities and
-will automatically follow the single prepared successor. Game renderers do not
-implement rematch controls or state copying.
-
-For a more thorough overview of how the animation system actually works, check
-out `server/static/src/ARCHITECTURE.md`.
+The complete subsystem guide is
+[`docs/animation-effects.md`](docs/animation-effects.md). It documents every
+recipe and hook, structural-motion decoration, composition, transfers,
+cohorts, release barriers, companion timing, reduced motion, lifecycle results,
+budgets, themes, configuration limits, and working examples. See
+[`docs/companion-mode-authoring.md`](docs/companion-mode-authoring.md) for the
+Table/Hand protocol and `server/static/src/ARCHITECTURE.md` for implementation
+internals such as continuity, geometry, track ownership, settlement, and queue
+gating.
 
 ### Creating a more production-ready server
 
