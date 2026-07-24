@@ -204,6 +204,20 @@ test('game-info decoder names malformed nested server fields', () => {
   );
 });
 
+test('deck components without ComponentValues decode with null Values, not throw', () => {
+  // Regression test: a deck built with AddComponent(nil) (debuganimations'
+  // tokens deck, examples/debuganimations/main.go) has no ComponentValues,
+  // and Deck.MarshalJSON (deck.go) serializes that as `Values: null`. The
+  // decoder previously rejected it ("Chest.Decks.tokens[0].Values must be an
+  // object"), which surfaced as a blocking "Couldn't toggle" dialog the
+  // moment admin mode fetched game info for debuganimations.
+  const decoded = decodeGameInfoResponse({
+    ...info(),
+    Chest: { Decks: { tokens: [{ Index: 0, Values: null }] }, Enums: {}, Constants: null },
+  });
+  assert.deepEqual(decoded.Chest.Decks, { tokens: [{ Index: 0, Values: null }] });
+});
+
 test('game-info decoder validates Table session state combinations', () => {
   const active = info();
   active.CompanionInfo.TableSession = {
