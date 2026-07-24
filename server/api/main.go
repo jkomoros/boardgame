@@ -676,41 +676,28 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 	}
 
 	if autoSeatCandidate {
-		//Special case: we're the first player, we likely just created it. Just join the thing!
-
-		slot := emptySlots[0]
-
-		if err := s.doSeatPlayer(game, slot, user); err != nil {
-			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
+		viewingAs, freshEmptySlots, seated, err := s.autoSeatFirstViewer(game, user, closedSeats)
+		if err != nil {
 			return
 		}
-		effectiveViewingAsPlayer = slot
+		effectiveViewingAsPlayer = viewingAs
+		if seated {
+			// Re-check empty slots after seating.
+			remainingEmptySlots := 0
+			if !s.config.DisableAdminChecking {
+				remainingEmptySlots = len(freshEmptySlots) - 1 // only the real player was seated
+			}
+			s.setHasEmptySlots(c, remainingEmptySlots > 0)
 
-		// Debug auto-seating: when DisableAdminChecking is true (dev mode),
-		// auto-fill all remaining empty non-agent slots with synthetic debug
-		// users. This lets developers test multiplayer games without needing
-		// multiple browser sessions. (Issue #774)
-		if s.config.DisableAdminChecking {
-			for _, debugSlot := range emptySlots[1:] { // skip slot 0 (already seated above)
-				if game.Agents()[debugSlot] != "" {
-					continue // skip agent slots
-				}
-				debugUser := s.getOrCreateDebugUser(int(debugSlot))
-				if err := s.doSeatPlayer(game, debugSlot, debugUser); err != nil {
-					s.logger.Warnln("Debug auto-seat failed for slot", debugSlot, ":", err)
-				}
+			s.autoCloseGameIfFull(game)
+		} else {
+			// A concurrent request won the auto-seat race and already seated
+			// this user; freshEmptySlots reflects the post-seat state.
+			s.setHasEmptySlots(c, len(freshEmptySlots) != 0)
+			if len(freshEmptySlots) == 0 {
+				s.autoCloseGameIfFull(game)
 			}
 		}
-
-		// Re-check empty slots after seating.
-		remainingEmptySlots := 0
-		if !s.config.DisableAdminChecking {
-			remainingEmptySlots = len(emptySlots) - 1 // only the real player was seated
-		}
-		s.setHasEmptySlots(c, remainingEmptySlots > 0)
-
-		s.autoCloseGameIfFull(game)
-
 	} else {
 		s.setHasEmptySlots(c, len(emptySlots) != 0)
 		if len(emptySlots) == 0 {
@@ -719,6 +706,65 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 	}
 	s.setViewingAsPlayer(c, effectiveViewingAsPlayer)
 
+}
+
+// autoSeatFirstViewer performs the first-viewer auto-seat special case: the
+// user is seated in the first empty slot (they likely just created the game),
+// and in dev mode (DisableAdminChecking) every remaining non-agent slot is
+// filled with a synthetic debug user.
+//
+// It serializes against every other seat claim for this game via the same
+// per-game lock /api/join/seat uses, then re-reads the authoritative seating
+// state and re-checks the "every non-agent seat is empty" precondition under
+// that lock. This matters because a fresh game page fires several API
+// requests at once (/info, /socket, ...): without serialization each of them
+// passes the all-seats-empty check, each queues its own pending SeatPlayer
+// fix-up (SetPlayerForGame is deliberately idempotent for the same user +
+// seat), duplicate SeatPlayer moves corrupt the seating state, and a loser's
+// forced fix-up races the winner's in-flight commit and aborts with "proposal
+// frontier used a stale game version".
+//
+// Returns the fresh viewingAsPlayer/emptySlots and whether this call
+// performed the seat. seated is false when another request won the race (its
+// SeatPlayer work already covers this user, who is the only signed-in viewer
+// a fresh game can have).
+func (s *Server) autoSeatFirstViewer(game *boardgame.Game, user *users.StorageRecord, closedSeats []bool) (viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, seated bool, err error) {
+
+	lock := s.getSeatJoinLock(game.ID())
+	lock.Lock()
+	defer lock.Unlock()
+
+	userIds := s.storage.UserIDsForGame(game.ID())
+	viewingAsPlayer, emptySlots = s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents(), closedSeats)
+	if viewingAsPlayer != boardgame.ObserverPlayerIndex || len(emptySlots) == 0 || len(emptySlots) != game.NumPlayers()-game.NumAgentPlayers() {
+		return viewingAsPlayer, emptySlots, false, nil
+	}
+
+	slot := emptySlots[0]
+
+	if err := s.doSeatPlayer(game, slot, user); err != nil {
+		s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
+		return viewingAsPlayer, emptySlots, false, err
+	}
+	viewingAsPlayer = slot
+
+	// Debug auto-seating: when DisableAdminChecking is true (dev mode),
+	// auto-fill all remaining empty non-agent slots with synthetic debug
+	// users. This lets developers test multiplayer games without needing
+	// multiple browser sessions. (Issue #774)
+	if s.config.DisableAdminChecking {
+		for _, debugSlot := range emptySlots[1:] { // skip slot 0 (already seated above)
+			if game.Agents()[debugSlot] != "" {
+				continue // skip agent slots
+			}
+			debugUser := s.getOrCreateDebugUser(int(debugSlot))
+			if err := s.doSeatPlayer(game, debugSlot, debugUser); err != nil {
+				s.logger.Warnln("Debug auto-seat failed for slot", debugSlot, ":", err)
+			}
+		}
+	}
+
+	return viewingAsPlayer, emptySlots, true, nil
 }
 
 // Checks to make sure the user is logged in, fails if not.
