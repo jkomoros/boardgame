@@ -114,11 +114,21 @@ function manager(value: unknown, path: string): ManagerInfo {
 
 function game(value: unknown, path: string): GameListItem {
   const item = record(value, path);
+  // Players is omitted entirely (not even `null`) on entries coming from
+  // AllGames: server/api/main.go's doListGames populates AllGames straight
+  // from storage.ListGames's CombinedStorageRecord, which carries no
+  // per-player roster -- only the Participating/Visible lists are enriched
+  // with Players (see doListGames). Treat "absent" as "no roster to show"
+  // rather than a decode error; a present-but-malformed Players array is
+  // still rejected below.
+  const players = item['Players'] === undefined
+    ? []
+    : array(item['Players'], `${path}.Players`, MAX_PLAYERS)
+      .map((entry, index) => player(entry, `${path}.Players[${index}]`));
   return {
     ID: string(item['ID'], `${path}.ID`),
     Name: string(item['Name'], `${path}.Name`),
-    Players: array(item['Players'], `${path}.Players`, MAX_PLAYERS)
-      .map((entry, index) => player(entry, `${path}.Players[${index}]`)),
+    Players: players,
     ReadableLastActivity: string(item['ReadableLastActivity'], `${path}.ReadableLastActivity`, true),
     Open: boolean(item['Open'], `${path}.Open`),
     Visible: boolean(item['Visible'], `${path}.Visible`),

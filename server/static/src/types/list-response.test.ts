@@ -60,6 +60,34 @@ test('games decoder uses the actual PascalCase wire shape and normalizes omitted
   );
 });
 
+test('AllGames entries omit Players entirely and must decode to an empty roster, not throw', () => {
+  // Regression test: server/api/main.go's doListGames populates AllGames
+  // straight from storage.ListGames's CombinedStorageRecord (no per-player
+  // enrichment -- only Participating/Visible lists get that), so every real
+  // AllGames entry over the wire has no "Players" key at all. Before this
+  // fix, list-response.ts's game() decoder required Players unconditionally
+  // and threw "AllGames[0].Players must be an array" on every single
+  // /list/game response that included any game at all, which surfaced as an
+  // "invalid games list" error dialog blocking every offline-dev-mode e2e
+  // test that creates a game (confirmed against the live dev server).
+  const bareGame = {
+    ID: 'ABC123',
+    Name: 'pig',
+    ReadableLastActivity: 'a moment ago',
+    Open: false,
+    Visible: false,
+  };
+  const decoded = decodeGamesListResponse({
+    Status: 'Success',
+    ParticipatingActiveGames: [],
+    ParticipatingFinishedGames: [],
+    VisibleActiveGames: [],
+    VisibleJoinableActiveGames: [],
+    AllGames: [bareGame],
+  });
+  assert.deepEqual(decoded.AllGames[0].Players, []);
+});
+
 test('create-game decoder requires complete navigation identity', () => {
   assert.deepEqual(
     decodeCreateGameResponse({ Status: 'Success', GameName: 'pig', GameID: 'ABC123' }),
