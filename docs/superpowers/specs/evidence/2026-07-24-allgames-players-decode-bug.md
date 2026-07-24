@@ -22,6 +22,14 @@ same payload does. Confirmed the unmodified pre-existing test
 `tests/animations/waapi-gate.spec.ts` ("memory: card reveal completes cleanly") fails
 identically — this is independent of the unification work.
 
+**Second field, same root cause:** after fixing `Players`, the identical failure
+recurred for `ReadableLastActivity` ("AllGames[0].ReadableLastActivity must be a
+string", confirmed via screenshot on the live server). `gameStorageRecordWithUsers`
+(`server/api/main.go:1030-1036`) is the ONLY enrichment step and adds exactly two
+fields — `Players` and `ReadableLastActivity` — so raw `AllGames` entries lack both
+and only these two decoder requirements needed relaxing. The audit is closed: no
+other decoder-required field is enrichment-provided.
+
 **Why the fix is correct and minimal:** the server has never sent `Players` for
 `AllGames` (admin listing is a raw storage dump); the decoder is the new, stricter
 party. Fix: absent `Players` decodes to `[]`; a present-but-malformed `Players`

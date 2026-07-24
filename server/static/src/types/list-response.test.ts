@@ -60,20 +60,21 @@ test('games decoder uses the actual PascalCase wire shape and normalizes omitted
   );
 });
 
-test('AllGames entries omit Players entirely and must decode to an empty roster, not throw', () => {
+test('bare AllGames entries decode without the server-enriched fields, not throw', () => {
   // Regression test: server/api/main.go's doListGames populates AllGames
-  // straight from storage.ListGames's CombinedStorageRecord (no per-player
-  // enrichment -- only Participating/Visible lists get that), so every real
-  // AllGames entry over the wire has no "Players" key at all. Before this
-  // fix, list-response.ts's game() decoder required Players unconditionally
-  // and threw "AllGames[0].Players must be an array" on every single
-  // /list/game response that included any game at all, which surfaced as an
-  // "invalid games list" error dialog blocking every offline-dev-mode e2e
-  // test that creates a game (confirmed against the live dev server).
+  // straight from storage.ListGames's CombinedStorageRecord. Only the
+  // Participating/Visible lists pass through gameStorageRecordWithUsers,
+  // which adds exactly two fields: Players and ReadableLastActivity. A real
+  // AllGames entry over the wire therefore has NEITHER key. Before this fix
+  // the game() decoder required both unconditionally and threw
+  // ("AllGames[0].Players must be an array", then
+  // "AllGames[0].ReadableLastActivity must be a string") on every
+  // /list/game?admin=1 response containing any game, surfacing as an
+  // "invalid games list" error dialog that blocked every offline-dev-mode
+  // e2e test that toggles Admin Mode (confirmed against the live server).
   const bareGame = {
     ID: 'ABC123',
     Name: 'pig',
-    ReadableLastActivity: 'a moment ago',
     Open: false,
     Visible: false,
   };
@@ -86,6 +87,7 @@ test('AllGames entries omit Players entirely and must decode to an empty roster,
     AllGames: [bareGame],
   });
   assert.deepEqual(decoded.AllGames[0].Players, []);
+  assert.equal(decoded.AllGames[0].ReadableLastActivity, '');
 });
 
 test('create-game decoder requires complete navigation identity', () => {

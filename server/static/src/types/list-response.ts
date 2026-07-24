@@ -125,11 +125,18 @@ function game(value: unknown, path: string): GameListItem {
     ? []
     : array(item['Players'], `${path}.Players`, MAX_PLAYERS)
       .map((entry, index) => player(entry, `${path}.Players[${index}]`));
+  // ReadableLastActivity is the other server-enriched field (same
+  // gameStorageRecordWithUsers augmentation as Players) and is likewise
+  // absent on raw AllGames entries; those two are the ONLY enriched fields,
+  // so absent-tolerance ends here.
+  const readableLastActivity = item['ReadableLastActivity'] === undefined
+    ? ''
+    : string(item['ReadableLastActivity'], `${path}.ReadableLastActivity`, true);
   return {
     ID: string(item['ID'], `${path}.ID`),
     Name: string(item['Name'], `${path}.Name`),
     Players: players,
-    ReadableLastActivity: string(item['ReadableLastActivity'], `${path}.ReadableLastActivity`, true),
+    ReadableLastActivity: readableLastActivity,
     Open: boolean(item['Open'], `${path}.Open`),
     Visible: boolean(item['Visible'], `${path}.Visible`),
   };
