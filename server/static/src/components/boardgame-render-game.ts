@@ -747,7 +747,18 @@ class BoardgameRenderGame extends LitElement {
 
   private _stateChanged(newState: HostedState | null) {
     if (!this.renderer) return;
-    if (newState) this._activeMotionCycleId = this.motionCycleId;
+    if (newState) {
+      // An install that lands while the previous cycle's gate is still open
+      // is a designed destructive cutover (motion release / legacy overlap
+      // admit the successor before the current cycle settles). The
+      // interrupted cycle must still complete its lifecycle: close it under
+      // its OWN id before adopting the new cycle id below. game-view ignores
+      // all-animations-done for a stale cycleId, so no successor bundle is
+      // released early; without this close the interrupted gate-open is
+      // never matched and the completion accounting wedges permanently.
+      if (this.isAnimating) this._notifyAnimationsDone(this._activeMotionCycleId);
+      this._activeMotionCycleId = this.motionCycleId;
+    }
     if (this._animator) {
       this._animator.animationContext = this.animationContext;
     }

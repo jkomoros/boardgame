@@ -111,6 +111,28 @@ test.describe('animation completion gate', () => {
     }
   });
 
+  test('memory: interrupted cycles at game creation close every gate they open', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    // Game creation installs several state bundles in rapid succession (the
+    // initial deal), and the motion-release / legacy-overlap cutover admits
+    // each successor while the previous animation cycle's gate is still
+    // open. An interrupted cycle must still complete its lifecycle: if its
+    // gate-open is never matched by a gate-close, the completion accounting
+    // wedges permanently (gateCloses lags gateOpens forever) even though the
+    // board eventually looks settled. Regression coverage for the
+    // _stateChanged interrupted-cycle close in boardgame-render-game.
+    await createOfflineGame(page, 'memory');
+    await expect(page.locator('boardgame-card').first()).toBeAttached({ timeout: 15000 });
+
+    await waitForClientQuiescence(page);
+    const snapshot = await gateSnapshot(page);
+    expect(snapshot.gateOpens, 'the creation deal must open at least one gate').toBeGreaterThan(0);
+    expect(snapshot.gateCloses, 'every gate-open (including interrupted cycles) must be matched by a close')
+      .toBe(snapshot.gateOpens);
+    expect(snapshot.watchdogFirings, 'animation watchdog must never fire').toBe(0);
+  });
+
   test('memory: card reveal completes cleanly', async ({ page }) => {
     test.setTimeout(60_000);
 

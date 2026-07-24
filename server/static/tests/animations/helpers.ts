@@ -6,6 +6,9 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   debuganimations: 'Animations Debugger',
   blackjack: 'Blackjack',
   memory: 'Memory',
+  // pig's gameDelegate doesn't override DisplayName(), so base.GameDelegate's
+  // default (title-case of Name()) applies -- see base/game_delegate.go.
+  pig: 'Pig',
 };
 
 const FAKE_EMAIL = 'animtest@example.com';
@@ -157,7 +160,12 @@ export async function waitForClientQuiescence(page: Page, timeoutMs = 20000): Pr
   await page.waitForFunction(async () => {
     const hooks = (window as any).__bgAnimTestHooks;
     if (!hooks || hooks.gateCloses < hooks.gateOpens) return false;
-    const { store } = await import('/src/store.ts');
+    // Read the APP's store instance via the always-installed window handle
+    // (src/store.ts). Re-importing '/src/store.ts' here would construct a
+    // second, permanently-empty store whenever the dev server's HMR graph
+    // has rewritten the app's import to /src/store.ts?t=<timestamp>.
+    const store = (window as any).__bgReduxStore
+      ?? (await import('/src/store.ts')).store;
     return (store.getState().game?.animation?.pendingBundles?.length ?? 0) === 0;
   }, undefined, { timeout: timeoutMs });
   const renderGame = page.locator('boardgame-render-game').first();
@@ -174,7 +182,9 @@ export async function waitForClientQuiescence(page: Page, timeoutMs = 20000): Pr
 
 export async function installedGameVersion(page: Page): Promise<number> {
   return page.evaluate(async () => {
-    const { store } = await import('/src/store.ts');
+    // See waitForClientQuiescence for why the window handle is required.
+    const store = (window as any).__bgReduxStore
+      ?? (await import('/src/store.ts')).store;
     return store.getState().game?.animation?.lastFiredBundle?.game?.Version ?? -1;
   });
 }
