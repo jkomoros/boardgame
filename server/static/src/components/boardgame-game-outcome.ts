@@ -1,5 +1,6 @@
-import { LitElement, css, html } from 'lit';
+import { css, html } from 'lit';
 import { property } from 'lit/decorators.js';
+import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
 
 export type GameOutcomeViewer = number | null;
 
@@ -7,7 +8,7 @@ export type GameOutcomeViewer = number | null;
  * Server-authoritative verdict presentation. The verdict remains absent while
  * the final animation is in flight and is announced only after the board settles.
  */
-export class BoardgameGameOutcome extends LitElement {
+export class BoardgameGameOutcome extends BoardgameAnimatableItem {
   static override styles = css`
     :host {
       display: block;
@@ -23,7 +24,6 @@ export class BoardgameGameOutcome extends LitElement {
       border-radius: var(--boardgame-outcome-radius, 1rem);
       text-align: center;
       background: var(--boardgame-outcome-background, color-mix(in srgb, #ffd700 15%, transparent));
-      animation: outcome-arrive 220ms ease-out both;
     }
 
     #title {
@@ -43,15 +43,6 @@ export class BoardgameGameOutcome extends LitElement {
 
     .winner {
       font-weight: 700;
-    }
-
-    @keyframes outcome-arrive {
-      from { opacity: 0; transform: scale(0.96); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      #outcome { animation: none; }
     }
   `;
 
@@ -74,6 +65,35 @@ export class BoardgameGameOutcome extends LitElement {
 
   @property({ type: String })
   title = 'Game over!';
+
+  // Latches so the arrival plays exactly once per reveal. render() returns
+  // null while `!finished || animating` (#outcome only exists in the DOM
+  // once revealed), so this must run in updated() -- which fires AFTER
+  // render() has applied the new DOM -- rather than gating on some earlier
+  // hook where #outcome wouldn't exist yet. Unlike fading-text's
+  // animateFade() (which defers the play() call through
+  // updateComplete.then(...) and therefore needs a generation token to
+  // survive a mid-flight retrigger racing that continuation), this reveal
+  // gate calls play() synchronously inside updated() with no async gap for
+  // a stale continuation to land in, so a simple boolean latch is
+  // sufficient here.
+  private _arrivalPlayed = false;
+
+  override updated(changed: Map<PropertyKey, unknown>) {
+    super.updated(changed);
+    const revealed = this.finished && !this.animating;
+    if (revealed && !this._arrivalPlayed) {
+      this._arrivalPlayed = true;
+      const outcome = this.renderRoot.querySelector('#outcome') as HTMLElement | null;
+      if (outcome) {
+        this.play(outcome, [
+          { opacity: 0, transform: 'scale(0.96)' },
+          { opacity: 1, transform: 'scale(1)' },
+        ], { duration: 220, easing: 'ease-out', fill: 'backwards' });
+      }
+    }
+    if (!revealed) this._arrivalPlayed = false;
+  }
 
   override render() {
     this._validateConfiguration();
