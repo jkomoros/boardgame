@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createOfflineGame, gateSnapshot, expectCleanGate, installedGameVersion, joinCompanionAsGuest, waitForClientQuiescence } from './helpers';
+import { createOfflineGame, gateSnapshot, expectCleanGate, installedGameVersion, joinCompanionAsGuest, waitForAnimationCounterStability, waitForClientQuiescence } from './helpers';
 
 // The reliability gate (spec Testing section). These scenarios are the
 // historical wedge repros for #720. They must run clean N times.
@@ -132,6 +132,11 @@ test.describe('animation completion gate', () => {
     await expect(page.locator('boardgame-card').first()).toBeAttached({ timeout: 15000 });
 
     await waitForClientQuiescence(page);
+    // Quiescence is a point-in-time check: a late creation fix-up bundle
+    // can open one more cycle right after it passes, which would read as a
+    // false counter imbalance at the snapshot below. Sample only after the
+    // counters have been stable (and balanced) for a sustained period.
+    await waitForAnimationCounterStability(page, { balance: 'all' });
     const snapshot = await gateSnapshot(page);
     expect(snapshot.gateOpens, 'the creation deal must open at least one gate').toBeGreaterThan(0);
     expect(snapshot.gateCloses, 'every gate-open (including interrupted cycles) must be matched by a close')
@@ -182,11 +187,11 @@ test.describe('animation completion gate', () => {
       'a same-cycle reinstall must not close the open gate (it would release the successor early)')
       .toBe(false);
 
-    // The reinstall itself resets the gate for the same cycle; it must still
-    // settle on its own (and never via the watchdog). Deliberately no
-    // closes==opens assertion here: a same-cycle reset re-opens the gate
-    // without a bundle handoff, which the cumulative-equality invariant
-    // (covered by the creation-interrupt test above) does not model.
+    // A same-cycle reinstall mid-gate JOINS the open cycle rather than
+    // opening a second one (a second gate-open would be permanently
+    // unmatched -- the counter drift this test's earlier revision had to
+    // carve out). The joined cycle must still settle on its own (never via
+    // the watchdog), and the cumulative open/close accounting must balance.
     const renderGame = page.locator('boardgame-render-game').first();
     await expect.poll(
       () => renderGame.evaluate((element) => (element as any).isAnimating === false),
@@ -194,6 +199,8 @@ test.describe('animation completion gate', () => {
     ).toBe(true);
     const after = await gateSnapshot(page);
     expect(after.watchdogFirings, 'animation watchdog must never fire').toBe(0);
+    expect(after.gateCloses, 'a same-cycle reinstall must not leave an unmatched gate-open')
+      .toBe(after.gateOpens);
   });
 
   test('memory: card reveal completes cleanly', async ({ page }) => {

@@ -781,7 +781,18 @@ class BoardgameRenderGame extends LitElement {
     const beforeAnchors = this._effects?.captureNamedAnchors() ?? new Map();
     if (newState && !stateWasNull) {
       this._effects?.cancelTransitionEffects();
-      this._resetAnimating();
+      // Open a fresh gate cycle only if one is not already open. After a
+      // genuine cycle handoff the block above just closed the old gate, so
+      // this reopens for the new cycle as always. But a SAME-cycle
+      // reinstall (doGameInfo refresh) landing while the gate is open must
+      // join the open cycle, not open a second one: resetting here would
+      // record an unmatched gate-open (permanently skewing the cumulative
+      // open/close accounting) and clear the live participant map, so the
+      // in-flight animations' completions could no longer close the gate
+      // and only the watchdog would end the cycle.
+      if (!this.isAnimating) {
+        this._resetAnimating();
+      }
       // Clear stale faux animating components from any interrupted animation
       // cycle before prepare() captures positions. This prevents old faux
       // components' transitionend from interfering with the new cycle.

@@ -148,6 +148,29 @@ export async function enableAdminMode(page: Page): Promise<void> {
   }
 }
 
+// Waits until the animHooks counters have been unchanged for `stableMs`
+// (and optionally balanced). Point-in-time quiescence checks race the
+// trailing edge -- a late fix-up bundle or next-frame settle can land right
+// after they pass -- so callers that assert on cumulative counter equality
+// must sample only after sustained stability.
+export async function waitForAnimationCounterStability(
+  page: Page,
+  opts: { stableMs?: number; timeoutMs?: number; balance?: 'plays' | 'all' | 'none' } = {},
+): Promise<void> {
+  const { stableMs = 1500, timeoutMs = 30000, balance = 'plays' } = opts;
+  await page.waitForFunction(([stable, bal]) => {
+    const h = (window as any).__bgAnimTestHooks;
+    if (!h) return false;
+    const w = (window as any).__parityStability ??= { last: '', since: 0 };
+    const now = performance.now();
+    const key = `${h.gateOpens}|${h.gateCloses}|${h.plays}|${h.settles}`;
+    if (key !== w.last) { w.last = key; w.since = now; return false; }
+    if (bal === 'plays' && h.plays !== h.settles) return false;
+    if (bal === 'all' && (h.plays !== h.settles || h.gateOpens !== h.gateCloses)) return false;
+    return (now - w.since) >= (stable as number);
+  }, [stableMs, balance] as [number, string], { timeout: timeoutMs, polling: 100 });
+}
+
 export interface GateSnapshot {
   gateOpens: number;
   gateCloses: number;
