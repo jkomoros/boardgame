@@ -111,7 +111,7 @@ export async function joinCompanionAsGuest(
   gameName: string,
 ): Promise<void> {
   await page.goto(`/join?code=${encodeURIComponent(roomCode)}`);
-  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await page.getByRole('button', { name: 'Use a new guest identity' }).click();
   await page.getByRole('button', { name: 'Looks good — join!' }).click();
   const openSeat = page.locator('.slot:not(.filled)').first();
   if (await openSeat.isVisible({ timeout: 1000 }).catch(() => false)) {

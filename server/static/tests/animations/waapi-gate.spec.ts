@@ -75,7 +75,13 @@ test.describe('animation completion gate', () => {
     // requires before it can leave Gathering. This deliberately measures a
     // player-facing Hit; a newly-created room alone has no deal animation and
     // therefore cannot provide positive gate evidence.
-    test.setTimeout(120_000);
+    //
+    // Budget: one full room (create + sign-in + two guest join flows + deal
+    // + hit + clean-gate wait) measures ~80s on a loaded dev laptop — a
+    // single guest join alone is ~40s of avatar/seat round-trips. 120s
+    // could not cover three rooms on such hardware and timed out mid-
+    // iteration 2 with the room genuinely healthy.
+    test.setTimeout(360_000);
 
     for (let i = 0; i < 3; i++) {
       const controllerContext = await browser.newContext();
@@ -131,6 +137,63 @@ test.describe('animation completion gate', () => {
     expect(snapshot.gateCloses, 'every gate-open (including interrupted cycles) must be matched by a close')
       .toBe(snapshot.gateOpens);
     expect(snapshot.watchdogFirings, 'animation watchdog must never fire').toBe(0);
+  });
+
+  test('memory: same-cycle state reinstall mid-gate must not close the gate early', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    // Guard scope regression (code review of the interrupted-cycle close):
+    // state also installs WITHOUT a new motion cycle -- doGameInfo refreshes
+    // (refresh-data / requested-player / admin-mode changes) reinstall a
+    // fresh state object while motionCycleId is unchanged. If such an
+    // install closed the still-open gate, the close would carry the
+    // STILL-CURRENT cycleId; game-view's _forwardCycleRelease would forward
+    // it and release a queued successor bundle early, cutting the in-flight
+    // animation short. This drives exactly that shape at the component
+    // contract: a new state object, same motionCycleId, landing mid-gate.
+    await createOfflineGame(page, 'memory');
+    await expect(page.locator('boardgame-card').first()).toBeAttached({ timeout: 15000 });
+    await waitForClientQuiescence(page);
+
+    // Open a real gate cycle with a card reveal, then perform the whole
+    // wait-for-open + reinstall + sample sequence inside ONE in-page
+    // evaluation so no CDP round-trip can race the ~500ms animation window.
+    await page.locator('boardgame-card:not([disabled])').first().click();
+    const result = await page.locator('boardgame-render-game').first().evaluate(async (el: any) => {
+      const hooks = (window as any).__bgAnimTestHooks;
+      const opened = await new Promise<boolean>((resolve) => {
+        const deadline = performance.now() + 10_000;
+        const poll = () => {
+          if (el.isAnimating) return resolve(true);
+          if (performance.now() > deadline) return resolve(false);
+          setTimeout(poll, 10);
+        };
+        poll();
+      });
+      if (!opened) return { opened, closedEarly: false };
+      const closesBefore = hooks.gateCloses;
+      // The doGameInfo shape: fresh state object identity, unchanged cycle.
+      el.state = { ...el.state };
+      await el.updateComplete;
+      return { opened, closedEarly: hooks.gateCloses !== closesBefore };
+    });
+    expect(result.opened, 'the card reveal must open an observable gate cycle').toBe(true);
+    expect(result.closedEarly,
+      'a same-cycle reinstall must not close the open gate (it would release the successor early)')
+      .toBe(false);
+
+    // The reinstall itself resets the gate for the same cycle; it must still
+    // settle on its own (and never via the watchdog). Deliberately no
+    // closes==opens assertion here: a same-cycle reset re-opens the gate
+    // without a bundle handoff, which the cumulative-equality invariant
+    // (covered by the creation-interrupt test above) does not model.
+    const renderGame = page.locator('boardgame-render-game').first();
+    await expect.poll(
+      () => renderGame.evaluate((element) => (element as any).isAnimating === false),
+      { timeout: 20_000 },
+    ).toBe(true);
+    const after = await gateSnapshot(page);
+    expect(after.watchdogFirings, 'animation watchdog must never fire').toBe(0);
   });
 
   test('memory: card reveal completes cleanly', async ({ page }) => {
