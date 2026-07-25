@@ -355,7 +355,7 @@ override async firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
 
 ## Animation Override Methods
 
-The base renderer provides two methods that games can override to control animations:
+The base renderer provides two methods that games can override to control animations. A third animation-timing hook, `delayAnimation()`, used to live here too, but it was removed and replaced by a declarative attribute — see the `post-animation-delay` subsection below for the contrast.
 
 ### animationLength(fromMove, toMove): number
 
@@ -379,20 +379,42 @@ override animationLength(fromMove: any, toMove: any): number {
 }
 ```
 
-### delayAnimation(fromMove, toMove): number
+### `post-animation-delay` attribute (replaces the removed `delayAnimation()` hook)
 
-**Purpose:** Delay before installing new state (in milliseconds).
+**This is not a renderer method.** The imperative `delayAnimation(fromMove, toMove): number` hook — which the state manager used to consult directly before installing the next state bundle — was deleted in commit `372f5e4d` ("Replace delayAnimation() hook with post-animation-attribute; migrate memory (#715)"). Post-animation holds are now expressed declaratively: bind the `post-animation-delay` attribute (milliseconds) on the animating item or `boardgame-component-stack`, computed from currently-rendered state rather than from the upcoming move.
 
-**Use Case:** Show intermediate state before applying changes (e.g., show matched cards before removing them).
+**Purpose:** Hold an item on screen for a beat after its animation visually completes, before `animation-done`/settlement fires. Under the hood this sets WAAPI's `endDelay` on the animation's timing (see `postAnimationDelay` on `BoardgameAnimatableItem` in `server/static/src/components/boardgame-animatable-item.ts`).
 
-**Example (from Memory game):**
+**Use Case:** Show intermediate state before applying changes (e.g., show a matched pair before it's captured).
+
+**How it differs from the old hook:** The old hook received the upcoming move (`fromMove`/`toMove`) directly and ran just before the bundle was installed. The attribute has no move argument — instead, derive the same condition from already-rendered state, as Memory's renderer does below. A `boardgame-component-stack` forwards `post-animation-delay` to its stamped child components, so it can be set once on the stack rather than on every component.
+
+**Example (real code, from `examples/memory/client/boardgame-render-game-memory.ts`):**
 ```typescript
-override delayAnimation(fromMove: any, toMove: any): number {
-  if (toMove && toMove.Name === 'Capture Cards') {
-    // Show the cards for a second before capturing them
-    return 1000;
-  }
-  return 0;
+// _revealHoldMs infers, from currently-rendered state, whether the engine's
+// next queued bundle will be the Capture Cards FixUp move (its Legal()
+// requires exactly two matching VisibleCards) -- the same condition the old
+// delayAnimation(fromMove, toMove) hook used to receive directly as toMove.
+private _revealHoldMs(): number {
+  const components = this.state?.Game?.VisibleCards?.Components;
+  if (!components) return 0;
+  const revealed = components.filter(isVisibleComponent);
+  if (revealed.length !== 2) return 0;
+  const [first, second] = revealed;
+  return first!.Values.Type === second!.Values.Type ? 1000 : 0;
+}
+
+override render() {
+  const cardStack = this.state?.Game?.Cards ?? null;
+  return html`
+    <boardgame-component-stack
+      layout="grid"
+      messy
+      post-animation-delay="${this._revealHoldMs()}"
+      .stack="${cardStack}"
+      .componentView=${this.cards}>
+    </boardgame-component-stack>
+  `;
 }
 ```
 
@@ -425,9 +447,9 @@ override animationOverlap(fromMove: any, toMove: any): number {
 }
 ```
 
-**How the three hooks compose:**
+**How these compose:**
 - `animationLength`: How long does this animation take? (or skip with negative value)
-- `delayAnimation`: How long to pause after animation before next state?
+- `post-animation-delay` (attribute, not a method): How long to hold the item after its animation completes, before settlement fires and the next state can install?
 - `animationOverlap`: What fraction of this animation to play before starting the next?
 
 ---
