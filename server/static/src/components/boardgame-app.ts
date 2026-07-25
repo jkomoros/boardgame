@@ -295,6 +295,11 @@ export class BoardgameApp extends connect(store)(LitElement) {
   @property({ type: Boolean })
   private _errorShowing = false;
 
+  // Raw payload of the error dialog currently on screen, used to collapse the
+  // duplicate show-error events every state.game.error watcher emits for one
+  // error. See _handleShowError.
+  private _lastShownErrorKey: string | null = null;
+
   @property({ type: String })
   private _errorMessage = '';
 
@@ -355,15 +360,57 @@ export class BoardgameApp extends connect(store)(LitElement) {
     store.dispatch(navigatePathTo(e.detail, false));
   }
 
+  // show-error is dispatched from inside a component's stateChanged (every
+  // component that watches state.game.error does this: 13+ live instances of
+  // boardgame-configure-game-properties on a game page, plus the roster and
+  // each move form). Answering it with a SYNCHRONOUS store.dispatch means
+  // dispatching from inside a Redux subscriber notification, and
+  // updateAndShowError is a thunk that fires two more actions — so every
+  // watcher instance pushed two more full notification passes onto the stack
+  // while the first was still unwinding. Measured: dispatch depth 16-17 and
+  // 31-33 notifications from ONE error, growing linearly with the number of
+  // watchers until the stack overflowed ("Maximum call stack size exceeded"
+  // spam on game pages). Deferring one microtask lets the current
+  // notification finish first, so the dispatch depth stays flat no matter
+  // how many watchers fan out. The error still reaches the dialog on the
+  // very next microtask — imperceptible, and no error is swallowed.
   private _handleShowError(e: CustomEvent): void {
     const details = e.detail;
-    store.dispatch(updateAndShowError(details.title, details.friendlyMessage, details.message));
+    queueMicrotask(() => {
+      // Every watcher instance answers the SAME error, so without this the
+      // one error still costs ~19 identical dispatches (38 notifications,
+      // i.e. 38 app-wide re-render passes) — flat instead of nested, but
+      // still pure noise. Compare the RAW payload, not the stored state:
+      // updateError normalizes (blanks message when it equals
+      // friendlyMessage, defaults an empty title), so state never compares
+      // equal to what the watcher sent. Skip only while a dialog with
+      // identical content is on screen — a different error, or the same
+      // error after the user dismissed the dialog, still gets through.
+      const key = JSON.stringify([details.title, details.message, details.friendlyMessage]);
+      if (selectErrorShowing(store.getState()) && key === this._lastShownErrorKey) return;
+      this._lastShownErrorKey = key;
+      store.dispatch(updateAndShowError(details.title, details.friendlyMessage, details.message));
+    });
   }
 
   private _handleDialogDismissTapped(): void {
     store.dispatch(hideError());
   }
 
+  // Bound to md-dialog's `close`, NOT `closed`. `close` fires synchronously
+  // the moment a dismissal is requested; `closed` fires only after the close
+  // animation finishes. Two defects came from listening to the late event:
+  //
+  //  1. An error arriving during the close animation set showing=true and was
+  //     then clobbered back to false by the late `closed` handler — every
+  //     error after the first dismissal silently never displayed.
+  //  2. Secondary (not a separate bug, but visible): on the esc/backdrop path
+  //     (`cancel` -> `close` -> ... -> `closed`) state only caught up at
+  //     `closed`, so for ~100ms the `?open` binding still read true and the
+  //     dialog popped back open mid-dismissal before finally settling.
+  //
+  // Syncing at intent time removes both windows by construction. Measured
+  // after the change: the esc path reports showing=false already at `close`.
   private _handleDialogClosed(e: Event): void {
     const dialog = e.target as any;
     // When the dialog is canceled by clicking on background or esc
@@ -478,7 +525,7 @@ export class BoardgameApp extends connect(store)(LitElement) {
       <!-- Error Dialog -->
       <md-dialog
         ?open="${this._errorShowing}"
-        @closed="${this._handleDialogClosed}">
+        @close="${this._handleDialogClosed}">
         <div slot="headline">${this._errorTitle}</div>
         <div slot="content">
           <p>${this._errorFriendlyMessage}</p>
