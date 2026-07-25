@@ -67,16 +67,6 @@ export class BoardgameComponentStack extends LitElement {
       position: absolute;
     }
 
-    #container ::slotted([boardgame-component]),
-    #container [boardgame-component] {
-      transition: transform var(--animation-length, 0.25s) ease-in-out, opacity var(--animation-length, 0.25s) ease-in-out;
-    }
-
-    #container.no-animate ::slotted([boardgame-component]),
-    #container.no-animate [boardgame-component] {
-      transition: unset;
-    }
-
     #container.grid #slot-holder,
     #container.stack #slot-holder {
       flex-wrap: wrap;
@@ -299,19 +289,6 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   messiness = 1.0;
 
-  private _noAnimate = false;
-
-  get noAnimate(): boolean {
-    return this._noAnimate;
-  }
-
-  set noAnimate(value: boolean) {
-    this._noAnimate = value;
-    if (this.container) {
-      this.container.classList.toggle('no-animate', value);
-    }
-  }
-
   @property({ type: Boolean })
   noDefaultSpacer = false;
 
@@ -471,14 +448,6 @@ export class BoardgameComponentStack extends LitElement {
       this.container.style.setProperty('--board-rows', String(this.boardRows));
     }
 
-  }
-
-  protected override shouldUpdate(changedProperties: Map<string, any>): boolean {
-    // Skip render if only noAnimate changed - it's handled via CSS class
-    if (changedProperties.size === 1 && changedProperties.has('noAnimate')) {
-      return false;
-    }
-    return true;
   }
 
   protected override updated(changedProperties: Map<string, any>) {
@@ -1165,6 +1134,16 @@ export class BoardgameComponentStack extends LitElement {
     const components = this.Components;
     let lastPileScaleFactor = 0.0;
 
+    // Fan layout contributes a per-component [rotation, translateY] transform
+    // piece. Precompute it up front so the single layoutTransform write below
+    // folds it into the SAME pieces array. Previously _fanComponents() ran as
+    // a second pass appending to component.style.transform; a second direct
+    // style write would defeat the layoutTransform setter's single-write,
+    // self-animating contract (it snaps/plays from the computed transform on
+    // each set, so two writes per relayout would animate twice / from a
+    // stale origin).
+    const fanPieces = this.layout === 'fan' ? this._fanComponentPieces() : [];
+
     for (let i = 0; i < components.length; i++) {
       const component = components[i];
 
@@ -1192,7 +1171,23 @@ export class BoardgameComponentStack extends LitElement {
         transformPieces.push(`rotate(${this._messyRotationForId(id)}deg)`);
       }
 
-      component.style.transform = transformPieces.join(' ');
+      if (this.layout === 'fan') {
+        const fan = fanPieces[i];
+        if (fan) transformPieces.push(...fan);
+      }
+
+      // Single write per component. layoutTransform is the self-animating
+      // replacement for the retired ambient CSS
+      // `transition: transform var(--animation-length, 0.25s) ease-in-out`.
+      // It self-animates from the prior computed transform with that exact
+      // duration/easing unless suppressed by component.noAnimate. During an
+      // animator cycle this relayout runs from Lit's slotchange/updated pass,
+      // microtasks BEFORE the animator raises its noAnimate barrier -- so it
+      // self-plays concurrently with the FLIP, exactly as the old CSS
+      // transition did at the same pre-barrier moment (no double-animation
+      // regression; see evidence 2026-07-26-stack-transition-cutover.md and
+      // the geometry-debuganimations-fan-draw golden).
+      component.layoutTransform = transformPieces.join(' ');
 
       if (i === components.length - 1) {
         component.classList.add('bcc-last');
@@ -1212,10 +1207,6 @@ export class BoardgameComponentStack extends LitElement {
 
     if (this.layout === 'pile') {
       this._pileScaleFactor = lastPileScaleFactor;
-    }
-
-    if (this.layout === 'fan') {
-      this._fanComponents();
     }
 
     if (this.layout === 'spatial') {
@@ -1243,7 +1234,13 @@ export class BoardgameComponentStack extends LitElement {
     }
   }
 
-  private _fanComponents() {
+  // Fan layout: compute each component's [rotation, translateY] transform
+  // pieces by index. Returns pieces per component (indexed like Components) so
+  // _updateComponentClasses can fold them into its single layoutTransform
+  // write. Previously this appended `rotation + ' ' + translateY` directly to
+  // component.style.transform in a second pass; the resulting matrix is
+  // identical either way (transform-function concatenation, spacing-agnostic).
+  private _fanComponentPieces(): string[][] {
     const components = this.Components;
 
     let maxRotation = 20;
@@ -1264,9 +1261,8 @@ export class BoardgameComponentStack extends LitElement {
     const rotationSpread = maxRotation - minRotation;
     const translateSpread = maxTranslate - minTranslate;
 
+    const pieces: string[][] = [];
     for (let i = 0; i < components.length; i++) {
-      const component = components[i];
-
       const percent = i / (components.length - 1);
       const rotation = percent * rotationSpread + minRotation;
       const rotationTransformation = `rotate(${rotation}deg)`;
@@ -1279,8 +1275,9 @@ export class BoardgameComponentStack extends LitElement {
       const translate = Math.cos(translateRadians) * translateSpread + minTranslate;
       const translateTransformation = `translateY(${translate}em)`;
 
-      component.style.transform += rotationTransformation + ' ' + translateTransformation;
+      pieces.push([rotationTransformation, translateTransformation]);
     }
+    return pieces;
   }
 
   private _messyRotationForId(id: string): number {
@@ -1359,13 +1356,10 @@ export class BoardgameComponentStack extends LitElement {
     return hash;
   }
 
-  private _classes(layout: string, noAnimate: boolean): string {
+  private _classes(layout: string): string {
     const result: string[] = [];
     if (layout) {
       result.push(layout);
-    }
-    if (noAnimate) {
-      result.push('no-animate');
     }
     return result.join(' ');
   }
@@ -1384,7 +1378,7 @@ export class BoardgameComponentStack extends LitElement {
   override render(): TemplateResult {
     this._validateConfiguration();
     return html`
-      <div id="container" class="${this._classes(this.layout, this.noAnimate)}" style="${this._style}">
+      <div id="container" class="${this._classes(this.layout)}" style="${this._style}">
         <div id="slot-holder">
           <slot id="components"></slot>
         </div>

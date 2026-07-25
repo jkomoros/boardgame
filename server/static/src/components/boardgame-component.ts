@@ -213,6 +213,18 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     this._layoutTransformAnimation?.cancel();
     this._layoutTransformAnimation = null;
     this.style.transform = value;
+    // noAnimate suppresses the self-play (snap only). During an animator
+    // cycle the stack's relayout write lands from Lit's slotchange/updated
+    // pass, which runs microtasks BEFORE the animator raises its
+    // component-level noAnimate barrier -- so noAnimate is FALSE here and the
+    // setter self-plays concurrently with the same cycle's FLIP. That is
+    // deliberate parity: the retired CSS `transition: transform
+    // var(--animation-length) ease-in-out` this setter replaces fired at the
+    // same pre-barrier slotchange moment with identical easing/duration.
+    // Verified by geometry golden geometry-debuganimations-fan-draw (evidence
+    // 2026-07-26-stack-transition-cutover.md). noAnimate only snaps writes
+    // issued WHILE the barrier is up (the animator's own measurement-time
+    // style mutations).
     if (this.noAnimate || !this.isConnected) return;
     const after = getComputedStyle(this).transform;
     if (before === after) return;

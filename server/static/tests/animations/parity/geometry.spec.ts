@@ -35,6 +35,34 @@ test.describe('animation motion-curve parity', () => {
     expectCurvesMatchGolden(curves, 'geometry-debuganimations-swap');
   });
 
+  // Task 12 gap-closer: the shortstacks Swap scenario above exercises a
+  // messy STACK layout, whose per-card transform (an id-hashed messy
+  // rotation) is stable across a membership change -- so the retired CSS
+  // transition (and now the layoutTransform setter) never fired for it. The
+  // #fan FanStack uses layout="fan", whose per-card transform is INDEX
+  // derived: drawing the top card re-lays-out every survivor, which under
+  // the old code rode the ambient `transition: transform var(--animation-
+  // length) ease-in-out` and now rides the layoutTransform setter's self-
+  // play. This golden was recorded at the pre-cutover commit (old CSS
+  // transition) and must still match after the cutover -- the mechanism
+  // swap (CSS transition -> WAAPI self-play) is timing/easing/duration
+  // identical, so the normalized curves are unchanged. This is the ONLY
+  // scenario that fingerprints the setter's self-play co-existing with an
+  // animator FLIP in the same cycle (see evidence pack
+  // 2026-07-26-stack-transition-cutover.md).
+  test('debuganimations: fan draw relayout curves', async ({ page }) => {
+    test.setTimeout(PARITY_TIMEOUT_MS);
+    await createOfflineGame(page, 'debuganimations');
+    const setup = await gateSnapshot(page);
+    await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+    await waitForAnimationCounterStability(page, { balance: 'plays' });
+    const curves = await sampleMotionCurves(page, async () => {
+      await page.locator('#fan').getByRole('button', { name: 'Draw', exact: true }).click();
+    });
+    await waitForAnimationCounterStability(page, { balance: 'plays' });
+    expectCurvesMatchGolden(curves, 'geometry-debuganimations-fan-draw');
+  });
+
   test('memory: reveal flip curves', async ({ page }) => {
     test.setTimeout(PARITY_TIMEOUT_MS);
     // adminMode:false pins the sanitized face-down grid deterministically
