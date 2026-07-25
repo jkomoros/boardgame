@@ -21,6 +21,11 @@ test.describe('animation motion-curve parity', () => {
     await createOfflineGame(page, 'debuganimations');
     const setup = await gateSnapshot(page);
     await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+    // Setup-drain stability: the clean-gate check is point-in-time and the
+    // creation pipeline can start another wave right after it passes (the
+    // per-player info renderers mounting again shifted creation timing and
+    // exposed exactly that race). Hold until counters are stable+balanced.
+    await waitForAnimationCounterStability(page, { balance: 'plays' });
     const curves = await sampleMotionCurves(page, async () => {
       await page.locator('#shortstacks').getByRole('button', { name: 'Swap' }).click();
     });
@@ -37,6 +42,11 @@ test.describe('animation motion-curve parity', () => {
     await createOfflineGame(page, 'memory', { adminMode: false });
     const setup = await gateSnapshot(page);
     await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+    // Setup-drain stability: the clean-gate check is point-in-time and the
+    // creation pipeline can start another wave right after it passes (the
+    // per-player info renderers mounting again shifted creation timing and
+    // exposed exactly that race). Hold until counters are stable+balanced.
+    await waitForAnimationCounterStability(page, { balance: 'plays' });
     const curves = await sampleMotionCurves(page, async () => {
       await page.locator('boardgame-card:not([disabled])').first().click();
     });
@@ -54,6 +64,11 @@ test.describe('animation motion-curve parity', () => {
     await createOfflineGame(page, 'debuganimations');
     const setup = await gateSnapshot(page);
     await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+    // Setup-drain stability: the clean-gate check is point-in-time and the
+    // creation pipeline can start another wave right after it passes (the
+    // per-player info renderers mounting again shifted creation timing and
+    // exposed exactly that race). Hold until counters are stable+balanced.
+    await waitForAnimationCounterStability(page, { balance: 'plays' });
     const swap = page.locator('#shortstacks').getByRole('button', { name: 'Swap' });
     await swap.click();
     // Wait until the first cycle's animations are genuinely mid-flight

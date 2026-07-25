@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createOfflineGame, expectCleanGate, gateSnapshot } from '../helpers.js';
+import { createOfflineGame, expectCleanGate, gateSnapshot, waitForAnimationCounterStability } from '../helpers.js';
 import { captureTrace, expectTraceMatchesGolden } from './trace-helpers.js';
 
 // createOfflineGame alone (create + fake sign-in + admin-mode dance) measures
@@ -18,6 +18,11 @@ test.describe('animation parity traces', () => {
     // settles inside the window).
     const setup = await gateSnapshot(page);
     await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+    // Setup-drain stability: the clean-gate check is point-in-time and the
+    // creation pipeline can start another wave right after it passes (the
+    // per-player info renderers mounting again shifted creation timing and
+    // exposed exactly that race). Hold until counters are stable+balanced.
+    await waitForAnimationCounterStability(page, { balance: 'plays' });
     const trace = await captureTrace(page, async () => {
       // debuganimations has no button literally labeled "Move Card" -- the
       // task brief's placeholder name doesn't match the real UI (verified
@@ -66,6 +71,11 @@ test.describe('animation parity traces', () => {
     // (same rationale as the debuganimations scenario).
     const setup = await gateSnapshot(page);
     await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+    // Setup-drain stability: the clean-gate check is point-in-time and the
+    // creation pipeline can start another wave right after it passes (the
+    // per-player info renderers mounting again shifted creation timing and
+    // exposed exactly that race). Hold until counters are stable+balanced.
+    await waitForAnimationCounterStability(page, { balance: 'plays' });
     // Layout stability precondition. The reveal's FLIP measures every card;
     // if the grid is still settling (font swap, late image decode), all 20
     // survivors pick up sub-pixel deltas and play real host animations
@@ -150,14 +160,29 @@ test.describe('animation parity traces', () => {
       // pig has no "Roll" button -- rolling is driven by clicking the die
       // itself (boardgame-die), whose accessible name is "Roll die" while
       // interactive (see server/static/src/components/boardgame-die.ts).
-      const before = await gateSnapshot(page);
-      await page.getByRole('button', { name: 'Roll die' }).click();
-      // Deterministic capture-window close (see debuganimations note).
-      await expectCleanGate(page, before);
+      // A roll landing on the SAME face animates nothing (~1-in-6), which
+      // would fail the required-kinds contract below -- re-roll (bounded)
+      // until the die visibly animates. P(4 same-face rolls) ~ 0.08%.
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const logStart: number = await page.evaluate(
+          () => (window as any).__bgAnimTestHooks.log.length);
+        const before = await gateSnapshot(page);
+        const die = page.getByRole('button', { name: 'Roll die' });
+        await expect(die).toBeEnabled({ timeout: 20000 });
+        await die.click();
+        // Deterministic capture-window close (see debuganimations note).
+        await expectCleanGate(page, before);
+        const dieAnimated = await page.evaluate((start: number) => {
+          const h = (window as any).__bgAnimTestHooks;
+          return h.log.slice(start)
+            .some((e: any) => e.ev === 'play' && String(e.detail).startsWith('boardgame-die'));
+        }, logStart).catch(() => false);
+        if (dieAnimated) break;
+      }
     });
     // Structural: pig's post-roll cycle count branches on the rolled value
     // (a 1 busts the turn; 2-6 score), which the test cannot control. The
-    // die itself must always animate.
+    // die itself must animate in at least one captured roll.
     expectTraceMatchesGolden(trace, 'pig-roll',
       { structural: { requiredKinds: ['boardgame-die'] } });
   });

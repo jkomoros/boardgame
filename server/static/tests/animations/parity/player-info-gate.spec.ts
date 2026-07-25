@@ -83,7 +83,14 @@ function deepQueryFirst(root: Document | ShadowRoot | Element, selector: string)
 
 async function mountRosterFadingText(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(async (deepQueryFirstSrc: string) => {
-    await import('/src/components/boardgame-fading-text.ts');
+    // Guarded import: since the roster renderer-loaded fix, the game page
+    // itself loads fading-text through the per-game player-info renderer
+    // (under vite's resolved specifier, a DIFFERENT module instance than
+    // this literal path), so an unconditional import here re-executes the
+    // module and its customElements.define throws "name already used".
+    if (!customElements.get('boardgame-fading-text')) {
+      await import('/src/components/boardgame-fading-text.ts');
+    }
     const deepQueryFirst = eval(deepQueryFirstSrc) as
       (root: Document | ShadowRoot | Element, selector: string) => Element | null;
     const roster = deepQueryFirst(document, 'boardgame-player-roster');

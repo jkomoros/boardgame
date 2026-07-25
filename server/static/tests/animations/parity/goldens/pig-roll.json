@@ -10,6 +10,38 @@
     },
     {
       "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
       "detail": "boardgame-die"
     },
     {
@@ -19,6 +51,70 @@
     {
       "kind": "active",
       "detail": "boardgame-die"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
     },
     {
       "kind": "settle",
@@ -37,6 +133,18 @@
       "detail": ""
     },
     {
+      "kind": "play",
+      "detail": "boardgame-fading-text"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-fading-text"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-fading-text"
+    },
+    {
       "kind": "gate-close",
       "detail": ""
     }
@@ -45,7 +153,7 @@
     "gateOpens": 2,
     "gateCloses": 2,
     "watchdogFirings": 0,
-    "plays": 2,
-    "settles": 2
+    "plays": 11,
+    "settles": 11
   }
 }

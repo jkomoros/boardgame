@@ -83,3 +83,15 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
 - **Short-lived animations** — a sub-two-frame animation could finish before
   the wave pause catches it; would surface as a loud existential-match
   failure (flake), not a silent pass.
+
+### Phase 2 topology asymmetry (accepted, documented)
+
+The registry/context providers live on `boardgame-render-game`; the roster
+is its DOM SIBLING. Roster-hosted animatables are therefore gated (via the
+game-view event pipe) but NOT registry-swept: on a cycle handoff a
+mid-flight board animatable is force-finished (snaps) while a roster one
+completes smoothly. Benign — a late roster settle is a kernel no-op — and
+orphan-settle is covered separately (disconnect settle + the game-view
+settled()-promise done channel). Roster items also resolve a null ambient
+animation context (default timing), which is correct: their animations are
+local effects, not version-slot participants.
