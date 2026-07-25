@@ -86,10 +86,20 @@ export class BoardgameGameOutcome extends BoardgameAnimatableItem {
       this._arrivalPlayed = true;
       const outcome = this.renderRoot.querySelector('#outcome') as HTMLElement | null;
       if (outcome) {
+        // timing: 'immediate' pins this to a context-independent 220ms, same
+        // as the old CSS @keyframes (which could never be reshaped by a
+        // version slot). The default 'version' policy would let a populated
+        // ambient VersionAnimationContext (e.g. the render-game host still
+        // inside its own animation window when the verdict reveals) CLAMP
+        // this duration and inject a delay (src/motion/timing.ts's 'version'
+        // branch) -- a real parity break the CSS original was structurally
+        // immune to. This only fixes the TIMING policy; the play remains
+        // gated (opts.gated defaults true), so it still holds the shared
+        // completion gate like every other Phase 1 migration target.
         this.play(outcome, [
           { opacity: 0, transform: 'scale(0.96)' },
           { opacity: 1, transform: 'scale(1)' },
-        ], { duration: 220, easing: 'ease-out', fill: 'backwards' });
+        ], { duration: 220, easing: 'ease-out', fill: 'backwards' }, { timing: 'immediate' });
       }
     }
     if (!revealed) this._arrivalPlayed = false;

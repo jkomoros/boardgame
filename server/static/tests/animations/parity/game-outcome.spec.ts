@@ -50,3 +50,46 @@ test('game-outcome arrival participates in the animation gate', async ({ page })
   expect(result.playsDelta).toBeGreaterThan(0);
   expect(result.settlesDelta).toBe(result.playsDelta);
 });
+
+// Code-review finding: play()'s default timing policy is 'version'
+// (boardgame-animatable-item.ts), and resolveMotionTiming's 'version' branch
+// (src/motion/timing.ts) CLAMPS an explicit duration to whatever remains of
+// a populated ambient VersionAnimationContext's maxAnimationDurationMs. The
+// old CSS `animation: outcome-arrive 220ms ease-out both;` could never be
+// reshaped this way -- it always ran exactly 220ms regardless of any
+// surrounding render-game cycle. Mirrors fading-text.spec.ts's nested
+// ambient-context test shape: a plain provider div carries a populated
+// animationContext (maxAnimationDurationMs deliberately 100, well under
+// 220, so the version policy would clamp if consulted), game-outcome mounts
+// as its direct child (its own _ambientAnimationContext() walk starts at
+// parentNode and finds the provider immediately), and the reveal's actual
+// started Animation is inspected directly via getComputedTiming().duration.
+test('game-outcome arrival keeps its declared 220ms under a populated ambient version context', async ({ page }) => {
+  await page.goto('/');
+
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-game-outcome.ts');
+    const provider = document.createElement('div') as any;
+    provider.animationContext = {
+      version: 7,
+      startAtMs: Date.now(),
+      slotDurationMs: 1000,
+      maxAnimationDurationMs: 100,
+    };
+    document.body.appendChild(provider);
+
+    const el = document.createElement('boardgame-game-outcome') as any;
+    el.style.cssText = 'position:fixed;top:100px;left:100px;width:400px;';
+    provider.appendChild(el);
+    el.finished = true;
+    el.winners = [0];
+    await el.updateComplete;
+
+    const outcome = el.shadowRoot.querySelector('#outcome') as HTMLElement | null;
+    const anim = outcome?.getAnimations()[0];
+    const timing = anim?.effect?.getComputedTiming();
+    return { duration: timing ? Number(timing.duration) : null };
+  });
+
+  expect(result.duration).toBe(220);
+});
