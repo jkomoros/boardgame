@@ -1,5 +1,6 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { html, css, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
+import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
 
 export type FadingTextTrigger = string | number | boolean | null | undefined;
 export type FadingTextAutoMessage = 'diff' | 'diff-up' | 'fixed' | 'new';
@@ -8,7 +9,7 @@ export type FadingTextSuppress = 'none' | 'falsey' | 'truthy';
 const autoMessages = new Set<FadingTextAutoMessage>(['diff', 'diff-up', 'fixed', 'new']);
 const suppressPolicies = new Set<FadingTextSuppress>(['none', 'falsey', 'truthy']);
 
-export class BoardgameFadingText extends LitElement {
+export class BoardgameFadingText extends BoardgameAnimatableItem {
   static override styles = css`
     #container {
       position: absolute;
@@ -31,29 +32,6 @@ export class BoardgameFadingText extends LitElement {
     #message {
       font-size: var(--message-font-size, 16px);
     }
-
-    .animating #message {
-      animation-name: fadetext;
-      animation-duration: var(--animation-length, 0.25s);
-      animation-timing-function: ease-out;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .animating #message {
-        animation-duration: 1ms;
-      }
-    }
-
-    @keyframes fadetext {
-      from {
-        opacity: 1.0;
-        transform: scale(1.0);
-      }
-      to {
-        opacity: 0.0;
-        transform: scale(6.0);
-      }
-    }
   `;
 
   @property({ type: String })
@@ -73,10 +51,9 @@ export class BoardgameFadingText extends LitElement {
   announce = true;
 
   @property({ type: Boolean, attribute: false })
-  protected _animating = false;
+  protected _visible = false;
 
   private _previousTriggerValue: FadingTextTrigger;
-  private _animationGeneration = 0;
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
@@ -89,19 +66,18 @@ export class BoardgameFadingText extends LitElement {
     }
   }
 
-  private _animationEnded() {
-    this._animating = false;
-  }
-
   animateFade(): void {
-    const generation = ++this._animationGeneration;
-    this._animating = false;
+    this.finishAllAnimations();          // retrigger = finish prior fade (parity
+    this._visible = true;                // with the old generation-counter reset)
     void this.updateComplete.then(() => {
-      requestAnimationFrame(() => {
-        if (generation === this._animationGeneration && this.isConnected) {
-          this._animating = true;
-        }
-      });
+      const message = this.renderRoot.querySelector('#message') as HTMLElement | null;
+      if (!message || !this.isConnected) { this._visible = false; return; }
+      const anim = this.play(message, [
+        { opacity: 1, transform: 'scale(1.0)' },
+        { opacity: 0, transform: 'scale(6.0)' },
+      ], { easing: 'ease-out' });        // duration defaults to animationLengthMs()
+      if (!anim) { this._visible = false; return; }
+      anim.finished.catch(() => {}).finally(() => { this._visible = false; });
     });
   }
 
@@ -167,24 +143,16 @@ export class BoardgameFadingText extends LitElement {
     }
   }
 
-  private _classes(_animating: boolean): string {
-    const classes: string[] = [];
-    if (_animating) {
-      classes.push('animating');
-    }
-    return classes.join(' ');
-  }
-
   override render() {
     this._validateConfiguration();
     return html`
       <div
         id="container"
-        class="${this._classes(this._animating)}"
+        class="${this._visible ? 'animating' : ''}"
         role=${this.announce ? 'status' : nothing}
         aria-live=${this.announce ? 'polite' : nothing}
         aria-atomic=${this.announce ? 'true' : nothing}>
-        <div id="message" @animationend=${this._animationEnded} @animationcancel=${this._animationEnded}>
+        <div id="message">
           ${this.message}
         </div>
       </div>
