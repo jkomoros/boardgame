@@ -55,6 +55,16 @@ export class BoardgameFadingText extends BoardgameAnimatableItem {
 
   private _previousTriggerValue: FadingTextTrigger;
 
+  // Retrigger guard: finishAllAnimations() force-settles the PRIOR fade's
+  // play(), whose own .finished.finally() is still pending on the microtask
+  // queue at that instant -- it races this call's updateComplete.then(...)
+  // with no ordering guarantee. Without a generation token, a stale prior
+  // closure that loses the race fires AFTER the new fade has started and
+  // clears _visible mid-animation. Every generation-guarded exit (including
+  // the two early-return paths) must check it stays current before touching
+  // _visible.
+  private _fadeGeneration = 0;
+
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
 
@@ -68,16 +78,25 @@ export class BoardgameFadingText extends BoardgameAnimatableItem {
 
   animateFade(): void {
     this.finishAllAnimations();          // retrigger = finish prior fade (parity
-    this._visible = true;                // with the old generation-counter reset)
+    const generation = ++this._fadeGeneration; // with the old generation-counter reset)
+    this._visible = true;
     void this.updateComplete.then(() => {
       const message = this.renderRoot.querySelector('#message') as HTMLElement | null;
-      if (!message || !this.isConnected) { this._visible = false; return; }
+      if (!message || !this.isConnected) {
+        if (generation === this._fadeGeneration) this._visible = false;
+        return;
+      }
       const anim = this.play(message, [
         { opacity: 1, transform: 'scale(1.0)' },
         { opacity: 0, transform: 'scale(6.0)' },
       ], { easing: 'ease-out' });        // duration defaults to animationLengthMs()
-      if (!anim) { this._visible = false; return; }
-      anim.finished.catch(() => {}).finally(() => { this._visible = false; });
+      if (!anim) {
+        if (generation === this._fadeGeneration) this._visible = false;
+        return;
+      }
+      anim.finished.catch(() => {}).finally(() => {
+        if (generation === this._fadeGeneration) this._visible = false;
+      });
     });
   }
 

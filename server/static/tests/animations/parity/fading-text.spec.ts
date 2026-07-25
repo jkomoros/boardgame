@@ -56,3 +56,90 @@ test('fading-text fade participates in the animation gate', async ({ page }) => 
   expect(result.playsDelta).toBeGreaterThan(0);
   expect(result.settlesDelta).toBe(result.playsDelta);
 });
+
+// Code-review finding: animateFade()'s retrigger path calls
+// finishAllAnimations() to force-settle the PRIOR fade before starting a new
+// one. That prior play()'s own `.finished.catch().finally()` closure is
+// still pending when finish() forces its settlement, and without a
+// generation token that stale closure can clear `_visible` AFTER the new
+// fade has already started (a genuine mid-flight retrigger, not a
+// same-tick double-set) -- hiding the container while a fresh animation is
+// legitimately running underneath. This drives that exact shape: start a
+// fade, wait until its animation is OBSERVABLY running (currentTime > 0,
+// not just started), retrigger, then sample the container's visibility
+// repeatedly through a window that spans well past when the stale closure
+// would have cleared it but well before the second fade's own real
+// completion -- so a premature hide is caught even though the exact
+// microtask interleaving isn't independently observable from outside.
+test('retrigger mid-flight keeps the container visible through the second fade', async ({ page }) => {
+  await page.goto('/');
+
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-fading-text.ts');
+    const el = document.createElement('boardgame-fading-text') as any;
+    el.style.cssText = 'position:fixed;top:200px;left:200px;width:120px;height:40px;';
+    el.autoMessage = 'fixed';
+    el.message = 'Parity!';
+    document.body.appendChild(el);
+
+    const hooks = (window as any).__bgAnimTestHooks;
+    const playsBefore = hooks.plays;
+    const settlesBefore = hooks.settles;
+
+    const message = () => el.shadowRoot.querySelector('#message') as HTMLElement;
+    const container = () => el.shadowRoot.querySelector('#container') as HTMLElement;
+    const isVisible = () => container().classList.contains('animating');
+    const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    el.trigger = 1;
+    await el.updateComplete;
+    el.trigger = 2; // starts fade #1
+    await el.updateComplete;
+
+    // Wait until fade #1's own animation is genuinely running (not just
+    // created -- currentTime must have advanced past 0).
+    const deadline1 = performance.now() + 5000;
+    for (;;) {
+      const anims = message().getAnimations();
+      const running = anims.some((a) =>
+        a.playState === 'running' && typeof a.currentTime === 'number' && a.currentTime > 0);
+      if (running) break;
+      if (performance.now() > deadline1) throw new Error('fade #1 never became observably running');
+      await frame();
+    }
+
+    el.trigger = 3; // genuine mid-flight retrigger -> fade #2
+    await el.updateComplete;
+
+    // Sample visibility across a window that starts right after the
+    // retrigger and runs well past where a stale closure would have
+    // cleared it, but stays short of fade #2's own ~250ms completion.
+    let everHiddenDuringWindow = false;
+    const sampleDeadline = performance.now() + 150;
+    while (performance.now() < sampleDeadline) {
+      if (!isVisible()) { everHiddenDuringWindow = true; break; }
+      await frame();
+    }
+
+    // Let fade #2 fully settle, then confirm the container hides for real.
+    await new Promise<void>((resolve) => {
+      el.addEventListener('animation-done', () => resolve(), { once: true });
+      setTimeout(resolve, 5000);
+    });
+    await frame();
+
+    return {
+      everHiddenDuringWindow,
+      hiddenAfterSettle: !isVisible(),
+      playsDelta: hooks.plays - playsBefore,
+      settlesDelta: hooks.settles - settlesBefore,
+    };
+  });
+
+  expect(result.everHiddenDuringWindow,
+    'the container must stay visible through fade #2; a stale generation-0 closure hid it early')
+    .toBe(false);
+  expect(result.hiddenAfterSettle).toBe(true);
+  expect(result.playsDelta).toBe(2);
+  expect(result.settlesDelta).toBe(2);
+});

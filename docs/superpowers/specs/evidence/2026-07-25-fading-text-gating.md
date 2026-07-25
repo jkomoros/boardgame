@@ -1,4 +1,4 @@
-# Evidence pack: `boardgame-fading-text` gains gate participation and drops the 1ms reduced-motion sprint
+# Evidence pack: `boardgame-fading-text` gains gate participation; reduced-motion becomes a duration-0 instant play
 
 **Task:** Task 4 of the animatable-item unification plan
 (`docs/superpowers/specs/2026-07-24-animatable-item-unification-design.md`, Phase 1).
@@ -26,18 +26,27 @@ byte-for-byte preserved.
    inherits the primitive so it participates in discovery/gating" — i.e. status-text
    and the other Phase-1 items derive from the same base class this task lands.
 
-2. **Reduced-motion: kernel skip vs 1ms sprint (declared change).** The old CSS had
-   an explicit `@media (prefers-reduced-motion: reduce) { .animating #message {
-   animation-duration: 1ms; } }` block — the fade still ran, compressed to 1ms.
-   `BoardgameAnimatableItem.play()` instead resolves `reducedMotion` through
-   `resolveMotionTiming` and returns `null` (kernel skip) when the user prefers
-   reduced motion; `animateFade()` handles this by hiding the message immediately
-   (`if (!anim) { this._visible = false; return; }`). This is the same tradeoff the
-   spec calls out for `boardgame-game-outcome`'s reduced-motion parity ("kernel skip
-   is equivalent here") and is listed in `tests/animations/parity/README.md`'s
-   accepted-blind-spots ledger: "Reduced-motion goldens — Phase 1 *declares* a
-   behavior change here (kernel skip vs CSS 1ms sprint)... Kernel-level
-   reduced-motion behavior is covered by `waapi-play`/`waapi-companion`."
+2. **Reduced-motion: duration-0 instant play, not a kernel skip (correction below).**
+   The old CSS had an explicit `@media (prefers-reduced-motion: reduce) {
+   .animating #message { animation-duration: 1ms; } }` block — the fade still ran,
+   compressed to 1ms. **Correction (code review caught this): the new path does
+   NOT skip the animation.** `resolveMotionTiming` (`src/motion/timing.ts:85-98`)
+   has a dedicated `reducedMotion` branch that returns `kind: 'play'` (not
+   `'skip'`) with `delay: 0, duration: 0` — i.e. `play()` still calls
+   `element.animate(...)` and still returns a real `Animation`, it is just
+   instantaneous (0ms active duration, `endDelay` preserved for callers that use
+   it as a semantic hold). `animateFade()`'s `if (!anim) { this._visible = false;
+   return; }` fallback is therefore **not** the reduced-motion path at all — `anim`
+   is never null here; that branch is only reachable via `noAnimate`. So the
+   accurate framing is: reduced motion goes from a 1ms CSS sprint to a 0ms WAAPI
+   instant play — arguably a *closer* parity match than the old behavior (0ms is
+   the more honest expression of "no perceptible motion" than an arbitrary 1ms),
+   not a skip. This is still a declared, approved change (the spec's
+   `boardgame-game-outcome` reduced-motion note and the parity README's
+   accepted-blind-spots ledger both anticipate reduced-motion behavior differing
+   from the pre-migration CSS and defer its verification to
+   `waapi-play`/`waapi-companion` rather than a geometry golden), but the
+   mechanism is an instant real animation, not an absence of one.
 
 Everything else is unchanged: public API (`message`, `trigger`, `suppress`,
 `autoMessage`, `announce`, `animateFade()`), `_validateConfiguration`/`_triggerChanged`
