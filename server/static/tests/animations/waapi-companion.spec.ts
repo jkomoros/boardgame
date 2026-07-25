@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createOfflineGame, joinCompanionAsGuest } from './helpers';
+import { createOfflineGame, joinCompanionAsGuest, waitForAnimationCounterStability } from './helpers';
 
 // Companion-mode cross-screen animation sync (#798, spec §8.4). The
 // Table surface (shared projector) and Hand surfaces (players' phones)
@@ -65,9 +65,13 @@ test.describe('companion-sync estimator', () => {
     // local conversion the schedulers depend on).
     expect(r.offsetAfter).not.toBeNull();
     expect(r.afterWarm).toBe(r.server + r.offsetAfter);
-    // The min-wins offset can never exceed our injected 250ms sample
-    // (variance only ever adds latency; the minimum is the floor).
-    expect(r.offsetAfter).toBeLessThanOrEqual(250);
+    // The min-wins offset can never meaningfully exceed our injected 250ms
+    // sample (variance only ever adds latency; the minimum is the floor).
+    // Allow a few ms of slack: `now` is captured once but ingest() computes
+    // Date.now() - serverSentAt at each call, so the wall clock ticking
+    // during the ingest loop can push every sample (and thus the minimum)
+    // a millisecond or two past exactly 250.
+    expect(r.offsetAfter).toBeLessThanOrEqual(260);
   });
 });
 
@@ -445,7 +449,15 @@ function deepQueryFirstScript() {
 
 test.describe('verdict gating on animation completion', () => {
   test('game outcome is suppressed while animating, appears once the gate closes', async ({ page }) => {
-    await createOfflineGame(page, 'blackjack');
+    // The game must be created in REAL companion mode: surfaceForGame
+    // (utils/companion-surface.ts) deliberately ignores the ?display=table
+    // override whenever companionInfo.CompanionMode === false ("a tab that
+    // slept through switchToSolo must not resurrect a Hand/Table renderer"),
+    // so on a solo game the -table renderer is torn down again the moment
+    // the game-info bundle arrives and this test's deep query can never
+    // find it. Injecting props onto the renderer needs no seated players,
+    // so no guest joins are required (unlike the real-move test above).
+    await createOfflineGame(page, 'blackjack', { companionMode: true, adminMode: false });
     const tableUrl = new URL(page.url());
     tableUrl.searchParams.set('display', 'table');
     await page.goto(tableUrl.toString());
@@ -465,32 +477,42 @@ test.describe('verdict gating on animation completion', () => {
     // Inject gameFinished/gameWinners/animating directly onto the real
     // renderer instance -- this exercises the actual guard in the actual
     // component (renderGameOverBanner), not a synthetic stand-in.
-    const setRendererProps = (props: Record<string, unknown>) => page.evaluate(
-      ([fnSrc, p]) => {
+    //
+    // Injection, updateComplete, and the DOM read must happen atomically in
+    // ONE page.evaluate: the live page keeps polling game-info (the Table
+    // surface refreshes its TableSession lease), and every refresh reapplies
+    // the STORE's real gameFinished/gameWinners (both falsy for this
+    // still-running game) onto the renderer via
+    // _applyGameOutcomeToRenderer -- correct production behavior that would
+    // silently wipe a cross-call injection before a separate outcomeVisible()
+    // evaluate could observe it.
+    const setPropsAndReadOutcome = (props: Record<string, unknown>) => page.evaluate(
+      async ([fnSrc, p]) => {
         // eslint-disable-next-line no-eval
         const deepQueryFirst = eval(`(${fnSrc})`);
         const r = deepQueryFirst(document, 'boardgame-render-game-blackjack-table') as any;
         Object.assign(r, p);
-        return r.updateComplete;
+        await r.updateComplete;
+        const outcome = r?.shadowRoot?.querySelector('boardgame-game-outcome') as any;
+        await outcome?.updateComplete;
+        return !!outcome?.shadowRoot?.querySelector('#outcome');
       },
       [`(${deepQueryFirstScript.toString()})()`, props] as const,
     );
 
-    const outcomeVisible = () => page.evaluate((fnSrc: string) => {
-      // eslint-disable-next-line no-eval
-      const deepQueryFirst = eval(`(${fnSrc})`);
-      const r = deepQueryFirst(document, 'boardgame-render-game-blackjack-table') as any;
-      const outcome = r?.shadowRoot?.querySelector('boardgame-game-outcome') as HTMLElement | null;
-      return !!outcome?.shadowRoot?.querySelector('#outcome');
-    }, `(${deepQueryFirstScript.toString()})()`);
-
     // gameFinished + animating=true: the verdict must stay hidden.
-    await setRendererProps({ gameFinished: true, gameWinners: [0], animating: true });
-    expect(await outcomeVisible(), 'outcome must be absent while animating=true, even though gameFinished=true').toBe(false);
+    expect(
+      await setPropsAndReadOutcome({ gameFinished: true, gameWinners: [0], animating: true }),
+      'outcome must be absent while animating=true, even though gameFinished=true',
+    ).toBe(false);
 
-    // Gate closes: the verdict must now appear.
-    await setRendererProps({ animating: false });
-    expect(await outcomeVisible(), 'outcome must appear once animating=false and gameFinished=true').toBe(true);
+    // Gate closes: the verdict must now appear. Poll (re-injecting each
+    // attempt) so a game-info refresh landing in the narrow window between
+    // Object.assign and the shadow-DOM read cannot flake the test.
+    await expect.poll(
+      () => setPropsAndReadOutcome({ gameFinished: true, gameWinners: [0], animating: false }),
+      { timeout: 10000 },
+    ).toBe(true);
   });
 
   test('animateBetween flight on a real card holds the render-game gate until it settles', async ({ page }) => {
@@ -619,6 +641,11 @@ test.describe('verdict gating on animation completion', () => {
   });
 
   test('renderer.animating mirrors render-game.isAnimating through a real move animation', async ({ page }) => {
+    // Game creation plus the admin-panel setup can consume most of the
+    // default 30s budget under a loaded worker, and the sustained-stability
+    // quiescence waits below (unlike the old instant counter checks they
+    // replaced) each need a further multi-second window.
+    test.setTimeout(90000);
     // debuganimations (not blackjack) drives this: it exposes a reliable
     // button-triggered move (waapi-buttons.spec.ts uses the same "To
     // Hidden" trigger for the analogous isAnimating-attribute check), so
@@ -637,11 +664,15 @@ test.describe('verdict gating on animation completion', () => {
       };
     }, `(${deepQueryFirstScript.toString()})()`);
 
-    // Quiescent baseline: gate closed, renderer mirrors it.
-    await page.waitForFunction(() => {
-      const h = (window as any).__bgAnimTestHooks;
-      return h.gateCloses >= h.gateOpens;
-    }, undefined, { timeout: 20000 });
+    // Quiescent baseline: gate closed, renderer mirrors it. A point-in-time
+    // gateCloses >= gateOpens check races the trailing edge of page setup:
+    // createOfflineGame's admin-mode/view-as dance triggers a late
+    // state-refresh whose card/token FLIP burst opens one more gate cycle
+    // (~1s) AFTER the counters were momentarily balanced, so a sample taken
+    // right after the balanced instant can observe isAnimating === true.
+    // Require sustained counter stability instead (see
+    // waitForAnimationCounterStability's rationale in helpers.ts).
+    await waitForAnimationCounterStability(page, { balance: 'all' });
     const before = await sample();
     expect(before.isAnimating).toBe(false);
     expect(before.rendererAnimating).toBe(false);
@@ -655,13 +686,12 @@ test.describe('verdict gating on animation completion', () => {
     const during = await sample();
     expect(during.rendererAnimating).toBe(true);
 
-    // AFTER: wait for the gate to close, then re-sample.
-    await page.waitForFunction(() => {
-      const h = (window as any).__bgAnimTestHooks;
-      return h.gateCloses >= h.gateOpens;
-    }, undefined, { timeout: 20000 });
-    await expect.poll(async () => (await sample()).isAnimating, { timeout: 20000 }).toBe(false);
+    // AFTER: wait for sustained quiescence (not just one balanced counter
+    // instant -- the move's cycle can be followed by a queued fix-up bundle,
+    // same trailing-edge hazard as the baseline above), then re-sample.
+    await waitForAnimationCounterStability(page, { balance: 'all' });
     const after = await sample();
+    expect(after.isAnimating).toBe(false);
     expect(after.rendererAnimating).toBe(false);
   });
 });
