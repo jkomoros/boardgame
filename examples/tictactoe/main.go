@@ -141,6 +141,17 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(moves.SeatPlayer),
 		),
+		// moves.SeatPlayer marks newly seated players as Inactive (players in
+		// the middle of a round shouldn't join it). Tictactoe has no rounds or
+		// phases, so per moves.ActivateInactivePlayer's doc this move should
+		// "ALWAYS be legal": a seated player is immediately activated and
+		// included in play. Without it every seated player stays inactive
+		// forever, PlayerIndex.Valid is false for all of them, and every
+		// CurrentPlayer-based move (Place Token) is permanently illegal — the
+		// game deadlocks the moment auto-seating fills seats.
+		auto.MustConfig(
+			new(moves.ActivateInactivePlayer),
+		),
 		auto.MustConfig(
 			new(movePlaceToken),
 			moves.WithHelpText("Place a player's token in a specific space."),

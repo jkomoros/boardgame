@@ -9,6 +9,8 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   // pig's gameDelegate doesn't override DisplayName(), so base.GameDelegate's
   // default (title-case of Name()) applies -- see base/game_delegate.go.
   pig: 'Pig',
+  tictactoe: 'Tic Tac Toe',
+  checkers: 'Checkers',
 };
 
 const FAKE_EMAIL = 'animtest@example.com';

@@ -66,6 +66,19 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moves.SeatPlayer),
 			),
+			// moves.SeatPlayer marks newly seated players as Inactive (players
+			// in the middle of a round shouldn't join it). Checkers' phases are
+			// setup/playing, not per-player rounds, so per
+			// moves.ActivateInactivePlayer's doc this move should "ALWAYS be
+			// legal": a seated player is immediately activated. Without it
+			// every seated player stays inactive forever, PlayerIndex.Valid is
+			// false for all of them, and every CurrentPlayer-based move (Move
+			// Token, Crown Token's turn gating) is permanently illegal — the
+			// game deadlocks the moment auto-seating fills seats. Configured
+			// outside the phase blocks so it applies in every phase.
+			auto.MustConfig(
+				new(moves.ActivateInactivePlayer),
+			),
 		),
 		moves.AddOrderedForPhase(phaseSetup,
 			auto.MustConfig(
