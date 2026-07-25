@@ -903,7 +903,7 @@ export class BoardgameComponentAnimator extends LitElement {
     // (#798): (a) the completion gate could close — and the game-over
     // verdict banner appear — while a delayed synced deal flight was still
     // mid-air; (b) prepare()'s interruption
-    // pass (finishAllAnimations) couldn't reach a raw flight to settle it
+    // pass (finishGatedAnimations) couldn't reach a raw flight to settle it
     // before measuring a new cycle. play() supplies its own default timing
     // (duration = --animation-length), so we override with the caller's
     // durationMs + the sync delay and match the raw path's ease-out/none.
