@@ -1870,8 +1870,9 @@ its typed scalar `.trigger` changes. `message="Your Turn"` keeps fixed text;
 `auto-message="new"`, `"diff"`, or `"diff-up"` derives text from the new
 value. `suppress="falsey"` and `"truthy"` cover conditional callouts. Invalid
 policies and non-finite numeric triggers fail loudly. The font size can be
-changed with `--message-font-size`; reduced-motion preferences collapse the
-effect to 1ms while retaining the announcement.
+changed with `--message-font-size`; reduced-motion preferences skip the
+animated motion (an instant, zero-duration reveal) while retaining the
+announcement.
 
 In many cases there are parts of your UI that show a value in them, and when that value changes you want to draw attention to it. For example, if you have some text that shows the number of cards in a given stack, you might want users to notice when that changes.
 

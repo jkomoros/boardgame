@@ -83,6 +83,15 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
 - **Short-lived animations** — a sub-two-frame animation could finish before
   the wave pause catches it; would surface as a loud existential-match
   failure (flake), not a silent pass.
+- **`composite: 'replace'` as the same-host no-double-motion invariant** —
+  when a stack's `layoutTransform` self-play and the same cycle's FLIP host
+  track both animate one host's transform, safety comes from `play()`'s
+  pinned `composite: 'replace'` (the higher animation wins outright each
+  frame), not from easing/duration matching. This is enforced in `play()`
+  (`src/components/boardgame-animatable-item.ts`) but is NOT
+  golden-detectable: curves are displacement-normalized, so a uniform
+  doubling under `composite: 'add'` divides back out of the comparison.
+  See `docs/superpowers/specs/evidence/2026-07-26-stack-transition-cutover.md`.
 
 ### Phase 2 topology asymmetry (accepted, documented)
 
