@@ -163,4 +163,40 @@ describe('motion timing', () => {
     );
     assert.equal(alreadyElapsed.kind === 'play' && alreadyElapsed.expectedSettleMs, 0);
   });
+
+  it('passes iterations: Infinity through to the resolved timing but keeps expectedSettleMs finite', () => {
+    // Infinity is WAAPI's own "loop forever" sentinel for iterations --
+    // unlike delay/duration/endDelay, which WAAPI requires finite. An
+    // ambient ungated throb (#Task7) relies on this surviving resolution
+    // intact so element.animate() actually receives iterations: Infinity
+    // rather than a silently-clamped 0 (which would make the play a no-op).
+    const result = resolveMotionTiming(
+      { duration: 1000, iterations: Infinity, direction: 'alternate' },
+      { policy: 'immediate' },
+    );
+    assert.equal(result.kind, 'play');
+    if (result.kind !== 'play') return;
+    assert.equal(result.timing.iterations, Infinity);
+    assert.equal(result.timing.duration, 1000);
+    assert.equal(result.timing.direction, 'alternate');
+    // effectiveIterations() treats Infinity as 0 for the settle-time
+    // estimate -- the watchdog-safety property this test pins: an infinite
+    // play must never be reported as an expected finite-but-huge wait, only
+    // as "no bounded settlement to wait for" (0). This is exactly why an
+    // infinite play must always be requested ungated: gated accounting
+    // would otherwise treat it as an immediately-satisfied wait while the
+    // animation is, in reality, still running forever.
+    assert.equal(result.expectedSettleMs, 0);
+    assert.ok(Number.isFinite(result.expectedSettleMs));
+  });
+
+  it('treats a NaN iterations request as malformed input and clamps it to 0', () => {
+    const result = resolveMotionTiming(
+      { duration: 100, iterations: Number.NaN },
+      { policy: 'immediate' },
+    );
+    assert.equal(result.kind, 'play');
+    if (result.kind !== 'play') return;
+    assert.equal(result.timing.iterations, 0);
+  });
 });

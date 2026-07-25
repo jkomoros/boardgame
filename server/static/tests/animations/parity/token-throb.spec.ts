@@ -64,8 +64,32 @@ test.describe('boardgame-token throb', () => {
       await el.updateComplete;
       const animsAfterClear = liveAnimations();
 
+      // Re-arm BEFORE disconnecting: the disconnect assertion below must
+      // prove disconnectedCallback's own cleanup path, not merely observe
+      // an already-cancelled throb left over from the clear above (which
+      // would make the assertion pass regardless of whether disconnect
+      // cleanup exists at all).
+      el.highlighted = true;
+      await el.updateComplete;
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      const animsBeforeDisconnect = liveAnimations();
+      // Capture the Animation object itself (runtime access to the
+      // TypeScript-`private` field is unaffected -- privacy is compile-time
+      // only) rather than relying on getAnimations() after removal: Chrome
+      // returns an EMPTY list from getAnimations() for a disconnected
+      // element's own animations regardless of whether .cancel() was ever
+      // called (confirmed empirically -- an animate() call left running,
+      // never cancelled, on an element that is then removed also reports
+      // getAnimations().length === 0 post-removal). So the only way to
+      // prove disconnectedCallback's cancel() actually fired is to inspect
+      // the specific Animation instance's own `playState`, which .cancel()
+      // synchronously flips to 'idle' -- independent of the target
+      // element's connectedness.
+      const throbBeforeDisconnect = (el as any)._throb as Animation | null;
+      const throbStateBeforeDisconnect = throbBeforeDisconnect?.playState ?? null;
+
       document.body.removeChild(el);
-      const animsAfterDisconnect = liveAnimations();
+      const throbStateAfterDisconnect = throbBeforeDisconnect?.playState ?? null;
 
       return {
         events,
@@ -74,7 +98,9 @@ test.describe('boardgame-token throb', () => {
         gateOpensDelta: hooks.gateOpens - gateOpensBefore,
         playsDelta: hooks.plays - playsBefore,
         animsAfterClearCount: animsAfterClear.length,
-        animsAfterDisconnectCount: animsAfterDisconnect.length,
+        animsBeforeDisconnectCount: animsBeforeDisconnect.length,
+        throbStateBeforeDisconnect,
+        throbStateAfterDisconnect,
       };
     });
 
@@ -88,7 +114,9 @@ test.describe('boardgame-token throb', () => {
     expect(result.isAnimatingAfterStart, 'an ungated play must not hold the completion gate').toBe(false);
     expect(result.gateOpensDelta, 'a standalone-mounted token never touches the render-game gate').toBe(0);
     expect(result.animsAfterClearCount, 'clearing highlighted must cancel the throb').toBe(0);
-    expect(result.animsAfterDisconnectCount, 'disconnecting the element must cancel the throb').toBe(0);
+    expect(result.animsBeforeDisconnectCount, 'the re-armed throb must be live immediately before disconnect').toBe(1);
+    expect(result.throbStateBeforeDisconnect, 'the re-armed throb must genuinely be running before disconnect').toBe('running');
+    expect(result.throbStateAfterDisconnect, 'disconnecting while throbbing must cancel() the throb (playState -> idle)').toBe('idle');
   });
 
   test('active-only and highlighted-only both throb; clearing both stops it', async ({ page }) => {

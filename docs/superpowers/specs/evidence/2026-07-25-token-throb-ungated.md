@@ -96,11 +96,45 @@ if (typeof timing.iterations === 'number' && Number.isNaN(timing.iterations)) {
 ```
 
 Verified this is a targeted fix, not a behavior change for existing callers:
-`timing.test.ts`'s malformed-input case never sets `iterations` (stays
-`undefined`, untouched by either guard), and its finite-`iterations: 3` cases
-(`compiles version wait...`, `preserves forward fill and clips repeated active
-duration...`) were never at risk from the old guard either (`Number.isFinite(3)`
-was already `true`). `npm run test:unit` (234/234) confirms no regression.
+`timing.test.ts`'s pre-existing malformed-input case never sets `iterations`
+(stays `undefined`, untouched by either guard), and its finite-`iterations: 3`
+cases (`compiles version wait...`, `preserves forward fill and clips repeated
+active duration...`) were never at risk from the old guard either
+(`Number.isFinite(3)` was already `true`). `npm run test:unit` confirms no
+regression.
+
+**Direct kernel unit-test coverage (code review correction):** the first pass
+of this task claimed `timing.test.ts` covered the fix but had not actually
+added an assertion exercising the Infinity/NaN `iterations` path — every
+existing case either omits `iterations` or uses a finite value. Two new
+`describe('motion timing')` cases in `src/motion/timing.test.ts` close that
+gap directly against `resolveMotionTiming()`, independent of the
+`boardgame-token` fixture:
+
+- `'passes iterations: Infinity through to the resolved timing but keeps
+  expectedSettleMs finite'` — asserts `result.timing.iterations === Infinity`
+  survives resolution under `policy: 'immediate'`, and separately asserts
+  `result.expectedSettleMs` is both `0` and `Number.isFinite(...)` — the
+  watchdog-safety property that an infinite play is reported as "no bounded
+  wait" rather than a finite-but-wrong estimate.
+- `'treats a NaN iterations request as malformed input and clamps it to 0'` —
+  asserts the guard still fires for genuinely malformed input.
+
+**Footgun documented (code review note): `policy: 'version'` + infinite
+iterations silently collapses to a 0-duration no-op.** The Infinity fix only
+protects `timing.iterations` itself from being clamped; it does not change
+`effectiveIterations()`, which still maps `Infinity` to `0` when a version-slot
+stagger/clip computation multiplies it against the requested duration
+(`requestedActiveDuration = requestedDuration * effectiveIterations(...)`,
+`timing.ts:120-131`). So a caller that requests `iterations: Infinity` under
+the `play()` *default* policy (`timing: 'version'`, i.e. omitting the `timing`
+option entirely) would get `timing.duration` clamped to `0` — a silent no-op,
+not an error. `policy: 'immediate'` is the only sane choice for an infinite
+play, because version-slot synchronization has no meaning for an effect with
+no natural end; this is exactly why the token throb passes `timing:
+'immediate'` explicitly rather than relying on `play()`'s default. A comment
+at the `iterations` guard split in `timing.ts` now calls this out at the
+source.
 
 **Proof the fix is load-bearing, not incidental:** stashing just the
 `timing.ts` change and re-running `token-throb.spec.ts` reproduces exactly the
@@ -199,8 +233,38 @@ standalone on `/` (same fixture pattern as `fading-text.spec.ts` /
    test cannot be satisfied by an implementation that skips `play()` entirely.
 3. **Clearing state cancels it.** Setting `highlighted = false` (with `active`
    already false) leaves zero live animations on `#inner`.
-4. **Disconnect cancels it.** Removing the element from the document after
-   re-arming the throb also leaves zero live animations.
+4. **Disconnect cancels it.** After the clear-state check (point 3), the throb
+   is deliberately re-armed (`highlighted = true` again, `updateComplete` +
+   one animation frame) and confirmed live *before* `removeChild()` —
+   otherwise the throb would already be cancelled from the point-3 clear and
+   `disconnectedCallback`'s cleanup would never be exercised, making the
+   assertion pass regardless of whether that cleanup exists.
+
+   The post-disconnect check does NOT reuse `getAnimations()` (code review
+   correction, round 2): a standalone probe confirmed that Chrome's
+   `Element.getAnimations()` returns an **empty list** for a disconnected
+   element's own animations *regardless of whether `.cancel()` was ever
+   called* — an `animate()` call left `running`, never cancelled, on an
+   element that is then `removeChild()`'d also reports
+   `getAnimations().length === 0` afterward. So a post-disconnect
+   `getAnimations().length === 0` assertion (the re-arm fix as first drafted)
+   is trivially satisfied by mere disconnection and proves nothing about
+   whether `disconnectedCallback` itself calls `.cancel()`. The test instead
+   captures the specific `Animation` object via `(el as any)._throb`
+   (TypeScript `private` is compile-time only; the runtime property is a
+   plain field) *before* disconnecting, confirms its `playState === 'running'`
+   pre-disconnect, then asserts `playState === 'idle'` post-disconnect —
+   `.cancel()` is the only thing that flips an `Animation`'s own `playState`
+   to `'idle'`, and that flip is independent of whatever `getAnimations()`
+   reports about the (by-then-disconnected) target element.
+
+   Verified this version is genuinely non-vacuous by temporarily commenting
+   out `disconnectedCallback`'s `this._throb?.cancel()` body: the test goes
+   red with `throbStateAfterDisconnect: "running"` (expected `"idle"`)
+   while the sibling active/highlighted test stays green (it never asserts
+   disconnect behavior) — restoring the cleanup turns it green again. This
+   is the same stash-and-rerun discipline used elsewhere in this pack, now
+   applied specifically to the disconnect path per code review.
 5. A second test independently exercises `active`-only and `highlighted`-only
    (not just `highlighted`), confirming both state sources reach the same
    `_syncThrob()` path and that clearing back to neither state stops it.
