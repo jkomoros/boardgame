@@ -158,6 +158,10 @@ export async function waitForAnimationCounterStability(
   opts: { stableMs?: number; timeoutMs?: number; balance?: 'plays' | 'all' | 'none' } = {},
 ): Promise<void> {
   const { stableMs = 1500, timeoutMs = 30000, balance = 'plays' } = opts;
+  // Fresh observation per call: a leftover tracker from an earlier wait in
+  // the same page could otherwise satisfy the stability window instantly
+  // without observing any real stability.
+  await page.evaluate(() => { delete (window as any).__parityStability; });
   await page.waitForFunction(([stable, bal]) => {
     const h = (window as any).__bgAnimTestHooks;
     if (!h) return false;

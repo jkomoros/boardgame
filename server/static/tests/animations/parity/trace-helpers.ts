@@ -103,8 +103,9 @@ export function expectTraceMatchesGolden(
     .toBe(trace.gateDelta.plays);
   if (!opts.structural) {
     // Not asserted in structural mode: those scenarios' windows contain
-    // game setup, where a same-cycle reinstall can orphan one gate-open
-    // (documented pre-existing counter drift).
+    // whole-game setup whose cycle traffic is game-randomness-dependent;
+    // their open/close balance is covered instead by the waapi-gate suite's
+    // creation and reinstall regression tests.
     expect(trace.gateDelta.gateCloses, 'every gate open must close inside the capture window')
       .toBe(trace.gateDelta.gateOpens);
   }
