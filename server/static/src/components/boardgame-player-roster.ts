@@ -425,7 +425,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
             .currentPlayerIndex="${this.currentPlayerIndex}"
             .computedColor="${this.playerColors[idx] || ''}"
             .mayBeActive="${this.playerActivity[idx] !== false}"
-            ?renderer-loaded="${this.rendererLoaded}"
+            .rendererLoaded="${this.rendererLoaded}"
             ?active="${this.active}">
           </boardgame-player-roster-item>
         `})}

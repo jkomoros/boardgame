@@ -1,0 +1,283 @@
+{
+  "events": [
+    {
+      "kind": "gate-open",
+      "detail": ""
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#de74e799e0231fb98acd1137fba4397dff9b1c0f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#de74e799e0231fb98acd1137fba4397dff9b1c0f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#725a2b503bcfdef929736053deaa694dcd601672"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#bb49fbe8667ad8dcbe50cdb6c9e86fae111ee96f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#d2262aed6e9c68839b7400cb5002a63b31d09a99"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#ea71deefa453accf4dfb8e7229b47645ae1e0e84"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#cb600307bbbe94fcb441ef23a8a61cf8bef532b3"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#94b3096a09a81c8662012caa05e9c14136f7e83e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#28fe692cd6e99e5d58adb058b1a113ea389455ae"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#15d37ecbd8a5cb0763ebee6a6dcb9de8076f44b0"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#80e14f8559593c0e0f336aecd77a47d4b220e269"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#374d515a84515fe0bdef23f9e6ea1219e930ebc9"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#081bbf1a2e080c28332f69d9d76cba5a26590a60"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#2a08d8834a950357887e57de6e0be60dae5d277a"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#735e0fea118cf13958b676e7d9757b8ac1076ec8"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#770b7df36fc79ba45b966819b561404840365ca5"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#6ffd2928452e1ce058ffc972e7a6fdb8e2511064"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#a80cdae5c82b2a57b352d699ae5318b0243b1372"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#d027c10178d6de7e210aefc3277b47814874d0e2"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0fcf85845c0991a56de51bb298a0facc9b1e9cc0"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#dc541743e51c57ec6237c82f5e4cfab28ea2f516"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#de74e799e0231fb98acd1137fba4397dff9b1c0f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#de74e799e0231fb98acd1137fba4397dff9b1c0f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#725a2b503bcfdef929736053deaa694dcd601672"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#bb49fbe8667ad8dcbe50cdb6c9e86fae111ee96f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#d2262aed6e9c68839b7400cb5002a63b31d09a99"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#ea71deefa453accf4dfb8e7229b47645ae1e0e84"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#cb600307bbbe94fcb441ef23a8a61cf8bef532b3"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#94b3096a09a81c8662012caa05e9c14136f7e83e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#28fe692cd6e99e5d58adb058b1a113ea389455ae"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#15d37ecbd8a5cb0763ebee6a6dcb9de8076f44b0"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#80e14f8559593c0e0f336aecd77a47d4b220e269"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#374d515a84515fe0bdef23f9e6ea1219e930ebc9"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#081bbf1a2e080c28332f69d9d76cba5a26590a60"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#2a08d8834a950357887e57de6e0be60dae5d277a"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#735e0fea118cf13958b676e7d9757b8ac1076ec8"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#770b7df36fc79ba45b966819b561404840365ca5"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#6ffd2928452e1ce058ffc972e7a6fdb8e2511064"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#a80cdae5c82b2a57b352d699ae5318b0243b1372"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#d027c10178d6de7e210aefc3277b47814874d0e2"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0fcf85845c0991a56de51bb298a0facc9b1e9cc0"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#dc541743e51c57ec6237c82f5e4cfab28ea2f516"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#de74e799e0231fb98acd1137fba4397dff9b1c0f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#de74e799e0231fb98acd1137fba4397dff9b1c0f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#725a2b503bcfdef929736053deaa694dcd601672"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#bb49fbe8667ad8dcbe50cdb6c9e86fae111ee96f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#d2262aed6e9c68839b7400cb5002a63b31d09a99"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#ea71deefa453accf4dfb8e7229b47645ae1e0e84"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#cb600307bbbe94fcb441ef23a8a61cf8bef532b3"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#94b3096a09a81c8662012caa05e9c14136f7e83e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#28fe692cd6e99e5d58adb058b1a113ea389455ae"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#15d37ecbd8a5cb0763ebee6a6dcb9de8076f44b0"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#80e14f8559593c0e0f336aecd77a47d4b220e269"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#374d515a84515fe0bdef23f9e6ea1219e930ebc9"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#081bbf1a2e080c28332f69d9d76cba5a26590a60"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#2a08d8834a950357887e57de6e0be60dae5d277a"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#735e0fea118cf13958b676e7d9757b8ac1076ec8"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#770b7df36fc79ba45b966819b561404840365ca5"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#6ffd2928452e1ce058ffc972e7a6fdb8e2511064"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#a80cdae5c82b2a57b352d699ae5318b0243b1372"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#d027c10178d6de7e210aefc3277b47814874d0e2"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0fcf85845c0991a56de51bb298a0facc9b1e9cc0"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#dc541743e51c57ec6237c82f5e4cfab28ea2f516"
+    },
+    {
+      "kind": "gate-close",
+      "detail": ""
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    }
+  ],
+  "gateDelta": {
+    "gateOpens": 1,
+    "gateCloses": 1,
+    "watchdogFirings": 0,
+    "plays": 22,
+    "settles": 22
+  }
+}

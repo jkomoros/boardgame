@@ -75,9 +75,26 @@ export function resolveMotionTiming(
 ): MotionTimingResolution {
   const defaults = { ...options.defaults };
   const timing: OptionalEffectTiming = { ...defaults, ...requested };
-  for (const field of ['delay', 'duration', 'endDelay', 'iterations'] as const) {
+  for (const field of ['delay', 'duration', 'endDelay'] as const) {
     const value = timing[field];
     if (typeof value === 'number' && !Number.isFinite(value)) timing[field] = 0;
+  }
+  // iterations legitimately supports Infinity per WAAPI (a forever-looping
+  // effect -- e.g. an ambient ungated highlight throb, #Task7). Unlike
+  // delay/duration/endDelay -- which WAAPI requires finite -- clamping
+  // Infinity to 0 here would silently turn "loop forever" into "don't play
+  // at all". Only NaN is malformed input for this field.
+  //
+  // Footgun this does NOT fix: `policy: 'version'` (the play() default)
+  // still turns an infinite-iterations request into a 0-duration no-op --
+  // effectiveIterations() below treats Infinity as 0 when computing the
+  // version slot's per-iteration duration (activeDuration = duration *
+  // effectiveIterations(...) = 0), so `timing.duration` collapses to 0
+  // regardless of what was requested. Only `policy: 'immediate'` is sane
+  // for an infinite play; version-slot synchronization has no meaning for
+  // an effect with no natural end.
+  if (typeof timing.iterations === 'number' && Number.isNaN(timing.iterations)) {
+    timing.iterations = 0;
   }
   if ((options.postAnimationDelayMs ?? 0) > 0 && timing.endDelay === undefined) {
     timing.endDelay = options.postAnimationDelayMs;

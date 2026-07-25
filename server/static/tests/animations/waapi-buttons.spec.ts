@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createOfflineGame, gateSnapshot } from './helpers';
+import { createOfflineGame, gateSnapshot, settleInitialLoad } from './helpers';
 
 // Covers #721: boardgame-render-game reflects isAnimating (is-animating
 // attribute) while an animation cycle is in flight, and
@@ -29,6 +29,11 @@ function deepQueryFirstScript() {
 
 test('move buttons disable during animation and re-enable after', async ({ page }) => {
   await createOfflineGame(page, 'debuganimations');
+  // The initial-load bundles animate too (gated player-info/roster), so
+  // is-animating is legitimately true for a few seconds after the page
+  // mounts. The "closed before any click" baseline below is only meaningful
+  // once that initial cascade has settled.
+  await settleInitialLoad(page);
 
   const isAnimatingAttr = async () => page.evaluate((fnSrc: string) => {
     // eslint-disable-next-line no-eval
@@ -61,6 +66,13 @@ test('move buttons disable during animation and re-enable after', async ({ page 
 
 test('a move proposed while isAnimating is true is swallowed, not enqueued', async ({ page }) => {
   await createOfflineGame(page, 'debuganimations');
+  // Settle the initial-load cascade first: otherwise the `gateOpens >
+  // before.gateOpens` wait below is satisfied by an *initial-load* gate
+  // cycle (opened between the snapshot and the click's server round-trip)
+  // rather than the clicked move's own cycle, and the mid-animation
+  // dispatch lands after that spurious cycle already closed
+  // (isAnimating=false precondition failure).
+  await settleInitialLoad(page);
 
   // This test isolates the game-view guard itself (boardgame-game-view's
   // propose-move listener returning early while

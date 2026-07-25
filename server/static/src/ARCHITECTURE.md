@@ -139,37 +139,71 @@ callbacks.
 ## Animation timing: play() / settlement / the gate
 
 The timing logic described above (computing before/after transforms) is
-unchanged, but *knowing when an animation is done* was rewritten to use the
-Web Animations API (WAAPI) directly instead of counting `transitionend`
-events. There is no more expectation counting, no `_expectTransitionEnd`, no
-`willNotAnimate`, and no `transitionend` listening anywhere in the animation
-path — `Animation.finished` is ground truth.
+unchanged, but *knowing when an animation is done* uses the Web Animations
+API (WAAPI) directly instead of counting `transitionend` events. There is no
+more expectation counting, no `_expectTransitionEnd`, no `willNotAnimate`,
+and no `transitionend` listening anywhere in the animation path —
+`Animation.finished` is ground truth.
 
-`BoardgameAnimatableItem` (the mixin/base that both `boardgame-component` and
-`boardgame-component-stack`'s faux animating elements extend) exposes a single
-entry point, `play(element, keyframes, timing, opts)`, that every animating
-transform goes through:
+`BoardgameAnimatableItem` (`src/components/boardgame-animatable-item.ts`) is
+the common base for every game-semantic animated element, not just the
+components a stack lays out: `boardgame-component` (and its
+`boardgame-card`/`boardgame-token` subtypes) and
+`boardgame-component-stack`'s faux animating elements extend it, and so do
+the standalone primitives that live outside a stack — `boardgame-die`,
+`boardgame-fading-text`, `boardgame-status-text`, `boardgame-game-outcome`.
+Whichever element it is, it animates through the exact same kernel, entered
+through a single method, `play(element, keyframes, timing, opts)`:
 
 - It calls `element.animate(keyframes, timing)` and gets back a real WAAPI
-  `Animation`.
+  `Animation`, always with `composite: 'replace'`. That is pinned
+  deliberately, not incidentally: when two transform animations run on the
+  same host in one cycle (e.g. a stack's `layoutTransform` self-play racing
+  the same cycle's FLIP host track — see below), `'replace'` semantics mean
+  the higher animation wins outright each frame, instead of the two adding
+  together and visibly doubling the motion. No parity golden can catch a
+  violation here — curves are displacement-normalized, so a uniform doubling
+  divides back out of the comparison. Do not remove or parameterize this
+  without a test that pins the same-host composite case.
 - Unless `noAnimate` is set (a barrier used while the animator is measuring
   before/after layout) or `opts.gated === false`, the animation counts toward
   the item's *gated* set: on the first gated animation to start, the item
   fires `will-animate`; when the gated count returns to zero it fires
   `animation-done`.
+- Timing resolves against the ambient `animationContext` discovered by
+  climbing ancestors — crossing shadow roots and slots, and past any
+  intermediate `null` context — so a wrapper element (e.g. status-text
+  sitting above its own nested fading-text) never shadows the real
+  `boardgame-render-game` provider above it. Standalone dice, tokens, and
+  game-authored animatable items resolve the same installed version-slot
+  context as stack-managed components, with no game-renderer plumbing
+  required.
 - `settled(): Promise<void>` resolves once every gated animation on that item
   has finished (or was cancelled — `anim.finished` rejects on cancel, and
   both paths count as settlement).
 - `finishAllAnimations()` force-finishes (or cancels) every live animation on
   the item synchronously, resolving settlement immediately. This backs
   interruption semantics (a new animation cycle starting while a previous one
-  is still in flight) and `beforeOrphaned()` (an animating faux component is
+  is still in flight), `beforeOrphaned()` (an animating faux component is
   about to be removed from the DOM — settle first so the gate never waits on
-  a detached element).
+  a detached element), and a disconnect safety net: `disconnectedCallback`
+  force-settles any still-gated item a microtask after a genuine removal
+  (deferred so a same-tick reparent never snaps a live animation), because a
+  detached element's `animation-done` has no parent left to bubble to and
+  would otherwise leave the gate waiting on it forever.
 - `animationLengthMs()` reads the effective `--animation-length` CSS custom
   property (set by `boardgame-render-game` from the renderer's
   `animationLength()` hook) and is what `play()` uses as the default duration
   unless the caller overrides `timing`.
+- Reduced motion (`prefers-reduced-motion: reduce`) is a complete scheduling
+  policy inside `play()`, not a default an explicit duration can override: it
+  collapses duration and delay to 0 while preserving `endDelay` (so a
+  semantic hold, like a matched pair lingering before capture, still works).
+  An ambient infinite-iteration effect can't take that shortcut (a 0-duration
+  infinite play renders nothing) — the token throb instead holds the strong
+  end of its glow statically under reduced motion, keeping the affordance
+  without the pulse; the old shadow-scoped CSS animation ignored the
+  preference entirely, so neither of those two extremes is what it does now.
 
 `BoardgameComponentAnimator._startAnimations` calls `play()` (via each
 component's `playAnimation()`) for every component that needs to animate this
@@ -178,23 +212,52 @@ handed back from `animateFlip()` with `Promise.all(settledPromises)`. That
 promise means "everything has visually SETTLED", not "everything has
 started" — callers await real completion, not just animation kickoff.
 
+### The ambient registry
+
+Not every animatable item is tracked by the component animator's own
+stack-component bookkeeping — a standalone die, a `status-text`/
+`fading-text`, or any other game-authored `BoardgameAnimatableItem` living
+outside a `boardgame-component-stack` is invisible to it. `AnimatableRegistry`
+(`src/motion/animatable-registry.ts`) closes that gap: a single instance
+lives on `boardgame-render-game` as `animatableRegistry`. Every
+`BoardgameAnimatableItem` climbs ancestors at `connectedCallback` (the same
+walk shape as the ambient `animationContext` lookup above) to find it and
+self-register, unregistering symmetrically at `disconnectedCallback` from
+the same registry it found at connect time (disconnect can't re-walk — by
+then the element may already be unparented). At the start of each cycle,
+render-game iterates a snapshot of the registry's items and force-settles +
+re-contexts each one, the same treatment the animator already gives its own
+tracked components, so a same-cycle interruption never leaves an untracked
+item's stale animation running into the next cycle.
+
 ### The gate
 
-`boardgame-render-game` owns a boolean `isAnimating` (reflected as the
-`is-animating` attribute so tests/CSS can observe it, and broadcast via an
-`animating-changed` event since it isn't reachable as a reactive property
-from ancestors). This is "the gate":
+The completion gate itself is a pure, DOM-free kernel, `AnimationGate`
+(`src/motion/animation-gate.ts`), extracted verbatim (behavior-for-behavior)
+from what used to be inlined in `boardgame-render-game.ts`, so its
+timing/bookkeeping invariants — in particular the watchdog-deadline
+extension, which has no e2e coverage long enough to exercise it — can be
+unit-tested with fake timers instead of only indirectly through the DOM.
+`boardgame-render-game` owns one `AnimationGate` instance plus a boolean
+`isAnimating` (reflected as the `is-animating` attribute so tests/CSS can
+observe it, and broadcast via an `animating-changed` event since it isn't
+reachable as a reactive property from ancestors) that mirrors the kernel's
+open/closed state through its callbacks:
 
-- `_resetAnimating()` flips it open (`isAnimating = true`) at the start of an
-  animation cycle, resets the set of components it's waiting on, and mirrors
-  the value onto the active renderer's `animating` property
+- `_resetAnimating()` calls `gate.open(cycleId)` at the start of an animation
+  cycle. Before opening, it force-settles every item in the ambient registry
+  (see above) so an untracked item never carries a stale animation into the
+  new cycle. The kernel's `onOpen` callback flips `isAnimating = true` and
+  mirrors the value onto the active renderer's `animating` property
   (`_applyAnimatingToRenderer`, called at both gate flips and at renderer
   instantiation so a renderer created mid-cycle starts with the right value).
-- Each component fires `will-animate` (tracked in `_activeAnimations`) and
-  later `animation-done` (removed from the map); when the map empties,
-  `_notifyAnimationsDone()` flips the gate closed (`isAnimating = false`) and
-  fires `all-animations-done`, which `boardgame-game-view` uses to ask the
-  state manager to install the next pending state bundle.
+- Each component's `will-animate` event is forwarded into
+  `gate.willAnimate(ele, label, expectedSettleMs)`, and its later
+  `animation-done` into `gate.animationDone(ele)`; when the gate's last
+  participant clears, its `onAllDone` callback flips `isAnimating = false`
+  and `boardgame-render-game` fires `all-animations-done`, which
+  `boardgame-game-view` uses to ask the state manager to install the next
+  pending state bundle.
 - `boardgame-game-view` also swallows `propose-move` events while
   `isAnimating` is true (#721): the on-screen state is mid-transition to what
   the server already considers current, so a move proposed now would judge
@@ -208,20 +271,61 @@ from ancestors). This is "the gate":
   mirrored `animating` flag, so a game-over banner or "You won!" string can
   never render while the winning move's animation is still in flight (#798).
 
+#### Roster / player-info gating
+
+`boardgame-player-roster` (and the per-game player-info renderers it mounts)
+is a DOM **sibling** of `boardgame-render-game`, not a descendant — so a
+roster-hosted animatable's (e.g. `boardgame-status-text`'s nested
+`boardgame-fading-text`) `will-animate`/`animation-done` events bubble past
+render-game entirely and would otherwise never reach its gate.
+`boardgame-game-view` pipes them in through two thin public delegates on
+render-game, `gateWillAnimate`/`gateAnimationDone`, wired to
+`@will-animate`/`@animation-done` listeners on the roster element in its
+template:
+
+- `will-animate` is forwarded **only** while a board cycle is already open
+  (`renderEle.isAnimating`) — a roster animation outside any cycle (e.g. a
+  hover-triggered fade) can never open or wedge a new one.
+- `animation-done` is **always** forwarded: a participant admitted at open
+  must always be able to settle, and the gate's `animationDone()` is a safe
+  no-op for an unregistered element.
+- Because the ambient registry lives on `boardgame-render-game` and the
+  roster is its sibling, roster-hosted items are gated but **not**
+  registry-swept: on a cycle handoff, a mid-flight board animatable is
+  force-finished (snaps) while a roster one completes smoothly. This
+  asymmetry is deliberate and accepted (see
+  `tests/animations/parity/README.md`) — a late roster settle is a harmless
+  kernel no-op, and roster items intentionally resolve a null ambient
+  animation context, which is correct: their animations are local effects,
+  not version-slot participants.
+- A roster item removed from the DOM mid-animation is force-settled by
+  `BoardgameAnimatableItem.disconnectedCallback` (see above), but that
+  settlement's `animation-done` bubble has no parent left to reach once
+  detached. `game-view`'s `_rosterWillAnimate` additionally subscribes to the
+  item's `settled()` promise as a second, DOM-independent done channel at
+  will-animate time, closing that orphan-settle gap without disturbing the
+  normal bubbled path — in the ordinary attached case both fire (the bubbled
+  path closes the gate first; the kernel's idempotent `animationDone()` makes
+  the later `settled()`-driven call a harmless no-op), and only the orphaned
+  case actually depends on the second path. See
+  `docs/superpowers/specs/evidence/2026-07-25-roster-orphan-settle.md`.
+
 ### The watchdog
 
-`_resetAnimating()` also arms a watchdog every time the gate opens, and
-clears it whenever the gate closes normally (`_notifyAnimationsDone`) or a
-fresh cycle starts. If the deadline passes without every awaited animation
-settling — a hung `Animation`, a component that never fired `animation-done`,
-a bug — the watchdog force-fires `_notifyAnimationsDone()` anyway, logs an
-error naming the still-pending components, and records a `watchdog` event via
-the `animHooks` test-hook singleton (consulted by the Playwright suite's
-`watchdogFirings` assertions: a passing run must see zero watchdog firings,
-since a firing means some animation path didn't settle on its own). This is
-the invariant that guarantees the gate — and therefore move entry and state
-installation — can never wedge permanently, regardless of what bugs exist
-upstream in timing/settlement logic.
+The gate kernel arms a watchdog timer every time `open()` is called, and
+clears it whenever the cycle closes normally or a fresh cycle opens. If the
+deadline passes without every registered participant clearing — a hung
+`Animation`, a component that never fired `animation-done`, a bug — the
+kernel fires `onWatchdog(pending, budgetMs)` immediately followed by
+`onAllDone()`, force-closing the cycle regardless. `boardgame-render-game`'s
+watchdog callback logs an error naming the still-pending components and
+records a `watchdog` event via the `animHooks` test-hook singleton
+(consulted by the Playwright suite's `watchdogFirings` assertions: a passing
+run must see zero watchdog firings, since a firing means some animation path
+didn't settle on its own). This is the invariant that guarantees the gate —
+and therefore move entry and state installation — can never wedge
+permanently, regardless of what bugs exist upstream in timing/settlement
+logic.
 
 The deadline is **not** a flat timeout: a legitimate cycle can run much
 longer than a few seconds (e.g. 15 cards staggered at 0.2 with a 2s
@@ -230,13 +334,14 @@ flat 4s watchdog would force-close that cycle mid-flight, violating its own
 "firing = bug" invariant. Instead each gated `play()` reports its declared
 settle time (`delay + duration + endDelay`, covering stagger delay,
 animation length, and `post-animation-delay`) in the `will-animate` event's
-`expectedSettleMs`. `_componentWillAnimate` tracks the largest such value and
-extends the watchdog to *that declared settle instant + a 1.5s margin*
-whenever a play would outlast the current deadline. The deadline never drops
-below a 4s floor, so trivially short cycles still get a prompt backstop; it
-only ever grows to cover a cycle's own declared animation budget. A firing
-therefore still unambiguously means an animation overran the time it *itself
-declared* it would take — a real bug, never just a long-but-honest cycle.
+`expectedSettleMs`. The gate kernel's `willAnimate()` tracks the largest such
+value declared in the current cycle and extends the watchdog to *that
+declared settle instant + a 1.5s margin* whenever a play would outlast the
+current deadline. The deadline never drops below a 4s floor, so trivially
+short cycles still get a prompt backstop; it only ever grows to cover a
+cycle's own declared animation budget. A firing therefore still unambiguously
+means an animation overran the time it *itself declared* it would take — a
+real bug, never just a long-but-honest cycle.
 
 ### Attributes
 
@@ -262,6 +367,41 @@ behavior without touching the state manager or the gate directly:
   `index * stagger * animationLengthMs()` before its `play()` call, producing
   a cascading start (e.g. cards dealing one after another) instead of every
   card starting simultaneously.
+
+### Stack layout: layoutTransform
+
+`boardgame-component-stack` no longer positions its children with a CSS
+`transition: transform …, opacity …` rule plus a `.no-animate` container
+class to suppress it during measurement — that mechanism, and the stack's
+container-level `noAnimate` toggle that drove it, are gone entirely. Instead,
+for every component it lays out, the stack assembles the messy/pile/fan
+transform pieces into one string and assigns it through
+`BoardgameComponent.layoutTransform` — a self-animating setter on the common
+component base. Setting a new value snaps `this.style.transform` to it
+immediately (so layout/hit-testing always sees the true final value, exactly
+like an authored CSS property does under a transition), then — unless
+suppressed — plays a gated host animation from the pre-snap *computed*
+transform to the new computed transform through the same `play()` kernel.
+Capturing the computed value (not the previous setter argument) is what
+reproduces CSS-transition-style retargeting: an interrupted retarget
+continues from wherever the box actually is on screen, never from the stale
+target of the animation it interrupts. Setting the same value is a no-op;
+setting while `noAnimate` is up or the element is disconnected only snaps.
+The **component-level** `noAnimate` barrier used during FLIP measurement is
+unaffected and still gates `play()` exactly as before.
+
+The stack's relayout write lands from Lit's slotchange/updated pass, which
+runs microtasks *before* the animator raises that component-level barrier
+for the cycle — so the setter's self-play and the same cycle's FLIP host
+track can both be live on one host at once. This is not a double-animation
+regression: it reproduces what the retired CSS transition already did (it
+fired at the same pre-barrier slotchange moment, with the same
+easing/duration, co-existing with FLIP), and `play()`'s pinned
+`composite: 'replace'` (see above) is exactly what makes two same-host
+transform animations resolve to one correct motion instead of doubling it.
+See `docs/superpowers/specs/evidence/2026-07-26-stack-transition-cutover.md`
+and the `geometry-debuganimations-fan-draw` parity golden, which was
+recorded from the old CSS path and passes unregenerated against the setter.
 
 ### Companion scheduling (#798)
 

@@ -18,6 +18,7 @@ import type {
   ComponentMotionTarget,
   ComponentMotionTrack,
 } from '../motion/component-track.js';
+import type { AnimatableRegistry } from '../motion/animatable-registry.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -57,10 +58,21 @@ export class BoardgameAnimatableItem extends LitElement {
   // and property animations participate without game-renderer plumbing.
   animationContext: VersionAnimationContext | null = null;
 
-  private _liveAnimations = new Set<Animation>();
+  // Animation -> whether it holds the completion gate. The gated flag is
+  // what lets finishGatedAnimations() force-settle a stale cycle's
+  // participants (the registry sweep's job) without touching UNGATED ambient
+  // loops (an infinite highlight throb), which were never cycle participants.
+  private _liveAnimations = new Map<Animation, boolean>();
   private _activeHookFrames = new Map<Animation, number>();
   private _liveGatedCount = 0;
   private _settledResolvers: Array<() => void> = [];
+
+  // The ambient AnimatableRegistry discovered by the connect-time walk (see
+  // _ambientLookup / connectedCallback), cached so disconnectedCallback can
+  // symmetrically unregister from the SAME registry even after this
+  // element has been detached (by then the walk itself can no longer reach
+  // an ancestor -- parentNode is already null).
+  private _ambientRegistry: AnimatableRegistry | null = null;
 
   @property({ type: Number, attribute: 'post-animation-delay' })
   postAnimationDelay = 0;
@@ -78,6 +90,54 @@ export class BoardgameAnimatableItem extends LitElement {
     },
   })
   waitForAnimation = true;
+
+  // Discovers the ambient AnimatableRegistry (#714's non-component
+  // discovery gap, Task 9) and registers with it so an item outside the
+  // component animator's own stack bookkeeping (a standalone die,
+  // status-text, fading-text, a game-authored token, ...) is still reached
+  // by render-game's cycle-start reset. Lit's connectedCallback runs before
+  // this element's own first render, but the discovery walk only climbs
+  // ANCESTORS -- by the time connectedCallback fires this element is
+  // already attached to a connected tree, so the full ancestor chain
+  // (crossing shadow roots and slots) is already in place regardless of
+  // this element's own render state. Always call super first.
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this._ambientRegistry = this._ambientLookup<AnimatableRegistry>('animatableRegistry', () => true);
+    this._ambientRegistry?.register(this);
+  }
+
+  // Unregisters from the SAME registry found at connect time (never
+  // re-walks here: at disconnect this element may already be unparented,
+  // so the walk could no longer reach the ancestor that registered it).
+  // Always call super, and always last, mirroring other overrides in this
+  // codebase that release resources before yielding to the base class.
+  //
+  // Orphan-settle safety net (#714 Phase 2 gate finding): a BOARD/stack
+  // component gets beforeOrphaned() (force-settle) from the animator before
+  // removal, but that mechanism is stack-specific -- a roster-hosted (or any
+  // other ambiently-discovered) animatable removed from the DOM mid-animation
+  // has no equivalent caller. Without a settle, its WAAPI animation keeps
+  // running against the document timeline after detach, AND once it does
+  // finish, its `animation-done` CustomEvent (bubbles + composed) dispatches
+  // from a node with no parent -- nothing to bubble to -- so the gate never
+  // hears it and is stuck open until the watchdog force-closes it. Deferred
+  // to a microtask (not checked synchronously here) because a synchronous
+  // reparent -- Lit moving this element to a new parent within the same
+  // synchronous span -- also fires disconnectedCallback; checking
+  // isConnected only after the microtask queue drains distinguishes a
+  // genuine removal from a same-tick reparent, so a reparented element's
+  // in-flight animation is never needlessly snapped.
+  override disconnectedCallback(): void {
+    this._ambientRegistry?.unregister(this);
+    this._ambientRegistry = null;
+    if (this._liveGatedCount > 0) {
+      queueMicrotask(() => {
+        if (!this.isConnected) this.finishAllAnimations();
+      });
+    }
+    super.disconnectedCallback();
+  }
 
   // beforeOrphaned is called when we know we're about to be orphaned (for
   // example if we're an animating component that will be removed when done
@@ -167,14 +227,21 @@ export class BoardgameAnimatableItem extends LitElement {
     });
   }
 
-  private _ambientAnimationContext(): VersionAnimationContext | null {
-    // Prefer the render-game provider over a component's cached value. This
-    // crosses shadow roots and slots, so standalone dice and game-authored
-    // animatable items get the same context as stack-managed components.
+  // _ambientLookup climbs from this element's parent -- crossing shadow
+  // roots and slots -- looking for the nearest ancestor exposing `propName`,
+  // calling `isProvider` on each candidate value found to decide whether
+  // that ancestor is a genuine provider or must be climbed past. Shared by
+  // the two ambient discovery walks below: they cross the exact same DOM
+  // shape (commit 7172dd24 made this climb past NULL contexts so nested
+  // animatable wrappers like status-text don't sever deeper items from the
+  // real provider above them) but disagree on what "provider" means for
+  // their respective property, hence the caller-supplied predicate.
+  private _ambientLookup<T>(propName: string, isProvider: (value: T) => boolean): T | null {
     let node: Node | null = this.assignedSlot ?? this.parentNode;
     while (node) {
-      if ('animationContext' in node) {
-        return (node as Node & { animationContext: VersionAnimationContext | null }).animationContext;
+      if (propName in node) {
+        const value = (node as unknown as Record<string, T>)[propName];
+        if (isProvider(value)) return value;
       }
       if (node instanceof ShadowRoot) {
         node = node.host;
@@ -182,7 +249,28 @@ export class BoardgameAnimatableItem extends LitElement {
         node = (node as Element).assignedSlot ?? node.parentNode;
       }
     }
-    return this.animationContext;
+    return null;
+  }
+
+  private _ambientAnimationContext(): VersionAnimationContext | null {
+    // Prefer the render-game provider over a component's cached value. This
+    // crosses shadow roots and slots, so standalone dice and game-authored
+    // animatable items get the same context as stack-managed components.
+    //
+    // A POPULATED context ends the walk; a null one does not. Every
+    // BoardgameAnimatableItem inherits an `animationContext` property
+    // defaulting to null, so once wrapper elements (status-text and
+    // friends, #714) join the class hierarchy, a presence check would stop
+    // the walk at the nearest animatable ancestor and silently sever
+    // nested items (status-text's own fading-text) from the render-game
+    // provider above it. Climbing past nulls preserves the legit
+    // "provider currently between cycles" case too: with no populated
+    // context anywhere, the result is null either way.
+    const found = this._ambientLookup<VersionAnimationContext | null>(
+      'animationContext',
+      (ctx) => ctx != null,
+    );
+    return found ?? this.animationContext;
   }
 
   // play is the single entry point for starting an animation on this item
@@ -209,8 +297,18 @@ export class BoardgameAnimatableItem extends LitElement {
       postAnimationDelayMs: this.postAnimationDelay,
     });
     if (resolution.kind === 'skip') return null;
-    const anim = element.animate(keyframes, resolution.timing);
-    this._liveAnimations.add(anim);
+    // composite 'replace' is pinned EXPLICITLY because it is load-bearing
+    // (Phase 3 gate regression critic): when two transform animations run
+    // on one host (a layoutTransform self-play plus the same cycle's FLIP
+    // host track), replace semantics mean the higher animation wins
+    // outright each frame — and since both encode the same net geometry,
+    // the winner renders one correct motion. Under 'add' the identical
+    // setup would visibly double the motion, and no parity golden can
+    // catch that (curves are displacement-normalized, so a uniform 2x
+    // divides out). Do not remove or parameterize this without a test
+    // that pins the same-host composite case.
+    const anim = element.animate(keyframes, { ...resolution.timing, composite: 'replace' });
+    this._liveAnimations.set(anim, gated);
     if (gated) {
       this._liveGatedCount++;
       if (this._liveGatedCount === 1) {
@@ -275,21 +373,44 @@ export class BoardgameAnimatableItem extends LitElement {
     return new Promise((resolve) => this._settledResolvers.push(resolve));
   }
 
-  // finishAllAnimations jumps every live animation to its end state and
-  // resolves settlement. Called when a new animation cycle must start
-  // while a previous one is in flight (spec: Interruption semantics).
-  finishAllAnimations(): void {
-    for (const anim of [...this._liveAnimations]) {
-      try {
-        if (anim.playState === 'running' || anim.playState === 'finished') {
-          anim.finish();
-        } else {
-          anim.cancel();
-        }
-      } catch {
-        // finish() throws InvalidStateError for infinite animations; cancel instead.
-        try { anim.cancel(); } catch { /* already dead */ }
+  // Jump one live animation to its end state (or cancel it if it cannot
+  // finish -- an infinite animation throws InvalidStateError from finish()).
+  // Either path drives settlement through the finished-promise .finally().
+  private _forceSettle(anim: Animation): void {
+    try {
+      if (anim.playState === 'running' || anim.playState === 'finished') {
+        anim.finish();
+      } else {
+        anim.cancel();
       }
+    } catch {
+      // finish() throws InvalidStateError for infinite animations; cancel instead.
+      try { anim.cancel(); } catch { /* already dead */ }
+    }
+  }
+
+  // finishAllAnimations jumps EVERY live animation to its end state --
+  // including ungated ambient loops (an infinite highlight throb). Reserved
+  // for the paths where this element is leaving the tree for good
+  // (beforeOrphaned / disconnectedCallback): once detached, an ambient loop
+  // running against the document timeline is pure waste, so kill it too.
+  // Do NOT use this for the cycle-interruption sweep -- see
+  // finishGatedAnimations.
+  finishAllAnimations(): void {
+    for (const anim of [...this._liveAnimations.keys()]) this._forceSettle(anim);
+  }
+
+  // finishGatedAnimations force-settles only the GATED animations -- the
+  // completion-cycle participants. It backs render-game's cycle-start
+  // registry sweep, whose purpose is to end a stale cycle's still-running
+  // animations before the next cycle's play() overlaps them. UNGATED ambient
+  // decoration (an infinite throb started with { gated: false }) was never a
+  // cycle participant and must survive the sweep -- cancelling it here is the
+  // ambient-animation-sweep regression (evidence pack
+  // 2026-07-26-ambient-animation-sweep.md).
+  finishGatedAnimations(): void {
+    for (const [anim, gated] of [...this._liveAnimations]) {
+      if (gated) this._forceSettle(anim);
     }
   }
 }

@@ -28,14 +28,6 @@ export class BoardgameToken extends BoardgameComponent {
         --component-aspect-ratio: 1.25;
       }
 
-      #outer.active #inner, #outer.highlighted #inner {
-        animation-name: throb;
-        animation-duration: 1s;
-        animation-timing-function: ease-in-out;
-        animation-direction: alternate;
-        animation-iteration-count: infinite;
-      }
-
       #outer.active #inner {
         --throb-color-from: rgba(136,136,38,1.0);
         --throb-color-to: rgba(136,136,38,0.5);
@@ -49,16 +41,6 @@ export class BoardgameToken extends BoardgameComponent {
       #outer.active.highlighted #inner {
         --throb-color-from: rgba(255,255,0,1.0);
         --throb-color-to: rgba(255,255,0,0.0);
-      }
-
-      @keyframes throb {
-        from {
-          filter: drop-shadow(0 0 0.25em var(--throb-color-to)) drop-shadow(0 0 0.25em var(--throb-color-to));
-        }
-        to {
-          /* double the effect so it's darker */
-          filter: drop-shadow(0 0 0.25em var(--throb-color-from)) drop-shadow(0 0 0.25em var(--throb-color-from));
-        }
       }
 
       #outer.gray img {
@@ -158,6 +140,13 @@ export class BoardgameToken extends BoardgameComponent {
     this.altShadow = true;
   }
 
+  // The infinite highlight throb (#inner's drop-shadow pulse while
+  // active/highlighted). Ambient decoration, not a state-arrival cue: it
+  // must never hold the completion gate, so it is always started with
+  // { gated: false }. Tracked here so a state change or disconnect can
+  // cancel the prior instance before starting or discarding a new one.
+  private _throb: Animation | null = null;
+
   private _computeAsset(type: string): string {
     return `src/assets/token_${type}.svg`;
   }
@@ -172,6 +161,76 @@ export class BoardgameToken extends BoardgameComponent {
       highlighted: this.highlighted,
       [this.type]: true
     };
+  }
+
+  protected override updated(changedProperties: Map<string, any>) {
+    super.updated(changedProperties);
+    if (changedProperties.has('active') || changedProperties.has('highlighted')) {
+      this._syncThrob();
+    }
+  }
+
+  // Start (or stop) the ambient throb to match active/highlighted. Always
+  // cancels the prior instance first: the CSS custom properties that carry
+  // the theme colors (--throb-color-from/-to) can change value across an
+  // active<->highlighted transition even though the throb-state boolean
+  // (active || highlighted) stays true the whole time, so a stale
+  // in-flight animation would keep animating the OLD colors. WAAPI
+  // keyframes cannot resolve var() portably, so the colors are read once
+  // via getComputedStyle at (re)start time -- same restart-on-change
+  // tradeoff the legacy CSS-variable-driven @keyframes had.
+  private _syncThrob(): void {
+    this._throb?.cancel();
+    this._throb = null;
+    const inner = this.innerElement;
+    if (inner) inner.style.filter = '';
+    if (!this.active && !this.highlighted) return;
+    if (!inner) return;
+    const style = getComputedStyle(inner);
+    const colorFrom = style.getPropertyValue('--throb-color-from').trim();
+    const colorTo = style.getPropertyValue('--throb-color-to').trim();
+    // Reduced motion: the highlight AFFORDANCE must survive even though
+    // the pulse should not. The kernel would run the infinite play at
+    // duration 0 (effectively suppressing the glow entirely, since with
+    // fill 'none' nothing renders); the legacy shadow-scoped CSS ignored
+    // the preference and kept pulsing — neither is right. Hold the strong
+    // ('from') glow statically instead. (Phase 1 gate regression-critic
+    // finding; declared in the token-throb evidence pack.)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      inner.style.filter =
+        `drop-shadow(0 0 0.25em ${colorFrom}) drop-shadow(0 0 0.25em ${colorFrom})`;
+      return;
+    }
+    this._throb = this.play(inner, [
+      { filter: `drop-shadow(0 0 0.25em ${colorTo}) drop-shadow(0 0 0.25em ${colorTo})` },
+      // double the effect so it's darker
+      { filter: `drop-shadow(0 0 0.25em ${colorFrom}) drop-shadow(0 0 0.25em ${colorFrom})` },
+    ], {
+      duration: 1000,
+      easing: 'ease-in-out',
+      direction: 'alternate',
+      iterations: Infinity,
+    }, { gated: false, timing: 'immediate' });
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    // Re-arm the ambient throb on (re)connect. The WAAPI throb -- unlike the
+    // retired class-driven CSS @keyframes it replaced -- is cancelled in
+    // disconnectedCallback and otherwise only (re)started when active or
+    // highlighted CHANGE. Lit does not re-render on a reparent, so no
+    // updated() fires and active/highlighted are unchanged: without this, a
+    // still-highlighted token moved to a new container would lose its glow
+    // forever. Safe on first connect -- innerElement is null pre-render, so
+    // _syncThrob no-ops, and the first render's updated() starts it as before
+    // (see the DOM-reparent test in token-throb.spec.ts).
+    this._syncThrob();
+  }
+
+  override disconnectedCallback(): void {
+    this._throb?.cancel();
+    this._throb = null;
+    super.disconnectedCallback();
   }
 
   override render(): TemplateResult {

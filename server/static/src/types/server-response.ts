@@ -117,7 +117,13 @@ function decodeDecks(value: unknown, path: string): Record<string, readonly unkn
       }
       return {
         Index,
-        Values: jsonObject(component['Values'], `${path}.${deckName}[${componentIndex}].Values`),
+        // A deck built with AddComponent(nil) (e.g. debuganimations' tokens,
+        // examples/debuganimations/main.go) has no ComponentValues, and
+        // Deck.MarshalJSON (deck.go) serializes that as Values: null. Preserve
+        // the null the client has always received rather than rejecting it.
+        Values: component['Values'] === null
+          ? null
+          : jsonObject(component['Values'], `${path}.${deckName}[${componentIndex}].Values`),
       };
     }),
   ]));

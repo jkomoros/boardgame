@@ -6,6 +6,9 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   debuganimations: 'Animations Debugger',
   blackjack: 'Blackjack',
   memory: 'Memory',
+  // pig's gameDelegate doesn't override DisplayName(), so base.GameDelegate's
+  // default (title-case of Name()) applies -- see base/game_delegate.go.
+  pig: 'Pig',
 };
 
 const FAKE_EMAIL = 'animtest@example.com';
@@ -108,7 +111,7 @@ export async function joinCompanionAsGuest(
   gameName: string,
 ): Promise<void> {
   await page.goto(`/join?code=${encodeURIComponent(roomCode)}`);
-  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await page.getByRole('button', { name: 'Use a new guest identity' }).click();
   await page.getByRole('button', { name: 'Looks good — join!' }).click();
   const openSeat = page.locator('.slot:not(.filled)').first();
   if (await openSeat.isVisible({ timeout: 1000 }).catch(() => false)) {
@@ -145,6 +148,63 @@ export async function enableAdminMode(page: Page): Promise<void> {
   }
 }
 
+// Waits until the animHooks counters have been unchanged for `stableMs`
+// (and optionally balanced). Point-in-time quiescence checks race the
+// trailing edge -- a late fix-up bundle or next-frame settle can land right
+// after they pass -- so callers that assert on cumulative counter equality
+// must sample only after sustained stability.
+export async function waitForAnimationCounterStability(
+  page: Page,
+  opts: { stableMs?: number; timeoutMs?: number; balance?: 'plays' | 'all' | 'none' } = {},
+): Promise<void> {
+  const { stableMs = 1500, timeoutMs = 30000, balance = 'plays' } = opts;
+  // Fresh observation per call: a leftover tracker from an earlier wait in
+  // the same page could otherwise satisfy the stability window instantly
+  // without observing any real stability.
+  await page.evaluate(() => { delete (window as any).__parityStability; });
+  await page.waitForFunction(([stable, bal]) => {
+    const h = (window as any).__bgAnimTestHooks;
+    if (!h) return false;
+    const w = (window as any).__parityStability ??= { last: '', since: 0 };
+    const now = performance.now();
+    const key = `${h.gateOpens}|${h.gateCloses}|${h.plays}|${h.settles}`;
+    if (key !== w.last) { w.last = key; w.since = now; return false; }
+    if (bal === 'plays' && h.plays !== h.settles) return false;
+    if (bal === 'all' && (h.plays !== h.settles || h.gateOpens !== h.gateCloses)) return false;
+    return (now - w.since) >= (stable as number);
+  }, [stableMs, balance] as [number, string], { timeout: timeoutMs, polling: 100 });
+}
+
+// Waits for the freshly-created game's *initial-load* animation cascade to
+// fully settle before the caller starts interacting with the page.
+//
+// createOfflineGame returns as soon as the renderer is mounted and the test
+// hooks are installed -- but the initial state bundle(s) (blackjack's
+// auto-deal, debuganimations' initial gated player-info/roster animations)
+// arrive and animate asynchronously *after* that, holding the animation gate
+// open (is-animating true, move buttons disabled, stacks not yet stamped)
+// for several seconds. Tests that immediately assert a quiescent baseline
+// (is-animating false), click a move button, or inspect stamped stack
+// components race that cascade and fail nondeterministically. Verified via
+// live probing (2026-07-26 triage): immediately after createOfflineGame,
+// blackjack has gateOpens=0 and zero stamped components (deck stamps 52
+// only once the deal bundle applies), and debuganimations has
+// is-animating=true with "To Hidden" disabled; both are quiescent ~4s later.
+//
+// Step 1 waits for the first gate open so counter stability can't be
+// trivially satisfied *before* the initial bundle even arrives (all-zero
+// counters are stable). Both games' initial loads are known to animate at
+// least one gated cycle. Steps 2-3 reuse the existing stability/quiescence
+// primitives to ride out the whole multi-bundle cascade.
+export async function settleInitialLoad(page: Page, timeoutMs = 45000): Promise<void> {
+  await page.waitForFunction(() => {
+    const h = (window as any).__bgAnimTestHooks;
+    return h !== undefined && h.gateOpens > 0;
+  }, undefined, { timeout: timeoutMs });
+  await waitForAnimationCounterStability(page, { timeoutMs, balance: 'all' });
+  await waitForClientQuiescence(page);
+}
+
 export interface GateSnapshot {
   gateOpens: number;
   gateCloses: number;
@@ -157,7 +217,12 @@ export async function waitForClientQuiescence(page: Page, timeoutMs = 20000): Pr
   await page.waitForFunction(async () => {
     const hooks = (window as any).__bgAnimTestHooks;
     if (!hooks || hooks.gateCloses < hooks.gateOpens) return false;
-    const { store } = await import('/src/store.ts');
+    // Read the APP's store instance via the always-installed window handle
+    // (src/store.ts). Re-importing '/src/store.ts' here would construct a
+    // second, permanently-empty store whenever the dev server's HMR graph
+    // has rewritten the app's import to /src/store.ts?t=<timestamp>.
+    const store = (window as any).__bgReduxStore
+      ?? (await import('/src/store.ts')).store;
     return (store.getState().game?.animation?.pendingBundles?.length ?? 0) === 0;
   }, undefined, { timeout: timeoutMs });
   const renderGame = page.locator('boardgame-render-game').first();
@@ -174,7 +239,9 @@ export async function waitForClientQuiescence(page: Page, timeoutMs = 20000): Pr
 
 export async function installedGameVersion(page: Page): Promise<number> {
   return page.evaluate(async () => {
-    const { store } = await import('/src/store.ts');
+    // See waitForClientQuiescence for why the window handle is required.
+    const store = (window as any).__bgReduxStore
+      ?? (await import('/src/store.ts')).store;
     return store.getState().game?.animation?.lastFiredBundle?.game?.Version ?? -1;
   });
 }

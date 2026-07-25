@@ -146,6 +146,96 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 
   private _memoizedComposedPropertyDefinition: any = null;
 
+  private _layoutTransform = '';
+
+  // Tracks the setter's OWN in-flight layout animation so a mid-flight
+  // retarget cancels it before starting the next one (mirrors
+  // boardgame-token.ts's `_throb` pattern). Without this, play() does not
+  // auto-cancel a prior play, so an interrupted retarget would leave two
+  // live animations racing the host's transform instead of exactly one --
+  // the retired CSS `transition: transform ...` never had that problem
+  // because a CSS transition retarget always replaces itself in place.
+  private _layoutTransformAnimation: Animation | null = null;
+
+  // get/set layoutTransform is the self-animating replacement for the
+  // stack's retired CSS `transition: transform var(--animation-length,
+  // 0.25s) ease-in-out` (boardgame-component-stack.ts). NOTHING calls this
+  // setter yet (Task 12 wires the stack's layout writes through it) -- this
+  // is purely the mechanism.
+  //
+  // Semantics, chosen to match the CSS transition it replaces:
+  //  - Setting the SAME value is a no-op: no style write, no play(). (A CSS
+  //    transition never restarts on an unchanged authored value either.)
+  //  - Setting a DIFFERENT value snaps `this.style.transform` to it
+  //    immediately (so layout/hit-testing/etc. always see the true final
+  //    value, exactly like an authored CSS property does under a
+  //    transition), then -- unless suppressed -- plays a gated host
+  //    animation from the PRE-snap *computed* transform (not the previous
+  //    setter argument) to the new computed transform. Capturing the
+  //    computed value is what gives CSS-transition-style retargeting parity
+  //    when interrupted mid-flight: a CSS transition that gets a new target
+  //    while running continues from wherever the box actually is on screen,
+  //    never from the stale authored target of the animation it interrupts.
+  //  - Suppressed (matches `.no-animate`'s effect on the CSS transition):
+  //    `noAnimate`, disconnected, or the computed transform did not actually
+  //    change (e.g. an equivalent-but-differently-spelled value) all skip
+  //    the play and leave only the snap.
+  //  - `{ timing: 'immediate' }`: a layout tweak is a local, one-off
+  //    visual correction -- the CSS transition it replaces had no notion of
+  //    a shared render-game version slot either. Same reasoning as the
+  //    fading-text / game-outcome fixes (see boardgame-fading-text.ts /
+  //    boardgame-game-outcome.ts).
+  //
+  // Note for future readers: the animator's OWN direct `style.transform`
+  // writes during FLIP (boardgame-component-animator.ts) intentionally
+  // bypass this setter -- they write the property directly, not through
+  // `layoutTransform`. This setter mediates only the stack's per-layout
+  // writes; it is not a general interceptor of every transform mutation.
+  get layoutTransform(): string {
+    return this._layoutTransform;
+  }
+
+  set layoutTransform(value: string) {
+    if (value === this._layoutTransform) return;
+    const before = this.isConnected ? getComputedStyle(this).transform : 'none';
+    this._layoutTransform = value;
+    // Cancel our own prior layout animation (if any) BEFORE probing the
+    // final computed value below: while it is still running, a fill:'none'
+    // WAAPI animation overrides getComputedStyle() with its own live
+    // sample, so reading "after" first would just re-observe the outgoing
+    // animation's current frame (indistinguishable from `before`, since no
+    // wall-clock time passes between the two synchronous reads) instead of
+    // the true resting value the new authored style resolves to -- making
+    // every mid-flight retarget silently no-op and leaving the ORIGINAL
+    // animation running past its own retarget. play() does not auto-cancel
+    // a prior play, so this is also what keeps a retarget to exactly one
+    // live animation (mirrors boardgame-token.ts's `_throb` pattern).
+    this._layoutTransformAnimation?.cancel();
+    this._layoutTransformAnimation = null;
+    this.style.transform = value;
+    // noAnimate suppresses the self-play (snap only). During an animator
+    // cycle the stack's relayout write lands from Lit's slotchange/updated
+    // pass, which runs microtasks BEFORE the animator raises its
+    // component-level noAnimate barrier -- so noAnimate is FALSE here and the
+    // setter self-plays concurrently with the same cycle's FLIP. That is
+    // deliberate parity: the retired CSS `transition: transform
+    // var(--animation-length) ease-in-out` this setter replaces fired at the
+    // same pre-barrier slotchange moment with identical easing/duration.
+    // Verified by geometry golden geometry-debuganimations-fan-draw (evidence
+    // 2026-07-26-stack-transition-cutover.md). noAnimate only snaps writes
+    // issued WHILE the barrier is up (the animator's own measurement-time
+    // style mutations).
+    if (this.noAnimate || !this.isConnected) return;
+    const after = getComputedStyle(this).transform;
+    if (before === after) return;
+    this._layoutTransformAnimation = this.play(
+      this,
+      [{ transform: before }, { transform: after }],
+      { easing: 'ease-in-out' },
+      { timing: 'immediate' },
+    );
+  }
+
   get interactive(): boolean {
     return !this.spacer && !this.disabled;
   }

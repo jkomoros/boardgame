@@ -33,6 +33,8 @@ import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 import { retryDelayMs } from '../utils/retry-policy.js';
 import { compileMotionTransferDeclarations } from '../motion/transfer.js';
 import { compileMotionRelease } from '../motion/release.js';
+import { AnimationGate, type AnimationGateCallbacks } from '../motion/animation-gate.js';
+import { AnimatableRegistry } from '../motion/animatable-registry.js';
 
 type HostedState = FullGameState<object, object, object, object, object>;
 export type HostedGameRenderer = BoardgameBaseGameRenderer<
@@ -289,11 +291,6 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Number })
   defaultAnimationLength = 0;
 
-  @property({ type: Object, attribute: false })
-  private _activeAnimations: Map<HTMLElement, boolean> | null = null;
-
-  @property({ type: Boolean, attribute: false })
-  private _allAnimationsDoneFired = true;
   private _activeMotionCycleId = 0;
 
   // isAnimating reflects whether the animation gate is currently open (an
@@ -303,6 +300,18 @@ class BoardgameRenderGame extends LitElement {
   // can wire it into move-disabling UI without polling. See #721.
   @property({ type: Boolean, reflect: true, attribute: 'is-animating' })
   isAnimating = false;
+
+  // Ambient discovery surface for animatable items NOT tracked by the
+  // component animator's own stack-component bookkeeping (standalone dice,
+  // status-text wrappers, fading-text, tokens, ... -- #714's "non-component"
+  // gap, Task 9). BoardgameAnimatableItem's connected/disconnectedCallback
+  // walk up to find this property (same walk shape as the ambient
+  // animationContext lookup, factored into _ambientLookup -- see
+  // boardgame-animatable-item.ts) and self-register/unregister. Reset at
+  // cycle start (_resetAnimating) -- this REPLACES nothing: the animator's
+  // own component iteration (_clearAllAnimatingComponents) remains
+  // authoritative for stack-tracked components.
+  readonly animatableRegistry = new AnimatableRegistry();
 
   @query('#animator')
   private _animator?: BoardgameComponentAnimator;
@@ -320,23 +329,50 @@ class BoardgameRenderGame extends LitElement {
   // LOCAL interaction state changes (e.g. a multi-step move selected a source
   // piece) so previewSpec() must be re-evaluated without a state/turn change.
   private _boundPreviewRefreshRequested?: (e: Event) => void;
-  private _animationWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
-  // Largest declared settle time (delay + duration + endDelay) reported by
-  // any gated play() in the current cycle, via the will-animate event. Used
-  // to extend the watchdog past a legitimately long cycle (stagger +
-  // post-animation-delay + long --animation-length) rather than force-close
-  // mid-animation. Reset to 0 at each gate open.
-  private _maxExpectedSettleMs = 0;
-  // Absolute local-clock (Date.now()-comparable) instant the current
-  // watchdog is armed to fire at. Tracked so an incoming will-animate can
-  // tell whether a longer play would outlast the deadline and re-arm.
-  private _watchdogDeadlineEpoch = 0;
-  // The watchdog floor: the gate never gets less than this before firing,
-  // even for trivially short cycles. Longer declared cycles push it out.
-  private static readonly _WATCHDOG_FLOOR_MS = 4000;
-  // Slack added past a declared long cycle's expected settle instant, so
-  // normal per-animation jitter/scheduling never trips the watchdog.
-  private static readonly _WATCHDOG_MARGIN_MS = 1500;
+
+  // The animation-completion gate (see src/motion/animation-gate.ts). The
+  // callbacks below preserve, verbatim, the side effects that used to live
+  // inline in _resetAnimating/_notifyAnimationsDone/the watchdog timeout.
+  private readonly _gate = new AnimationGate({
+    onOpen: () => this._onGateOpen(),
+    onAllDone: () => this._onGateAllDone(),
+    onWatchdog: (pending, budgetMs) => this._onGateWatchdog(pending, budgetMs),
+    setTimer: (cb, ms) => setTimeout(cb, ms),
+    clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+    now: () => Date.now(),
+  } satisfies AnimationGateCallbacks);
+
+  private _onGateOpen(): void {
+    animHooks.record('gate-open');
+    this.isAnimating = true;
+    this._applyAnimatingToRenderer();
+    this.dispatchEvent(new CustomEvent('animating-changed', {
+      bubbles: true, composed: true, detail: { value: this.isAnimating }
+    }));
+  }
+
+  private _onGateAllDone(): void {
+    animHooks.record('gate-close');
+    this.isAnimating = false;
+    this._applyAnimatingToRenderer();
+    this.dispatchEvent(new CustomEvent('animating-changed', {
+      bubbles: true, composed: true, detail: { value: this.isAnimating }
+    }));
+    this.dispatchEvent(new CustomEvent('all-animations-done', {
+      composed: true,
+      bubbles: true,
+      detail: Object.freeze({ cycleId: this._activeMotionCycleId }),
+    }));
+  }
+
+  private _onGateWatchdog(pending: readonly string[], budgetMs: number): void {
+    animHooks.record('watchdog', pending.join(','));
+    console.error(
+      `[boardgame-render-game] Animation watchdog timeout: animations did not complete ` +
+      `within their declared budget (${budgetMs}ms). Force-firing all-animations-done. ` +
+      `Pending components (${pending.length}): ${pending.join(', ') || 'none'}`
+    );
+  }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -352,9 +388,6 @@ class BoardgameRenderGame extends LitElement {
     this._boundPreviewRefreshRequested = () => this._scheduleRefreshPreview();
     this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     this.addEventListener('projected-choices-changed', this._projectedChoicesChanged);
-    this._activeAnimations = null;
-    this._ensureActiveAnimations();
-    this._allAnimationsDoneFired = false;
   }
 
   override disconnectedCallback() {
@@ -372,10 +405,7 @@ class BoardgameRenderGame extends LitElement {
     }
     this.removeEventListener('projected-choices-changed', this._projectedChoicesChanged);
     // Clean up watchdog timer to prevent firing after element is removed.
-    if (this._animationWatchdogTimer !== null) {
-      clearTimeout(this._animationWatchdogTimer);
-      this._animationWatchdogTimer = null;
-    }
+    this._gate.dispose();
     // Same for the debounced legality-preview timer: if we're torn down mid-
     // debounce, don't fire a stray movePreviewBatch / write to a dead renderer.
     // Bumping the seq also invalidates any batch already in flight.
@@ -578,7 +608,7 @@ class BoardgameRenderGame extends LitElement {
   // Table/Hand view bases can gate outcome/verdict rendering on it (#798
   // final piece): the outcome must never appear while the last animation
   // cycle (e.g. the winning card landing) is still in flight. Called at
-  // both gate flips (_resetAnimating / _notifyAnimationsDone) and at
+  // both gate flips (_onGateOpen / _onGateAllDone) and at
   // renderer instantiation so a renderer created mid-cycle (or finished
   // and re-instantiated on a surface switch) starts with the correct value
   // rather than defaulting to false.
@@ -616,125 +646,79 @@ class BoardgameRenderGame extends LitElement {
     }
   }
 
-  private _ensureActiveAnimations() {
-    if (this._activeAnimations) return;
-    this._activeAnimations = new Map();
-  }
-
   private _clearAllAnimatingComponents() {
     if (!this._animator) return;
     this._animator.clearAnimatingComponents();
   }
 
+  // Opens a fresh gate cycle under the current motionCycleId. Kept as a
+  // named method (not inlined) because animation tests deliberately reach
+  // it directly (it's TS-private, not JS-private) to open the completion
+  // gate in isolation, without incidental FLIP animations.
+  //
+  // Before opening the gate, settle every ambiently-registered animatable
+  // item (Task 9, #714): force-finish any animation left over from a prior
+  // cycle and install this cycle's animationContext directly, mirroring
+  // what the animator already does for its own tracked stack components.
+  // This is the piece that was missing for standalone items (a die, a
+  // status-text) -- without it, a same-cycle interruption (two state
+  // installs landing before the first one's animations naturally settle,
+  // see _stateChanged's cycle-id-change branch) force-closes the GATE but
+  // leaves an untracked item's own WAAPI animation physically running,
+  // so its next play() overlaps the stale one. finishGatedAnimations() is a
+  // no-op for an already-settled item, so this is invisible in steady
+  // state.
+  //
+  // finishGatedAnimations (not finishAllAnimations): this sweep interrupts a
+  // stale CYCLE, so it must only force-settle that cycle's GATED
+  // participants. An UNGATED ambient loop -- an infinite highlight throb on
+  // an active/highlighted token, started with { gated: false } -- was never a
+  // cycle participant and must keep running across the cycle. Sweeping it with
+  // finishAllAnimations cancelled it every state change, and since the token's
+  // active/highlighted did not change nothing re-armed it, so a highlighted
+  // token stopped glowing after the first move (the retired CSS @keyframes
+  // throb was class-driven and immune). See evidence pack
+  // docs/superpowers/specs/evidence/2026-07-26-ambient-animation-sweep.md.
   private _resetAnimating() {
     this._activeMotionCycleId = this.motionCycleId;
-    animHooks.record('gate-open');
-    // Clear any existing watchdog timer from a previous animation cycle.
-    if (this._animationWatchdogTimer !== null) {
-      clearTimeout(this._animationWatchdogTimer);
-      this._animationWatchdogTimer = null;
+    for (const item of this.animatableRegistry.items()) {
+      item.finishGatedAnimations();
+      item.animationContext = this.animationContext;
     }
-    this._maxExpectedSettleMs = 0;
-    this._activeAnimations = null;
-    this._ensureActiveAnimations();
-    this._allAnimationsDoneFired = false;
-    this.isAnimating = true;
-    this._applyAnimatingToRenderer();
-    this.dispatchEvent(new CustomEvent('animating-changed', {
-      bubbles: true, composed: true, detail: { value: this.isAnimating }
-    }));
-    // Arm the watchdog at the floor. Long declared cycles push it out via
-    // _componentWillAnimate. If animations complete normally,
-    // _notifyAnimationsDone() clears it before it fires.
-    this._armWatchdog(BoardgameRenderGame._WATCHDOG_FLOOR_MS);
-  }
-
-  // _armWatchdog (re)arms the watchdog to fire `fromNowMs` from now, tracking
-  // the absolute deadline so a later will-animate can decide whether to
-  // extend it. The watchdog is the invariant backstop: if it ever fires, an
-  // awaited animation didn't settle within its own declared budget — a bug.
-  private _armWatchdog(fromNowMs: number) {
-    if (this._animationWatchdogTimer !== null) {
-      clearTimeout(this._animationWatchdogTimer);
-      this._animationWatchdogTimer = null;
-    }
-    this._watchdogDeadlineEpoch = Date.now() + fromNowMs;
-    this._animationWatchdogTimer = setTimeout(() => {
-      this._animationWatchdogTimer = null;
-      if (this._allAnimationsDoneFired) return;
-      const pendingComponents: string[] = [];
-      if (this._activeAnimations) {
-        for (const [ele] of this._activeAnimations) {
-          const tag = ele?.tagName?.toLowerCase() ?? 'unknown';
-          const id = ele?.id ? `#${ele.id}` : '';
-          pendingComponents.push(`${tag}${id}`);
-        }
-      }
-      animHooks.record('watchdog', pendingComponents.join(','));
-      console.error(
-        `[boardgame-render-game] Animation watchdog timeout: animations did not complete ` +
-        `within their declared budget (${fromNowMs}ms). Force-firing all-animations-done. ` +
-        `Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
-      );
-      this._notifyAnimationsDone(this._activeMotionCycleId);
-    }, fromNowMs);
+    this._gate.open(this._activeMotionCycleId);
   }
 
   private _componentWillAnimate(e: CustomEvent) {
-    this._ensureActiveAnimations();
-    this._activeAnimations!.set(e.detail.ele, true);
-    // Extend the watchdog if this play declares a settle time that would
-    // outlast the current deadline. The deadline is the declared expected
-    // settle instant plus a fixed margin, floored at _WATCHDOG_FLOOR_MS —
-    // so e.g. 15 staggered cards each 2s long (last starts ~5.6s in) no
-    // longer trip a flat 4s watchdog mid-flight.
-    const expected = e.detail?.expectedSettleMs;
-    if (typeof expected === 'number' && expected > this._maxExpectedSettleMs) {
-      this._maxExpectedSettleMs = expected;
-      const targetEpoch = Date.now() + expected + BoardgameRenderGame._WATCHDOG_MARGIN_MS;
-      if (targetEpoch > this._watchdogDeadlineEpoch) {
-        this._armWatchdog(targetEpoch - Date.now());
-      }
-    }
+    const ele = e.detail.ele as HTMLElement;
+    const tag = ele?.tagName?.toLowerCase() ?? 'unknown';
+    const id = ele?.id ? `#${ele.id}` : '';
+    this._gate.willAnimate(ele, `${tag}${id}`, e.detail?.expectedSettleMs);
   }
 
   private _componentAnimationDone(e: CustomEvent) {
-    // If we're already done, don't bother firing again
-    this._ensureActiveAnimations();
-    if (this._activeAnimations!.size === 0) return;
-    this._activeAnimations!.delete(e.detail.ele);
-    if (this._activeAnimations!.size === 0) {
-      this._notifyAnimationsDone(this._activeMotionCycleId);
-    }
+    this._gate.animationDone(e.detail.ele);
   }
 
-  private _nextStateIfNoAnimations(cycleId = this._activeMotionCycleId) {
-    if (cycleId !== this._activeMotionCycleId) return;
-    if (this._activeAnimations && this._activeAnimations.size === 0) {
-      this._notifyAnimationsDone(cycleId);
-    }
+  // gateWillAnimate/gateAnimationDone (Task 10, #714's second Phase 2 gap):
+  // thin public delegates into this._gate, for boardgame-game-view to pipe
+  // will-animate/animation-done bubbling out of boardgame-player-roster --
+  // a DOM SIBLING of this element, so its own composed bubble path never
+  // reaches the will-animate/animation-done listeners this element installs
+  // on itself in firstUpdated(). game-view guards the will-animate
+  // direction on this.isAnimating (only forward while a board cycle is
+  // already open, so a roster animation outside any cycle -- e.g.
+  // hover-triggered -- can never open/wedge the gate) and always forwards
+  // animation-done (a participant admitted at open must be able to settle).
+  // Kept identical in shape to _componentWillAnimate/_componentAnimationDone
+  // above rather than merged with them: those remain this element's OWN
+  // will-animate/animation-done listeners for its own subtree, unaffected
+  // by roster piping.
+  gateWillAnimate(e: CustomEvent): void {
+    this._componentWillAnimate(e);
   }
 
-  private _notifyAnimationsDone(cycleId = this._activeMotionCycleId) {
-    if (cycleId !== this._activeMotionCycleId) return;
-    if (this._allAnimationsDoneFired) return;
-    // Animations completed normally — cancel the watchdog timer.
-    if (this._animationWatchdogTimer !== null) {
-      clearTimeout(this._animationWatchdogTimer);
-      this._animationWatchdogTimer = null;
-    }
-    this._allAnimationsDoneFired = true;
-    animHooks.record('gate-close');
-    this.isAnimating = false;
-    this._applyAnimatingToRenderer();
-    this.dispatchEvent(new CustomEvent('animating-changed', {
-      bubbles: true, composed: true, detail: { value: this.isAnimating }
-    }));
-    this.dispatchEvent(new CustomEvent('all-animations-done', {
-      composed: true,
-      bubbles: true,
-      detail: Object.freeze({ cycleId }),
-    }));
+  gateAnimationDone(e: CustomEvent): void {
+    this._componentAnimationDone(e);
   }
 
   private _defaultAnimationLengthChanged(newValue: number) {
@@ -747,7 +731,29 @@ class BoardgameRenderGame extends LitElement {
 
   private _stateChanged(newState: HostedState | null) {
     if (!this.renderer) return;
-    if (newState) this._activeMotionCycleId = this.motionCycleId;
+    if (newState) {
+      // A NEW-cycle install that lands while the previous cycle's gate is
+      // still open is a designed destructive cutover (motion release /
+      // legacy overlap admit the successor before the current cycle
+      // settles). The interrupted cycle must still complete its lifecycle:
+      // close it under its OWN id before adopting the new cycle id below.
+      // game-view ignores all-animations-done for a stale cycleId, so no
+      // successor bundle is released early; without this close the
+      // interrupted gate-open is never matched and the completion
+      // accounting wedges permanently.
+      //
+      // The cycle-id-change condition is load-bearing: state also installs
+      // WITHOUT a new motion cycle (doGameInfo refreshes via refresh-data /
+      // requested-player / admin-mode changes). There motionCycleId is
+      // unchanged, so this close would carry the STILL-CURRENT id --
+      // game-view's _forwardCycleRelease would forward it and release a
+      // queued successor bundle early, cutting an in-flight animation
+      // short. Only a genuine cycle handoff closes the previous gate here.
+      if (this.isAnimating && this.motionCycleId !== this._activeMotionCycleId) {
+        this._gate.close(this._activeMotionCycleId);
+      }
+      this._activeMotionCycleId = this.motionCycleId;
+    }
     if (this._animator) {
       this._animator.animationContext = this.animationContext;
     }
@@ -759,7 +765,18 @@ class BoardgameRenderGame extends LitElement {
     const beforeAnchors = this._effects?.captureNamedAnchors() ?? new Map();
     if (newState && !stateWasNull) {
       this._effects?.cancelTransitionEffects();
-      this._resetAnimating();
+      // Open a fresh gate cycle only if one is not already open. After a
+      // genuine cycle handoff the block above just closed the old gate, so
+      // this reopens for the new cycle as always. But a SAME-cycle
+      // reinstall (doGameInfo refresh) landing while the gate is open must
+      // join the open cycle, not open a second one: resetting here would
+      // record an unmatched gate-open (permanently skewing the cumulative
+      // open/close accounting) and clear the live participant map, so the
+      // in-flight animations' completions could no longer close the gate
+      // and only the watchdog would end the cycle.
+      if (!this.isAnimating) {
+        this._resetAnimating();
+      }
       // Clear stale faux animating components from any interrupted animation
       // cycle before prepare() captures positions. This prevents old faux
       // components' transitionend from interfering with the new cycle.
@@ -789,7 +806,7 @@ class BoardgameRenderGame extends LitElement {
       const startStructuralMotion = () => {
         if (this.renderer !== renderer || renderer.state !== newState
           || this.motionCycleId !== cycleId) return;
-        this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations(cycleId));
+        this._animator?.animateFlip().then(() => this._gate.settleIfEmpty(cycleId));
       };
       void presentationPlanning.then(startStructuralMotion, startStructuralMotion);
     }
@@ -1196,13 +1213,13 @@ class BoardgameRenderGame extends LitElement {
     // non-nil state is installed (it takes time to download the component), so
     // we'll need to ask for the next state. But if you load the same game type
     // again, the renderer will load immediately, most likely before the state
-    // is installed. If we called this._notifyAnimationsDone() before there's a
+    // is installed. If we called this._gate.close() before there's a
     // state, it would be useless (and would prevent it from firing later).
     if (this.state) {
       // Sometimes the renderer is instantiated after the state is already
       // databound--which means that `all-animations-done` won't have fired.
-      // _notifyAnimationsDone won't fire it again if it's already fired.
-      window.requestAnimationFrame(() => this._notifyAnimationsDone());
+      // gate.close() is a no-op if it's already fired.
+      window.requestAnimationFrame(() => this._gate.close(this._activeMotionCycleId));
     }
 
     // Kick off the initial target-legality preview for the freshly-mounted

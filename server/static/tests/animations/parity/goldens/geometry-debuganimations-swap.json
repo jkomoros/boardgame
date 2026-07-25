@@ -1,0 +1,215 @@
+{
+  "fractions": [
+    0,
+    0.25,
+    0.5,
+    0.75,
+    1
+  ],
+  "curves": [
+    {
+      "progress": [
+        0,
+        0.12,
+        0.5,
+        0.88,
+        1
+      ],
+      "transform": [
+        0,
+        0.2,
+        0.71,
+        0.98,
+        1
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        500,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "transform": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "opacity": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "timing": [
+        500,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "transform": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        500,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "transform": [
+        0,
+        0.2,
+        0.71,
+        0.98,
+        1
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        500,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        0,
+        0.14,
+        0.5,
+        0.86,
+        1
+      ],
+      "transform": [
+        0,
+        0.2,
+        0.71,
+        0.98,
+        1
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        500,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "transform": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "opacity": [
+        1,
+        0.75,
+        0.5,
+        0.25,
+        0
+      ],
+      "timing": [
+        100,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  ]
+}

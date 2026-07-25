@@ -132,6 +132,15 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(moves.SeatPlayer),
 		),
+		// moves.SeatPlayer marks newly seated players as Inactive. Pig has
+		// no rounds or phases, so per moves.ActivateInactivePlayer's doc
+		// this move should "ALWAYS be legal": a seated player is
+		// immediately activated. Without it every seated player stays
+		// inactive forever and every CurrentPlayer-based move (Roll Dice,
+		// Done) is permanently illegal — the same deadlock memory had.
+		auto.MustConfig(
+			new(moves.ActivateInactivePlayer),
+		),
 		auto.MustConfig(
 			new(moveRollDice),
 			moves.WithHelpText("Rolls the dice for the current player"),

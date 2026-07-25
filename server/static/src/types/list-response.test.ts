@@ -60,6 +60,36 @@ test('games decoder uses the actual PascalCase wire shape and normalizes omitted
   );
 });
 
+test('bare AllGames entries decode without the server-enriched fields, not throw', () => {
+  // Regression test: server/api/main.go's doListGames populates AllGames
+  // straight from storage.ListGames's CombinedStorageRecord. Only the
+  // Participating/Visible lists pass through gameStorageRecordWithUsers,
+  // which adds exactly two fields: Players and ReadableLastActivity. A real
+  // AllGames entry over the wire therefore has NEITHER key. Before this fix
+  // the game() decoder required both unconditionally and threw
+  // ("AllGames[0].Players must be an array", then
+  // "AllGames[0].ReadableLastActivity must be a string") on every
+  // /list/game?admin=1 response containing any game, surfacing as an
+  // "invalid games list" error dialog that blocked every offline-dev-mode
+  // e2e test that toggles Admin Mode (confirmed against the live server).
+  const bareGame = {
+    ID: 'ABC123',
+    Name: 'pig',
+    Open: false,
+    Visible: false,
+  };
+  const decoded = decodeGamesListResponse({
+    Status: 'Success',
+    ParticipatingActiveGames: [],
+    ParticipatingFinishedGames: [],
+    VisibleActiveGames: [],
+    VisibleJoinableActiveGames: [],
+    AllGames: [bareGame],
+  });
+  assert.deepEqual(decoded.AllGames[0].Players, []);
+  assert.equal(decoded.AllGames[0].ReadableLastActivity, '');
+});
+
 test('create-game decoder requires complete navigation identity', () => {
   assert.deepEqual(
     decodeCreateGameResponse({ Status: 'Success', GameName: 'pig', GameID: 'ABC123' }),
