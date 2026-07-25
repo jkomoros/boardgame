@@ -1,0 +1,45 @@
+{
+  "fractions": [
+    0,
+    0.25,
+    0.5,
+    0.75,
+    1
+  ],
+  "curves": [
+    {
+      "progress": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "transform": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "opacity": [
+        1,
+        0.62,
+        0.32,
+        0.09,
+        1
+      ],
+      "timing": [
+        250,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  ]
+}

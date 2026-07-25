@@ -31,6 +31,17 @@ export interface MotionCurve {
   // Opacity at each sampled fraction, rounded to 2dp; null when opacity is
   // not animated (stays within 0.01 of constant).
   opacity: (number | null)[];
+  // Declared [activeDurationMs, delayMs], each rounded to a 25ms grid.
+  // Normalized progress deliberately divides absolute time out of the
+  // other channels; this channel puts it back (harness critic gap 1: a
+  // migration that misreads --animation-length would otherwise produce
+  // identical normalized curves at 4x the duration). Also pins stagger
+  // cadence: staggered cohort members carry distinct delays.
+  timing: [number, number];
+  // Computed z-index at each fraction; null when constant for the whole
+  // flight (critic gap 7: a card passing UNDER instead of over mid-flight
+  // is invisible to every other channel).
+  zIndex: (number | null)[];
 }
 
 export interface GeometryFingerprint {
@@ -88,7 +99,8 @@ export async function sampleMotionCurves(
       }
       return nums;
     };
-    interface Sample { x: number; y: number; matrix: number[]; opacity: number }
+    interface Sample { x: number; y: number; matrix: number[]; opacity: number; z: number }
+    interface WaveEntry { samples: Sample[]; durationMs: number; delayMs: number }
 
     // A cycle's animations arrive in WAVES (staggered cohorts, arrival
     // decorations, departure fades chained on earlier completions). A
@@ -97,7 +109,7 @@ export async function sampleMotionCurves(
     // each newly appeared wave, finish it (letting the choreography chain
     // to the next wave), and accumulate the UNION of curves until no new
     // animations appear for ~1s. Requires at least one wave overall.
-    const samplesAll: Sample[][] = [];
+    const samplesAll: WaveEntry[] = [];
     const sampled = new Set<Animation>();
     const overallDeadline = performance.now() + 20000;
     let sawAny = false;
@@ -108,16 +120,28 @@ export async function sampleMotionCurves(
         if (sawAny) break;
         throw new Error('no animations appeared within 20s of the trigger');
       }
-      if (sawAny && now - quietSince > 1000) break;
       const freshCount = deepAnimations().filter((a) => !sampled.has(a)).length;
-      if (freshCount === 0) { await frame(); continue; }
+      // Quiet-window exit is checked AFTER the fresh probe (review finding:
+      // checking before could skip a wave born in the final frame of the
+      // quiet window and flake the existential comparison).
+      if (freshCount === 0) {
+        if (sawAny && now - quietSince > 1000) break;
+        await frame(); continue;
+      }
       // Two frames so co-scheduled stragglers of this wave are included.
       await frame(); await frame();
       const wave = deepAnimations().filter((a) => !sampled.has(a));
       if (wave.length === 0) { await frame(); continue; }
       sawAny = true;
       for (const a of wave) { sampled.add(a); a.pause(); }
-      const waveSamples: Sample[][] = wave.map(() => []);
+      const waveEntries: WaveEntry[] = wave.map((a) => {
+        const t = a.effect?.getComputedTiming();
+        return {
+          samples: [],
+          durationMs: Number(t?.activeDuration ?? 0),
+          delayMs: Number(t?.delay ?? 0),
+        };
+      });
       for (const frac of fractions) {
         for (const a of wave) {
           const t = a.effect?.getComputedTiming();
@@ -129,23 +153,26 @@ export async function sampleMotionCurves(
           if (!el) return;
           const r = el.getBoundingClientRect();
           const style = getComputedStyle(el);
-          waveSamples[i]!.push({
+          waveEntries[i]!.samples.push({
             x: r.x + r.width / 2,
             y: r.y + r.height / 2,
             matrix: parseMatrix(style.transform),
             opacity: parseFloat(style.opacity) || 0,
+            z: parseInt(style.zIndex, 10) || 0,
           });
         });
       }
       for (const a of wave) { try { a.finish(); } catch { try { a.cancel(); } catch { /* dead */ } } }
-      samplesAll.push(...waveSamples);
+      samplesAll.push(...waveEntries);
       quietSince = performance.now();
     }
 
     const round = (v: number) => Math.round(v * 100) / 100;
+    const grid25 = (v: number) => Math.round(v / 25) * 25;
     const curves = samplesAll
-      .filter((s) => s.length === fractions.length)
-      .map((s) => {
+      .filter((e) => e.samples.length === fractions.length)
+      .map((e) => {
+        const s = e.samples;
         const first = s[0]!, last = s[s.length - 1]!;
         const totalDist = Math.hypot(last.x - first.x, last.y - first.y);
         const translates = totalDist > 2; // px; below this it's not a travel animation
@@ -155,6 +182,8 @@ export async function sampleMotionCurves(
         const transforms = totalMatrix > 0.01;
         const opacities = s.map((p) => p.opacity);
         const opacityAnimates = Math.max(...opacities) - Math.min(...opacities) > 0.01;
+        const zs = s.map((p) => p.z);
+        const zChanges = Math.max(...zs) !== Math.min(...zs);
         return {
           progress: s.map((p) => translates
             ? round(Math.hypot(p.x - first.x, p.y - first.y) / totalDist)
@@ -163,6 +192,8 @@ export async function sampleMotionCurves(
             ? round(matrixDist(p.matrix, first.matrix) / totalMatrix)
             : null),
           opacity: opacities.map((o) => (opacityAnimates ? round(o) : null)),
+          timing: [grid25(e.durationMs), grid25(e.delayMs)] as [number, number],
+          zIndex: zs.map((z) => (zChanges ? z : null)),
         };
       });
     // Unique by JSON identity, sorted for stable comparison. All-null
@@ -173,8 +204,13 @@ export async function sampleMotionCurves(
       progress: (number | null)[];
       transform: (number | null)[];
       opacity: (number | null)[];
+      timing: [number, number];
+      zIndex: (number | null)[];
     }
     for (const c of curves) {
+      // Timing/zIndex don't count toward "observable motion": a curve whose
+      // visual channels are all null asserts nothing regardless of its
+      // declared timing.
       const allNull = [...c.progress, ...c.transform, ...c.opacity].every((v) => v === null);
       if (!allNull) seen.set(JSON.stringify(c), c);
     }
@@ -192,6 +228,12 @@ export async function sampleMotionCurves(
 // sub-pixel jitter cannot flake while an easing/duration/keyframe change
 // (which shifts mid-fraction progress by far more than the tolerance)
 // always fails.
+//
+// Deliberate non-goal: HOW MANY elements animate. Set semantics mean one
+// member of a near-duplicate curve family disappearing is invisible here
+// (element counts are per-game random). Count regressions are owned by the
+// trace suite: memory's exact gateDelta.plays/settles and per-element event
+// sequences, and debuganimations' exact cycle counts.
 export function expectCurvesMatchGolden(
   actual: GeometryFingerprint,
   name: string,
@@ -217,9 +259,16 @@ export function expectCurvesMatchGolden(
         if (x === null || y === null) return x === y;
         return Math.abs(x - y) <= tolerance;
       });
+    // Timing is declared (not measured), so after 25ms-grid rounding it
+    // must match exactly; zIndex values are integers compared exactly.
+    const exact = (xs: (number | null)[], ys: (number | null)[]): boolean =>
+      xs.length === ys.length && xs.every((x, i) => x === ys[i]);
     return channel(a.progress, b.progress)
       && channel(a.transform, b.transform)
-      && channel(a.opacity, b.opacity);
+      && channel(a.opacity, b.opacity)
+      && a.timing[0] === b.timing[0]
+      && a.timing[1] === b.timing[1]
+      && exact(a.zIndex, b.zIndex);
   };
   for (const g of golden.curves) {
     expect(
