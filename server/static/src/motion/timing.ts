@@ -75,9 +75,17 @@ export function resolveMotionTiming(
 ): MotionTimingResolution {
   const defaults = { ...options.defaults };
   const timing: OptionalEffectTiming = { ...defaults, ...requested };
-  for (const field of ['delay', 'duration', 'endDelay', 'iterations'] as const) {
+  for (const field of ['delay', 'duration', 'endDelay'] as const) {
     const value = timing[field];
     if (typeof value === 'number' && !Number.isFinite(value)) timing[field] = 0;
+  }
+  // iterations legitimately supports Infinity per WAAPI (a forever-looping
+  // effect -- e.g. an ambient ungated highlight throb, #Task7). Unlike
+  // delay/duration/endDelay -- which WAAPI requires finite -- clamping
+  // Infinity to 0 here would silently turn "loop forever" into "don't play
+  // at all". Only NaN is malformed input for this field.
+  if (typeof timing.iterations === 'number' && Number.isNaN(timing.iterations)) {
+    timing.iterations = 0;
   }
   if ((options.postAnimationDelayMs ?? 0) > 0 && timing.endDelay === undefined) {
     timing.endDelay = options.postAnimationDelayMs;
