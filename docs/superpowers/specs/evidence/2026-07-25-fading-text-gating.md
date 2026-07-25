@@ -113,3 +113,18 @@ move by this change regardless.
 unrelated files, confirmed identical on `git stash`; none in
 `boardgame-fading-text.ts` or `boardgame-animatable-item.ts`), and `npm run
 test:unit` (234/234) all pass.
+
+## Phase 1 gate addendum: slot-independence made explicit
+
+The Phase 1 regression critic found the fade's play() used the default
+'version' timing policy, letting a live ambient version context clamp the
+duration and inject a slot delay for board-hosted fades — a divergence the
+old CSS keyframe was structurally immune to (and the same one game-outcome's
+arrival had already fixed with timing:'immediate'). The fade now passes
+{ timing: 'immediate' } explicitly, with a clamp-immunity regression test
+(provider maxAnimationDurationMs 100 < 250; asserted duration stays 250,
+delay 0). The earlier "byte-for-byte preserved" claim was accurate only for
+the standalone fixture; with this change it holds in-game as well. Gate
+participation is unaffected ('immediate' is a timing policy only). The
+walk-past-null regression test now drives a direct version-policy play() as
+its vehicle, since animateFade() no longer exercises the ambient walk.

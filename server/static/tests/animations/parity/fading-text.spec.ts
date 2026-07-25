@@ -181,8 +181,14 @@ test('overlapping animateFade calls start exactly one animation', async ({ page 
 // real provider above -- the render-game analog here is a plain container
 // whose `animationContext` is populated. Observable: the hooks 'active'
 // record carries the provider's version only when the walk resolved it.
-test('fading-text nested in status-text resolves the ambient version context', async ({ page }) => {
+test('animatable nested in status-text resolves the ambient version context', async ({ page }) => {
   await page.goto('/');
+  // The walk-past-null regression proof: status-text (an animatable wrapper
+  // whose inherited animationContext defaults to null) must not shadow a
+  // populated provider above it. The vehicle is a DIRECT version-policy
+  // play() on the fading-text nested in status-text's shadow root —
+  // animateFade() itself deliberately uses timing:'immediate' (slot
+  // independence), so it no longer exercises the walk.
   const result = await page.evaluate(async () => {
     await import('/src/components/boardgame-status-text.ts');
     const provider = document.createElement('div') as any;
@@ -197,14 +203,57 @@ test('fading-text nested in status-text resolves the ambient version context', a
     provider.appendChild(status);
     status.value = 1;
     await status.updateComplete;
+    const ft = status.renderRoot.querySelector('boardgame-fading-text') as any;
+    await ft.updateComplete;
     const hooks = (window as any).__bgAnimTestHooks;
     const logStart = hooks.log.length;
-    status.value = 2;
-    await status.updateComplete;
-    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    // Direct version-policy play (no opts): resolves the ambient walk.
+    ft.play(ft, [{ opacity: 1 }, { opacity: 1 }], { duration: 50 });
+    await new Promise<void>((resolve) => setTimeout(resolve, 800));
     const entries = hooks.log.slice(logStart)
       .filter((e: any) => e.ev === 'active' && String(e.detail).startsWith('boardgame-fading-text'));
     return { versions: entries.map((e: any) => e.version ?? null) };
   });
   expect(result.versions).toContain(7);
+});
+
+// Phase 1 gate regression-critic finding: the fade must be immune to the
+// ambient version slot exactly like its CSS predecessor (same shape as
+// game-outcome's clamp regression test). Provider's maxAnimationDurationMs
+// (100) is deliberately smaller than the fade's 250ms default: the version
+// policy would clamp; 'immediate' must not.
+test('fade duration is immune to a clamping ambient version context', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-fading-text.ts');
+    const provider = document.createElement('div') as any;
+    provider.animationContext = {
+      version: 9,
+      startAtMs: Date.now(),
+      slotDurationMs: 1000,
+      maxAnimationDurationMs: 100,
+    };
+    document.body.appendChild(provider);
+    const el = document.createElement('boardgame-fading-text') as any;
+    el.style.cssText = 'position:fixed;top:200px;left:200px;width:120px;height:40px;';
+    el.autoMessage = 'fixed';
+    el.message = 'Unclamped!';
+    provider.appendChild(el);
+    el.trigger = 1;
+    await el.updateComplete;
+    el.trigger = 2;
+    await el.updateComplete;
+    // Give the play a beat to start, then read its declared timing.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const message = el.renderRoot.querySelector('#message') as HTMLElement;
+    const anims = message.getAnimations();
+    return {
+      count: anims.length,
+      duration: anims.length ? Number(anims[0]!.effect?.getComputedTiming().duration) : null,
+      delay: anims.length ? Number(anims[0]!.effect?.getComputedTiming().delay) : null,
+    };
+  });
+  expect(result.count).toBe(1);
+  expect(result.duration).toBe(250);
+  expect(result.delay).toBe(0);
 });

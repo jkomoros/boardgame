@@ -160,3 +160,43 @@ test.describe('boardgame-token throb', () => {
     expect(result.afterBothClear).toBe(0);
   });
 });
+
+// Phase 1 gate regression-critic finding: under prefers-reduced-motion the
+// legacy shadow-scoped CSS kept pulsing (the global reduced-motion sheet
+// does not pierce the shadow root), and the raw kernel path would suppress
+// the glow entirely (duration-0 infinite play renders nothing with fill
+// 'none'). The declared behavior is a STATIC strong glow: no motion, but
+// the highlight affordance survives.
+test('reduced motion holds a static glow instead of pulsing', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await page.goto('/');
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-token.ts');
+      const el = document.createElement('boardgame-token') as any;
+      el.style.cssText = 'position:fixed;top:200px;left:200px;';
+      document.body.appendChild(el);
+      await el.updateComplete;
+      el.highlighted = true;
+      await el.updateComplete;
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      const inner = el.renderRoot.querySelector('#inner') as HTMLElement;
+      // Setting the static filter starts the pre-existing 280ms CSS filter
+      // TRANSITION on #inner (component base styles) — transient and fine.
+      // The property under test is that no INFINITE pulse runs.
+      const infiniteAnimations = inner.getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations === Infinity).length;
+      const filter = inner.style.filter;
+      el.highlighted = false;
+      await el.updateComplete;
+      const filterCleared = inner.style.filter;
+      return { infiniteAnimations, filter, filterCleared };
+    });
+    expect(result.infiniteAnimations).toBe(0);
+    expect(result.filter).toContain('drop-shadow');
+    expect(result.filterCleared).toBe('');
+  } finally {
+    await context.close();
+  }
+});

@@ -92,10 +92,18 @@ export class BoardgameFadingText extends BoardgameAnimatableItem {
         if (generation === this._fadeGeneration) this._visible = false;
         return;
       }
+      // timing 'immediate' is parity-load-bearing (Phase 1 gate regression
+      // critic): the old CSS keyframe ran full-length starting immediately,
+      // structurally immune to the surrounding version slot. The default
+      // 'version' policy would let a live ambient context clamp the
+      // duration and inject a slot delay for board-hosted fades — the same
+      // divergence game-outcome's arrival had to fix. Gating is unaffected
+      // ('immediate' is a timing policy only).
       const anim = this.play(message, [
         { opacity: 1, transform: 'scale(1.0)' },
         { opacity: 0, transform: 'scale(6.0)' },
-      ], { easing: 'ease-out' });        // duration defaults to animationLengthMs()
+      ], { easing: 'ease-out' },         // duration defaults to animationLengthMs()
+      { timing: 'immediate' });
       if (!anim) {
         if (generation === this._fadeGeneration) this._visible = false;
         return;

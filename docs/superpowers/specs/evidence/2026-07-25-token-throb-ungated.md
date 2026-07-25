@@ -312,3 +312,18 @@ highlighted/active `boardgame-token`, so no golden needed regeneration.
 unit-test surface touches `boardgame-token.ts` or the throb; the `timing.ts`
 fix is covered by its own existing `timing.test.ts` suite, all of which still
 passes unchanged).
+
+## Phase 1 gate addendum: reduced-motion static glow (declared change)
+
+The Phase 1 regression critic found the legacy shadow-scoped throb CSS
+ignored prefers-reduced-motion (the global reduced-motion sheet does not
+pierce the shadow root), so reduced-motion users previously saw the pulse
+anyway; the migrated kernel path would instead have run the infinite play at
+duration 0, erasing the highlight affordance entirely. Neither is right:
+_syncThrob now applies the strong ('from') glow as a STATIC filter under
+reduced motion — no motion, affordance preserved. Covered by a
+reducedMotion-emulated test asserting zero infinite animations, a
+drop-shadow static filter while highlighted, and cleanup on unhighlight.
+(The transient 280ms CSS filter transition from the component base styles
+still runs on the static filter's application; it is finite, pre-existing
+styling, and out of scope.)

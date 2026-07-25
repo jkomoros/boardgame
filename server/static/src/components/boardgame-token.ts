@@ -182,12 +182,25 @@ export class BoardgameToken extends BoardgameComponent {
   private _syncThrob(): void {
     this._throb?.cancel();
     this._throb = null;
-    if (!this.active && !this.highlighted) return;
     const inner = this.innerElement;
+    if (inner) inner.style.filter = '';
+    if (!this.active && !this.highlighted) return;
     if (!inner) return;
     const style = getComputedStyle(inner);
     const colorFrom = style.getPropertyValue('--throb-color-from').trim();
     const colorTo = style.getPropertyValue('--throb-color-to').trim();
+    // Reduced motion: the highlight AFFORDANCE must survive even though
+    // the pulse should not. The kernel would run the infinite play at
+    // duration 0 (effectively suppressing the glow entirely, since with
+    // fill 'none' nothing renders); the legacy shadow-scoped CSS ignored
+    // the preference and kept pulsing — neither is right. Hold the strong
+    // ('from') glow statically instead. (Phase 1 gate regression-critic
+    // finding; declared in the token-throb evidence pack.)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      inner.style.filter =
+        `drop-shadow(0 0 0.25em ${colorFrom}) drop-shadow(0 0 0.25em ${colorFrom})`;
+      return;
+    }
     this._throb = this.play(inner, [
       { filter: `drop-shadow(0 0 0.25em ${colorTo}) drop-shadow(0 0 0.25em ${colorTo})` },
       // double the effect so it's darker
