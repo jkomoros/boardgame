@@ -171,10 +171,14 @@ test('stagger produces strictly increasing per-index animation delays', async ({
 
   // Wait for the cycle to fully settle before ending the test so later
   // tests (and the regression suite) don't inherit an in-flight animation.
+  // Budget: with --animation-length forced to 3s and stagger 0.2, the last
+  // of ~15 staggered cards starts ~8.4s in and runs 3s, plus the gate's
+  // trailing bookkeeping — the worst case brushes 12s before machine load,
+  // and 20s was observed to flake once on a loaded laptop (58/59 sweep).
   await page.waitForFunction(() => {
     const h = (window as any).__bgAnimTestHooks;
     return h.gateCloses >= h.gateOpens;
-  }, undefined, { timeout: 20000 });
+  }, undefined, { timeout: 40000 });
 
   // The watchdog must NOT have fired across this staggered cycle. With
   // --animation-length forced to 3s and stagger 0.2, later cards start
