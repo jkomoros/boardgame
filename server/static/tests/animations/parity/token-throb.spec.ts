@@ -1,4 +1,23 @@
 import { test, expect } from '@playwright/test';
+import { createOfflineGame, settleInitialLoad, gateSnapshot } from '../helpers';
+
+// deepQueryFirst walks into every shadowRoot to find the first match for
+// `selector`, since a per-game renderer's boardgame-token lives several
+// shadow roots deep under boardgame-app.
+function deepQueryFirstScript() {
+  function deepQueryFirst(root: Document | ShadowRoot | Element, selector: string): Element | null {
+    const direct = root.querySelector(selector);
+    if (direct) return direct;
+    for (const el of Array.from(root.querySelectorAll('*'))) {
+      if ((el as any).shadowRoot) {
+        const found = deepQueryFirst((el as any).shadowRoot, selector);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return deepQueryFirst;
+}
 
 // Task 7: boardgame-token's infinite "throb" highlight (the drop-shadow
 // pulse while active/highlighted) migrates from self-driven CSS @keyframes
@@ -158,6 +177,124 @@ test.describe('boardgame-token throb', () => {
     expect(result.afterActive).toBe(1);
     expect(result.afterHighlighted).toBe(1);
     expect(result.afterBothClear).toBe(0);
+  });
+
+  // Regression net for the ambient-animation-sweep bug (evidence pack
+  // 2026-07-26-ambient-animation-sweep.md). The infinite throb is UNGATED
+  // ambient decoration -- it was never a completion-cycle participant. But a
+  // token mounted inside a live render-game is registered in that game's
+  // animatableRegistry, whose cycle-start reset (_resetAnimating) force-
+  // finishes every registered item. If that reset uses finishAllAnimations()
+  // it CANCELS the infinite throb, and because the token's active/highlighted
+  // did not change on that state install, updated()->_syncThrob never re-arms
+  // it -- so a highlighted token stops glowing the moment ANY move is made.
+  // The retired CSS @keyframes throb (base) was class-driven and never
+  // affected by a state cycle. Every OTHER throb test in this file mounts the
+  // token standalone (no render-game, no registry), so this cross-cycle
+  // survival was the untested gap.
+  test('highlight throb survives a real render-game cycle', async ({ page }) => {
+    await createOfflineGame(page, 'debuganimations');
+    await settleInitialLoad(page);
+
+    const fnSrc = `(${deepQueryFirstScript.toString()})()`;
+
+    // Highlight the standalone #token (a local-prop demo widget in the
+    // debuganimations renderer -- not game state). This is the exact
+    // active/highlighted affordance every game uses.
+    const highlighted = await page.evaluate((src: string) => {
+      // eslint-disable-next-line no-eval
+      const dq = eval(`(${src})`);
+      const token = dq(document, 'boardgame-token') as any;
+      if (!token) return { error: 'no token found' };
+      token.highlighted = true;
+      return { ok: true };
+    }, fnSrc);
+    expect(highlighted).toEqual({ ok: true });
+
+    // Let updated()->_syncThrob start the infinite play.
+    await page.waitForTimeout(200);
+
+    const readThrob = async () => page.evaluate((src: string) => {
+      // eslint-disable-next-line no-eval
+      const dq = eval(`(${src})`);
+      const token = dq(document, 'boardgame-token') as any;
+      const inner = token?.shadowRoot?.querySelector('#inner') as HTMLElement | null;
+      const anims = inner ? inner.getAnimations({ subtree: false }) : [];
+      const infiniteRunning = anims.filter((a: Animation) =>
+        a.playState === 'running'
+        && (a.effect as KeyframeEffect | null)?.getComputedTiming().iterations === Infinity).length;
+      return { highlighted: token ? token.highlighted : null, infiniteRunning };
+    }, fnSrc);
+
+    expect((await readThrob()).infiniteRunning, 'throb must be live before the move').toBe(1);
+
+    // Perform a real board move -> new state -> _stateChanged ->
+    // _resetAnimating registry sweep. "Public Shuffle" (VisibleShuffle) is
+    // used rather than "To Hidden": a shuffle is legal in every state, whereas
+    // "To Hidden" is illegal (its button disabled) whenever components are
+    // already hidden -- a state-dependent flake. The shuffle still drives a
+    // full gated cycle (a #fan relayout).
+    const snap = await gateSnapshot(page);
+    const shuffle = page.getByRole('button', { name: 'Public Shuffle', exact: true });
+    await expect(shuffle).toBeEnabled();
+    await shuffle.click();
+    await page.waitForFunction((s: number) => {
+      const h = (window as any).__bgAnimTestHooks;
+      return h.gateOpens > s;
+    }, snap.gateOpens, { timeout: 20000 });
+    await page.waitForFunction(() => {
+      const h = (window as any).__bgAnimTestHooks;
+      return h.gateCloses >= h.gateOpens;
+    }, undefined, { timeout: 20000 });
+    await page.waitForTimeout(300);
+
+    const after = await readThrob();
+    expect(after.highlighted, 'token stays highlighted across the move').toBe(true);
+    expect(after.infiniteRunning, 'the ungated throb must survive the cycle sweep').toBe(1);
+  });
+
+  // Second family member: the retired CSS throb was class-driven and survived
+  // DOM reparenting automatically; the WAAPI throb is cancelled in the token's
+  // disconnectedCallback and only re-armed on an active/highlighted CHANGE.
+  // Lit does not re-render on a reparent, so without a connectedCallback
+  // re-arm a highlighted token dragged from one container to another loses
+  // its glow forever.
+  test('highlight throb survives a DOM reparent', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-token.ts');
+      const a = document.createElement('div');
+      const b = document.createElement('div');
+      document.body.append(a, b);
+      const el = document.createElement('boardgame-token') as any;
+      a.appendChild(el);
+      await el.updateComplete;
+
+      const infiniteRunning = () => {
+        const inner = el.shadowRoot?.querySelector('#inner') as HTMLElement | null;
+        return (inner?.getAnimations({ subtree: false }) ?? []).filter((anim: Animation) =>
+          anim.playState === 'running'
+          && (anim.effect as KeyframeEffect | null)?.getComputedTiming().iterations === Infinity).length;
+      };
+      const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+      el.highlighted = true;
+      await el.updateComplete;
+      await frame();
+      const beforeReparent = infiniteRunning();
+
+      // Move the still-highlighted token to a different parent (fires
+      // disconnectedCallback then connectedCallback synchronously; Lit does
+      // NOT re-render, so no updated() and no active/highlighted change).
+      b.appendChild(el);
+      await frame();
+      const afterReparent = infiniteRunning();
+
+      el.remove();
+      return { beforeReparent, afterReparent };
+    });
+    expect(result.beforeReparent, 'throb live before reparent').toBe(1);
+    expect(result.afterReparent, 'throb must survive the reparent').toBe(1);
   });
 });
 

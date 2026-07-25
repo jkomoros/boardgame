@@ -77,6 +77,11 @@ export class BoardgameFadingText extends BoardgameAnimatableItem {
   }
 
   animateFade(): void {
+    // finishAllAnimations (not finishGatedAnimations) is the deliberate choice
+    // here: this is self-scoped retrigger cleanup, and fading-text owns no
+    // ungated ambient loop -- its only animation is the gated fade -- so the
+    // two are equivalent today; "finish everything I'm running before I
+    // restart" is the clearer intent for a self-retrigger.
     this.finishAllAnimations();          // retrigger = finish prior fade (parity
     const generation = ++this._fadeGeneration; // with the old generation-counter reset)
     this._visible = true;

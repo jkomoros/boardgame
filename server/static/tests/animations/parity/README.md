@@ -83,6 +83,19 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
 - **Short-lived animations** — a sub-two-frame animation could finish before
   the wave pause catches it; would surface as a loud existential-match
   failure (flake), not a silent pass.
+- **Ambient / infinite ungated animations across a cycle** — NOW COVERED (was
+  a silent gap). An infinite highlight throb (`{ gated: false }`) is not a
+  completion-cycle participant, so no gate/trace/geometry golden observes it,
+  yet the cycle-start registry sweep used to cancel it every state change (the
+  ambient-animation-sweep regression). `token-throb.spec.ts` now pins throb
+  survival through a real render-game cycle AND through a DOM reparent, and
+  `finish-gated-animations.spec.ts` pins the `finishGatedAnimations` kernel
+  contract directly (gated force-settled, ungated left running; and
+  `finishAllAnimations` still kills ambient loops for the tree-departure
+  paths). The out-of-tree ungated-ambient contract — any game-authored
+  `{ gated: false }` loop must outlive a cycle — is protected by the sweeps'
+  `finishGatedAnimations` semantics. See
+  `docs/superpowers/specs/evidence/2026-07-26-ambient-animation-sweep.md`.
 - **`composite: 'replace'` as the same-host no-double-motion invariant** —
   when a stack's `layoutTransform` self-play and the same cycle's FLIP host
   track both animate one host's transform, safety comes from `play()`'s

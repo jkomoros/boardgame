@@ -383,13 +383,20 @@ export class BoardgameComponentAnimator extends LitElement {
     this._beforeSeenIds = new Set();
 
     // Interruption semantics (spec): a new cycle must measure resting
-    // positions, so jump any still-live animations to their end state.
+    // positions, so jump any still-live GATED animations to their end state.
+    // finishGatedAnimations (not finishAllAnimations) so a highlighted stack
+    // token's UNGATED infinite throb -- which pulses #inner's filter, not the
+    // host transform, and so is irrelevant to resting-position measurement --
+    // survives the cycle instead of being cancelled every state change (the
+    // ambient-animation-sweep regression; same rationale as render-game's
+    // _resetAnimating registry sweep). See evidence pack
+    // docs/superpowers/specs/evidence/2026-07-26-ambient-animation-sweep.md.
     for (let i = 0; i < collections.length; i++) {
       const components = collections[i].Components;
       for (let j = 0; j < components.length; j++) {
         const c = components[j];
         c.animationContext = this.animationContext;
-        if (typeof c.finishAllAnimations === 'function') c.finishAllAnimations();
+        if (typeof c.finishGatedAnimations === 'function') c.finishGatedAnimations();
       }
     }
 

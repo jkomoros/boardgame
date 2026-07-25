@@ -14,7 +14,12 @@
 // (to discover and register with an ambient registry), so this module must
 // not import back, or the two files would form an import cycle.
 export interface RegistrableAnimatableItem {
-  finishAllAnimations(): void;
+  // The cycle-start registry sweep force-settles a stale cycle's GATED
+  // participants only, so an ungated ambient loop (an infinite highlight
+  // throb) survives the sweep. finishAllAnimations (kill everything,
+  // including ambient) is reserved for the tree-departure paths and is not
+  // part of the sweep contract.
+  finishGatedAnimations(): void;
   animationContext: unknown;
 }
 

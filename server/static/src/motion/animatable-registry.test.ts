@@ -6,7 +6,7 @@ function makeItem(): RegistrableAnimatableItem & { finishCalls: number } {
   return {
     finishCalls: 0,
     animationContext: null,
-    finishAllAnimations() { this.finishCalls++; },
+    finishGatedAnimations() { this.finishCalls++; },
   };
 }
 
@@ -63,7 +63,7 @@ test('items() with several registered items returns all of them', () => {
 
 // items() must return a snapshot, not a live view: render-game's cycle-start
 // reset iterates the returned array while calling into each item's
-// finishAllAnimations(), which is arbitrary caller code that could itself
+// finishGatedAnimations(), which is arbitrary caller code that could itself
 // register/unregister items as a side effect (e.g. an item's finish
 // triggering a synchronous DOM removal -> disconnectedCallback ->
 // unregister). Mutating the registry mid-iteration of a snapshot array must
@@ -106,8 +106,8 @@ test('iterating a snapshot while mutating the registry (register/unregister from
   assert.doesNotThrow(() => {
     for (const item of registry.items()) {
       visited.push(item);
-      item.finishAllAnimations();
-      // Simulate finishAllAnimations() triggering a synchronous
+      item.finishGatedAnimations();
+      // Simulate finishGatedAnimations() triggering a synchronous
       // register/unregister elsewhere (e.g. another item detaching).
       registry.unregister(item);
       registry.register(extra);

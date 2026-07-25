@@ -665,13 +665,24 @@ class BoardgameRenderGame extends LitElement {
   // installs landing before the first one's animations naturally settle,
   // see _stateChanged's cycle-id-change branch) force-closes the GATE but
   // leaves an untracked item's own WAAPI animation physically running,
-  // so its next play() overlaps the stale one. finishAllAnimations() is a
+  // so its next play() overlaps the stale one. finishGatedAnimations() is a
   // no-op for an already-settled item, so this is invisible in steady
   // state.
+  //
+  // finishGatedAnimations (not finishAllAnimations): this sweep interrupts a
+  // stale CYCLE, so it must only force-settle that cycle's GATED
+  // participants. An UNGATED ambient loop -- an infinite highlight throb on
+  // an active/highlighted token, started with { gated: false } -- was never a
+  // cycle participant and must keep running across the cycle. Sweeping it with
+  // finishAllAnimations cancelled it every state change, and since the token's
+  // active/highlighted did not change nothing re-armed it, so a highlighted
+  // token stopped glowing after the first move (the retired CSS @keyframes
+  // throb was class-driven and immune). See evidence pack
+  // docs/superpowers/specs/evidence/2026-07-26-ambient-animation-sweep.md.
   private _resetAnimating() {
     this._activeMotionCycleId = this.motionCycleId;
     for (const item of this.animatableRegistry.items()) {
-      item.finishAllAnimations();
+      item.finishGatedAnimations();
       item.animationContext = this.animationContext;
     }
     this._gate.open(this._activeMotionCycleId);

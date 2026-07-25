@@ -58,7 +58,11 @@ export class BoardgameAnimatableItem extends LitElement {
   // and property animations participate without game-renderer plumbing.
   animationContext: VersionAnimationContext | null = null;
 
-  private _liveAnimations = new Set<Animation>();
+  // Animation -> whether it holds the completion gate. The gated flag is
+  // what lets finishGatedAnimations() force-settle a stale cycle's
+  // participants (the registry sweep's job) without touching UNGATED ambient
+  // loops (an infinite highlight throb), which were never cycle participants.
+  private _liveAnimations = new Map<Animation, boolean>();
   private _activeHookFrames = new Map<Animation, number>();
   private _liveGatedCount = 0;
   private _settledResolvers: Array<() => void> = [];
@@ -304,7 +308,7 @@ export class BoardgameAnimatableItem extends LitElement {
     // divides out). Do not remove or parameterize this without a test
     // that pins the same-host composite case.
     const anim = element.animate(keyframes, { ...resolution.timing, composite: 'replace' });
-    this._liveAnimations.add(anim);
+    this._liveAnimations.set(anim, gated);
     if (gated) {
       this._liveGatedCount++;
       if (this._liveGatedCount === 1) {
@@ -369,21 +373,44 @@ export class BoardgameAnimatableItem extends LitElement {
     return new Promise((resolve) => this._settledResolvers.push(resolve));
   }
 
-  // finishAllAnimations jumps every live animation to its end state and
-  // resolves settlement. Called when a new animation cycle must start
-  // while a previous one is in flight (spec: Interruption semantics).
-  finishAllAnimations(): void {
-    for (const anim of [...this._liveAnimations]) {
-      try {
-        if (anim.playState === 'running' || anim.playState === 'finished') {
-          anim.finish();
-        } else {
-          anim.cancel();
-        }
-      } catch {
-        // finish() throws InvalidStateError for infinite animations; cancel instead.
-        try { anim.cancel(); } catch { /* already dead */ }
+  // Jump one live animation to its end state (or cancel it if it cannot
+  // finish -- an infinite animation throws InvalidStateError from finish()).
+  // Either path drives settlement through the finished-promise .finally().
+  private _forceSettle(anim: Animation): void {
+    try {
+      if (anim.playState === 'running' || anim.playState === 'finished') {
+        anim.finish();
+      } else {
+        anim.cancel();
       }
+    } catch {
+      // finish() throws InvalidStateError for infinite animations; cancel instead.
+      try { anim.cancel(); } catch { /* already dead */ }
+    }
+  }
+
+  // finishAllAnimations jumps EVERY live animation to its end state --
+  // including ungated ambient loops (an infinite highlight throb). Reserved
+  // for the paths where this element is leaving the tree for good
+  // (beforeOrphaned / disconnectedCallback): once detached, an ambient loop
+  // running against the document timeline is pure waste, so kill it too.
+  // Do NOT use this for the cycle-interruption sweep -- see
+  // finishGatedAnimations.
+  finishAllAnimations(): void {
+    for (const anim of [...this._liveAnimations.keys()]) this._forceSettle(anim);
+  }
+
+  // finishGatedAnimations force-settles only the GATED animations -- the
+  // completion-cycle participants. It backs render-game's cycle-start
+  // registry sweep, whose purpose is to end a stale cycle's still-running
+  // animations before the next cycle's play() overlaps them. UNGATED ambient
+  // decoration (an infinite throb started with { gated: false }) was never a
+  // cycle participant and must survive the sweep -- cancelling it here is the
+  // ambient-animation-sweep regression (evidence pack
+  // 2026-07-26-ambient-animation-sweep.md).
+  finishGatedAnimations(): void {
+    for (const [anim, gated] of [...this._liveAnimations]) {
+      if (gated) this._forceSettle(anim);
     }
   }
 }

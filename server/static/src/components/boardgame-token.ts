@@ -213,6 +213,20 @@ export class BoardgameToken extends BoardgameComponent {
     }, { gated: false, timing: 'immediate' });
   }
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    // Re-arm the ambient throb on (re)connect. The WAAPI throb -- unlike the
+    // retired class-driven CSS @keyframes it replaced -- is cancelled in
+    // disconnectedCallback and otherwise only (re)started when active or
+    // highlighted CHANGE. Lit does not re-render on a reparent, so no
+    // updated() fires and active/highlighted are unchanged: without this, a
+    // still-highlighted token moved to a new container would lose its glow
+    // forever. Safe on first connect -- innerElement is null pre-render, so
+    // _syncThrob no-ops, and the first render's updated() starts it as before
+    // (see the DOM-reparent test in token-throb.spec.ts).
+    this._syncThrob();
+  }
+
   override disconnectedCallback(): void {
     this._throb?.cancel();
     this._throb = null;
