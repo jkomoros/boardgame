@@ -18,6 +18,7 @@ import type {
   ComponentMotionTarget,
   ComponentMotionTrack,
 } from '../motion/component-track.js';
+import type { AnimatableRegistry } from '../motion/animatable-registry.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -62,6 +63,13 @@ export class BoardgameAnimatableItem extends LitElement {
   private _liveGatedCount = 0;
   private _settledResolvers: Array<() => void> = [];
 
+  // The ambient AnimatableRegistry discovered by the connect-time walk (see
+  // _ambientLookup / connectedCallback), cached so disconnectedCallback can
+  // symmetrically unregister from the SAME registry even after this
+  // element has been detached (by then the walk itself can no longer reach
+  // an ancestor -- parentNode is already null).
+  private _ambientRegistry: AnimatableRegistry | null = null;
+
   @property({ type: Number, attribute: 'post-animation-delay' })
   postAnimationDelay = 0;
 
@@ -78,6 +86,33 @@ export class BoardgameAnimatableItem extends LitElement {
     },
   })
   waitForAnimation = true;
+
+  // Discovers the ambient AnimatableRegistry (#714's non-component
+  // discovery gap, Task 9) and registers with it so an item outside the
+  // component animator's own stack bookkeeping (a standalone die,
+  // status-text, fading-text, a game-authored token, ...) is still reached
+  // by render-game's cycle-start reset. Lit's connectedCallback runs before
+  // this element's own first render, but the discovery walk only climbs
+  // ANCESTORS -- by the time connectedCallback fires this element is
+  // already attached to a connected tree, so the full ancestor chain
+  // (crossing shadow roots and slots) is already in place regardless of
+  // this element's own render state. Always call super first.
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this._ambientRegistry = this._ambientLookup<AnimatableRegistry>('animatableRegistry', () => true);
+    this._ambientRegistry?.register(this);
+  }
+
+  // Unregisters from the SAME registry found at connect time (never
+  // re-walks here: at disconnect this element may already be unparented,
+  // so the walk could no longer reach the ancestor that registered it).
+  // Always call super, and always last, mirroring other overrides in this
+  // codebase that release resources before yielding to the base class.
+  override disconnectedCallback(): void {
+    this._ambientRegistry?.unregister(this);
+    this._ambientRegistry = null;
+    super.disconnectedCallback();
+  }
 
   // beforeOrphaned is called when we know we're about to be orphaned (for
   // example if we're an animating component that will be removed when done
@@ -167,6 +202,31 @@ export class BoardgameAnimatableItem extends LitElement {
     });
   }
 
+  // _ambientLookup climbs from this element's parent -- crossing shadow
+  // roots and slots -- looking for the nearest ancestor exposing `propName`,
+  // calling `isProvider` on each candidate value found to decide whether
+  // that ancestor is a genuine provider or must be climbed past. Shared by
+  // the two ambient discovery walks below: they cross the exact same DOM
+  // shape (commit 7172dd24 made this climb past NULL contexts so nested
+  // animatable wrappers like status-text don't sever deeper items from the
+  // real provider above them) but disagree on what "provider" means for
+  // their respective property, hence the caller-supplied predicate.
+  private _ambientLookup<T>(propName: string, isProvider: (value: T) => boolean): T | null {
+    let node: Node | null = this.assignedSlot ?? this.parentNode;
+    while (node) {
+      if (propName in node) {
+        const value = (node as unknown as Record<string, T>)[propName];
+        if (isProvider(value)) return value;
+      }
+      if (node instanceof ShadowRoot) {
+        node = node.host;
+      } else {
+        node = (node as Element).assignedSlot ?? node.parentNode;
+      }
+    }
+    return null;
+  }
+
   private _ambientAnimationContext(): VersionAnimationContext | null {
     // Prefer the render-game provider over a component's cached value. This
     // crosses shadow roots and slots, so standalone dice and game-authored
@@ -181,19 +241,11 @@ export class BoardgameAnimatableItem extends LitElement {
     // provider above it. Climbing past nulls preserves the legit
     // "provider currently between cycles" case too: with no populated
     // context anywhere, the result is null either way.
-    let node: Node | null = this.assignedSlot ?? this.parentNode;
-    while (node) {
-      if ('animationContext' in node) {
-        const ctx = (node as Node & { animationContext: VersionAnimationContext | null }).animationContext;
-        if (ctx) return ctx;
-      }
-      if (node instanceof ShadowRoot) {
-        node = node.host;
-      } else {
-        node = (node as Element).assignedSlot ?? node.parentNode;
-      }
-    }
-    return this.animationContext;
+    const found = this._ambientLookup<VersionAnimationContext | null>(
+      'animationContext',
+      (ctx) => ctx != null,
+    );
+    return found ?? this.animationContext;
   }
 
   // play is the single entry point for starting an animation on this item

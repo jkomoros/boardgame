@@ -34,6 +34,7 @@ import { retryDelayMs } from '../utils/retry-policy.js';
 import { compileMotionTransferDeclarations } from '../motion/transfer.js';
 import { compileMotionRelease } from '../motion/release.js';
 import { AnimationGate, type AnimationGateCallbacks } from '../motion/animation-gate.js';
+import { AnimatableRegistry } from '../motion/animatable-registry.js';
 
 type HostedState = FullGameState<object, object, object, object, object>;
 export type HostedGameRenderer = BoardgameBaseGameRenderer<
@@ -299,6 +300,18 @@ class BoardgameRenderGame extends LitElement {
   // can wire it into move-disabling UI without polling. See #721.
   @property({ type: Boolean, reflect: true, attribute: 'is-animating' })
   isAnimating = false;
+
+  // Ambient discovery surface for animatable items NOT tracked by the
+  // component animator's own stack-component bookkeeping (standalone dice,
+  // status-text wrappers, fading-text, tokens, ... -- #714's "non-component"
+  // gap, Task 9). BoardgameAnimatableItem's connected/disconnectedCallback
+  // walk up to find this property (same walk shape as the ambient
+  // animationContext lookup, factored into _ambientLookup -- see
+  // boardgame-animatable-item.ts) and self-register/unregister. Reset at
+  // cycle start (_resetAnimating) -- this REPLACES nothing: the animator's
+  // own component iteration (_clearAllAnimatingComponents) remains
+  // authoritative for stack-tracked components.
+  readonly animatableRegistry = new AnimatableRegistry();
 
   @query('#animator')
   private _animator?: BoardgameComponentAnimator;
@@ -642,8 +655,25 @@ class BoardgameRenderGame extends LitElement {
   // named method (not inlined) because animation tests deliberately reach
   // it directly (it's TS-private, not JS-private) to open the completion
   // gate in isolation, without incidental FLIP animations.
+  //
+  // Before opening the gate, settle every ambiently-registered animatable
+  // item (Task 9, #714): force-finish any animation left over from a prior
+  // cycle and install this cycle's animationContext directly, mirroring
+  // what the animator already does for its own tracked stack components.
+  // This is the piece that was missing for standalone items (a die, a
+  // status-text) -- without it, a same-cycle interruption (two state
+  // installs landing before the first one's animations naturally settle,
+  // see _stateChanged's cycle-id-change branch) force-closes the GATE but
+  // leaves an untracked item's own WAAPI animation physically running,
+  // so its next play() overlaps the stale one. finishAllAnimations() is a
+  // no-op for an already-settled item, so this is invisible in steady
+  // state.
   private _resetAnimating() {
     this._activeMotionCycleId = this.motionCycleId;
+    for (const item of this.animatableRegistry.items()) {
+      item.finishAllAnimations();
+      item.animationContext = this.animationContext;
+    }
     this._gate.open(this._activeMotionCycleId);
   }
 
