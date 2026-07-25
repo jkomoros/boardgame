@@ -275,4 +275,151 @@ test.describe('player-info gate participation', () => {
     expect(after.gateCloses, 'gate must not have closed for an out-of-cycle roster animation').toBe(before.gateCloses);
     expect(after.watchdogFirings, 'watchdog must never fire').toBe(before.watchdogFirings);
   });
+
+  // Phase 2 gate-finding regression (docs/superpowers/specs/evidence/
+  // 2026-07-25-roster-orphan-settle.md): a roster-hosted animatable admitted
+  // to the gate (via the pipe proven by the first test above) has no
+  // orphan-settle path if it is removed from the DOM mid-animation. Two
+  // compounding gaps: (1) nothing force-settles it on disconnect (unlike a
+  // board/stack component, which gets beforeOrphaned() from the animator),
+  // so its WAAPI animation keeps running on the document timeline after
+  // detach; (2) even once it DOES finish, its `animation-done` CustomEvent
+  // (bubbles + composed) dispatches from a node with no parent -- nothing to
+  // bubble to -- so render-game's gate listener never hears it. Pre-fix, the
+  // gate is stuck open until the kernel's watchdog force-closes it (floor
+  // 4000ms, extended here to ~4250ms by the probe's own declared
+  // expectedSettleMs = duration(~250ms) + postAnimationDelay(2500ms) +
+  // margin(1500ms) -- see motion/timing.ts's resolveMotionTiming and
+  // motion/animation-gate.ts's willAnimate()), logging a watchdog firing.
+  test('a roster animatable removed from the DOM mid-animation does not stall the gate to the watchdog', async ({ page }) => {
+    test.setTimeout(PARITY_TIMEOUT_MS);
+    await createOfflineGame(page, 'pig');
+    await expect(page.getByRole('button', { name: 'Roll die' })).toBeEnabled({ timeout: 30000 });
+
+    const setup = await gateSnapshot(page);
+    await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+
+    await mountRosterFadingText(page);
+
+    const before = await gateSnapshot(page);
+
+    // Same retry shape as the first test in this file: a same-face reroll
+    // plays no die animation (1-in-6), so retry until a genuine board cycle
+    // opens, then IMMEDIATELY (same evaluate call) admit the roster probe to
+    // that open cycle and remove it from the DOM the instant its own play()
+    // has genuinely started -- i.e. mid-animation, not before it started
+    // (which the fading-text's own isConnected guard in animateFade's
+    // continuation would just no-op) and not after it naturally settled
+    // (which would prove nothing about the orphan path).
+    let attempt = 0;
+    let rollResult: { diePlayed: boolean; probeRemoved?: boolean } = { diePlayed: false };
+    for (; attempt < 5 && !rollResult.diePlayed; attempt++) {
+      const logStart = await page.evaluate(() => (window as any).__bgAnimTestHooks.log.length);
+      await expect(page.getByRole('button', { name: 'Roll die' })).toBeEnabled({ timeout: 15000 });
+      await page.getByRole('button', { name: 'Roll die' }).click();
+
+      rollResult = await page.evaluate(async (start: number) => {
+        const hooks = (window as any).__bgAnimTestHooks;
+        const diePlayed = await new Promise<boolean>((resolve) => {
+          const deadline = performance.now() + 2000;
+          const check = () => {
+            if (hooks.log.slice(start).some((e: any) => e.ev === 'play' && e.detail === 'boardgame-die')) {
+              resolve(true);
+              return;
+            }
+            if (performance.now() > deadline) { resolve(false); return; }
+            requestAnimationFrame(check);
+          };
+          check();
+        });
+        if (!diePlayed) return { diePlayed: false };
+
+        const el = (window as any).__task10RosterProbe;
+        el.postAnimationDelay = 2500;
+        el.trigger = 2; // real change from the established baseline -> fires the fade
+        await el.updateComplete;
+
+        // Wait for the probe's OWN play() to genuinely start (mirrors the
+        // die-play wait above) before orphaning it -- proves the removal
+        // happens while its animation is live, not before it existed.
+        const probePlayed = await new Promise<boolean>((resolve) => {
+          const deadline = performance.now() + 2000;
+          const check = () => {
+            if (hooks.log.some((e: any) =>
+              e.ev === 'play' && e.detail === 'boardgame-fading-text#task10-roster-probe')) {
+              resolve(true);
+              return;
+            }
+            if (performance.now() > deadline) { resolve(false); return; }
+            requestAnimationFrame(check);
+          };
+          check();
+        });
+        if (!probePlayed) return { diePlayed: true, probeRemoved: false };
+
+        (el as HTMLElement).remove(); // orphan it mid-animation
+        return { diePlayed: true, probeRemoved: true };
+      }, logStart);
+
+      if (!rollResult.diePlayed) {
+        const snap = await gateSnapshot(page);
+        await expectCleanGate(page, { ...snap, gateOpens: 0 }, 20000, { allowAlreadySettled: true });
+      }
+    }
+    expect(rollResult.diePlayed, 'the die must genuinely animate within 5 attempts').toBe(true);
+    expect(rollResult.probeRemoved, 'the roster probe must have started animating before removal').toBe(true);
+
+    // Wait (in-page) for the die's own settle AND the gate's close,
+    // recording each one's performance.now() timestamp so the comparison is
+    // immune to Node-side scheduling noise (same technique as the first
+    // test's closing comparison).
+    const result = await page.evaluate(async () => {
+      function deepQueryFirst(root: any, selector: string): any {
+        const direct = root.querySelector(selector);
+        if (direct) return direct;
+        for (const el of Array.from(root.querySelectorAll('*'))) {
+          const sr = (el as any).shadowRoot;
+          if (sr) { const hit = deepQueryFirst(sr, selector); if (hit) return hit; }
+        }
+        return null;
+      }
+      const renderGame = deepQueryFirst(document, 'boardgame-render-game');
+      const hooks = (window as any).__bgAnimTestHooks;
+      const deadline = performance.now() + 6000; // comfortably short of the 4s+ watchdog path
+      let dieSettleAt = -1;
+      let gateCloseAt = -1;
+      while (performance.now() < deadline && (dieSettleAt < 0 || gateCloseAt < 0)) {
+        if (dieSettleAt < 0) {
+          const hit = (hooks.log as Array<{ ev: string; detail?: string; t: number }>)
+            .find((e) => e.ev === 'settle' && e.detail === 'boardgame-die');
+          if (hit) dieSettleAt = hit.t;
+        }
+        if (gateCloseAt < 0 && renderGame.isAnimating === false) {
+          gateCloseAt = performance.now();
+        }
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      }
+      return { dieSettleAt, gateCloseAt, timedOut: dieSettleAt < 0 || gateCloseAt < 0 };
+    });
+
+    expect(result.timedOut,
+      'both the die settle and gate-close must be observed comfortably before the watchdog floor').toBe(false);
+    expect(result.dieSettleAt, 'the die must have actually played and settled').toBeGreaterThan(0);
+
+    // THE assertion: the gate must close promptly after the board's own
+    // animation settles -- NOT after the removed roster probe's declared
+    // ~2750ms expected-settle, and nowhere near the ~4250ms watchdog. A
+    // generous 1500ms tolerance absorbs rAF-frame granularity and the
+    // probe's own force-settle microtask chain, not systematic slack:
+    // pre-fix, the gate stays open until the watchdog fires (~4000ms+ after
+    // this point), a gap the tolerance below cannot absorb.
+    expect(result.gateCloseAt - result.dieSettleAt,
+      `gate closed ${result.gateCloseAt - result.dieSettleAt}ms after the die's own settle ` +
+      `(dieSettleAt=${result.dieSettleAt}, gateCloseAt=${result.gateCloseAt}); expected the orphaned ` +
+      `roster probe to be force-settled promptly rather than stalling the gate to the watchdog`)
+      .toBeLessThan(1500);
+
+    const after = await gateSnapshot(page);
+    expect(after.watchdogFirings, 'the orphaned roster probe must not trip the watchdog').toBe(before.watchdogFirings);
+  });
 });

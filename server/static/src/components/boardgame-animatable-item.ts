@@ -108,9 +108,30 @@ export class BoardgameAnimatableItem extends LitElement {
   // so the walk could no longer reach the ancestor that registered it).
   // Always call super, and always last, mirroring other overrides in this
   // codebase that release resources before yielding to the base class.
+  //
+  // Orphan-settle safety net (#714 Phase 2 gate finding): a BOARD/stack
+  // component gets beforeOrphaned() (force-settle) from the animator before
+  // removal, but that mechanism is stack-specific -- a roster-hosted (or any
+  // other ambiently-discovered) animatable removed from the DOM mid-animation
+  // has no equivalent caller. Without a settle, its WAAPI animation keeps
+  // running against the document timeline after detach, AND once it does
+  // finish, its `animation-done` CustomEvent (bubbles + composed) dispatches
+  // from a node with no parent -- nothing to bubble to -- so the gate never
+  // hears it and is stuck open until the watchdog force-closes it. Deferred
+  // to a microtask (not checked synchronously here) because a synchronous
+  // reparent -- Lit moving this element to a new parent within the same
+  // synchronous span -- also fires disconnectedCallback; checking
+  // isConnected only after the microtask queue drains distinguishes a
+  // genuine removal from a same-tick reparent, so a reparented element's
+  // in-flight animation is never needlessly snapped.
   override disconnectedCallback(): void {
     this._ambientRegistry?.unregister(this);
     this._ambientRegistry = null;
+    if (this._liveGatedCount > 0) {
+      queueMicrotask(() => {
+        if (!this.isConnected) this.finishAllAnimations();
+      });
+    }
     super.disconnectedCallback();
   }
 

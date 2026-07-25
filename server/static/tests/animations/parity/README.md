@@ -90,8 +90,18 @@ The registry/context providers live on `boardgame-render-game`; the roster
 is its DOM SIBLING. Roster-hosted animatables are therefore gated (via the
 game-view event pipe) but NOT registry-swept: on a cycle handoff a
 mid-flight board animatable is force-finished (snaps) while a roster one
-completes smoothly. Benign — a late roster settle is a kernel no-op — and
-orphan-settle is covered separately (disconnect settle + the game-view
-settled()-promise done channel). Roster items also resolve a null ambient
-animation context (default timing), which is correct: their animations are
-local effects, not version-slot participants.
+completes smoothly. Benign — a late roster settle is a kernel no-op. Roster
+items also resolve a null ambient animation context (default timing), which
+is correct: their animations are local effects, not version-slot
+participants.
+
+Orphan-settle (a roster animatable removed from the DOM mid-animation) IS
+now covered: `BoardgameAnimatableItem.disconnectedCallback` force-settles
+any still-gated item a microtask after disconnect (deferred so a
+same-tick reparent never snaps a live animation), and
+`boardgame-game-view`'s `_rosterWillAnimate` additionally subscribes to the
+item's `settled()` promise as a done channel that does not depend on DOM
+presence — the bubbled `animation-done` event this suite otherwise relies
+on cannot reach render-game from a detached node. See
+`tests/animations/parity/player-info-gate.spec.ts`'s third test and
+`docs/superpowers/specs/evidence/2026-07-25-roster-orphan-settle.md`.

@@ -8,6 +8,7 @@ import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
 import type { BoardgamePlayerRoster } from './boardgame-player-roster.js';
 import type { BoardgameRenderGame, HostedGameRenderer } from './boardgame-render-game.js';
+import type { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
 import type { BoardgameAdminControls } from './boardgame-admin-controls.js';
 import type { BoardgameGameStateManager } from './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
@@ -1487,9 +1488,46 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   // is a safe no-op for an unregistered/unknown element (see
   // src/motion/animation-gate.ts), so forwarding an out-of-cycle settle
   // that was never registered cannot spuriously close anything.
+  //
+  // Orphan-settle done channel (#714 Phase 2 gate finding, evidence:
+  // docs/superpowers/specs/evidence/2026-07-25-roster-orphan-settle.md):
+  // the bubbled `animation-done` this class listens for on
+  // boardgame-player-roster (wired up in the template, see render()) can
+  // ONLY reach us while the animatable stays attached to the DOM -- a
+  // detached node has no parent to bubble to. A roster item removed
+  // mid-animation is still force-settled by BoardgameAnimatableItem's own
+  // disconnectedCallback (see that file), but that settlement has to reach
+  // this gate through a channel that does not depend on DOM presence.
+  // `settled()` is exactly that channel: it resolves off the same
+  // gated-count bookkeeping that drives the bubbled event, via a promise
+  // that keeps its resolver regardless of whether the element is still
+  // connected. Subscribing here (at will-animate time, while the element is
+  // still live) rather than in a connectedCallback/registry hook keeps this
+  // additive to the existing forward above rather than a replacement for
+  // it -- in the normal (attached, never-removed) case both fire:
+  // dispatchEvent's listeners run synchronously inside
+  // BoardgameAnimatableItem's settlement handler, before it resolves the
+  // settled() promise's continuations (a promise resolution is only
+  // observable on a later microtask) -- so the bubbled path always closes
+  // the gate first, and this settled() call arrives one microtask later to
+  // find the kernel's animationDone() already a no-op for that element
+  // (verified against src/motion/animation-gate.ts: a second call either
+  // hits the size===0 early return, once the cycle already closed, or is a
+  // harmless duplicate delete() on an already-absent key otherwise) --
+  // confirmed by this file's non-wedging-guard test and the roster gate
+  // test both staying green with this channel present. Only the orphaned
+  // case (bubble impossible) actually depends on this second path.
   private _rosterWillAnimate(e: CustomEvent) {
     if (!this._renderEle?.isAnimating) return;
     this._renderEle.gateWillAnimate(e);
+    const ele = e.detail?.ele as BoardgameAnimatableItem | undefined;
+    if (ele && typeof ele.settled === 'function') {
+      void ele.settled().then(() => {
+        this._renderEle?.gateAnimationDone(new CustomEvent('animation-done', {
+          detail: { ele },
+        }));
+      });
+    }
   }
 
   private _rosterAnimationDone(e: CustomEvent) {
