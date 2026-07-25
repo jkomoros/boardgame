@@ -175,6 +175,36 @@ export async function waitForAnimationCounterStability(
   }, [stableMs, balance] as [number, string], { timeout: timeoutMs, polling: 100 });
 }
 
+// Waits for the freshly-created game's *initial-load* animation cascade to
+// fully settle before the caller starts interacting with the page.
+//
+// createOfflineGame returns as soon as the renderer is mounted and the test
+// hooks are installed -- but the initial state bundle(s) (blackjack's
+// auto-deal, debuganimations' initial gated player-info/roster animations)
+// arrive and animate asynchronously *after* that, holding the animation gate
+// open (is-animating true, move buttons disabled, stacks not yet stamped)
+// for several seconds. Tests that immediately assert a quiescent baseline
+// (is-animating false), click a move button, or inspect stamped stack
+// components race that cascade and fail nondeterministically. Verified via
+// live probing (2026-07-26 triage): immediately after createOfflineGame,
+// blackjack has gateOpens=0 and zero stamped components (deck stamps 52
+// only once the deal bundle applies), and debuganimations has
+// is-animating=true with "To Hidden" disabled; both are quiescent ~4s later.
+//
+// Step 1 waits for the first gate open so counter stability can't be
+// trivially satisfied *before* the initial bundle even arrives (all-zero
+// counters are stable). Both games' initial loads are known to animate at
+// least one gated cycle. Steps 2-3 reuse the existing stability/quiescence
+// primitives to ride out the whole multi-bundle cascade.
+export async function settleInitialLoad(page: Page, timeoutMs = 45000): Promise<void> {
+  await page.waitForFunction(() => {
+    const h = (window as any).__bgAnimTestHooks;
+    return h !== undefined && h.gateOpens > 0;
+  }, undefined, { timeout: timeoutMs });
+  await waitForAnimationCounterStability(page, { timeoutMs, balance: 'all' });
+  await waitForClientQuiescence(page);
+}
+
 export interface GateSnapshot {
   gateOpens: number;
   gateCloses: number;

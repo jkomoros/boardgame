@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createOfflineGame } from './helpers';
+import { createOfflineGame, settleInitialLoad } from './helpers';
 
 test('post-animation-delay defers animation-done', async ({ page }) => {
   await createOfflineGame(page, 'blackjack');
@@ -36,6 +36,10 @@ test('wait-for-animation=false items do not hold the gate', async ({ page }) => 
 
 test('stack forwards post-animation-delay to stamped components', async ({ page }) => {
   await createOfflineGame(page, 'blackjack');
+  // The deck's 52 components are stamped only once the auto-deal's initial
+  // bundles apply; querying before the initial-load cascade settles finds
+  // every stack empty (see settleInitialLoad).
+  await settleInitialLoad(page);
 
   // All of blackjack's <boardgame-component-stack> elements (deck, hands,
   // discard) live nested inside other components' shadow roots
@@ -81,6 +85,12 @@ test('stack forwards post-animation-delay to stamped components', async ({ page 
 
 test('stagger produces strictly increasing per-index animation delays', async ({ page }) => {
   await createOfflineGame(page, 'debuganimations');
+  // The initial-load cascade must settle before the 3s --animation-length
+  // override below, or the override stretches the *initial* cascade itself
+  // -- keeping "To Hidden" disabled (buttons disable while is-animating,
+  // #721) past the click's actionability timeout. It also guarantees the
+  // stacks have their stamped components before stagger is applied.
+  await settleInitialLoad(page);
 
   function deepQueryAllScript() {
     function deepQueryAll(root: Document | ShadowRoot | Element, selector: string): Element[] {
