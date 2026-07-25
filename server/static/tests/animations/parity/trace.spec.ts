@@ -45,7 +45,7 @@ test.describe('animation parity traces', () => {
       { structural: { requiredKinds: ['boardgame-card'], exactCycles: true } });
   });
 
-  test('memory: reveal two cards', async ({ page }) => {
+  test('memory: reveal one card', async ({ page }) => {
     test.setTimeout(PARITY_TIMEOUT_MS);
     await createOfflineGame(page, 'memory');
     // createOfflineGame only waits for <boardgame-render-game> to mount, not
@@ -56,6 +56,36 @@ test.describe('animation parity traces', () => {
     // (same rationale as the debuganimations scenario).
     const setup = await gateSnapshot(page);
     await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
+    // Layout stability precondition. The reveal's FLIP measures every card;
+    // if the grid is still settling (font swap, late image decode), all 20
+    // survivors pick up sub-pixel deltas and play real host animations
+    // (observed 41 plays) instead of being skipped as no-ops (21 plays) --
+    // a bimodal flake in the exact-count golden. Wait for fonts plus a
+    // stable first-card rect across consecutive frames before clicking.
+    await page.evaluate(async () => {
+      await (document as Document & { fonts: FontFaceSet }).fonts.ready;
+      const cardRect = (): string => {
+        const walk = (root: Document | ShadowRoot): Element | null => {
+          for (const el of Array.from(root.querySelectorAll('*'))) {
+            if (el.tagName === 'BOARDGAME-CARD') return el;
+            const sr = (el as Element & { shadowRoot: ShadowRoot | null }).shadowRoot;
+            if (sr) { const hit = walk(sr); if (hit) return hit; }
+          }
+          return null;
+        };
+        const el = walk(document);
+        return el ? JSON.stringify(el.getBoundingClientRect()) : '';
+      };
+      const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+      const deadline = performance.now() + 10000;
+      let last = cardRect();
+      let stable = 0;
+      while (performance.now() < deadline && stable < 5) {
+        await frame();
+        const cur = cardRect();
+        if (cur === last && cur !== '') stable++; else { stable = 0; last = cur; }
+      }
+    });
     // A SINGLE reveal is the deterministic memory scenario. Two arbitrary
     // reveals branch on game logic the test cannot control: card Values are
     // sanitized out of the client state (even in the admin view -- items
