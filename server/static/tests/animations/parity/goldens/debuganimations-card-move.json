@@ -1,0 +1,1675 @@
+{
+  "events": [
+    {
+      "kind": "gate-open",
+      "detail": ""
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#2f438678f34413d3eb9f6d54a18651a9b29aab75"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#2f438678f34413d3eb9f6d54a18651a9b29aab75"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#f5d5790a8c7dfe7a4db69648c3296d3009f99d9f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#f5d5790a8c7dfe7a4db69648c3296d3009f99d9f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c2cca3b62c4253d7bd8bf938402e58066c983bdd"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c2cca3b62c4253d7bd8bf938402e58066c983bdd"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#af25fd6783d2a8b43bf5d9aa3069141533effdad"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#af25fd6783d2a8b43bf5d9aa3069141533effdad"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#4aabdf6fd658f73a6ead12bda9c8a8605b5507d7"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#4aabdf6fd658f73a6ead12bda9c8a8605b5507d7"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#7b4d2e0024e969c2e9a18a4bf02ee5b526e5772f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#7b4d2e0024e969c2e9a18a4bf02ee5b526e5772f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#68e9e65b6835af94075fb7ff018688004bfffc2e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#68e9e65b6835af94075fb7ff018688004bfffc2e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#e130b09285835480b3d4723493572702ba9ead5b"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#e130b09285835480b3d4723493572702ba9ead5b"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#ee319b830f1ab61b7239e8b183a255fc3d1c4d78"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#ee319b830f1ab61b7239e8b183a255fc3d1c4d78"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#2259c9f4bddd8ca23dac603b10d0f7b73e00fc2b"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#2259c9f4bddd8ca23dac603b10d0f7b73e00fc2b"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#14055ae3b11387eee92f3140f6196f4e4b2db273"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#14055ae3b11387eee92f3140f6196f4e4b2db273"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0316892d590fea5d0a45c92841c78e374f2e01d2"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0316892d590fea5d0a45c92841c78e374f2e01d2"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#81cbfafffee8524db62639edfc6c4e2ed3aebe5c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#81cbfafffee8524db62639edfc6c4e2ed3aebe5c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#50944c8df2a20fc989ac09d0ecfee843df919ae3"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#50944c8df2a20fc989ac09d0ecfee843df919ae3"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c4771feed1abde747df41357e4ddee0b33c0f971"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c4771feed1abde747df41357e4ddee0b33c0f971"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0fe4a850ea891b38fe2be23c373f803312c6b985"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0fe4a850ea891b38fe2be23c373f803312c6b985"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#b89cd77f2a81ae82d04d5b550be5a99586c9d835"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#b89cd77f2a81ae82d04d5b550be5a99586c9d835"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#f8f1909ef39390e16367f35faad83ff691a56283"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#f8f1909ef39390e16367f35faad83ff691a56283"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#7a8c4f099279fbd48a1593ecc3afa0b1058fd07c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#7a8c4f099279fbd48a1593ecc3afa0b1058fd07c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#02642c170e6c5296c42ff108d728abaa7aa4118c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#02642c170e6c5296c42ff108d728abaa7aa4118c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#d43652930f87ccfb18dc27e7e19c56a022b7bc9f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#d43652930f87ccfb18dc27e7e19c56a022b7bc9f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#9c66302471d0c040a3607d25b0677b4473bc86be"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#9c66302471d0c040a3607d25b0677b4473bc86be"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#4031d62bc3b284ecaa758c21246afa1044f546ea"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#4031d62bc3b284ecaa758c21246afa1044f546ea"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c4a9a4277babb1a84ff6545eb60fc03b56f564ed"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c4a9a4277babb1a84ff6545eb60fc03b56f564ed"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#eb16d396bfdf3cd40941bd0fd73a0df342f78f77"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#eb16d396bfdf3cd40941bd0fd73a0df342f78f77"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#ca4b4ee25c7c70fb7b45acc84b4fc998933fa54c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#ca4b4ee25c7c70fb7b45acc84b4fc998933fa54c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#f8c2a346e734b7788827a68d2fb119af1d3c9d86"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#f8c2a346e734b7788827a68d2fb119af1d3c9d86"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#e5b41a5f03cd103320a15abda967a473c5035daa"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#e5b41a5f03cd103320a15abda967a473c5035daa"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#85bd55db51c621db012a074ea8b1e07718e53cd8"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#85bd55db51c621db012a074ea8b1e07718e53cd8"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#e35c91340365b52207417e2967d722d2379d5b85"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#239a6027a79193229b0be5d3ea8e405d8c4c7ed0"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0f75d53a98ebfbeb5c61d2eea226665ef60cf8d0"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0f75d53a98ebfbeb5c61d2eea226665ef60cf8d0"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#b6404ecafb08a664c0eacea3c1be7581fb823df1"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#9ec01947e92f7b26bd9e19a4341c17b3ccdad2a1"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#4fdd5808312e9c95a0989d5e6f4621616cf190cc"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#06c03cd7a76e84fe8ca3b36c8217923f004bfeef"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#0fffad05b643f85e3a7bdd3c7c8fc0525ab062d9"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#293afc5caddfb0a664c0bb8131947b103b3fc9f9"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#103b344a1b049b7d634eb8ada77deb30f6d107ea"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#103b344a1b049b7d634eb8ada77deb30f6d107ea"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#6363d971befd63a2a4389062a663b8e0e670e9dc"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#6363d971befd63a2a4389062a663b8e0e670e9dc"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#d2f029b38c9fa82f656fad2db825eff4d4a39ae0"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#d2f029b38c9fa82f656fad2db825eff4d4a39ae0"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#adb18e5a80c91f0dd9f95612048cc5e0057ed96d"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#bc56c60851ee72d87771fc04e6720968be5a7020"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#ad5c926491ce9b6b1571b63d5794de5d91531628"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c3866362993d46048694ed5671ece76f5fc1b514"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#03135fe6b2316c68bdb1565b555ab353101fb107"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#17d730ed11bb9a3871c2331b9df35ffa988d09b5"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#17d730ed11bb9a3871c2331b9df35ffa988d09b5"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#2d92d6960a38e235de4dc33ff8ef4ba49add673e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#2d92d6960a38e235de4dc33ff8ef4ba49add673e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#fe82b853d0ca3cb80dd821aee2709fd835a586b8"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#fe82b853d0ca3cb80dd821aee2709fd835a586b8"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#7e41de3e2880494e0308965a1156b3db71d6ee31"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#7e41de3e2880494e0308965a1156b3db71d6ee31"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#21e48ba1e4732be1b43340709e0c0b4ea05b2054"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#cdc2ed49cc75236424e32f6d6650e3f072d0b66c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c061fedbbdfd9ab8a2542fa1ef0966741a1a7654"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-card#c6b65f79a46531ec2caddec24340baa9237f6880"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#823711042a52c7b9aef8b4f3089c5ed8ee835187"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#6805a4a47bfea3a581b4b27779126d7f421f506f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#6ca6c6693d7385ea87d138c85af93797bb69f449"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#93d10c02dfc229bd870c1ddfc1d3d8086d2a1e38"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#19537a1ed2203d9f1ff720aacbec6276637f5b93"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#b93392e1c2bbd786b47214d77a903b140d6c60c6"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#57e5d5b3f603aeea45cf275aae57e086261c07b9"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#98b2051faec9bc34243fd956a09dd5c192e51ed7"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#7b829c4d46c1b0b87f90b787ded47906864f03e8"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#93ee3493657273c5958ff3afd54dedf5dd86a48b"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#012d092d808dc1cce7d0ae7f44b550c8439cfce4"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#f6f2719fed5bfb0a4f7bf0803aec31e0693e0eba"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#085a56de4548589b6b5e7c579971c436e6ae03b8"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#278931e33482b0a3269d6166b3b60c4418edc01b"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#ed8bef43ff1afafdd506da69f6d5323c90c5f5f2"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#9158fdcc0cc366b79be02a1d0d26dd2e4212e934"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#559907977b57b325698e8b07c018e4ae894a4c14"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#147feefda916014dd6fed1563afd1bd4fbac6476"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#60832c5bcad1ccec36112b55a75168dc6f9dae27"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#606828c0c790f01e4740a283fbde8b4b96d30e66"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#6349773cfbc1e8315e229caf434056f653f63584"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#837260c03764a8c4f3c5843acda43eb43d53a2c2"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#33a748c4f8b3fd5959b3ea879722a60c9dcbbea3"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#66338d4c499f504c0eed87905f9bb7faa6ff77e6"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#9f9171871b3236bff27207296b775850df664fc3"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#cb575fb47145ead2199fc0501ab40c85ab29301e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#a359c5d7787ea03c808b68239afbcd6dc75ab475"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#fd3d3653a571e12b76962a5772679c556b73d98c"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#bd7e05242c4d61651d6ed0af7000f7b347724285"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#660b5b6a654a2965b8052b283a586e0e55247cb6"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#660b5b6a654a2965b8052b283a586e0e55247cb6"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#f6ae93022739fc30c97a412040b0a03442b59456"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#f6ae93022739fc30c97a412040b0a03442b59456"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#f22d11e967466fcb69ee35caf4cdef4a5ec2920e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#f22d11e967466fcb69ee35caf4cdef4a5ec2920e"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#aa9f7b6b099c11041ea1de229bf7c1ebba96201f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#aa9f7b6b099c11041ea1de229bf7c1ebba96201f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#e94bdd573acf612f037b4df5553ccf26b36e946f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#e94bdd573acf612f037b4df5553ccf26b36e946f"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#4b2b5df5a17f24a8b186c60c5e9f9513fdb9d49a"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#4b2b5df5a17f24a8b186c60c5e9f9513fdb9d49a"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#c4aff46e4c12a381ab110ecb7bacff011e68c117"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#c4aff46e4c12a381ab110ecb7bacff011e68c117"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#1185534db885d613a7dc1f3c4d1f15ff7923f258"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#1185534db885d613a7dc1f3c4d1f15ff7923f258"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#de03d6e5476e47f6c35c84bc9109c38c605aa4fc"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-token#de03d6e5476e47f6c35c84bc9109c38c605aa4fc"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#2f438678f34413d3eb9f6d54a18651a9b29aab75"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#2f438678f34413d3eb9f6d54a18651a9b29aab75"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#f5d5790a8c7dfe7a4db69648c3296d3009f99d9f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#f5d5790a8c7dfe7a4db69648c3296d3009f99d9f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c2cca3b62c4253d7bd8bf938402e58066c983bdd"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c2cca3b62c4253d7bd8bf938402e58066c983bdd"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#af25fd6783d2a8b43bf5d9aa3069141533effdad"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#af25fd6783d2a8b43bf5d9aa3069141533effdad"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#4aabdf6fd658f73a6ead12bda9c8a8605b5507d7"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#4aabdf6fd658f73a6ead12bda9c8a8605b5507d7"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#7b4d2e0024e969c2e9a18a4bf02ee5b526e5772f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#7b4d2e0024e969c2e9a18a4bf02ee5b526e5772f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#68e9e65b6835af94075fb7ff018688004bfffc2e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#68e9e65b6835af94075fb7ff018688004bfffc2e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#e130b09285835480b3d4723493572702ba9ead5b"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#e130b09285835480b3d4723493572702ba9ead5b"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#ee319b830f1ab61b7239e8b183a255fc3d1c4d78"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#ee319b830f1ab61b7239e8b183a255fc3d1c4d78"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#2259c9f4bddd8ca23dac603b10d0f7b73e00fc2b"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#2259c9f4bddd8ca23dac603b10d0f7b73e00fc2b"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#14055ae3b11387eee92f3140f6196f4e4b2db273"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#14055ae3b11387eee92f3140f6196f4e4b2db273"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0316892d590fea5d0a45c92841c78e374f2e01d2"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0316892d590fea5d0a45c92841c78e374f2e01d2"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#81cbfafffee8524db62639edfc6c4e2ed3aebe5c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#81cbfafffee8524db62639edfc6c4e2ed3aebe5c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#50944c8df2a20fc989ac09d0ecfee843df919ae3"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#50944c8df2a20fc989ac09d0ecfee843df919ae3"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c4771feed1abde747df41357e4ddee0b33c0f971"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c4771feed1abde747df41357e4ddee0b33c0f971"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0fe4a850ea891b38fe2be23c373f803312c6b985"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0fe4a850ea891b38fe2be23c373f803312c6b985"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#b89cd77f2a81ae82d04d5b550be5a99586c9d835"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#b89cd77f2a81ae82d04d5b550be5a99586c9d835"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#f8f1909ef39390e16367f35faad83ff691a56283"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#f8f1909ef39390e16367f35faad83ff691a56283"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#7a8c4f099279fbd48a1593ecc3afa0b1058fd07c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#7a8c4f099279fbd48a1593ecc3afa0b1058fd07c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#02642c170e6c5296c42ff108d728abaa7aa4118c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#02642c170e6c5296c42ff108d728abaa7aa4118c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#d43652930f87ccfb18dc27e7e19c56a022b7bc9f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#d43652930f87ccfb18dc27e7e19c56a022b7bc9f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#9c66302471d0c040a3607d25b0677b4473bc86be"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#9c66302471d0c040a3607d25b0677b4473bc86be"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#4031d62bc3b284ecaa758c21246afa1044f546ea"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#4031d62bc3b284ecaa758c21246afa1044f546ea"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c4a9a4277babb1a84ff6545eb60fc03b56f564ed"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c4a9a4277babb1a84ff6545eb60fc03b56f564ed"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#eb16d396bfdf3cd40941bd0fd73a0df342f78f77"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#eb16d396bfdf3cd40941bd0fd73a0df342f78f77"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#ca4b4ee25c7c70fb7b45acc84b4fc998933fa54c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#ca4b4ee25c7c70fb7b45acc84b4fc998933fa54c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#f8c2a346e734b7788827a68d2fb119af1d3c9d86"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#f8c2a346e734b7788827a68d2fb119af1d3c9d86"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#e5b41a5f03cd103320a15abda967a473c5035daa"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#e5b41a5f03cd103320a15abda967a473c5035daa"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#85bd55db51c621db012a074ea8b1e07718e53cd8"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#85bd55db51c621db012a074ea8b1e07718e53cd8"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#e35c91340365b52207417e2967d722d2379d5b85"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#239a6027a79193229b0be5d3ea8e405d8c4c7ed0"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0f75d53a98ebfbeb5c61d2eea226665ef60cf8d0"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0f75d53a98ebfbeb5c61d2eea226665ef60cf8d0"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#b6404ecafb08a664c0eacea3c1be7581fb823df1"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#9ec01947e92f7b26bd9e19a4341c17b3ccdad2a1"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#4fdd5808312e9c95a0989d5e6f4621616cf190cc"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#06c03cd7a76e84fe8ca3b36c8217923f004bfeef"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#0fffad05b643f85e3a7bdd3c7c8fc0525ab062d9"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#293afc5caddfb0a664c0bb8131947b103b3fc9f9"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#103b344a1b049b7d634eb8ada77deb30f6d107ea"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#103b344a1b049b7d634eb8ada77deb30f6d107ea"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#6363d971befd63a2a4389062a663b8e0e670e9dc"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#6363d971befd63a2a4389062a663b8e0e670e9dc"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#d2f029b38c9fa82f656fad2db825eff4d4a39ae0"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#d2f029b38c9fa82f656fad2db825eff4d4a39ae0"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#adb18e5a80c91f0dd9f95612048cc5e0057ed96d"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#bc56c60851ee72d87771fc04e6720968be5a7020"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#ad5c926491ce9b6b1571b63d5794de5d91531628"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c3866362993d46048694ed5671ece76f5fc1b514"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#03135fe6b2316c68bdb1565b555ab353101fb107"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#17d730ed11bb9a3871c2331b9df35ffa988d09b5"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#17d730ed11bb9a3871c2331b9df35ffa988d09b5"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#2d92d6960a38e235de4dc33ff8ef4ba49add673e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#2d92d6960a38e235de4dc33ff8ef4ba49add673e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#fe82b853d0ca3cb80dd821aee2709fd835a586b8"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#fe82b853d0ca3cb80dd821aee2709fd835a586b8"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#7e41de3e2880494e0308965a1156b3db71d6ee31"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#7e41de3e2880494e0308965a1156b3db71d6ee31"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#21e48ba1e4732be1b43340709e0c0b4ea05b2054"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#cdc2ed49cc75236424e32f6d6650e3f072d0b66c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c061fedbbdfd9ab8a2542fa1ef0966741a1a7654"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-card#c6b65f79a46531ec2caddec24340baa9237f6880"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#823711042a52c7b9aef8b4f3089c5ed8ee835187"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#6805a4a47bfea3a581b4b27779126d7f421f506f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#6ca6c6693d7385ea87d138c85af93797bb69f449"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#93d10c02dfc229bd870c1ddfc1d3d8086d2a1e38"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#19537a1ed2203d9f1ff720aacbec6276637f5b93"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#b93392e1c2bbd786b47214d77a903b140d6c60c6"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#57e5d5b3f603aeea45cf275aae57e086261c07b9"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#98b2051faec9bc34243fd956a09dd5c192e51ed7"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#7b829c4d46c1b0b87f90b787ded47906864f03e8"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#93ee3493657273c5958ff3afd54dedf5dd86a48b"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#012d092d808dc1cce7d0ae7f44b550c8439cfce4"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#f6f2719fed5bfb0a4f7bf0803aec31e0693e0eba"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#085a56de4548589b6b5e7c579971c436e6ae03b8"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#278931e33482b0a3269d6166b3b60c4418edc01b"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#ed8bef43ff1afafdd506da69f6d5323c90c5f5f2"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#9158fdcc0cc366b79be02a1d0d26dd2e4212e934"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#559907977b57b325698e8b07c018e4ae894a4c14"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#147feefda916014dd6fed1563afd1bd4fbac6476"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#60832c5bcad1ccec36112b55a75168dc6f9dae27"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#606828c0c790f01e4740a283fbde8b4b96d30e66"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#6349773cfbc1e8315e229caf434056f653f63584"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#837260c03764a8c4f3c5843acda43eb43d53a2c2"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#33a748c4f8b3fd5959b3ea879722a60c9dcbbea3"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#66338d4c499f504c0eed87905f9bb7faa6ff77e6"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#9f9171871b3236bff27207296b775850df664fc3"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#cb575fb47145ead2199fc0501ab40c85ab29301e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#a359c5d7787ea03c808b68239afbcd6dc75ab475"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#fd3d3653a571e12b76962a5772679c556b73d98c"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#bd7e05242c4d61651d6ed0af7000f7b347724285"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#660b5b6a654a2965b8052b283a586e0e55247cb6"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#660b5b6a654a2965b8052b283a586e0e55247cb6"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#f6ae93022739fc30c97a412040b0a03442b59456"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#f6ae93022739fc30c97a412040b0a03442b59456"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#f22d11e967466fcb69ee35caf4cdef4a5ec2920e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#f22d11e967466fcb69ee35caf4cdef4a5ec2920e"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#aa9f7b6b099c11041ea1de229bf7c1ebba96201f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#aa9f7b6b099c11041ea1de229bf7c1ebba96201f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#e94bdd573acf612f037b4df5553ccf26b36e946f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#e94bdd573acf612f037b4df5553ccf26b36e946f"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#4b2b5df5a17f24a8b186c60c5e9f9513fdb9d49a"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#4b2b5df5a17f24a8b186c60c5e9f9513fdb9d49a"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#c4aff46e4c12a381ab110ecb7bacff011e68c117"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#c4aff46e4c12a381ab110ecb7bacff011e68c117"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#1185534db885d613a7dc1f3c4d1f15ff7923f258"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#1185534db885d613a7dc1f3c4d1f15ff7923f258"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#de03d6e5476e47f6c35c84bc9109c38c605aa4fc"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-token#de03d6e5476e47f6c35c84bc9109c38c605aa4fc"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#2f438678f34413d3eb9f6d54a18651a9b29aab75"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#2f438678f34413d3eb9f6d54a18651a9b29aab75"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#f5d5790a8c7dfe7a4db69648c3296d3009f99d9f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#f5d5790a8c7dfe7a4db69648c3296d3009f99d9f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c2cca3b62c4253d7bd8bf938402e58066c983bdd"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c2cca3b62c4253d7bd8bf938402e58066c983bdd"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#af25fd6783d2a8b43bf5d9aa3069141533effdad"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#af25fd6783d2a8b43bf5d9aa3069141533effdad"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#4aabdf6fd658f73a6ead12bda9c8a8605b5507d7"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#4aabdf6fd658f73a6ead12bda9c8a8605b5507d7"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#7b4d2e0024e969c2e9a18a4bf02ee5b526e5772f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#7b4d2e0024e969c2e9a18a4bf02ee5b526e5772f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#68e9e65b6835af94075fb7ff018688004bfffc2e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#68e9e65b6835af94075fb7ff018688004bfffc2e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#e130b09285835480b3d4723493572702ba9ead5b"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#e130b09285835480b3d4723493572702ba9ead5b"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#ee319b830f1ab61b7239e8b183a255fc3d1c4d78"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#ee319b830f1ab61b7239e8b183a255fc3d1c4d78"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#2259c9f4bddd8ca23dac603b10d0f7b73e00fc2b"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#2259c9f4bddd8ca23dac603b10d0f7b73e00fc2b"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#14055ae3b11387eee92f3140f6196f4e4b2db273"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#14055ae3b11387eee92f3140f6196f4e4b2db273"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0316892d590fea5d0a45c92841c78e374f2e01d2"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0316892d590fea5d0a45c92841c78e374f2e01d2"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#81cbfafffee8524db62639edfc6c4e2ed3aebe5c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#81cbfafffee8524db62639edfc6c4e2ed3aebe5c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#50944c8df2a20fc989ac09d0ecfee843df919ae3"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#50944c8df2a20fc989ac09d0ecfee843df919ae3"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c4771feed1abde747df41357e4ddee0b33c0f971"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c4771feed1abde747df41357e4ddee0b33c0f971"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0fe4a850ea891b38fe2be23c373f803312c6b985"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0fe4a850ea891b38fe2be23c373f803312c6b985"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#b89cd77f2a81ae82d04d5b550be5a99586c9d835"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#b89cd77f2a81ae82d04d5b550be5a99586c9d835"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#f8f1909ef39390e16367f35faad83ff691a56283"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#f8f1909ef39390e16367f35faad83ff691a56283"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#7a8c4f099279fbd48a1593ecc3afa0b1058fd07c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#7a8c4f099279fbd48a1593ecc3afa0b1058fd07c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#02642c170e6c5296c42ff108d728abaa7aa4118c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#02642c170e6c5296c42ff108d728abaa7aa4118c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#d43652930f87ccfb18dc27e7e19c56a022b7bc9f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#d43652930f87ccfb18dc27e7e19c56a022b7bc9f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#9c66302471d0c040a3607d25b0677b4473bc86be"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#9c66302471d0c040a3607d25b0677b4473bc86be"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#4031d62bc3b284ecaa758c21246afa1044f546ea"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#4031d62bc3b284ecaa758c21246afa1044f546ea"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c4a9a4277babb1a84ff6545eb60fc03b56f564ed"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c4a9a4277babb1a84ff6545eb60fc03b56f564ed"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#eb16d396bfdf3cd40941bd0fd73a0df342f78f77"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#eb16d396bfdf3cd40941bd0fd73a0df342f78f77"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#ca4b4ee25c7c70fb7b45acc84b4fc998933fa54c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#ca4b4ee25c7c70fb7b45acc84b4fc998933fa54c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#f8c2a346e734b7788827a68d2fb119af1d3c9d86"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#f8c2a346e734b7788827a68d2fb119af1d3c9d86"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#e5b41a5f03cd103320a15abda967a473c5035daa"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#e5b41a5f03cd103320a15abda967a473c5035daa"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#85bd55db51c621db012a074ea8b1e07718e53cd8"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#85bd55db51c621db012a074ea8b1e07718e53cd8"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#e35c91340365b52207417e2967d722d2379d5b85"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#239a6027a79193229b0be5d3ea8e405d8c4c7ed0"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0f75d53a98ebfbeb5c61d2eea226665ef60cf8d0"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0f75d53a98ebfbeb5c61d2eea226665ef60cf8d0"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#b6404ecafb08a664c0eacea3c1be7581fb823df1"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#9ec01947e92f7b26bd9e19a4341c17b3ccdad2a1"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#4fdd5808312e9c95a0989d5e6f4621616cf190cc"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#06c03cd7a76e84fe8ca3b36c8217923f004bfeef"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#0fffad05b643f85e3a7bdd3c7c8fc0525ab062d9"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#293afc5caddfb0a664c0bb8131947b103b3fc9f9"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#103b344a1b049b7d634eb8ada77deb30f6d107ea"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#103b344a1b049b7d634eb8ada77deb30f6d107ea"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#6363d971befd63a2a4389062a663b8e0e670e9dc"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#6363d971befd63a2a4389062a663b8e0e670e9dc"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#d2f029b38c9fa82f656fad2db825eff4d4a39ae0"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#d2f029b38c9fa82f656fad2db825eff4d4a39ae0"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#adb18e5a80c91f0dd9f95612048cc5e0057ed96d"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#bc56c60851ee72d87771fc04e6720968be5a7020"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#ad5c926491ce9b6b1571b63d5794de5d91531628"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c3866362993d46048694ed5671ece76f5fc1b514"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#03135fe6b2316c68bdb1565b555ab353101fb107"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#17d730ed11bb9a3871c2331b9df35ffa988d09b5"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#17d730ed11bb9a3871c2331b9df35ffa988d09b5"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#2d92d6960a38e235de4dc33ff8ef4ba49add673e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#2d92d6960a38e235de4dc33ff8ef4ba49add673e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#fe82b853d0ca3cb80dd821aee2709fd835a586b8"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#fe82b853d0ca3cb80dd821aee2709fd835a586b8"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#7e41de3e2880494e0308965a1156b3db71d6ee31"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#7e41de3e2880494e0308965a1156b3db71d6ee31"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#21e48ba1e4732be1b43340709e0c0b4ea05b2054"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#cdc2ed49cc75236424e32f6d6650e3f072d0b66c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c061fedbbdfd9ab8a2542fa1ef0966741a1a7654"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-card#c6b65f79a46531ec2caddec24340baa9237f6880"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#823711042a52c7b9aef8b4f3089c5ed8ee835187"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#6805a4a47bfea3a581b4b27779126d7f421f506f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#6ca6c6693d7385ea87d138c85af93797bb69f449"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#93d10c02dfc229bd870c1ddfc1d3d8086d2a1e38"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#19537a1ed2203d9f1ff720aacbec6276637f5b93"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#b93392e1c2bbd786b47214d77a903b140d6c60c6"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#57e5d5b3f603aeea45cf275aae57e086261c07b9"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#98b2051faec9bc34243fd956a09dd5c192e51ed7"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#7b829c4d46c1b0b87f90b787ded47906864f03e8"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#93ee3493657273c5958ff3afd54dedf5dd86a48b"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#012d092d808dc1cce7d0ae7f44b550c8439cfce4"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#f6f2719fed5bfb0a4f7bf0803aec31e0693e0eba"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#085a56de4548589b6b5e7c579971c436e6ae03b8"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#278931e33482b0a3269d6166b3b60c4418edc01b"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#ed8bef43ff1afafdd506da69f6d5323c90c5f5f2"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#9158fdcc0cc366b79be02a1d0d26dd2e4212e934"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#559907977b57b325698e8b07c018e4ae894a4c14"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#147feefda916014dd6fed1563afd1bd4fbac6476"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#60832c5bcad1ccec36112b55a75168dc6f9dae27"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#606828c0c790f01e4740a283fbde8b4b96d30e66"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#6349773cfbc1e8315e229caf434056f653f63584"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#837260c03764a8c4f3c5843acda43eb43d53a2c2"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#33a748c4f8b3fd5959b3ea879722a60c9dcbbea3"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#66338d4c499f504c0eed87905f9bb7faa6ff77e6"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#9f9171871b3236bff27207296b775850df664fc3"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#cb575fb47145ead2199fc0501ab40c85ab29301e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#a359c5d7787ea03c808b68239afbcd6dc75ab475"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#fd3d3653a571e12b76962a5772679c556b73d98c"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#bd7e05242c4d61651d6ed0af7000f7b347724285"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#660b5b6a654a2965b8052b283a586e0e55247cb6"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#660b5b6a654a2965b8052b283a586e0e55247cb6"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#f6ae93022739fc30c97a412040b0a03442b59456"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#f6ae93022739fc30c97a412040b0a03442b59456"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#f22d11e967466fcb69ee35caf4cdef4a5ec2920e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#f22d11e967466fcb69ee35caf4cdef4a5ec2920e"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#aa9f7b6b099c11041ea1de229bf7c1ebba96201f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#aa9f7b6b099c11041ea1de229bf7c1ebba96201f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#e94bdd573acf612f037b4df5553ccf26b36e946f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#e94bdd573acf612f037b4df5553ccf26b36e946f"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#4b2b5df5a17f24a8b186c60c5e9f9513fdb9d49a"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#4b2b5df5a17f24a8b186c60c5e9f9513fdb9d49a"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#c4aff46e4c12a381ab110ecb7bacff011e68c117"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#c4aff46e4c12a381ab110ecb7bacff011e68c117"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#1185534db885d613a7dc1f3c4d1f15ff7923f258"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#1185534db885d613a7dc1f3c4d1f15ff7923f258"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#de03d6e5476e47f6c35c84bc9109c38c605aa4fc"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-token#de03d6e5476e47f6c35c84bc9109c38c605aa4fc"
+    },
+    {
+      "kind": "gate-close",
+      "detail": ""
+    }
+  ],
+  "gateDelta": {
+    "gateOpens": 1,
+    "gateCloses": 1,
+    "watchdogFirings": 0,
+    "plays": 138,
+    "settles": 138
+  }
+}

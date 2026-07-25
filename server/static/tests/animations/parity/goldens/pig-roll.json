@@ -1,0 +1,51 @@
+{
+  "events": [
+    {
+      "kind": "gate-open",
+      "detail": ""
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "play",
+      "detail": "boardgame-die"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "active",
+      "detail": "boardgame-die"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-animatable-item#runner"
+    },
+    {
+      "kind": "settle",
+      "detail": "boardgame-die"
+    },
+    {
+      "kind": "gate-close",
+      "detail": ""
+    },
+    {
+      "kind": "gate-open",
+      "detail": ""
+    },
+    {
+      "kind": "gate-close",
+      "detail": ""
+    }
+  ],
+  "gateDelta": {
+    "gateOpens": 2,
+    "gateCloses": 2,
+    "watchdogFirings": 0,
+    "plays": 2,
+    "settles": 2
+  }
+}
