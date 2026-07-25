@@ -193,3 +193,20 @@ only scenario that exercises setter self-play concurrent with a FLIP).
   during animation and re-enable after", "a move proposed while isAnimating is
   true is swallowed". All four time out on a disabled "To Hidden" button
   ("…is not possible right now") in this environment on baseline as well.
+
+## Phase 3 gate correction: the actual no-double-motion invariant
+
+The regression critic verified the same-host two-animation case is REAL (a
+fan-draw survivor carries the setter's layout self-play AND the same cycle's
+FLIP host track), and corrected this pack's reasoning: safety does NOT come
+from easing/duration matching (two identical-easing animations composited
+additively would still double the motion). It comes from WAAPI's
+`composite: 'replace'` semantics — the higher animation in composite order
+wins outright each frame, and since both animations encode the same net
+geometry (old-computed → new-computed vs inverted → identity), the winner
+renders one correct motion. This mirrors the old path, where the CSS
+cascade let the FLIP animation override the transition entirely. The
+invariant is now pinned EXPLICITLY in play() (`composite: 'replace'` passed
+to element.animate with a load-bearing comment), because no parity golden
+can catch a violation: curves are displacement-normalized, so a uniform
+doubling divides out of the comparison.

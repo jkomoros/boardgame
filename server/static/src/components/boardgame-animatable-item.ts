@@ -293,7 +293,17 @@ export class BoardgameAnimatableItem extends LitElement {
       postAnimationDelayMs: this.postAnimationDelay,
     });
     if (resolution.kind === 'skip') return null;
-    const anim = element.animate(keyframes, resolution.timing);
+    // composite 'replace' is pinned EXPLICITLY because it is load-bearing
+    // (Phase 3 gate regression critic): when two transform animations run
+    // on one host (a layoutTransform self-play plus the same cycle's FLIP
+    // host track), replace semantics mean the higher animation wins
+    // outright each frame — and since both encode the same net geometry,
+    // the winner renders one correct motion. Under 'add' the identical
+    // setup would visibly double the motion, and no parity golden can
+    // catch that (curves are displacement-normalized, so a uniform 2x
+    // divides out). Do not remove or parameterize this without a test
+    // that pins the same-host composite case.
+    const anim = element.animate(keyframes, { ...resolution.timing, composite: 'replace' });
     this._liveAnimations.add(anim);
     if (gated) {
       this._liveGatedCount++;
