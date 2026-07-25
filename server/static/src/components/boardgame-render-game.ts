@@ -688,6 +688,28 @@ class BoardgameRenderGame extends LitElement {
     this._gate.animationDone(e.detail.ele);
   }
 
+  // gateWillAnimate/gateAnimationDone (Task 10, #714's second Phase 2 gap):
+  // thin public delegates into this._gate, for boardgame-game-view to pipe
+  // will-animate/animation-done bubbling out of boardgame-player-roster --
+  // a DOM SIBLING of this element, so its own composed bubble path never
+  // reaches the will-animate/animation-done listeners this element installs
+  // on itself in firstUpdated(). game-view guards the will-animate
+  // direction on this.isAnimating (only forward while a board cycle is
+  // already open, so a roster animation outside any cycle -- e.g.
+  // hover-triggered -- can never open/wedge the gate) and always forwards
+  // animation-done (a participant admitted at open must be able to settle).
+  // Kept identical in shape to _componentWillAnimate/_componentAnimationDone
+  // above rather than merged with them: those remain this element's OWN
+  // will-animate/animation-done listeners for its own subtree, unaffected
+  // by roster piping.
+  gateWillAnimate(e: CustomEvent): void {
+    this._componentWillAnimate(e);
+  }
+
+  gateAnimationDone(e: CustomEvent): void {
+    this._componentAnimationDone(e);
+  }
+
   private _defaultAnimationLengthChanged(newValue: number) {
     if (newValue === 0) {
       this.style.removeProperty('--animation-length');
