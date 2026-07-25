@@ -1,13 +1,18 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
 import './boardgame-fading-text.js';
 
 export type StatusTextValue = string | number | null | undefined;
 export type StatusTextAutoMessage = 'diff' | 'diff-up' | 'fixed' | 'new';
 const autoMessages = new Set<StatusTextAutoMessage>(['diff', 'diff-up', 'fixed', 'new']);
 
+// Extends the shared animatable-item primitive (#714): status-text plays no
+// animation of its own yet, but classing it here makes it a first-class
+// gate/discovery participant, ready for value-change motion to land on the
+// same play() kernel every other game-semantic element uses.
 @customElement('boardgame-status-text')
-export class BoardgameStatusText extends LitElement {
+export class BoardgameStatusText extends BoardgameAnimatableItem {
   static override styles = css`
     :host {
       position: relative;
