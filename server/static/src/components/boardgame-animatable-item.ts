@@ -171,10 +171,21 @@ export class BoardgameAnimatableItem extends LitElement {
     // Prefer the render-game provider over a component's cached value. This
     // crosses shadow roots and slots, so standalone dice and game-authored
     // animatable items get the same context as stack-managed components.
+    //
+    // A POPULATED context ends the walk; a null one does not. Every
+    // BoardgameAnimatableItem inherits an `animationContext` property
+    // defaulting to null, so once wrapper elements (status-text and
+    // friends, #714) join the class hierarchy, a presence check would stop
+    // the walk at the nearest animatable ancestor and silently sever
+    // nested items (status-text's own fading-text) from the render-game
+    // provider above it. Climbing past nulls preserves the legit
+    // "provider currently between cycles" case too: with no populated
+    // context anywhere, the result is null either way.
     let node: Node | null = this.assignedSlot ?? this.parentNode;
     while (node) {
       if ('animationContext' in node) {
-        return (node as Node & { animationContext: VersionAnimationContext | null }).animationContext;
+        const ctx = (node as Node & { animationContext: VersionAnimationContext | null }).animationContext;
+        if (ctx) return ctx;
       }
       if (node instanceof ShadowRoot) {
         node = node.host;

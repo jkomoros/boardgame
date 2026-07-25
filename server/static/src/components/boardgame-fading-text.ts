@@ -81,6 +81,12 @@ export class BoardgameFadingText extends BoardgameAnimatableItem {
     const generation = ++this._fadeGeneration; // with the old generation-counter reset)
     this._visible = true;
     void this.updateComplete.then(() => {
+      // A superseded continuation must not START a play either (review:
+      // two overlapping animateFade() calls both have pending
+      // continuations; without this, the stale one starts a duplicate
+      // animation that inflates the play count and holds the gate until
+      // both settle). The old generation counter gated the start too.
+      if (generation !== this._fadeGeneration) return;
       const message = this.renderRoot.querySelector('#message') as HTMLElement | null;
       if (!message || !this.isConnected) {
         if (generation === this._fadeGeneration) this._visible = false;

@@ -143,3 +143,68 @@ test('retrigger mid-flight keeps the container visible through the second fade',
   expect(result.playsDelta).toBe(2);
   expect(result.settlesDelta).toBe(2);
 });
+
+// Code-review finding (round 2): a superseded animateFade() continuation
+// must not START a play either. Two synchronous animateFade() calls leave
+// two pending updateComplete continuations; without the start guard the
+// stale one launches a duplicate animation -- inflating the play count and
+// holding the gate until BOTH settle.
+test('overlapping animateFade calls start exactly one animation', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-fading-text.ts');
+    const el = document.createElement('boardgame-fading-text') as any;
+    el.style.cssText = 'position:fixed;top:200px;left:200px;width:120px;height:40px;';
+    el.autoMessage = 'fixed';
+    el.message = 'Overlap!';
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const hooks = (window as any).__bgAnimTestHooks;
+    const playsBefore = hooks.plays;
+    // Two overlapping starts in the same tick: both continuations pend.
+    el.animateFade();
+    el.animateFade();
+    await new Promise<void>((resolve) => {
+      el.addEventListener('animation-done', () => resolve(), { once: true });
+      setTimeout(resolve, 5000);
+    });
+    return { playsDelta: hooks.plays - playsBefore };
+  });
+  expect(result.playsDelta).toBe(1);
+});
+
+// Code-review finding (round 2, Critical): status-text now extends
+// BoardgameAnimatableItem, so it carries an inherited `animationContext`
+// property defaulting to null. The ambient-context walk must climb PAST a
+// null context (an animatable wrapper is not a provider merely by
+// existing) so the fading-text nested inside status-text still reaches the
+// real provider above -- the render-game analog here is a plain container
+// whose `animationContext` is populated. Observable: the hooks 'active'
+// record carries the provider's version only when the walk resolved it.
+test('fading-text nested in status-text resolves the ambient version context', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-status-text.ts');
+    const provider = document.createElement('div') as any;
+    provider.animationContext = {
+      version: 7,
+      startAtMs: Date.now(),
+      slotDurationMs: 1000,
+      maxAnimationDurationMs: 800,
+    };
+    document.body.appendChild(provider);
+    const status = document.createElement('boardgame-status-text') as any;
+    provider.appendChild(status);
+    status.value = 1;
+    await status.updateComplete;
+    const hooks = (window as any).__bgAnimTestHooks;
+    const logStart = hooks.log.length;
+    status.value = 2;
+    await status.updateComplete;
+    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    const entries = hooks.log.slice(logStart)
+      .filter((e: any) => e.ev === 'active' && String(e.detail).startsWith('boardgame-fading-text'));
+    return { versions: entries.map((e: any) => e.version ?? null) };
+  });
+  expect(result.versions).toContain(7);
+});
