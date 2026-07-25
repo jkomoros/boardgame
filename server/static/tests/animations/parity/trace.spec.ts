@@ -47,7 +47,17 @@ test.describe('animation parity traces', () => {
 
   test('memory: reveal one card', async ({ page }) => {
     test.setTimeout(PARITY_TIMEOUT_MS);
-    await createOfflineGame(page, 'memory');
+    // adminMode:false is DETERMINISM-LOAD-BEARING. With admin mode on, the
+    // admin-state install races the initial player-view fetch inside
+    // createOfflineGame (root-caused in the bimodality investigation:
+    // whichever full-state response lands first wins and no refetch happens
+    // when only admin flips), so the grid rests face-up (reveal = no flip
+    // plays) or face-down (20 real flips) per run — a 21-vs-41 bimodal
+    // golden. The seated creator (auto-seat + ActivateInactivePlayer fixes)
+    // proposes reveals legally as player 0, so admin is unnecessary; the
+    // sanitized player view deterministically pins the face-down state and
+    // the reveal's REAL flip animation.
+    await createOfflineGame(page, 'memory', { adminMode: false });
     // createOfflineGame only waits for <boardgame-render-game> to mount, not
     // for memory's own card grid to finish its async render (same caveat
     // documented in waapi-gate.spec.ts's memory test).

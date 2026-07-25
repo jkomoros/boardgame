@@ -32,7 +32,9 @@ test.describe('animation motion-curve parity', () => {
 
   test('memory: reveal flip curves', async ({ page }) => {
     test.setTimeout(PARITY_TIMEOUT_MS);
-    await createOfflineGame(page, 'memory');
+    // adminMode:false pins the sanitized face-down grid deterministically
+    // (see trace.spec.ts memory scenario for the full race explanation).
+    await createOfflineGame(page, 'memory', { adminMode: false });
     const setup = await gateSnapshot(page);
     await expectCleanGate(page, setup, 60000, { allowAlreadySettled: true });
     const curves = await sampleMotionCurves(page, async () => {
