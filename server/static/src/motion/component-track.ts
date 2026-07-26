@@ -2,30 +2,76 @@ export type ComponentMotionTarget = 'host' | 'visual';
 export type ComponentMotionProperty = 'transform' | 'opacity';
 export type ComponentMotionChannel = `${ComponentMotionTarget}:${ComponentMotionProperty}`;
 
+/** One compiled point on a track's timeline. `offset` is WAAPI progress in [0,1]. */
+export interface ComponentMotionSample {
+  readonly offset: number;
+  readonly value: string;
+}
+
 /**
  * One immutable, single-owner visual channel transition.
  *
  * `host` is reserved for structural position/opacity. `visual` is the
  * component-owned inner presentation surface (for example a card face flip).
+ *
+ * Every track compiles to `samples`: at least two, uniformly spaced, spanning
+ * [0,1]. An `eased` timeline is a plain two-endpoint transition whose shape the
+ * animation kernel is free to ease. A `sampled` timeline already encodes its own
+ * timing (a simulated trajectory, say) and must be replayed linearly.
  */
 export interface ComponentMotionTrack {
   readonly target: ComponentMotionTarget;
   readonly property: ComponentMotionProperty;
-  readonly from: string;
-  readonly to: string;
+  readonly samples: readonly ComponentMotionSample[];
+  readonly timeline: 'eased' | 'sampled';
+  /** Value the channel should hold once the animation is finished. */
+  readonly resting?: string;
 }
 
-export interface ComponentMotionTrackInput {
+/** The classic two-endpoint form: the kernel interpolates and eases between them. */
+export interface ComponentMotionEndpointInput {
   readonly target: ComponentMotionTarget;
   readonly property: ComponentMotionProperty;
   readonly from: string;
   readonly to: string;
 }
 
-/** Component subclasses may describe only their component-owned visual surface. */
-export type VisualMotionTrackInput = ComponentMotionTrackInput & Readonly<{
-  target: 'visual';
+/**
+ * A trajectory described as a pure function of progress. Sampled at compile time
+ * into `resolution` keyframes, so the curve's own timing survives playback.
+ */
+export type MotionCurveInput = Readonly<{
+  curve: (progress: number) => string;
+  /** Number of samples; clamped to [2, 256]. Defaults to 64. */
+  resolution?: number;
+  /** Value to hold after the animation. Defaults to `curve(1)`. */
+  resting?: string;
 }>;
+
+/** Curves are component-owned presentation only; the host channel stays structural. */
+export type ComponentMotionCurveInput = Readonly<{
+  target: 'visual';
+  property: ComponentMotionProperty;
+}> & MotionCurveInput;
+
+/**
+ * An already-compiled track is itself valid input: components plan their own
+ * track list and the animator re-runs the whole plan through the compiler for
+ * ownership and immutability checks before playing it.
+ */
+export type ComponentMotionTrackInput =
+  | ComponentMotionEndpointInput
+  | ComponentMotionCurveInput
+  | ComponentMotionTrack;
+
+/** Component subclasses may describe only their component-owned visual surface. */
+export type VisualMotionTrackInput =
+  | (ComponentMotionEndpointInput & Readonly<{ target: 'visual' }>)
+  | ComponentMotionCurveInput;
+
+const MIN_CURVE_RESOLUTION = 2;
+const MAX_CURVE_RESOLUTION = 256;
+const DEFAULT_CURVE_RESOLUTION = 64;
 
 export function componentMotionChannel(
   track: Pick<ComponentMotionTrack, 'target' | 'property'>,
@@ -40,9 +86,6 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
   if (input.property !== 'transform' && input.property !== 'opacity') {
     throw new Error('component motion property must be transform or opacity');
   }
-  if (typeof input.from !== 'string' || typeof input.to !== 'string') {
-    throw new Error('component motion endpoints must be strings');
-  }
   const normalize = (value: string): string => {
     if (input.property === 'transform') return value.trim() || 'none';
     const parsed = Number(value);
@@ -51,12 +94,94 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
     }
     return String(Math.min(1, Math.max(0, parsed)));
   };
+
+  if ('samples' in input) {
+    if (!Array.isArray(input.samples) || input.samples.length < 2) {
+      throw new Error('component motion tracks need at least two samples');
+    }
+    if (input.timeline !== 'eased' && input.timeline !== 'sampled') {
+      throw new Error('component motion timeline must be eased or sampled');
+    }
+    const samples = input.samples.map(sample => {
+      if (!Number.isFinite(sample?.offset) || sample.offset < 0 || sample.offset > 1) {
+        throw new Error('component motion sample offsets must lie in [0,1]');
+      }
+      if (typeof sample.value !== 'string') {
+        throw new Error('component motion sample values must be strings');
+      }
+      return Object.freeze({ offset: sample.offset, value: normalize(sample.value) });
+    });
+    return Object.freeze({
+      target: input.target,
+      property: input.property,
+      samples: Object.freeze(samples),
+      timeline: input.timeline,
+      ...(input.resting === undefined ? {} : { resting: normalize(input.resting) }),
+    });
+  }
+
+  if ('curve' in input) {
+    if (input.target !== 'visual') {
+      throw new Error('component motion curves are not allowed on the host channel');
+    }
+    if (typeof input.curve !== 'function') {
+      throw new Error('component motion curve must be a function of progress');
+    }
+    const requested = input.resolution ?? DEFAULT_CURVE_RESOLUTION;
+    if (typeof requested !== 'number' || Number.isNaN(requested)) {
+      throw new Error('component motion curve resolution must be a number');
+    }
+    const count = Math.min(
+      MAX_CURVE_RESOLUTION,
+      Math.max(MIN_CURVE_RESOLUTION, Math.round(requested)),
+    );
+    const samples: ComponentMotionSample[] = [];
+    for (let index = 0; index < count; index++) {
+      const progress = index / (count - 1);
+      const value = input.curve(progress);
+      if (typeof value !== 'string') {
+        throw new Error('component motion curve must return strings');
+      }
+      samples.push(Object.freeze({ offset: progress, value: normalize(value) }));
+    }
+    // A curve that never moves is a producer bug, not a no-op worth tolerating:
+    // it would claim sole ownership of a channel and then hold it still.
+    if (samples.every(sample => sample.value === samples[0].value)) {
+      throw new Error('component motion curve is constant and animates nothing');
+    }
+    return Object.freeze({
+      target: input.target,
+      property: input.property,
+      samples: Object.freeze(samples),
+      timeline: 'sampled' as const,
+      resting: input.resting === undefined
+        ? samples[samples.length - 1].value
+        : normalize(input.resting),
+    });
+  }
+
+  if (typeof input.from !== 'string' || typeof input.to !== 'string') {
+    throw new Error('component motion endpoints must be strings');
+  }
   return Object.freeze({
     target: input.target,
     property: input.property,
-    from: normalize(input.from),
-    to: normalize(input.to),
+    samples: Object.freeze([
+      Object.freeze({ offset: 0, value: normalize(input.from) }),
+      Object.freeze({ offset: 1, value: normalize(input.to) }),
+    ]),
+    timeline: 'eased' as const,
   });
+}
+
+/**
+ * Sampled tracks carry their own timing, so the kernel's default effect-level
+ * easing would time-warp them. `undefined` leaves the kernel's choice alone.
+ */
+export function componentMotionTrackEasing(
+  track: ComponentMotionTrack,
+): 'linear' | undefined {
+  return track.timeline === 'sampled' ? 'linear' : undefined;
 }
 
 /** Copy, deduplicate by owned channel, and discard visual no-ops. */
@@ -67,7 +192,11 @@ export function componentMotionTracks(
   const result: ComponentMotionTrack[] = [];
   for (const input of inputs) {
     const track = exactTrack(input);
-    if (track.from === track.to) continue;
+    // Endpoint no-ops vacate the channel silently; the FLIP compiler relies on
+    // this to drop unchanged structural transforms. Curves never reach here
+    // constant — exactTrack already threw.
+    if (track.timeline === 'eased'
+      && track.samples[0].value === track.samples[1].value) continue;
     const channel = componentMotionChannel(track);
     if (channels.has(channel)) {
       throw new Error(`component motion channel ${channel} has multiple owners`);
@@ -82,9 +211,9 @@ export function componentMotionTracks(
 export function componentMotionKeyframes(
   track: ComponentMotionTrack,
 ): readonly Readonly<Keyframe>[] {
-  const frames = track.property === 'transform'
-    ? [{ transform: track.from }, { transform: track.to }]
-    : [{ opacity: track.from }, { opacity: track.to }];
+  const frames = track.samples.map(sample => (track.property === 'transform'
+    ? { offset: sample.offset, transform: sample.value }
+    : { offset: sample.offset, opacity: sample.value }));
   return Object.freeze(frames.map(frame => Object.freeze(frame)));
 }
 

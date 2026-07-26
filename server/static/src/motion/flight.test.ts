@@ -22,8 +22,11 @@ describe('compileViewportFlight', () => {
     assert.deepEqual(result.tracks, [{
       target: 'host',
       property: 'transform',
-      from: 'translate(-100px, -170px) matrix(1, 0, 0, 1, 4, 5)',
-      to: 'matrix(1, 0, 0, 1, 4, 5)',
+      timeline: 'eased',
+      samples: [
+        { offset: 0, value: 'translate(-100px, -170px) matrix(1, 0, 0, 1, 4, 5)' },
+        { offset: 1, value: 'matrix(1, 0, 0, 1, 4, 5)' },
+      ],
     }]);
     assert.ok(Object.isFrozen(result));
     assert.ok(Object.isFrozen(result.tracks));
