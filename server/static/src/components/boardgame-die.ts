@@ -165,8 +165,13 @@ const GLYPH_HEIGHT = 0.66;
  */
 const GLYPH_WIDTH_BUDGET = 1.6;
 
-/** Corner marks are drawn a little taller in their (smaller) square. */
-const CORNER_GLYPH_HEIGHT = 0.78;
+/**
+ * Corner marks are drawn a little taller in their (smaller) square, and can
+ * afford to be: that square is itself already shrunk by `CONTENT_MARGIN` and
+ * tucked against the facet's outline, so the air a face needs is there whether
+ * or not the glyph fills its own box.
+ */
+const CORNER_GLYPH_HEIGHT = 0.82;
 
 /**
  * The content square is this fraction of the largest square that fits inside
@@ -186,11 +191,33 @@ const CONTENT_MARGIN = 0.72;
  * corner needs more inset than a barrel face's right angle).
  */
 const CORNER_INSET_MIN = 0.18;
-const CORNER_INSET_MAX = 0.45;
+const CORNER_INSET_MAX = 0.65;
 const CORNER_INSET_STEPS = 12;
 
-/** A corner mark never grows past this fraction of the centre content square. */
-const CORNER_MAX_SIZE = 0.4;
+/**
+ * A corner mark never grows past this fraction of the centre content square.
+ *
+ * The cap and the inset range above are a LEGIBILITY budget, not a taste
+ * knob: a corner mark is the only thing a corner-printed die (a d4, an
+ * odd-sided barrel) shows the player, so it has to survive at the size a real
+ * board draws a die at. Measured on a 100px die -- pig's -- a d7's side facet
+ * is an 18-by-50px strip carrying four corner marks and a centre numeral, and
+ * a barrel's short dimension is what bounds every square inscribed in it: at
+ * the previous 0.4/0.45/0.78 the mark came out a 4.1px font, which is dust.
+ * These values put it at 6.5px and a d4's at 12.2px with no pair of marks
+ * overlapping; the next step up (a 0.65 cap) runs a d7's marks into each other
+ * and a d4's into its centre numeral, measured. `die-shape.spec.ts` pins both
+ * ends of that: nothing smaller than 6px, and nothing outside its own facet.
+ */
+const CORNER_MAX_SIZE = 0.6;
+
+/** What one face draws, and what it announces: see `_resolveFace`. */
+interface ResolvedFace {
+  readonly kind: 'symbol' | 'pips' | 'numeral';
+  readonly text: string;
+  readonly cells: readonly PipCell[];
+  readonly label: string;
+}
 
 /** The lattice cells for a pip count, computed rather than enumerated. */
 function pipCells(count: number): readonly PipCell[] {
@@ -497,14 +524,55 @@ function companionTilt(companion: Vec3): Turn | null {
 }
 
 /**
+ * The roll, about the camera axis, that turns `posed` -- a facet's local +y
+ * after the pose has been applied -- back to screen-down, or `null` when it is
+ * there already or has no screen direction to speak of.
+ *
+ * About the CAMERA axis rather than about the facet's own normal because a
+ * roll about `+Z` leaves every direction's z component alone: it cannot move a
+ * facet towards or away from the viewer, so it cannot undo `companionTilt`'s
+ * work or change which facet is nearest the camera. It is a rotation of the
+ * PICTURE, and `atan2` in the screen plane is therefore exact rather than an
+ * approximation that a tilted facet would spoil.
+ */
+function uprightRoll(posed: Vec3): Turn | null {
+  // The facet's local +y projected on screen. Vanishes only if the facet's
+  // plane contains the view direction, i.e. the facet is edge-on -- which the
+  // PRESENTED facet, pointed within ~54 degrees of the camera, never is.
+  if (Math.hypot(posed[0], posed[1]) < 1e-9) return null;
+  const degrees = (Math.atan2(posed[0], posed[1]) * 180) / Math.PI;
+  if (Math.abs(degrees) < 1e-9) return null;
+  return { axis: CAMERA_AXIS, degrees };
+}
+
+/**
  * The resting pose: the rotation that points the presented face's normal at
  * `RESTING_VIEW`, then whatever extra tilt it takes for at least one other
  * facet to be visible (`companionTilt`), so the die reads as a solid whatever
- * its face count. CSS applies a transform list left to right, so the extra
- * tilt is written FIRST to be applied after the base pose.
+ * its face count, and finally the roll that leaves the presented face's
+ * content the right way up. CSS applies a transform list left to right, so
+ * each of those is written BEFORE the one it is applied after.
+ *
+ * The roll is why the pose is not just `minimalTurn`. `facetBasis` makes each
+ * facet's local +y screen-down IN THE BODY FRAME; the turn that swings the
+ * presented facet round to face the viewer then carries that +y wherever the
+ * shortest path happens to leave it, and the shortest path knows nothing about
+ * which way up a numeral is. Measured before this correction: a d4 presenting
+ * face 1 was 122 degrees out and a d10 presenting face 2 was 116 -- an
+ * upside-down number -- while a d20 was within 16.
+ *
+ * Only the PRESENTED facet can be corrected, and only the presented facet
+ * should be: one roll is one degree of freedom, the other facets keep the
+ * orientation their own geometry gives them, and that is right -- they are
+ * seen at an angle anyway. It is also why this belongs here and not in
+ * `facetBasis`: it is a property of the POSE, and it is the resting pose alone
+ * that has to read like the flat 2D die this component replaces. Once a
+ * physics roll lands the die, the content roll it stops at is whatever the
+ * simulation says, exactly as a real die's is.
  */
 function presentationTransform(geometry: DieGeometry, presented: number): string {
-  const base = minimalTurn(normalize(toScreen(geometry.faces[presented].normal)), RESTING_VIEW);
+  const presentedNormal = normalize(toScreen(geometry.faces[presented].normal));
+  const base = minimalTurn(presentedNormal, RESTING_VIEW);
   const surface = [...geometry.faces, ...geometry.capFaces];
   let companion: Vec3 | null = null;
   for (let index = 0; index < surface.length; index++) {
@@ -513,7 +581,11 @@ function presentationTransform(geometry: DieGeometry, presented: number): string
     if (companion === null || direction[2] > companion[2]) companion = direction;
   }
   const tilt = companion === null ? null : companionTilt(companion);
-  const turns = [tilt, base].filter((turn): turn is Turn => turn !== null);
+  // Read the presented facet's local +y from the SAME routine that orients its
+  // content, so the correction stays tied to what is actually drawn rather
+  // than to a second copy of the rule.
+  const roll = uprightRoll(applyTurn(applyTurn(facetBasis(presentedNormal).v, base), tilt));
+  const turns = [roll, tilt, base].filter((turn): turn is Turn => turn !== null);
   return turns.length ? turns.map(rotate3d).join(' ') : 'none';
 }
 
@@ -1089,13 +1161,17 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * the die ANNOUNCES for that face, and it always describes what is actually
    * drawn — which is the assertion that catches drawing one face's value while
    * announcing another's.
+   *
+   * `label` is published per facet as `data-face-label`, the deliberate
+   * parallel to the pre-existing `data-face-value`: the pair says "this facet
+   * carries value V and would be announced as L", and only the pair can be
+   * checked against what the facet actually paints. `aria-label` cannot stand
+   * in for it — it names the PRESENTED face only, so a die that announced the
+   * right thing while labelling the other five faces wrongly would look
+   * identical through the accessibility tree. It costs nothing per render:
+   * both renderers resolve a face once and pass the result to `_faceContent`.
    */
-  private _resolveFace(value: number, usePips: boolean): {
-    kind: 'symbol' | 'pips' | 'numeral';
-    text: string;
-    cells: readonly PipCell[];
-    label: string;
-  } {
+  private _resolveFace(value: number, usePips: boolean): ResolvedFace {
     const name = this._nameForValue(value);
     const glyph = this._glyphForName(name);
     if (glyph !== null) {
@@ -1110,9 +1186,13 @@ class BoardgameDie extends BoardgameAnimatableItem {
     return { kind: 'numeral', text: String(value), cells: [], label };
   }
 
-  /** The content square of one face: its dots, or its glyph/numeral. */
-  private _faceContent(value: number, usePips: boolean) {
-    const content = this._resolveFace(value, usePips);
+  /**
+   * The content square of one face: its dots, or its glyph/numeral.
+   *
+   * Takes the ALREADY-resolved face rather than a value, so that the caller
+   * that also needs the label (every caller) resolves it once.
+   */
+  private _faceContent(content: ResolvedFace) {
     if (content.kind === 'pips') {
       return html`<div class="content">
         ${content.cells.map(([col, row]) => html`<div
@@ -1155,10 +1235,13 @@ class BoardgameDie extends BoardgameAnimatableItem {
     const usePips = this._usesPips(null);
     return html`
       <div id="inner" class="reel">
-        ${repeat(this.faces, (face) => face, (face) => html`
-          <div class="face" data-face-value="${face}" data-face-label="${this._resolveFace(face, usePips).label}"
-            >${this._faceContent(face, usePips)}</div>
-        `)}
+        ${repeat(this.faces, (face) => face, (face) => {
+          const content = this._resolveFace(face, usePips);
+          return html`
+          <div class="face" data-face-value="${face}" data-face-label="${content.label}"
+            >${this._faceContent(content)}</div>
+        `;
+        })}
       </div>
     `;
   }
@@ -1171,15 +1254,17 @@ class BoardgameDie extends BoardgameAnimatableItem {
       <div id="stage">
         <div id="inner" class="solid">
           <div id="orient" style="transform:${orient}">
-            ${repeat(solid.facets, (facet) => facet.key, (facet) => facet.faceIndex < 0
-              ? html`<div class="facet cap" style="${facet.style}"></div>`
-              : html`<div
+            ${repeat(solid.facets, (facet) => facet.key, (facet) => {
+              if (facet.faceIndex < 0) return html`<div class="facet cap" style="${facet.style}"></div>`;
+              const content = this._resolveFace(this.faces[facet.faceIndex], usePips);
+              return html`<div
                     class="facet"
                     style="${facet.style}"
                     data-face-index="${facet.faceIndex}"
                     data-face-value="${this.faces[facet.faceIndex]}"
-                    data-face-label="${this._resolveFace(this.faces[facet.faceIndex], usePips).label}"
-                  >${this._faceContent(this.faces[facet.faceIndex], usePips)}${this._cornerContent(facet)}</div>`)}
+                    data-face-label="${content.label}"
+                  >${this._faceContent(content)}${this._cornerContent(facet)}</div>`;
+            })}
           </div>
         </div>
       </div>

@@ -268,6 +268,41 @@ async function visibleFacets(
   }, options);
 }
 
+// How the PRESENTED facet ends up on screen, once the pose has been applied.
+//
+// `facetBoxes` above reads a facet's own transform, which is in the solid's
+// body frame; what a player sees is that composed with everything between the
+// facet and #stage (#orient's resting pose, and #inner, which the animation
+// kernel owns). So this walks the chain and multiplies it out.
+//
+// `rollDegrees` is the angle the facet's local +y -- the direction its content
+// reads DOWNWARDS in, since CSS y points down -- makes with screen-down after
+// that composition. Zero means the numeral on the presented face is upright;
+// 180 means it is upside down.
+async function presentedFacetPose(page: import('@playwright/test').Page) {
+  return await page.evaluate(() => {
+    const die = document.getElementById('fixture-die') as any;
+    const root = die.shadowRoot as ShadowRoot;
+    const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
+    const element = facets[die.selectedFace] as HTMLElement;
+    const chain: HTMLElement[] = [];
+    for (let node: HTMLElement | null = element; node && node.id !== 'stage'; node = node.parentElement) {
+      chain.unshift(node);
+    }
+    let matrix = new DOMMatrix();
+    for (const node of chain) matrix = matrix.multiply(new DOMMatrix(getComputedStyle(node).transform));
+    const v = [matrix.m21, matrix.m22, matrix.m23];
+    const w = [matrix.m31, matrix.m32, matrix.m33];
+    return {
+      chain: chain.map((node) => node.id || node.className),
+      // atan2(x, y): measured from screen-down (0, +1), positive clockwise.
+      rollDegrees: (Math.atan2(v[0], v[1]) * 180) / Math.PI,
+      projectedLength: Math.hypot(v[0], v[1]),
+      towardsCamera: w[2],
+    };
+  });
+}
+
 test.describe('boardgame-die solid', () => {
   for (const faceCount of [6, 20, 7]) {
     test(`d${faceCount} renders one element per surface polygon, each cut to its outline`, async ({ page }) => {
@@ -371,6 +406,44 @@ test.describe('boardgame-die solid', () => {
         // Chromium's hit testing of a preserve-3d subtree is dependable --
         // on a d12 or d20 it misses whole facets in some orientations.
         if (faceCount === 4) expect(visible.presentedShare).toBeGreaterThan(0.5);
+      }
+    });
+  }
+
+  // The pose has to leave the presented face's NUMBER the right way up, and
+  // pointing its normal at the camera by the shortest path does not: the
+  // minimal turn carries the facet's own +y wherever it happens to land. Before
+  // the presentation roll, measured here, a d4 presenting face 1 was 122
+  // degrees out and a d10 presenting face 2 was 116 -- upside-down numbers on
+  // the one face the player is meant to read -- while a d20 was within 16, which
+  // is exactly why eyeballing one shape proves nothing.
+  //
+  // Only the RESTING pose is pinned. After a physics roll lands the die, the
+  // content roll is whatever the simulation stopped at, the same as a real
+  // die's; this is the pre-roll pose that has to read like the flat 2D die the
+  // solid replaces.
+  for (const faceCount of [4, 6, 7, 8, 10, 12, 20]) {
+    test(`d${faceCount} rests with the presented face's content upright`, async ({ page }) => {
+      const worst: string[] = [];
+      // Several faces per shape: the roll depends on the presented facet's own
+      // orientation, so one sample says nothing about the next.
+      for (const selectedFace of [0, 1, 2, 3, faceCount - 1]) {
+        if (selectedFace >= faceCount) continue;
+        await mountDie(page, { faceCount, selectedFace, dieSize: '200px' });
+        const pose = await presentedFacetPose(page);
+        // Facing the viewer at all: a roll measured on a facet that is edge-on
+        // or turned away would be measuring nothing.
+        expect(pose.towardsCamera,
+          `d${faceCount} face ${selectedFace} presented normal .z`).toBeGreaterThan(0.5);
+        expect(pose.projectedLength,
+          `d${faceCount} face ${selectedFace} local +y has a screen direction`).toBeGreaterThan(0.5);
+        worst.push(`face ${selectedFace}: ${pose.rollDegrees.toFixed(2)}`);
+        // Not "within 35 degrees of upright" -- the pose CHOOSES this roll, so
+        // anything but zero is a bug, and the slack is Chromium's matrix
+        // serialization (about six significant figures).
+        expect(Math.abs(pose.rollDegrees),
+          `d${faceCount} presented-face content roll off screen-up, per face: ${worst.join(', ')}`)
+          .toBeLessThan(0.5);
       }
     });
   }
@@ -821,6 +894,70 @@ function insideBy(polygon: number[][], point: [number, number]): number {
   return worst;
 }
 
+/**
+ * Every readable facet's in-plane axes as the browser resolved them, paired
+ * with the facet's own outward normal from `die-geometry.ts`.
+ *
+ * `facetBoxes` reads (u, v) off the render on purpose, so that its box and
+ * clip assertions hold whichever way the component turns a facet's box inside
+ * the facet's plane. That freedom is real for a BOX and false for CONTENT: the
+ * marks are laid out axis-aligned in the box, so the box's roll IS the
+ * numeral's roll, and a quarter turn of it renders every numeral on the die
+ * ninety degrees off while leaving every box, clip-path and pip lattice
+ * measurement identical. This is the measurement that sees it.
+ */
+async function facetAxes(page: import('@playwright/test').Page, faceCount: number) {
+  return await page.evaluate(async (count) => {
+    const geometryModule: any = await import('/src/motion/die-geometry.ts');
+    const geometry = geometryModule.dieGeometry(count);
+    const die = document.getElementById('fixture-die') as any;
+    const root = die.shadowRoot as ShadowRoot;
+    const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
+    return geometry.faces.map((face: any, index: number) => {
+      const matrix = new DOMMatrix(getComputedStyle(facets[index]).transform);
+      return {
+        faceIndex: index,
+        // The box's local +y: the direction its content reads downwards in.
+        v: [matrix.m21, matrix.m22, matrix.m23],
+        // The facet's outward normal in CSS space, by the (x, -y, -z) the
+        // component documents. From the geometry, not from the render.
+        normal: [face.normal[0], -face.normal[1], -face.normal[2]],
+      };
+    });
+  }, faceCount);
+}
+
+/**
+ * The half-side of the largest axis-aligned square centred on the origin that
+ * fits inside a convex polygon given about that origin. Independent of the
+ * component: this is the geometry's own answer for how big the content square
+ * is allowed to be.
+ */
+function inscribedSquareHalfSide(polygon: number[][]): number {
+  let area2 = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const p = polygon[i];
+    const q = polygon[(i + 1) % polygon.length];
+    area2 += p[0] * q[1] - q[0] * p[1];
+  }
+  const sign = area2 >= 0 ? 1 : -1;
+  let best = Infinity;
+  for (let i = 0; i < polygon.length; i++) {
+    const p = polygon[i];
+    const q = polygon[(i + 1) % polygon.length];
+    const ex = q[0] - p[0];
+    const ey = q[1] - p[1];
+    const length = Math.hypot(ex, ey);
+    if (!(length > 0)) continue;
+    const nx = (-ey / length) * sign;
+    const ny = (ex / length) * sign;
+    // The square's farthest corner in the direction of -n clears edge p->q
+    // while half * (|nx| + |ny|) <= distance from the origin to the edge.
+    best = Math.min(best, (nx * -p[0] + ny * -p[1]) / (Math.abs(nx) + Math.abs(ny)));
+  }
+  return Number.isFinite(best) ? best : 0;
+}
+
 /** The canonical 3x3 pip lattice for a count, as sorted "col,row" cells. */
 function expectedPipCells(count: number): string[] {
   const pairs = [
@@ -966,7 +1103,7 @@ test.describe('boardgame-die face content', () => {
   // 2.37 x 0.87, a d12's are pentagons, a d20's triangles, a d10's kites. A
   // pip grid or a numeral sized to the facet's BOUNDING BOX spills outside the
   // polygon on every one of them. Nothing painted may leave its own facet.
-  for (const faceCount of [6, 7, 10, 12, 20, 4]) {
+  for (const faceCount of [6, 7, 8, 10, 12, 20, 4]) {
     test(`d${faceCount} keeps every painted mark inside its own facet`, async ({ page }) => {
       const faces = Array.from({ length: faceCount }, (_, i) => i + 1);
       await mountDie(page, { faceCount, faces, dieSize: '240px' });
@@ -1082,4 +1219,168 @@ test.describe('boardgame-die face content', () => {
     const result = await faceContent(page, 7);
     expect(result.capsWithContent).toBe(0);
   });
+
+  // Trap 3. WHICH WAY UP the content sits on each facet.
+  //
+  // Everything above measures where marks land and how big they are, in the
+  // facet's own (u, v) frame read off the render -- so an in-plane quarter turn
+  // of that frame moves the content and the frame together and changes not one
+  // number. It is still a proper orthonormal rotation, the boxes still match
+  // the geometry's extents, the pips still land on their canonical cells, and
+  // every numeral on every die renders ninety degrees off. Nothing in this file
+  // saw that until here.
+  //
+  // The invariant, stated without reference to the component's own routine: a
+  // facet's content reads downwards along the SOLID's own down direction,
+  // projected into that facet's plane. That is what makes the numerals on a
+  // die agree with each other instead of each sitting at its own angle -- and
+  // for the presented facet, composed with the pose, it is what the roll in
+  // `presentationTransform` then turns to screen-down.
+  //
+  // Facets whose normal IS the down axis (a d6's top and bottom) have no such
+  // direction and are skipped; the count of what was actually checked is
+  // asserted so the skip cannot swallow the test.
+  for (const [faceCount, minChecked] of [[6, 4], [7, 7], [8, 8], [10, 10], [12, 12], [20, 20], [4, 4]]) {
+    test(`d${faceCount} orients every facet's content along the solid's own down axis`, async ({ page }) => {
+      await mountDie(page, { faceCount, dieSize: '240px' });
+      const rows = await facetAxes(page, faceCount);
+      // CSS y points down, so the solid's down axis is +y in the body frame.
+      const DOWN = [0, 1, 0];
+      const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      let checked = 0;
+      const angles: string[] = [];
+      for (const row of rows) {
+        const length = Math.hypot(...row.normal);
+        const w = row.normal.map((value: number) => value / length);
+        // Down, with its out-of-plane part removed.
+        const projected = [0, 1, 2].map((i) => DOWN[i] - w[i] * dot(DOWN, w));
+        const scale = Math.hypot(...projected);
+        if (scale < 0.05) continue;
+        const expected = projected.map((value) => value / scale);
+        const cosine = Math.min(1, Math.max(-1, dot(row.v, expected)));
+        const degrees = (Math.acos(cosine) * 180) / Math.PI;
+        angles.push(`face ${row.faceIndex}: ${degrees.toFixed(2)}`);
+        checked++;
+        expect(degrees,
+          `d${faceCount} content roll away from the solid's down axis, per facet: ${angles.join(', ')}`)
+          .toBeLessThan(0.5);
+      }
+      expect(checked,
+        `d${faceCount} facets with a well-defined in-plane down direction`).toBeGreaterThanOrEqual(minChecked);
+    });
+  }
+
+  // Trap 4. The content region is a SQUARE, sized to the largest square that
+  // fits the polygon.
+  //
+  // Stretching it to the facet's bounding-box aspect instead -- still centred
+  // on the centroid, with the glyph and pip sizing left alone -- is caught on a
+  // d10, d12, d20 or d4 by the "nothing leaves its own facet" trap above, since
+  // a stretched rectangle in a kite or a triangle crosses an edge. It is NOT
+  // caught on a d6 or a d7, because a rectangle stretched inside a rectangular
+  // facet never crosses anything: a d7 barrel's pip lattice would smear along
+  // the barrel by a factor of 2.7 and every assertion in this file would pass.
+  // The d7 is the worked example for that defect, and it is safe today only
+  // because barrels are corner-printed and so never pipped -- an accident, not
+  // a guarantee.
+  //
+  // Measured against the geometry's own inscribed square, not against the
+  // component's `--content-size`.
+  for (const faceCount of [6, 7, 8, 10, 12, 20, 4]) {
+    test(`d${faceCount} sizes its content to a square inscribed in the facet, not to the facet's box`, async ({ page }) => {
+      const faces = Array.from({ length: faceCount }, (_, i) => i + 1);
+      await mountDie(page, { faceCount, faces, dieSize: '240px' });
+      const { rows } = await faceContent(page, faceCount);
+      const ratios: number[] = [];
+      for (const row of rows) {
+        const { width, height } = row.content;
+        // Square to within the rounding a percentage of a non-square box
+        // costs (measured worst case 0.13% on a d7).
+        expect(Math.abs(width - height),
+          `face ${row.faceValue} content region ${width.toFixed(2)}x${height.toFixed(2)}px`
+          + ` in a ${row.width.toFixed(1)}x${row.height.toFixed(1)}px facet box`)
+          .toBeLessThanOrEqual(0.02 * Math.max(width, height));
+        const available = 2 * inscribedSquareHalfSide(row.polygon);
+        expect(available, `face ${row.faceValue} has an inscribed square at all`).toBeGreaterThan(0);
+        ratios.push(width / available);
+      }
+      // The one margin the component documents, applied uniformly: air around
+      // the marks, and never more room than the polygon actually has. A
+      // content region sized to the bounding box puts this past 1 on every
+      // facet that is not square.
+      const detail = `content side / inscribed square, per facet: ${ratios.map((r) => r.toFixed(3)).join(', ')}`;
+      expect(Math.min(...ratios), detail).toBeGreaterThan(0.5);
+      expect(Math.max(...ratios), detail).toBeLessThanOrEqual(0.95);
+      expect(Math.max(...ratios) - Math.min(...ratios), detail).toBeLessThan(0.01);
+    });
+  }
+
+  // Trap 5. The marks have to be BIG ENOUGH TO READ at the size a real board
+  // draws a die at.
+  //
+  // Every other assertion here is an upper bound -- stay inside the facet, do
+  // not overrun the inscribed square -- and all of them are satisfied perfectly
+  // by drawing nothing at all. Shrinking the corner-mark cap by five times
+  // leaves the corner values of a d4 and a barrel at about a pixel of dust and
+  // leaves every one of those assertions green.
+  //
+  // 100px is pig's die, so it is the size that actually ships; the die is
+  // scale-free (`1em` is `--die-size`), so a floor there is a floor
+  // everywhere. 6px is about the smallest a digit can be and still be a digit;
+  // a pip only has to be seen rather than read, so it gets 3.5. What binds is
+  // the barrel: a d7's side facet is an 18-by-50px strip, and a square
+  // inscribed anywhere in it is bounded by the 18.
+  const LEGIBLE_DIE_PX = 100;
+  const MIN_GLYPH_PX = 6;
+  const MIN_PIP_PX = 3.5;
+  for (const [label, faceCount, faces] of [
+    ['d4 corner numerals', 4, [1, 2, 3, 4]],
+    ['d6 pips', 6, [1, 2, 3, 4, 5, 6]],
+    ['d7 corner numerals', 7, [1, 2, 3, 4, 5, 6, 7]],
+    ['d8 pips', 8, [1, 2, 3, 4, 5, 6, 7, 8]],
+    ['d10 pips', 10, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+    ['d10 numerals', 10, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]],
+    ['d12 numerals', 12, Array.from({ length: 12 }, (_, i) => i + 1)],
+    ['d20 numerals', 20, Array.from({ length: 20 }, (_, i) => i + 1)],
+  ] as [string, number, number[]][]) {
+    test(`${label} stay legible on a ${LEGIBLE_DIE_PX}px die`, async ({ page }) => {
+      await mountDie(page, { faceCount, faces, dieSize: `${LEGIBLE_DIE_PX}px` });
+      const marks = await page.evaluate(() => {
+        const die = document.getElementById('fixture-die') as any;
+        const root = die.shadowRoot as ShadowRoot;
+        const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
+        const out: { what: string; kind: 'glyph' | 'pip'; px: number }[] = [];
+        for (const facet of facets) {
+          const faceValue = facet.dataset.faceValue;
+          if (faceValue === undefined) continue;
+          for (const span of Array.from(facet.querySelectorAll('.content > span')) as HTMLElement[]) {
+            if (!span.textContent) continue;
+            out.push({ what: `face ${faceValue} centre "${span.textContent}"`, kind: 'glyph',
+              px: parseFloat(getComputedStyle(span).fontSize) });
+          }
+          for (const span of Array.from(facet.querySelectorAll('.corner > span')) as HTMLElement[]) {
+            out.push({ what: `face ${faceValue} corner "${span.textContent}"`, kind: 'glyph',
+              px: parseFloat(getComputedStyle(span).fontSize) });
+          }
+          for (const pip of Array.from(facet.querySelectorAll('.pip')) as HTMLElement[]) {
+            out.push({ what: `face ${faceValue} pip`, kind: 'pip',
+              px: parseFloat(getComputedStyle(pip).width) });
+          }
+        }
+        return out;
+      });
+      expect(marks.length, `${label} draws something`).toBeGreaterThan(0);
+      const smallest = (kind: string) => marks
+        .filter((mark) => mark.kind === kind)
+        .reduce((best, mark) => (best === null || mark.px < best.px ? mark : best), null as any);
+      const glyph = smallest('glyph');
+      const pip = smallest('pip');
+      if (glyph) {
+        expect(glyph.px, `smallest glyph -- ${glyph.what}`).toBeGreaterThanOrEqual(MIN_GLYPH_PX);
+      }
+      if (pip) {
+        expect(pip.px, `smallest pip -- ${pip.what}`).toBeGreaterThanOrEqual(MIN_PIP_PX);
+      }
+    });
+  }
 });
