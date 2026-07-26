@@ -19,9 +19,9 @@ treatments in the catalog remain reachable later.
 - Lift-to-foreground staging — explicitly the cliff; its own later slice.
 - Hand-authored per-shape art. Shapes are *generated* from face count (see
   "Shape is inferred, never configured"), not drawn.
-- Server-side reasoning about symbols. Symbol *faces* are supported (see
-  "Face content"), because the mapping lives in the renderer; what stays out
-  of scope is the Go model learning that a face means anything but an int.
+- Landing the Go-side face enum (issue #596) is a *separable* task. The
+  client design below works with or without it; symbol dice light up when it
+  lands, with no client change.
 - Multi-die choreography beyond simultaneous rolls.
 
 ## Why only three axes are new
@@ -251,30 +251,38 @@ extends past them on the same grid. Pips are used wherever they still read as
 pips, and the die falls back to numerals automatically beyond that — nobody
 wants twenty dots on one face of a d20.
 
-**2. An enumerated symbol set (author-supplied).** The renderer names what
-each face shows:
+**2. Symbol faces, via a face enum — the idiomatic route.** The framework
+already has the right primitive, and issue #596 ("Should dice.Faces be an
+enum?") has been asking for exactly this: *"conceivably you'd also want Blue,
+Red, Yellow, Green for certain types of dice"*. So a die's faces should be
+enum-valued, not a client-side lookup table bolted on beside them.
 
-```ts
-faceSymbols: ['🌾', '🐑', '🪵', '🧱', '⛰️', '❓']   // value 1..n
-```
+That buys three things a renderer-supplied array cannot:
 
-Entries are arbitrary — numerals, unicode, emoji, or slotted markup — indexed
-by face value. This is what makes Catan event dice and Warhammer hit/wound
-dice work, and it needs **no Go-side change**: the server continues to deal in
-ints, which is what game logic actually reasons about, and the renderer owns
-the presentation. That is a strictly better seam than teaching `Faces []int`
-about iconography.
+- **Semantics on the server.** Game logic reasons in `ResourceWheat`, not
+  `3` — which is the whole point of a symbol die, and is where the logic
+  lives anyway.
+- **Names transmitted for free.** Enums already ship to the client in
+  `Chest.Enums[name].Values` as a value→string map (`server-response.ts`
+  `decodeEnums`), and `Enum.String(val)` is their server-side reader. The
+  renderer therefore maps **name → glyph**, not index → glyph: order-
+  independent, self-documenting, and impossible to silently misalign by
+  editing the faces list.
+- **Accessibility with nothing extra.** The enum's string name *is* the
+  human-readable label, so a die showing wheat announces "wheat" without a
+  parallel label array to forget to fill in. This replaces the earlier
+  `{ symbol, label }` scheme outright — that design existed only to
+  reconstruct, client-side, information the enum already carries.
 
-**Accessibility travels with the symbols, not the value.** `Value` is the
-accessible readout today, which is correct only while faces show numbers. A
-symbol set must therefore be able to carry a label per face, so a die
-showing wheat announces "wheat" rather than "3". The long form is a
-`{ symbol, label }` pair per face; the array shorthand above implies
-`label === symbol`, which is right for numerals and wrong for emoji, so a die
-with symbols and no labels should be a lint-able authoring mistake rather
-than a silent one.
+A plain numeric die is then simply the case where no enum is attached, and
+`Faces []int` keeps working unchanged.
 
-Resolution order is therefore: author symbol set → generated pips → numerals.
+**Sequencing.** The client design does not block on the Go change: with no
+enum, faces are ints and resolve to pips or numerals exactly as described.
+When #596 lands, symbol dice work with no client rework — the renderer gains
+a name→glyph map and the accessible label comes along automatically.
+
+Resolution order is therefore: face enum name → generated pips → numerals.
 Like shape, all of it is inferred from the state unless an author speaks up.
 
 ## API surface (this slice)
