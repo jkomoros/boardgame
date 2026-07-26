@@ -72,6 +72,23 @@ export type VisualMotionTrackInput =
 const MIN_CURVE_RESOLUTION = 2;
 const MAX_CURVE_RESOLUTION = 256;
 const DEFAULT_CURVE_RESOLUTION = 64;
+/**
+ * Offsets are produced as `index / (count - 1)`, so a re-validated track's
+ * offsets must match that division to within ordinary double rounding. One
+ * part in a million is far tighter than any real spacing (1/255 at the maximum
+ * resolution) and far looser than the ~1e-16 error the division introduces.
+ */
+const OFFSET_EPSILON = 1e-6;
+
+/**
+ * A track that never changes value claims sole ownership of a channel and then
+ * holds it still, which is a producer bug rather than a no-op worth tolerating.
+ * Endpoint (`eased`) tracks are exempt: `componentMotionTracks` elides those,
+ * and the FLIP compiler relies on that elision.
+ */
+function isConstant(samples: readonly ComponentMotionSample[]): boolean {
+  return samples.every(sample => sample.value === samples[0].value);
+}
 
 export function componentMotionChannel(
   track: Pick<ComponentMotionTrack, 'target' | 'property'>,
@@ -90,17 +107,34 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
     if (input.property === 'transform') return value.trim() || 'none';
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
-      throw new Error('component motion opacity endpoints must be finite');
+      throw new Error('component motion opacity values must be finite');
     }
     return String(Math.min(1, Math.max(0, parsed)));
   };
 
+  if ('samples' in input && 'curve' in input) {
+    // The input union makes this unrepresentable, but excess-property checking
+    // does not catch it through a variable. Silently dropping the curve would
+    // animate something the producer never asked for.
+    throw new Error('component motion input cannot carry both samples and a curve');
+  }
+
   if ('samples' in input) {
+    // The animator feeds the overridable planMotionTracks hook's output straight
+    // back through here, so this branch validates untrusted input. It must be at
+    // least as strict as the compiler below, or an ill-formed plan reaches
+    // element.animate and throws at playback time instead of at planning time.
     if (!Array.isArray(input.samples) || input.samples.length < 2) {
       throw new Error('component motion tracks need at least two samples');
     }
     if (input.timeline !== 'eased' && input.timeline !== 'sampled') {
       throw new Error('component motion timeline must be eased or sampled');
+    }
+    if (input.timeline === 'eased' && input.samples.length !== 2) {
+      throw new Error('eased component motion tracks must have exactly two samples');
+    }
+    if (input.timeline === 'sampled' && input.target !== 'visual') {
+      throw new Error('component motion curves are not allowed on the host channel');
     }
     const samples = input.samples.map(sample => {
       if (!Number.isFinite(sample?.offset) || sample.offset < 0 || sample.offset > 1) {
@@ -111,6 +145,23 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
       }
       return Object.freeze({ offset: sample.offset, value: normalize(sample.value) });
     });
+    for (let index = 1; index < samples.length; index++) {
+      if (samples[index].offset <= samples[index - 1].offset) {
+        throw new Error('component motion sample offsets must strictly increase');
+      }
+    }
+    if (samples[0].offset !== 0 || samples[samples.length - 1].offset !== 1) {
+      throw new Error('component motion samples must span [0,1]');
+    }
+    for (let index = 0; index < samples.length; index++) {
+      const expected = index / (samples.length - 1);
+      if (Math.abs(samples[index].offset - expected) > OFFSET_EPSILON) {
+        throw new Error('component motion samples must be uniformly spaced');
+      }
+    }
+    if (input.timeline === 'sampled' && isConstant(samples)) {
+      throw new Error('component motion curve is constant and animates nothing');
+    }
     return Object.freeze({
       target: input.target,
       property: input.property,
@@ -127,10 +178,13 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
     if (typeof input.curve !== 'function') {
       throw new Error('component motion curve must be a function of progress');
     }
-    const requested = input.resolution ?? DEFAULT_CURVE_RESOLUTION;
-    if (typeof requested !== 'number' || Number.isNaN(requested)) {
+    const supplied = input.resolution ?? DEFAULT_CURVE_RESOLUTION;
+    if (typeof supplied !== 'number') {
       throw new Error('component motion curve resolution must be a number');
     }
+    // Resolution is clamped, never rejected. NaN carries no magnitude to clamp
+    // toward, so it falls back to the default the same way an absent value does.
+    const requested = Number.isNaN(supplied) ? DEFAULT_CURVE_RESOLUTION : supplied;
     const count = Math.min(
       MAX_CURVE_RESOLUTION,
       Math.max(MIN_CURVE_RESOLUTION, Math.round(requested)),
@@ -144,9 +198,7 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
       }
       samples.push(Object.freeze({ offset: progress, value: normalize(value) }));
     }
-    // A curve that never moves is a producer bug, not a no-op worth tolerating:
-    // it would claim sole ownership of a channel and then hold it still.
-    if (samples.every(sample => sample.value === samples[0].value)) {
+    if (isConstant(samples)) {
       throw new Error('component motion curve is constant and animates nothing');
     }
     return Object.freeze({
@@ -193,8 +245,9 @@ export function componentMotionTracks(
   for (const input of inputs) {
     const track = exactTrack(input);
     // Endpoint no-ops vacate the channel silently; the FLIP compiler relies on
-    // this to drop unchanged structural transforms. Curves never reach here
-    // constant — exactTrack already threw.
+    // this to drop unchanged structural transforms. Sampled tracks never reach
+    // here constant — exactTrack already threw, on both the curve and the
+    // already-compiled path.
     if (track.timeline === 'eased'
       && track.samples[0].value === track.samples[1].value) continue;
     const channel = componentMotionChannel(track);

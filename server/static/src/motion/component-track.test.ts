@@ -103,6 +103,22 @@ describe('component motion tracks', () => {
     assert.equal(Object.isFrozen(frames), true);
     assert.equal(Object.isFrozen(frames[0]), true);
   });
+
+  it('emits one offset-carrying keyframe per sample of a sampled track', () => {
+    // An implementation that emitted only the endpoints would flatten every
+    // curve into a straight line while every other assertion still passed.
+    const [track] = componentMotionTracks([{
+      target: 'visual', property: 'transform',
+      curve: (p) => `translateX(${p * p * 4}px)`, resolution: 5,
+    }]);
+    assert.deepEqual(componentMotionKeyframes(track), [
+      { offset: 0, transform: 'translateX(0px)' },
+      { offset: 0.25, transform: 'translateX(0.25px)' },
+      { offset: 0.5, transform: 'translateX(1px)' },
+      { offset: 0.75, transform: 'translateX(2.25px)' },
+      { offset: 1, transform: 'translateX(4px)' },
+    ]);
+  });
 });
 
 describe('curve tracks', () => {
@@ -142,7 +158,9 @@ describe('curve tracks', () => {
   it('refuses a curve on the host channel', () => {
     assert.throws(() => componentMotionTracks([
       { target: 'host', property: 'transform', curve: () => 'none' } as never,
-    ]), /host/);
+      // Not just /host/: the generic "target must be host or visual" message
+      // would satisfy that too, and this test must fail if the wrong throw wins.
+    ]), /curves are not allowed on the host channel/);
   });
 
   it('refuses a constant curve instead of silently vacating the channel', () => {
@@ -162,9 +180,83 @@ describe('curve tracks', () => {
     assert.deepEqual(round, curved);
     assert.notEqual(round, curved);
     assert.equal(componentMotionTrackEasing(round), 'linear');
+    // Re-freezing is the whole point of the branch, so pin it.
+    assert.equal(Object.isFrozen(round), true);
+    assert.equal(Object.isFrozen(round.samples), true);
+    assert.equal(Object.isFrozen(round.samples[0]), true);
     assert.throws(() => componentMotionTracks([
       { ...curved, samples: [{ offset: 0, value: 'none' }] },
     ]), /at least two samples/);
+  });
+
+  it('revalidates a compiled track as strictly as it compiles one', () => {
+    const [curved] = componentMotionTracks([{
+      target: 'visual', property: 'transform',
+      curve: (p) => `translateX(${p}px)`, resolution: 3,
+    }]);
+    const sample = (offset: number, value: string) => ({ offset, value });
+
+    // Decreasing offsets compile happily today and then throw inside
+    // element.animate at playback time, far from the producer that caused it.
+    assert.throws(() => componentMotionTracks([{
+      ...curved,
+      samples: [sample(0.9, 'translateX(0px)'), sample(0.1, 'translateX(1px)')],
+    }]), /strictly increase/);
+
+    // Offsets that never reach the endpoints leave the channel undefined
+    // outside the sampled window.
+    assert.throws(() => componentMotionTracks([{
+      ...curved,
+      samples: [sample(0.3, 'translateX(0px)'), sample(0.4, 'translateX(1px)')],
+    }]), /span \[0,1\]/);
+
+    // Non-uniform spacing silently retimes the trajectory the curve encoded.
+    assert.throws(() => componentMotionTracks([{
+      ...curved,
+      samples: [
+        sample(0, 'translateX(0px)'),
+        sample(0.01, 'translateX(0.5px)'),
+        sample(1, 'translateX(1px)'),
+      ],
+    }]), /uniformly spaced/);
+
+    // A constant sampled track is exactly what the constant-curve throw exists
+    // to reject; the from === to elision only covers eased tracks.
+    assert.throws(() => componentMotionTracks([{
+      ...curved,
+      samples: [
+        sample(0, 'translateX(0px)'),
+        sample(0.5, 'translateX(0px)'),
+        sample(1, 'translateX(0px)'),
+      ],
+    }]), /constant/);
+
+    // The host channel stays structural whichever door the track comes in.
+    assert.throws(() => componentMotionTracks([
+      { ...curved, target: 'host' as const },
+    ]), /curves are not allowed on the host channel/);
+
+    // An eased track is a two-endpoint transition by definition; extra samples
+    // would be silently reinterpreted by the kernel's effect-level easing.
+    assert.throws(() => componentMotionTracks([{
+      ...curved,
+      timeline: 'eased' as const,
+    }]), /exactly two samples/);
+
+    // Carrying both forms would silently drop the curve.
+    assert.throws(() => componentMotionTracks([
+      { ...curved, curve: (p: number) => `translateX(${p}px)` } as never,
+    ]), /both samples and a curve/);
+  });
+
+  it('clamps a NaN resolution to the default instead of rejecting it', () => {
+    // The contract is "clamped, never rejected"; NaN has no magnitude to clamp
+    // toward, so it falls back the same way an absent resolution does.
+    const [track] = componentMotionTracks([{
+      target: 'visual', property: 'opacity',
+      curve: (p) => String(p), resolution: Number.NaN,
+    }]);
+    assert.equal(track.samples.length, 64);
   });
 
   it('pins linear easing for sampled tracks only', () => {

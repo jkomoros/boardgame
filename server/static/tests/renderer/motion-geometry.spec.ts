@@ -25,7 +25,10 @@ test('card face motion is a planned component-owned visual track', async ({ page
         needsHostTransition: false,
       };
       const tracks = card.planMotionTracks(record) as Array<{
-        target: string; property: string; from: string; to: string;
+        target: string;
+        property: string;
+        timeline: string;
+        samples: Array<{ offset: number; value: string }>;
       }>;
       const animations = card.playAnimation({ ...record, tracks });
       const inner = card.shadowRoot?.querySelector<HTMLElement>('#inner');
@@ -49,8 +52,17 @@ test('card face motion is a planned component-owned visual track', async ({ page
       tracks: [{
         target: 'visual',
         property: 'transform',
-        from: 'scale(var(--component-effective-scale)) rotateY(0deg) rotate(0deg)',
-        to: 'scale(var(--component-effective-scale)) rotateY(180deg) rotate(0deg)',
+        timeline: 'eased',
+        samples: [
+          {
+            offset: 0,
+            value: 'scale(var(--component-effective-scale)) rotateY(0deg) rotate(0deg)',
+          },
+          {
+            offset: 1,
+            value: 'scale(var(--component-effective-scale)) rotateY(180deg) rotate(0deg)',
+          },
+        ],
       }],
       count: 1,
       targetIsVisual: true,
@@ -338,8 +350,8 @@ test('a throwing component planner degrades to framework-owned structural channe
         _planMotionTracks(component: object, input: object): ReadonlyArray<{
           target: string;
           property: string;
-          from: string;
-          to: string;
+          timeline: string;
+          samples: ReadonlyArray<{ offset: number; value: string }>;
         }>;
       };
       document.body.append(animator);
