@@ -10,9 +10,13 @@ export class BoardgameRenderGamePig extends GameRenderer {
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
-      .die {
-        height: 100px;
-        width: 100px;
+      /*
+       * The die's size is its own custom property: it draws a solid inside a
+       * box of this size, so height/width on the element (which this rule
+       * used to set, on a .die class nothing ever carried) cannot resize it.
+       */
+      boardgame-die {
+        --die-size: 100px;
       }
 
       .container {
