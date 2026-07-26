@@ -17,9 +17,8 @@ treatments in the catalog remain reachable later.
 - Author-defined containers (invisible bounds, rendered trays) — designed
   for, not implemented.
 - Lift-to-foreground staging — explicitly the cliff; its own later slice.
-- Rendering polyhedra other than the cube — the architecture is
-  shape-parameterized from the start (see "Generalizing to other dice"), but
-  only the cube's face geometry ships in this slice.
+- Hand-authored per-shape art. Shapes are *generated* from face count (see
+  "Shape is inferred, never configured"), not drawn.
 - Symbol faces — the client can already render arbitrary face content, but
   the server model cannot *say* a face is a symbol (`dice.Value` is
   `Faces []int`, carrying no shape, symbol or colour). That is a Go-side
@@ -162,18 +161,50 @@ today's reel rather than throwing. Deliberately *not* following the
 "exotic is possible" affordable, and a d20 rendering as a numeral reel is
 strictly better than an exception.
 
-## Generalizing to other dice
+## Shape is inferred, never configured
 
-The point of the architecture is that a d20 is *data*, not a rewrite. Three
-things have to be shape-parameterized from the start, or they calcify around
+An author never says "this is an icosahedron". They write
+`<boardgame-die .item=${d}>` and the die becomes the right solid for its own
+face count, because the face count is already in the state
+(`Value.Faces []int`):
+
+| Faces | Solid |
+|---|---|
+| 4 | tetrahedron |
+| 6 | cube |
+| 8 | octahedron |
+| 10 | pentagonal trapezohedron |
+| 12 | dodecahedron |
+| 20 | icosahedron |
+| any other N ≥ 3 | generated N-sided barrel (pointed caps, so it cannot rest on an end) |
+
+Face *content* is inferred the same way: pips for the classic d6, numerals
+otherwise — with an explicit override for authors who want numerals on a d6.
+
+The barrel case matters more than it looks. Real-world oddities (d3, d5, d7,
+d16, d24) are physically barrels and prisms, so a procedurally generated
+barrel is not a cop-out — it is what such dice actually are. It also means
+there is **no face count that falls off the end of the design**: the reel
+survives only as a true degenerate fallback (fewer than three faces, or
+malformed state), not as the answer for anything a game might plausibly roll.
+
+## Geometry is generated, not authored
+
+The point of the architecture is that a d20 is *data*, not a rewrite — and
+with shapes inferred, even the data should be computed rather than typed in.
+Three things have to be shape-general from the start, or they calcify around
 the cube:
 
-**One geometry table drives everything.** A die shape is described once as
-`{ vertices, faces: [{ normal, centroid, polygon }], inertiaTensor }`. Both
-the simulator and the renderer consume that same table — the CSS face
-transforms are *derived* from each face's normal and centroid rather than
-hand-authored per shape. Adding a d8 means adding a geometry entry, not
-touching either subsystem.
+**One generated geometry table drives everything.** A die shape is produced
+by a generator as `{ vertices, faces: [{ normal, centroid, polygon }],
+inertiaTensor }`. Platonic solids have closed-form vertex coordinates;
+barrels are procedural in N; and the inertia tensor is computed numerically
+from the mesh (uniform-density tetrahedron decomposition about the centroid)
+by one routine that does not care which shape it was handed. Both the
+simulator and the renderer consume that same table — the CSS face transforms
+and `clip-path` polygons are *derived* from each face's normal, centroid and
+polygon rather than hand-authored per shape. Adding a shape means adding a
+vertex generator, not touching either subsystem.
 
 **Vertex-based contact resolution.** The simulator must not special-case box
 faces. Detecting penetration per *vertex* against the container planes and
@@ -194,10 +225,19 @@ read from the top vertex, so its "presented value" lookup differs from every
 other die and needs an explicit per-shape reading rule rather than a shared
 "which normal points up" assumption.
 
-**Rendering cost is per-shape but bounded.** A cube's faces are rectangles;
-a d12's are pentagons and a d20's are triangles, cut with `clip-path`. That
-is real per-shape work, but it is confined to the geometry table and does not
-touch the sim, the baking, the gate integration or the harness.
+**Rendering is one general routine, not per-shape work.** Given a face's
+polygon in 3D, project it into face-local 2D coordinates to get a `clip-path`
+and compose the transform that places it from the face's normal and centroid.
+Rectangles, pentagons and triangles are then the same code path. This is what
+makes inferring shapes affordable: the marginal cost of the seventh solid is
+a vertex generator, not a rendering pass.
+
+Two hazards specific to doing this in CSS 3D, to be settled during
+implementation rather than assumed away: adjacent faces meeting at an edge
+can show hairline seams or z-fight, since there is no depth buffer and
+browsers sort `preserve-3d` subtrees per element; and a solid with many faces
+(a d20 has twenty) puts twenty composited layers on screen per die, which
+needs measuring before dice counts get large.
 
 ## Face content: pips, numerals, and beyond
 
@@ -211,7 +251,8 @@ largely already solved:
   with consecutive values from 1.
 - **Automatic selection, author override.** Pips for the classic d6 case,
   numerals otherwise, with an explicit knob for authors who want numerals on
-  a d6 (or pips on something unusual).
+  a d6 (or pips on something unusual). Like shape, this is inferred from the
+  state rather than configured.
 - **Arbitrary content — including symbols — is a client non-issue.** Because
   a face is a DOM element, slotting an icon into it needs no new client
   machinery. The blocker for symbol dice (Catan event dice, Warhammer
