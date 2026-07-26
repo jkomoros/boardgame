@@ -10,15 +10,21 @@
  * gets a generated barrel: N side faces around an axis, capped at both ends by
  * a pointed apex vertex rather than a flat face, so the die cannot come to rest
  * on an end. For a barrel the readable faces are the side faces only, which is
- * why `faceCount === faces.length` holds for every shape.
+ * why `faceCount === faces.length` holds for every shape; the cap triangles are
+ * still part of the surface and are exposed separately as `capFaces`.
  */
 
 /** A point or direction in 3D. Deliberately a plain tuple: no dependencies. */
 export type Vec3 = readonly [number, number, number];
 
-/** A rotation as (x, y, z, w). Defined here so the simulator can share it. */
+/**
+ * A rotation as (x, y, z, w). Defined here so the simulator can share it.
+ * Consumed by task 5 (`presentedFaceIndex(geometry, orientation: Quat)`) and by
+ * task 6's rigid-body integrator; unused inside this module by design.
+ */
 export type Quat = readonly [number, number, number, number];
 
+/** See `Quat`: the rest orientation tasks 5 and 6 start from. */
 export const QUAT_IDENTITY: Quat = Object.freeze([0, 0, 0, 1] as const);
 
 export function vec3(x: number, y: number, z: number): Vec3 {
@@ -72,8 +78,33 @@ export interface DieGeometry {
   readonly faceCount: number;
   readonly vertices: readonly Vec3[];
   readonly faces: readonly DieFace[];
-  /** 9 entries, row-major, about the centroid, for unit mass. */
+  /**
+   * The rest of the closed surface: the faces that exist but carry no value.
+   * Empty for every closed-form solid; for a barrel it is the 2N cap triangles.
+   * `[...faces, ...capFaces]` is the complete surface, with no polygon appearing
+   * twice, which is what a renderer must draw and what a point-in-solid test
+   * must clip against. Kept out of `faces` so `faceCount === faces.length`.
+   */
+  readonly capFaces: readonly DieFace[];
+  /**
+   * 9 entries, row-major, about the centroid, for unit mass.
+   *
+   * NOT size-normalized: this is the tensor of the solid at the scale it is
+   * built at, and those scales differ between face counts (see `circumradius`).
+   * Unit-mass inertia goes as R^2, so a d20's Izz is roughly 9x a d10's.
+   * Consumers must divide lengths by `circumradius` (and the tensor by
+   * `circumradius^2`) or dice of different face counts will tumble at visibly
+   * different rates.
+   */
   readonly inertiaTensor: readonly number[];
+  /**
+   * Distance from the centroid to the farthest vertex.
+   *
+   * NOT normalized across face counts: it runs from 1.000 for the d8 to 1.902
+   * for the d20. This is deliberate — each solid keeps its natural closed-form
+   * coordinates — so every consumer that wants dice to render at a common size
+   * must scale by `1 / circumradius` itself.
+   */
   readonly circumradius: number;
   /** A d4 rests on a face and is read from the apex pointing up. */
   readonly readingRule: 'up-face' | 'top-vertex';
@@ -85,8 +116,11 @@ const EPSILON = 1e-9;
 /**
  * A solid before it has been centred and measured: a vertex list, the complete
  * closed surface as index loops, and which of those loops are readable faces.
+ *
+ * Surface loops may be given in any vertex order and any winding: `finishSolid`
+ * owns the winding invariant and orients every loop exactly once.
  */
-interface RawSolid {
+export interface RawSolid {
   readonly vertices: readonly Vec3[];
   readonly surface: readonly (readonly number[])[];
   readonly readable: readonly number[];
@@ -180,9 +214,11 @@ function orientLoop(
  * strictly outside it. Only used for the small closed-form solids (at most 20
  * vertices), so the cubic triple enumeration is irrelevant; barrels are built
  * directly instead.
+ *
+ * Loops come back in vertex-index order, which is not a polygon order. Winding
+ * is `finishSolid`'s job, so this deliberately does not orient them.
  */
 function convexHullFaces(vertices: readonly Vec3[]): number[][] {
-  const interior = meanPoint(vertices);
   const found = new Map<string, number[]>();
   for (let i = 0; i < vertices.length; i++) {
     for (let j = i + 1; j < vertices.length; j++) {
@@ -208,7 +244,7 @@ function convexHullFaces(vertices: readonly Vec3[]): number[][] {
         }
         const key = [...loop].sort((a, b) => a - b).join(',');
         if (found.has(key)) continue;
-        found.set(key, orientLoop(loop, vertices, interior));
+        found.set(key, loop);
       }
     }
   }
@@ -370,7 +406,16 @@ function triangulate(polygon: readonly Vec3[]): Vec3[][] {
   return triangles;
 }
 
-function finishSolid(raw: RawSolid): DieGeometry {
+/**
+ * Orient, centre and measure a raw solid.
+ *
+ * Exported as a testing seam: every face count this module supports produces a
+ * centrally symmetric solid, so through `dieGeometry` alone the vertex mean and
+ * the volume centroid always coincide and the centring below would be untested.
+ * Tests build a deliberately asymmetric solid (where they differ) and hand it
+ * here. Not part of the public geometry API.
+ */
+export function finishSolid(raw: RawSolid): DieGeometry {
   const interior = meanPoint(raw.vertices);
   const oriented = raw.surface.map((loop) => orientLoop(loop, raw.vertices, interior));
 
@@ -396,19 +441,28 @@ function finishSolid(raw: RawSolid): DieGeometry {
     triangles.push(...triangulate(loop.map((index) => vertices[index])));
   }
 
-  const faces = raw.readable.map((index) => {
+  const faceAt = (index: number): DieFace => {
     const polygon = oriented[index].map((n) => vertices[n]);
     return Object.freeze({
       normal: polygonNormal(polygon),
       centroid: meanPoint(polygon),
       polygon: Object.freeze(polygon),
     });
-  });
+  };
+  const readable = new Set(raw.readable);
+  const faces = raw.readable.map(faceAt);
+  // Everything else on the surface: a barrel's cap triangles. Same shape as a
+  // readable face so a renderer can draw `[...faces, ...capFaces]` uniformly.
+  const capFaces = oriented
+    .map((_, index) => index)
+    .filter((index) => !readable.has(index))
+    .map(faceAt);
 
   return Object.freeze({
     faceCount: faces.length,
     vertices: Object.freeze(vertices),
     faces: Object.freeze(faces),
+    capFaces: Object.freeze(capFaces),
     inertiaTensor: Object.freeze(inertiaAboutOrigin(triangles)),
     circumradius: Math.max(...vertices.map((vertex) => magnitude(vertex))),
     readingRule: raw.readingRule,
