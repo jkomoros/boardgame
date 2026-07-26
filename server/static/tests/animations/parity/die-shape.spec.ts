@@ -43,7 +43,17 @@ const DIE_SIZE_DEFAULT_PX = 50;
 // VALUES that never coincide with their own indices (10, 20, 30, ...).
 async function mountDie(
   page: import('@playwright/test').Page,
-  options: { faceCount: number; selectedFace?: number; dieSize?: string },
+  options: {
+    faceCount: number;
+    selectedFace?: number;
+    dieSize?: string;
+    /** Face VALUES. Defaults to 10, 20, 30, ... (never equal to their index). */
+    faces?: number[];
+    /** Face value -> name. What an enum would supply; also the a11y label. */
+    faceNames?: Record<string, string>;
+    /** Face name -> glyph. The author-supplied symbol set. */
+    symbols?: Record<string, string>;
+  },
 ): Promise<void> {
   await page.goto('/');
   await page.evaluate(async (opts) => {
@@ -55,7 +65,9 @@ async function mountDie(
     // of <body>, and one test hit-tests the die's own centre.
     die.style.cssText = 'position:fixed;top:120px;left:120px;z-index:9999;';
     if (opts.dieSize) die.style.setProperty('--die-size', opts.dieSize);
-    const faces = Array.from({ length: opts.faceCount }, (_, i) => (i + 1) * 10);
+    const faces = opts.faces ?? Array.from({ length: opts.faceCount }, (_, i) => (i + 1) * 10);
+    if (opts.faceNames) die.faceNames = opts.faceNames;
+    if (opts.symbols) die.symbols = opts.symbols;
     die.item = {
       Values: { Faces: faces },
       DynamicValues: { SelectedFace: opts.selectedFace ?? 0, Value: faces[opts.selectedFace ?? 0] },
@@ -64,7 +76,14 @@ async function mountDie(
     await die.updateComplete;
     // _itemChanged runs in updated(), which schedules a second render pass.
     await die.updateComplete;
-  }, { faceCount: options.faceCount, selectedFace: options.selectedFace, dieSize: options.dieSize } as any);
+  }, {
+    faceCount: options.faceCount,
+    selectedFace: options.selectedFace,
+    dieSize: options.dieSize,
+    faces: options.faces,
+    faceNames: options.faceNames,
+    symbols: options.symbols,
+  } as any);
 }
 
 // Reads the facet inventory of the mounted fixture die, plus the surface the
@@ -495,10 +514,29 @@ test.describe('boardgame-die solid', () => {
         await die.updateComplete;
         await die.updateComplete;
         const root = die.shadowRoot as ShadowRoot;
+        const faceEls = Array.from(root.querySelectorAll('#inner.reel .face')) as HTMLElement[];
         const out = {
           facets: root.querySelectorAll('.facet').length,
-          reelFaces: root.querySelectorAll('#inner.reel .face').length,
+          reelFaces: faceEls.length,
           hasInner: !!root.querySelector('#inner'),
+          // The reel goes through the SAME content resolution as the solid --
+          // it is a fallback, not a second implementation -- so a regression
+          // in the shared path has to show up here too.
+          pipsPerFace: faceEls.map((el) => el.querySelectorAll('.pip').length),
+          // A dot's diameter and its offset from the face's centre, in px, on
+          // the default 50px die. These are the flat die's original numbers
+          // (a 7px dot 10.5px off centre), which is what --content-size: 63%
+          // of a reel face is chosen to reproduce.
+          pipGeometry: faceEls.length === 0 ? null : (() => {
+            const content = faceEls[1].querySelector('.content') as HTMLElement;
+            const pip = content.querySelector('.pip') as HTMLElement;
+            const box = content.getBoundingClientRect();
+            const dot = pip.getBoundingClientRect();
+            return {
+              diameter: Math.round(dot.width * 10) / 10,
+              offsetX: Math.round((dot.left + dot.width / 2 - (box.left + box.width / 2)) * 10) / 10,
+            };
+          })(),
         };
         die.remove();
         return out;
@@ -510,8 +548,18 @@ test.describe('boardgame-die solid', () => {
     });
 
     expect(result.errors).toEqual([]);
-    expect(result.twoFaced).toEqual({ facets: 0, reelFaces: 2, hasInner: true });
-    expect(result.empty).toEqual({ facets: 0, reelFaces: 0, hasInner: true });
+    expect(result.twoFaced).toEqual({
+      facets: 0,
+      reelFaces: 2,
+      hasInner: true,
+      // Face value 1 draws one dot, value 2 draws two: computed, in the reel
+      // as much as on the solid.
+      pipsPerFace: [1, 2],
+      pipGeometry: { diameter: 6.3, offsetX: -10.5 },
+    });
+    expect(result.empty).toEqual({
+      facets: 0, reelFaces: 0, hasInner: true, pipsPerFace: [], pipGeometry: null,
+    });
   });
 
   test('the solid survives mounted in the real app (pig)', async ({ page }) => {
@@ -582,5 +630,456 @@ test.describe('boardgame-die solid', () => {
     // centre of the die, not whichever facet paints last.
     expect(`${result.frontFaceIndex} (hit ${result.hitDescription}; flatteners above #inner: ${JSON.stringify(result.innerFlatteners)})`)
       .toBe(`${result.selectedFace} (hit ${result.hitDescription}; flatteners above #inner: ${JSON.stringify(result.innerFlatteners)})`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Task 9: what is PAINTED on those facets.
+//
+// The die used to top out at six because its pip layouts were six hard-coded
+// CSS classes (`.face.one` ... `.face.six`). Content is now resolved per face
+// -- author symbol set, then generated pips, then numerals -- and the pip
+// layout is COMPUTED from the value on a 3x3 lattice rather than enumerated.
+//
+// The assertions below are deliberately geometric rather than structural. A
+// test that merely counts `.pip` elements passes a layout that stacks every
+// dot in one corner, and a test that merely finds a numeral passes a numeral
+// drawn half outside a d7's 2.7:1 side facet. So every one of these measures
+// where the content actually landed, in the facet's OWN plane, against the
+// polygon `die-geometry.ts` reports for that facet.
+// ---------------------------------------------------------------------------
+
+/**
+ * Every readable facet's painted content, measured in the facet's own plane.
+ *
+ * The frame is the one `facetStyle` works in: px, origin at the polygon's
+ * centroid, +a along the axis the box's local x was rotated onto and +b along
+ * its local y. The polygon comes from `die-geometry.ts` and the content
+ * positions from the laid-out DOM, so the two are independent measurements
+ * that have to agree.
+ */
+async function faceContent(page: import('@playwright/test').Page, faceCount: number) {
+  return await page.evaluate(async (count) => {
+    const geometryModule: any = await import('/src/motion/die-geometry.ts');
+    const faceModule: any = await import('/src/motion/die-faces.ts');
+    const geometry = geometryModule.dieGeometry(count);
+    const die = document.getElementById('fixture-die') as any;
+    const root = die.shadowRoot as ShadowRoot;
+    const stage = root.querySelector('#stage') as HTMLElement;
+    const emPx = parseFloat(getComputedStyle(stage).fontSize);
+    const unitsToPx = (0.5 / geometry.circumradius) * emPx;
+    const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+    // Which face a die in this orientation is READ from is a property of the
+    // solid, not of the renderer: `die-faces.ts` owns it.
+    const readingRule = faceModule.resolveReadingRule(geometry);
+
+    // For each VERTEX of the solid, the face that is read when that vertex is
+    // the topmost point -- the face whose normal is most opposed to it. That
+    // is the value a corner-printed die has to show at that corner.
+    const faceReadAtVertex = geometry.vertices.map((vertex: number[]) => {
+      let best = 0;
+      let bestScore = Infinity;
+      for (let i = 0; i < geometry.faces.length; i++) {
+        const score = dot(geometry.faces[i].normal, vertex);
+        if (score < bestScore) { bestScore = score; best = i; }
+      }
+      return best;
+    });
+
+    const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
+    const px = (el: HTMLElement, prop: string) => parseFloat(getComputedStyle(el).getPropertyValue(prop));
+
+    const rows = geometry.faces.map((face: any, index: number) => {
+      const element = facets[index];
+      const style = getComputedStyle(element);
+      const matrix = new DOMMatrix(style.transform);
+      const u = [matrix.m11, matrix.m12, matrix.m13];
+      const v = [matrix.m21, matrix.m22, matrix.m23];
+      const width = parseFloat(style.width);
+      const height = parseFloat(style.height);
+
+      // The polygon in the facet's plane, about its centroid.
+      const centroid = [face.centroid[0], -face.centroid[1], -face.centroid[2]]
+        .map((value: number) => value * unitsToPx);
+      const polygon = face.polygon.map((point: number[]) => {
+        const screen = [point[0] * unitsToPx, -point[1] * unitsToPx, -point[2] * unitsToPx];
+        const offset = [0, 1, 2].map((i) => screen[i] - centroid[i]);
+        return [dot(offset, u), dot(offset, v)];
+      });
+      const boxA = (Math.min(...polygon.map((p: number[]) => p[0]))
+        + Math.max(...polygon.map((p: number[]) => p[0]))) / 2;
+      const boxB = (Math.min(...polygon.map((p: number[]) => p[1]))
+        + Math.max(...polygon.map((p: number[]) => p[1]))) / 2;
+      // DOM x measured from the box's left edge -> the facet's own (a, b).
+      const toLocal = (x: number, y: number) => [x - width / 2 + boxA, y - height / 2 + boxB];
+
+      const contentEl = element.querySelector('.content') as HTMLElement | null;
+      let content: any = null;
+      let pips: any[] = [];
+      let text: any = null;
+      if (contentEl) {
+        const cw = px(contentEl, 'width');
+        const ch = px(contentEl, 'height');
+        const cl = px(contentEl, 'left');
+        const ct = px(contentEl, 'top');
+        const [ccx, ccy] = toLocal(cl + cw / 2, ct + ch / 2);
+        content = { cx: ccx, cy: ccy, width: cw, height: ch, left: cl, top: ct };
+        pips = (Array.from(contentEl.querySelectorAll('.pip')) as HTMLElement[]).map((pip) => {
+          const pw = px(pip, 'width');
+          const [cx, cy] = toLocal(cl + px(pip, 'left') + pw / 2, ct + px(pip, 'top') + px(pip, 'height') / 2);
+          // Where the dot sits on the 3x3 lattice of the content square,
+          // measured from the laid-out boxes -- not read off any class name.
+          return {
+            cx, cy, r: pw / 2,
+            col: Math.round(((cx - ccx) / cw) * 3 + 1),
+            row: Math.round(((cy - ccy) / ch) * 3 + 1),
+          };
+        });
+        const span = contentEl.querySelector('span') as HTMLElement | null;
+        if (span && span.textContent) {
+          const [cx, cy] = toLocal(cl + span.offsetLeft + span.offsetWidth / 2,
+            ct + span.offsetTop + span.offsetHeight / 2);
+          text = {
+            text: span.textContent, cx, cy,
+            width: span.offsetWidth, height: span.offsetHeight,
+          };
+        }
+      }
+
+      // Measured on the TEXT, not on the box that holds it: a box that is
+      // inside the polygon while its glyph spills out of it is exactly the
+      // failure this is looking for.
+      const corners = (Array.from(element.querySelectorAll('.corner')) as HTMLElement[]).map((corner) => {
+        const span = corner.querySelector('span') as HTMLElement;
+        const [cx, cy] = toLocal(px(corner, 'left') + span.offsetLeft + span.offsetWidth / 2,
+          px(corner, 'top') + span.offsetTop + span.offsetHeight / 2);
+        return {
+          text: corner.textContent,
+          faceIndex: Number(corner.dataset.cornerFaceIndex),
+          cx, cy, width: span.offsetWidth, height: span.offsetHeight,
+        };
+      });
+
+      return {
+        faceIndex: Number(element.dataset.faceIndex),
+        faceValue: Number(element.dataset.faceValue),
+        label: element.dataset.faceLabel ?? null,
+        polygon, width, height,
+        // Every vertex of this facet, paired with the face that is read when
+        // that vertex is uppermost.
+        vertexFaces: face.polygon.map((point: number[]) => {
+          let best = -1;
+          let bestDistance = Infinity;
+          geometry.vertices.forEach((vertex: number[], i: number) => {
+            const d = Math.hypot(vertex[0] - point[0], vertex[1] - point[1], vertex[2] - point[2]);
+            if (d < bestDistance) { bestDistance = d; best = i; }
+          });
+          return faceReadAtVertex[best];
+        }),
+        content, pips, text, corners,
+      };
+    });
+
+    const button = root.querySelector('#main') as HTMLElement;
+    return {
+      readingRule,
+      ariaLabel: button.getAttribute('aria-label'),
+      selectedFace: die.selectedFace,
+      capsWithContent: facets.slice(geometry.faces.length)
+        .filter((el) => el.querySelector('.content, .corner')).length,
+      rows,
+    };
+  }, faceCount);
+}
+
+/**
+ * How far inside its polygon a point is, in px: positive inside, negative out.
+ * Convex polygons only, which is every facet `die-geometry.ts` produces.
+ */
+function insideBy(polygon: number[][], point: [number, number]): number {
+  let area2 = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const p = polygon[i];
+    const q = polygon[(i + 1) % polygon.length];
+    area2 += p[0] * q[1] - q[0] * p[1];
+  }
+  const sign = area2 >= 0 ? 1 : -1;
+  let worst = Infinity;
+  for (let i = 0; i < polygon.length; i++) {
+    const p = polygon[i];
+    const q = polygon[(i + 1) % polygon.length];
+    const ex = q[0] - p[0];
+    const ey = q[1] - p[1];
+    const length = Math.hypot(ex, ey);
+    if (!(length > 0)) continue;
+    // Inward normal of edge p->q for this winding.
+    const nx = (-ey / length) * sign;
+    const ny = (ex / length) * sign;
+    worst = Math.min(worst, nx * (point[0] - p[0]) + ny * (point[1] - p[1]));
+  }
+  return worst;
+}
+
+/** The canonical 3x3 pip lattice for a count, as sorted "col,row" cells. */
+function expectedPipCells(count: number): string[] {
+  const pairs = [
+    [[0, 0], [2, 2]],
+    [[2, 0], [0, 2]],
+    [[0, 1], [2, 1]],
+    [[1, 0], [1, 2]],
+  ];
+  const cells: number[][] = [];
+  if (count % 2 === 1) cells.push([1, 1]);
+  for (let i = 0; i < Math.floor(count / 2); i++) cells.push(...pairs[i]);
+  return cells.map(([c, r]) => `${c},${r}`).sort();
+}
+
+test.describe('boardgame-die face content', () => {
+  // (a) Pips are GENERATED from the value. Counting dots is not enough -- a
+  // layout that piles every dot in one corner counts the same -- so the cell
+  // each dot lands on is pinned too, measured from the laid-out boxes.
+  test('d6 draws generated pips, one dot per value, on the canonical lattice', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, faces: [1, 2, 3, 4, 5, 6], dieSize: '240px' });
+    const { rows } = await faceContent(page, 6);
+    expect(rows.map((row: any) => row.faceValue)).toEqual([1, 2, 3, 4, 5, 6]);
+    for (const row of rows) {
+      expect(row.pips.length, `face ${row.faceValue} dot count`).toBe(row.faceValue);
+      expect(row.text, `face ${row.faceValue} draws pips, not a numeral`).toBe(null);
+      expect(row.pips.map((pip: any) => `${pip.col},${pip.row}`).sort(),
+        `face ${row.faceValue} pip cells`).toEqual(expectedPipCells(row.faceValue));
+    }
+  });
+
+  // The whole point: the layout is not capped at six. A d10 labelled 0..9
+  // walks the entire generated range, blank face included.
+  test('a d10 labelled 0..9 draws every generated pip count', async ({ page }) => {
+    const faces = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    await mountDie(page, { faceCount: 10, faces, dieSize: '240px' });
+    const { rows } = await faceContent(page, 10);
+    expect(rows.map((row: any) => row.faceValue).sort((a: number, b: number) => a - b)).toEqual(faces);
+    for (const row of rows) {
+      expect(row.pips.length, `face ${row.faceValue} dot count`).toBe(row.faceValue);
+      expect(row.pips.map((pip: any) => `${pip.col},${pip.row}`).sort(),
+        `face ${row.faceValue} pip cells`).toEqual(expectedPipCells(row.faceValue));
+    }
+  });
+
+  // (b) A d20 renders numerals. The threshold is a property of the DIE, not of
+  // the individual face: a die that cannot draw all of its values as pips
+  // draws all of them as numerals, so no die shows dots on one face and a
+  // number on the next.
+  test('a d20 renders numerals, not pips', async ({ page }) => {
+    await mountDie(page, {
+      faceCount: 20,
+      faces: Array.from({ length: 20 }, (_, i) => i + 1),
+      dieSize: '240px',
+    });
+    const { rows } = await faceContent(page, 20);
+    for (const row of rows) {
+      expect(row.pips.length, `face ${row.faceValue} draws no pips`).toBe(0);
+      expect(row.text?.text, `face ${row.faceValue} numeral`).toBe(String(row.faceValue));
+    }
+  });
+
+  test('the pip/numeral threshold is per die: 0..9 pips, one value past it numerals', async ({ page }) => {
+    await mountDie(page, { faceCount: 10, faces: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dieSize: '240px' });
+    const pipped = await faceContent(page, 10);
+    expect(pipped.rows.every((row: any) => row.text === null)).toBe(true);
+    expect(pipped.rows.reduce((sum: number, row: any) => sum + row.pips.length, 0)).toBe(45);
+
+    // Exactly one value moved past the lattice's capacity; the WHOLE die
+    // switches to numerals.
+    await mountDie(page, { faceCount: 10, faces: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], dieSize: '240px' });
+    const numeralled = await faceContent(page, 10);
+    expect(numeralled.rows.every((row: any) => row.pips.length === 0)).toBe(true);
+    expect(numeralled.rows.map((row: any) => row.text?.text).sort())
+      .toEqual(['1', '10', '2', '3', '4', '5', '6', '7', '8', '9']);
+  });
+
+  // (c) An author-supplied symbol set wins over both, is keyed by the face's
+  // NAME (which an enum will supply), and that name is what gets announced.
+  test('a supplied symbol set renders glyphs and announces the name', async ({ page }) => {
+    await mountDie(page, {
+      faceCount: 6,
+      faces: [1, 2, 3, 4, 5, 6],
+      selectedFace: 2,
+      dieSize: '240px',
+      faceNames: { 1: 'Sun', 2: 'Moon', 3: 'Star', 4: 'Cloud', 5: 'Rain', 6: 'Snow' },
+      symbols: { Sun: '☀', Moon: '☽', Star: '★', Cloud: '☁', Rain: '☂', Snow: '❄' },
+    });
+    const result = await faceContent(page, 6);
+    expect(result.rows.map((row: any) => row.text?.text))
+      .toEqual(['☀', '☽', '★', '☁', '☂', '❄']);
+    // The symbol set beats the pips these values would otherwise generate.
+    expect(result.rows.every((row: any) => row.pips.length === 0)).toBe(true);
+    expect(result.rows.map((row: any) => row.label))
+      .toEqual(['Sun', 'Moon', 'Star', 'Cloud', 'Rain', 'Snow']);
+    // selectedFace is an INDEX: index 2 carries value 3, named Star.
+    expect(result.ariaLabel).toBe('Die showing Star');
+    // ... and through the real accessibility tree, not just the attribute.
+    await expect(page.getByRole('button', { name: 'Die showing Star', exact: true }))
+      .toHaveCount(1);
+  });
+
+  // (d) The announced value matches what is DRAWN, in all three modes. This is
+  // also the assertion that catches an index/value mix-up: the fixtures below
+  // select a face whose index differs from its value.
+  test('the announced value matches what is shown, in all three content modes', async ({ page }) => {
+    // Pips: index 4 carries value 5, drawn as five dots.
+    await mountDie(page, { faceCount: 6, faces: [1, 2, 3, 4, 5, 6], selectedFace: 4, dieSize: '240px' });
+    const pips = await faceContent(page, 6);
+    const pipFace = pips.rows.find((row: any) => row.faceIndex === pips.selectedFace);
+    expect(pipFace.faceValue).toBe(5);
+    expect(pipFace.pips.length).toBe(5);
+    expect(pipFace.label).toBe('5');
+    expect(pips.ariaLabel).toBe('Die showing 5');
+
+    // Numerals: index 3 carries value 40.
+    await mountDie(page, { faceCount: 20, selectedFace: 3, dieSize: '240px' });
+    const numerals = await faceContent(page, 20);
+    const numeralFace = numerals.rows.find((row: any) => row.faceIndex === numerals.selectedFace);
+    expect(numeralFace.faceValue).toBe(40);
+    expect(numeralFace.text.text).toBe('40');
+    expect(numerals.ariaLabel).toBe('Die showing 40');
+
+    // Glyphs: index 1 carries value 2, named Moon, drawn as its glyph.
+    await mountDie(page, {
+      faceCount: 6,
+      faces: [1, 2, 3, 4, 5, 6],
+      selectedFace: 1,
+      dieSize: '240px',
+      faceNames: { 2: 'Moon' },
+      symbols: { Moon: '☽' },
+    });
+    const glyph = await faceContent(page, 6);
+    const glyphFace = glyph.rows.find((row: any) => row.faceIndex === glyph.selectedFace);
+    expect(glyphFace.text.text).toBe('☽');
+    expect(glyph.ariaLabel).toBe('Die showing Moon');
+    // A named face with NO glyph still announces something a player can tie
+    // to what is drawn: the numeral is on the facet, the name is the meaning.
+    const unnamed = glyph.rows.find((row: any) => row.faceIndex === 0);
+    expect(unnamed.label).toBe('1');
+  });
+
+  // Trap 1. Facets are not square and often not rectangles: a d7 side face is
+  // 2.37 x 0.87, a d12's are pentagons, a d20's triangles, a d10's kites. A
+  // pip grid or a numeral sized to the facet's BOUNDING BOX spills outside the
+  // polygon on every one of them. Nothing painted may leave its own facet.
+  for (const faceCount of [6, 7, 10, 12, 20, 4]) {
+    test(`d${faceCount} keeps every painted mark inside its own facet`, async ({ page }) => {
+      const faces = Array.from({ length: faceCount }, (_, i) => i + 1);
+      await mountDie(page, { faceCount, faces, dieSize: '240px' });
+      const { rows } = await faceContent(page, faceCount);
+      for (const row of rows) {
+        const marks: { what: string; points: [number, number][] }[] = [];
+        // The content square itself, not only the marks in it. Sizing it to
+        // the polygon but then CENTRING it on the facet's bounding box --
+        // which is not the centroid, for a triangle or a kite -- leaves the
+        // marks small enough to survive on their own; the square does not.
+        marks.push({
+          what: `content square ${row.content.width.toFixed(1)}px at (${row.content.cx.toFixed(1)}, ${row.content.cy.toFixed(1)})`,
+          points: [
+            [row.content.cx - row.content.width / 2, row.content.cy - row.content.height / 2],
+            [row.content.cx + row.content.width / 2, row.content.cy - row.content.height / 2],
+            [row.content.cx + row.content.width / 2, row.content.cy + row.content.height / 2],
+            [row.content.cx - row.content.width / 2, row.content.cy + row.content.height / 2],
+          ],
+        });
+        for (const pip of row.pips) {
+          // Eight points around the dot's rim: a disc, not a point.
+          const rim: [number, number][] = [];
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * 2 * Math.PI;
+            rim.push([pip.cx + Math.cos(angle) * pip.r, pip.cy + Math.sin(angle) * pip.r]);
+          }
+          marks.push({ what: `pip at (${pip.cx.toFixed(1)}, ${pip.cy.toFixed(1)}) r${pip.r.toFixed(1)}`, points: rim });
+        }
+        for (const box of [row.text, ...row.corners].filter(Boolean) as any[]) {
+          marks.push({
+            what: `text "${box.text}" ${box.width.toFixed(1)}x${box.height.toFixed(1)} at (${box.cx.toFixed(1)}, ${box.cy.toFixed(1)})`,
+            points: [
+              [box.cx - box.width / 2, box.cy - box.height / 2],
+              [box.cx + box.width / 2, box.cy - box.height / 2],
+              [box.cx + box.width / 2, box.cy + box.height / 2],
+              [box.cx - box.width / 2, box.cy + box.height / 2],
+            ],
+          });
+        }
+        expect(marks.length, `face ${row.faceValue} paints something`).toBeGreaterThan(0);
+        for (const mark of marks) {
+          const worst = Math.min(...mark.points.map((point) => insideBy(row.polygon, point)));
+          expect(worst,
+            `face ${row.faceValue} (${row.width.toFixed(1)}x${row.height.toFixed(1)}px box): ${mark.what}`)
+            .toBeGreaterThan(-0.5);
+        }
+      }
+    });
+  }
+
+  // Trap 2. A d4 and every odd-sided barrel are read from a face NOBODY CAN
+  // SEE -- the one they rest on -- so a die that paints its value only at each
+  // face's centre lands showing nothing. `die-faces.ts` reports the rule; a
+  // physical d4 answers it by printing the value at the CORNERS of the faces
+  // that are visible, and so does this.
+  //
+  // The check is entirely geometric: for every corner mark, the vertex it sits
+  // nearest must be the vertex whose "up" reading is the face whose value the
+  // mark carries. Printing a face's own value at its own corners fails it, and
+  // so does dropping the corner marks.
+  for (const faceCount of [4, 7]) {
+    test(`d${faceCount} is read from a hidden face, so it prints values at the corners`, async ({ page }) => {
+      const faces = Array.from({ length: faceCount }, (_, i) => (i + 1) * 10);
+      await mountDie(page, { faceCount, faces, dieSize: '240px' });
+      const result = await faceContent(page, faceCount);
+      expect(result.readingRule).not.toBe('up-face');
+      for (const row of result.rows) {
+        // One mark per vertex of the facet.
+        expect(row.corners.length,
+          `face ${row.faceValue} corner marks`).toBe(row.polygon.length);
+        const matched = row.corners.map((corner: any) => {
+          let nearest = -1;
+          let best = Infinity;
+          row.polygon.forEach((vertex: number[], i: number) => {
+            const d = Math.hypot(vertex[0] - corner.cx, vertex[1] - corner.cy);
+            if (d < best) { best = d; nearest = i; }
+          });
+          return { nearest, corner };
+        });
+        // Distinct vertices: one mark each, not three piled on one corner.
+        expect(new Set(matched.map((m: any) => m.nearest)).size).toBe(row.polygon.length);
+        for (const { nearest, corner } of matched) {
+          const expectedFace = row.vertexFaces[nearest];
+          expect(corner.faceIndex,
+            `face ${row.faceIndex} corner at vertex ${nearest} must carry the face read from that vertex`)
+            .toBe(expectedFace);
+          expect(corner.text).toBe(String(faces[expectedFace]));
+        }
+      }
+      // And the consequence that matters: the value of any face turns up on
+      // OTHER faces, where a player can see it while the die rests on it.
+      for (let index = 0; index < faceCount; index++) {
+        const elsewhere = result.rows.filter((row: any) =>
+          row.faceIndex !== index && row.corners.some((c: any) => c.faceIndex === index));
+        expect(elsewhere.length,
+          `face ${index}'s value must be readable from faces other than itself`).toBeGreaterThan(0);
+      }
+    });
+  }
+
+  // ... and a die that IS read from its up face gets no corner clutter.
+  test('a d6 is read from its up face, so it prints no corner values', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, faces: [1, 2, 3, 4, 5, 6], dieSize: '240px' });
+    const result = await faceContent(page, 6);
+    expect(result.readingRule).toBe('up-face');
+    expect(result.rows.every((row: any) => row.corners.length === 0)).toBe(true);
+  });
+
+  // A barrel's cap facets carry no value, so they must carry no content --
+  // otherwise a d7 shows fourteen stray numerals on its cones.
+  test('cap facets carry no content', async ({ page }) => {
+    await mountDie(page, { faceCount: 7, dieSize: '240px' });
+    const result = await faceContent(page, 7);
+    expect(result.capsWithContent).toBe(0);
   });
 });

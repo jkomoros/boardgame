@@ -20,6 +20,7 @@ import {
   type DieGeometry,
   type Vec3,
 } from '../motion/die-geometry.js';
+import { resolveReadingRule } from '../motion/die-faces.js';
 
 /**
  * Drawing a die as a solid.
@@ -96,11 +97,169 @@ const COMPANION_VIEW_LIMIT = 75;
  */
 const MAX_COMPANION_TILT = 30;
 
-/** Pip diameter as a fraction of the facet's shorter side (was 7px on 50px). */
-const PIP_FRACTION = 0.14;
+/**
+ * Painting a face.
+ *
+ * Content resolves in one order, per face: an author-supplied SYMBOL SET
+ * first, then generated PIPS, then a NUMERAL. Nothing here enumerates a
+ * layout: the die used to stop at six because its pip patterns were six
+ * hard-coded CSS classes, and the replacement computes the pattern from the
+ * value on a 3x3 lattice.
+ *
+ * Everything is laid out inside a facet's CONTENT SQUARE -- the largest
+ * axis-aligned square that fits inside that facet's own polygon, shrunk by
+ * `CONTENT_MARGIN` -- and never inside the facet's bounding box. The
+ * distinction is the whole game on a solid whose facets are not squares: a d7
+ * side face is 2.37 by 0.87, so a pip grid sized to the box smears the dots
+ * along the barrel, and a numeral sized to the box hangs off both ends. Sized
+ * to the inscribed square instead, the same code draws a legible face on a
+ * cube's square, a d20's triangle, a d12's pentagon, a d10's kite and a
+ * barrel's long rectangle.
+ */
 
-/** Numeral height as a fraction of the facet's shorter side. */
-const GLYPH_FRACTION = 0.42;
+/** A pip's cell on the 3x3 lattice: [col, row], each 0..2, +row downward. */
+type PipCell = readonly [number, number];
+
+/**
+ * The lattice cells a pip layout is built from, IN THE ORDER THEY ARE ADDED,
+ * as opposite pairs. A layout for `n` is the centre cell when `n` is odd
+ * followed by the first `floor(n / 2)` pairs -- which reproduces every
+ * familiar die and domino face from 0 to 9 without naming any of them:
+ *
+ *   0 blank; 1 centre; 2 a diagonal; 3 diagonal + centre; 4 the corners;
+ *   5 corners + centre; 6 corners + the side midpoints; 7 six + centre;
+ *   8 six + top and bottom midpoints; 9 the full lattice.
+ */
+const PIP_PAIRS: readonly (readonly [PipCell, PipCell])[] = [
+  [[0, 0], [2, 2]],
+  [[2, 0], [0, 2]],
+  [[0, 1], [2, 1]],
+  [[1, 0], [1, 2]],
+];
+
+const PIP_CENTRE: PipCell = [1, 1];
+
+/**
+ * The largest value still drawn as pips.
+ *
+ * NINE: the 3x3 lattice that physical dice and dominoes use holds exactly
+ * nine, and every count up to it has a canonical symmetric pattern on it. A
+ * tenth pip needs a fourth row, which both breaks those familiar patterns and
+ * shrinks each dot below what reads at the size a facet actually gets (a d10's
+ * kite gives its content square about a third of the die's width). Past nine
+ * a numeral is smaller to draw AND faster to read — nobody counts ten dots at
+ * a glance — so the die switches over.
+ */
+const MAX_PIP_VALUE = 9;
+
+/** Pip diameter as a fraction of the content square's side (one lattice cell is a third). */
+const PIP_DIAMETER = 0.2;
+
+/** Numeral/glyph height as a fraction of the content square's side. */
+const GLYPH_HEIGHT = 0.66;
+
+/**
+ * How wide the text may run, as a multiple of the content square, divided by
+ * its character count: a two-digit numeral is drawn smaller than a one-digit
+ * one so that "20" fits the same square "5" does.
+ */
+const GLYPH_WIDTH_BUDGET = 1.6;
+
+/** Corner marks are drawn a little taller in their (smaller) square. */
+const CORNER_GLYPH_HEIGHT = 0.78;
+
+/**
+ * The content square is this fraction of the largest square that fits inside
+ * the polygon, so the marks have air around them rather than touching the
+ * facet's edges. A cube's facet IS its own inscribed square, so this is also
+ * how much of a d6's face the pips occupy: about what the flat die they
+ * replace used (which was 0.63 of a reel face, the number `#inner.reel .face`
+ * still sets so the fallback keeps its original look).
+ */
+const CONTENT_MARGIN = 0.72;
+
+/**
+ * A corner mark's square sits this far along the line from its vertex to the
+ * facet's centroid. Scanned rather than fixed: the mark wants to be as close
+ * to the corner as it can while still being big enough to read, and how far
+ * in that is depends on how sharp the corner is (a d4's 60-degree triangle
+ * corner needs more inset than a barrel face's right angle).
+ */
+const CORNER_INSET_MIN = 0.18;
+const CORNER_INSET_MAX = 0.45;
+const CORNER_INSET_STEPS = 12;
+
+/** A corner mark never grows past this fraction of the centre content square. */
+const CORNER_MAX_SIZE = 0.4;
+
+/** The lattice cells for a pip count, computed rather than enumerated. */
+function pipCells(count: number): readonly PipCell[] {
+  const cells: PipCell[] = [];
+  if (count % 2 === 1) cells.push(PIP_CENTRE);
+  for (let index = 0; index < Math.floor(count / 2); index++) {
+    cells.push(...PIP_PAIRS[index]);
+  }
+  return cells;
+}
+
+/** True for the values `pipCells` has a canonical lattice pattern for. */
+function isPipValue(value: number): boolean {
+  return Number.isInteger(value) && value >= 0 && value <= MAX_PIP_VALUE;
+}
+
+/**
+ * Font size for a mark, as a fraction of the square it is drawn in: capped by
+ * the square's height, and by a width budget that shrinks with the text's
+ * length so a three-character label still fits.
+ */
+function glyphScale(text: string, heightFraction: number): number {
+  return Math.min(heightFraction, GLYPH_WIDTH_BUDGET / Math.max(1, text.length));
+}
+
+/** A point in a facet's own plane; `a` is along the box's local x, `b` its y. */
+interface PlanePoint {
+  readonly a: number;
+  readonly b: number;
+}
+
+/**
+ * Half the side of the largest axis-aligned square centred at `(cx, cy)` that
+ * fits inside the convex polygon `points`, or 0 when that point is outside it.
+ *
+ * For each edge with inward unit normal `n` at signed distance `d` from the
+ * centre, a square of half-side `s` clears the edge exactly while
+ * `s * (|n.a| + |n.b|) <= d` -- its farthest corner in the direction of `-n`.
+ * Every facet `die-geometry.ts` produces is convex, so the minimum over the
+ * edges is the answer.
+ */
+function inscribedSquareHalfSide(points: readonly PlanePoint[], cx: number, cy: number): number {
+  let twiceArea = 0;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const q = points[(i + 1) % points.length];
+    twiceArea += p.a * q.b - q.a * p.b;
+  }
+  // Winding is whatever the projection made of it; take it from the polygon
+  // rather than assuming, so the normals below point inward either way.
+  const sign = twiceArea >= 0 ? 1 : -1;
+  let best = Infinity;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const q = points[(i + 1) % points.length];
+    const ea = q.a - p.a;
+    const eb = q.b - p.b;
+    const length = Math.hypot(ea, eb);
+    if (!(length > 0)) continue;
+    // Rotating the edge direction a quarter turn counter-clockwise points to
+    // its left, which is the interior for a counter-clockwise winding.
+    const na = (-eb / length) * sign;
+    const nb = (ea / length) * sign;
+    const distance = na * (cx - p.a) + nb * (cy - p.b);
+    if (!(distance > 0)) return 0;
+    best = Math.min(best, distance / (Math.abs(na) + Math.abs(nb)));
+  }
+  return Number.isFinite(best) ? best : 0;
+}
 
 /** Body frame (+Y up) to CSS frame (+Y down): a 180-degree turn about X. */
 function toScreen(v: Vec3): Vec3 {
@@ -131,6 +290,24 @@ function facetBasis(w: Vec3): { u: Vec3; v: Vec3 } {
   return { u: unitU, v: cross(w, unitU) };
 }
 
+/**
+ * One value printed at one corner of one facet, as the box it goes in.
+ *
+ * Everything is a PERCENTAGE of the facet's own box on purpose: the mark sets
+ * a `font-size` on the text inside it, and an `em` length on the same element
+ * would then resolve against that new font-size instead of the die's size.
+ */
+interface DieCornerMark {
+  /** Which face's value this corner carries. Index into `faces`. */
+  readonly faceIndex: number;
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+  /** The square's side in `em`, for sizing the text inside it. */
+  readonly size: number;
+}
+
 /** One facet of the solid, as the CSS needed to draw it. */
 interface DieFacet {
   /** Stable key: index into `[...faces, ...capFaces]`. */
@@ -138,6 +315,8 @@ interface DieFacet {
   /** Index into `faces` (and so into the `faces` property), or -1 for a cap. */
   readonly faceIndex: number;
   readonly style: string;
+  /** Empty unless the die is read from a face nobody can see. */
+  readonly corners: readonly DieCornerMark[];
 }
 
 /**
@@ -156,8 +335,18 @@ interface DieFacet {
  * carries the bounding-box offset as well. `clip-path` then cuts the box down
  * to the actual polygon, which is what makes triangles, kites, pentagons and
  * rectangles one code path.
+ *
+ * It also derives where CONTENT goes on that facet, in the same one routine
+ * and from the same polygon: the content square (`--content-left` and
+ * friends), and one corner mark per vertex when `cornerFaces` says this die is
+ * printed at its corners. Nothing downstream of here knows what shape it is
+ * drawing on.
  */
-function facetStyle(face: DieFace, unitsToEm: number): string {
+function facetStyle(
+  face: DieFace,
+  unitsToEm: number,
+  cornerFaces: readonly number[] | null,
+): { style: string; corners: readonly DieCornerMark[] } {
   const w = normalize(toScreen(face.normal));
   const { u, v } = facetBasis(w);
   const centre = scaleVec(toScreen(face.centroid), unitsToEm);
@@ -181,8 +370,42 @@ function facetStyle(face: DieFace, unitsToEm: number): string {
   const clip = points
     .map((p) => `${num(((p.a - minA) / width) * 100)}% ${num(((p.b - minB) / height) * 100)}%`)
     .join(', ');
-  const shorter = Math.min(width, height);
-  return [
+
+  // The content square: the biggest square that fits inside THIS polygon,
+  // centred on its centroid (which is the origin of the (a, b) frame), with a
+  // margin. Not the bounding box: on a d7's 2.37-by-0.87 side face the
+  // bounding box is nearly three times as long as it is wide, and a pip grid
+  // or a numeral sized to it smears along the barrel.
+  const contentSize = 2 * inscribedSquareHalfSide(points, 0, 0) * CONTENT_MARGIN;
+  // Percentages of the facet's box, so nothing downstream has to know the
+  // facet's size and no `em` is at the mercy of a font-size set on the mark.
+  const asBox = (a: number, b: number, size: number) => ({
+    left: ((a - boxA - size / 2) / width + 0.5) * 100,
+    top: ((b - boxB - size / 2) / height + 0.5) * 100,
+    width: (size / width) * 100,
+    height: (size / height) * 100,
+  });
+  const contentBox = asBox(0, 0, contentSize);
+
+  const corners: DieCornerMark[] = cornerFaces === null ? [] : points.map((point, index) => {
+    // Walk in from the vertex towards the centroid until the square that fits
+    // there is big enough, and stop there: as near the corner as it can be.
+    const cap = contentSize * CORNER_MAX_SIZE;
+    let best = { size: 0, a: point.a, b: point.b };
+    for (let step = 0; step <= CORNER_INSET_STEPS; step++) {
+      const t = CORNER_INSET_MIN
+        + ((CORNER_INSET_MAX - CORNER_INSET_MIN) * step) / CORNER_INSET_STEPS;
+      const a = point.a * (1 - t);
+      const b = point.b * (1 - t);
+      const size = 2 * inscribedSquareHalfSide(points, a, b) * CONTENT_MARGIN;
+      if (size > best.size) best = { size, a, b };
+      if (best.size >= cap) break;
+    }
+    const size = Math.min(best.size, cap);
+    return { faceIndex: cornerFaces[index], size, ...asBox(best.a, best.b, size) };
+  });
+
+  const style = [
     `width:${num(width)}em`,
     `height:${num(height)}em`,
     `margin-left:${num(-width / 2)}em`,
@@ -190,14 +413,19 @@ function facetStyle(face: DieFace, unitsToEm: number): string {
     `transform:translate3d(${num(t[0])}em,${num(t[1])}em,${num(t[2])}em) `
       + `matrix3d(${[u, v, w].map((axis) => `${num(axis[0])},${num(axis[1])},${num(axis[2])},0`).join(',')},0,0,0,1)`,
     `clip-path:polygon(${clip})`,
-    // Both are `em` against the facet's INHERITED font-size (the die's size,
-    // set once on `#stage`). Nothing may set `font-size` on the facet itself:
-    // its own `width`/`height` are in `em` too, and those resolve against the
-    // element's own font-size, so a glyph size set here would resize the
-    // facet. The numeral therefore sizes a child span instead.
-    `--pip-size:${num(shorter * PIP_FRACTION)}em`,
-    `--glyph-size:${num(shorter * GLYPH_FRACTION)}em`,
+    `--content-left:${num(contentBox.left)}%`,
+    `--content-top:${num(contentBox.top)}%`,
+    `--content-width:${num(contentBox.width)}%`,
+    `--content-height:${num(contentBox.height)}%`,
+    // The one length here that is an `em`, because the marks inside the
+    // content square size themselves against it. It resolves against the
+    // facet's INHERITED font-size (the die's size, set once on `#stage`).
+    // Nothing may set `font-size` on the facet itself: its own width/height
+    // are `em` too and would resize themselves, which is why the text sizes a
+    // child span instead.
+    `--content-size:${num(contentSize)}em`,
   ].join(';');
+  return { style, corners };
 }
 
 /** An axis-angle turn, in the degrees CSS wants. */
@@ -289,10 +517,37 @@ function presentationTransform(geometry: DieGeometry, presented: number): string
   return turns.length ? turns.map(rotate3d).join(' ') : 'none';
 }
 
+/**
+ * Which face a die is READ from when `up` is its topmost direction, for a
+ * solid that is not read from an up face at all — the one it is resting on,
+ * i.e. the one whose normal is most opposed to `up`. `die-faces.ts` uses the
+ * same rule for both of its non-`'up-face'` conventions, so this covers a d4
+ * (read from the apex vertex) and an odd-sided barrel (read from the edge
+ * pointing at the ceiling) with no case analysis.
+ */
+function faceReadFrom(geometry: DieGeometry, up: Vec3): number {
+  let best = 0;
+  let bestScore = Infinity;
+  for (let index = 0; index < geometry.faces.length; index++) {
+    const score = dot(geometry.faces[index].normal, up);
+    if (score < bestScore) {
+      bestScore = score;
+      best = index;
+    }
+  }
+  return best;
+}
+
 /** The full facet list for a face count, plus the geometry it came from. */
 interface DieSolid {
   readonly geometry: DieGeometry;
   readonly facets: readonly DieFacet[];
+  /**
+   * True when this solid presents the face it RESTS ON rather than one a
+   * player can see — a d4 (`'top-vertex'`) or any odd-sided barrel
+   * (`'down-face'`). Such a die prints its values at its corners.
+   */
+  readonly cornerPrinted: boolean;
 }
 
 // Building a solid runs a convex hull for the closed-form shapes, so it is
@@ -312,13 +567,24 @@ function dieSolid(faceCount: number): DieSolid | null {
     const geometry = dieGeometry(faceCount);
     const unitsToEm = 0.5 / geometry.circumradius;
     const surface = [...geometry.faces, ...geometry.capFaces];
+    // A d4 and every odd-sided barrel are read from the face they REST ON, so
+    // painting the value only at each face's centre lands the result face-down
+    // against the table. `die-faces.ts` owns which solids those are; a real d4
+    // answers it by printing the value at the CORNERS of the faces that stay
+    // visible, and each of those corners carries the value that is read when
+    // that corner is the top of the die.
+    const cornerPrinted = resolveReadingRule(geometry) !== 'up-face';
     solid = {
       geometry,
-      facets: surface.map((face, key) => ({
-        key,
-        faceIndex: key < geometry.faces.length ? key : -1,
-        style: facetStyle(face, unitsToEm),
-      })),
+      cornerPrinted,
+      facets: surface.map((face, key) => {
+        const readable = key < geometry.faces.length;
+        const cornerFaces = cornerPrinted && readable
+          ? face.polygon.map((vertex) => faceReadFrom(geometry, vertex))
+          : null;
+        const { style, corners } = facetStyle(face, unitsToEm, cornerFaces);
+        return { key, faceIndex: readable ? key : -1, style, corners };
+      }),
     };
   } catch (error) {
     // A face count with no solid (fewer than 3 faces, or a shape the geometry
@@ -360,7 +626,6 @@ class BoardgameDie extends BoardgameAnimatableItem {
          * measures against the die's size.
          */
         --reel-step: var(--effective-die-size);
-        --pip-size: 7px;
       }
 
       #scaler {
@@ -501,97 +766,92 @@ class BoardgameDie extends BoardgameAnimatableItem {
           linear-gradient(135deg, #FFFDF8 0%, #EFE9DE 100%);
       }
 
-      .facet > span {
-        font-size: var(--glyph-size, 1em);
-        line-height: 1;
-      }
-
+      .facet,
       .face {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
         font-family: var(--md-sys-typescale-body-large-font, 'Source Sans 3', sans-serif);
         font-weight: 500;
+        color: var(--md-sys-color-on-surface, #1C1810);
       }
 
+      /*
+       * A reel face is one die-size square, so its content square is just a
+       * centred fraction of it. 63% reproduces the flat die's original pip
+       * geometry: on a 50px face a dot lands 10.5px off centre, exactly where
+       * it used to, and measures 6.3px across where it used to be 7.
+       */
       #inner.reel .face {
         height: var(--effective-die-size);
         width: var(--effective-die-size);
         position: relative;
-        font-size: 20px;
-        line-height: 28px;
-      }
-
-      .pip {
-        background-color: var(--md-sys-color-on-surface, #1C1810);
-        height: var(--pip-size);
-        width: var(--pip-size);
-        border-radius: calc(var(--pip-size) / 2);
-        position: absolute;
-        display: none;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4),
-                    0 1px 0 rgba(255, 255, 255, 0.2);
-      }
-
-      .face.one span, .face.two span, .face.three span, .face.four span, .face.five span, .face.six span {
-        display: none;
+        --content-left: 18.5%;
+        --content-top: 18.5%;
+        --content-width: 63%;
+        --content-height: 63%;
+        --content-size: calc(var(--effective-die-size) * 0.63);
       }
 
       /*
-       * Pips are placed relative to THEIR OWN FACE (50% of it), not to the
-       * die's size. In the reel a face is exactly one die-size square, so this
-       * is bit-for-bit the old placement; on a solid a facet is whatever shape
-       * the geometry says, and a d6's facet is smaller than the box the die
-       * is laid out in. Task 9 replaces this fixed one-to-six layout with a
-       * computed one; until then --pip-size is scaled per facet.
+       * Every mark a face carries lives inside its CONTENT SQUARE, whose box
+       * the facet supplies as four percentages of its own box plus the square's
+       * side in em (--content-size) for the marks to size themselves against.
+       * The square is the largest that fits inside the facet's polygon, so a
+       * mark that fits the square cannot leave the facet -- which is what makes
+       * one layout work on a cube's square, a d20's triangle, a d10's kite and
+       * a d7's 2.7:1 barrel face alike.
        */
-      .pip.mid {
-        top: calc(50% - var(--pip-size) / 2);
+      .content {
+        position: absolute;
+        left: var(--content-left);
+        top: var(--content-top);
+        width: var(--content-width);
+        height: var(--content-height);
+        --pip-size: calc(var(--content-size) * ${PIP_DIAMETER});
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
       }
 
-      .pip.center {
-        left: calc(50% - var(--pip-size) / 2);
+      /*
+       * Text sizes itself in em against the facet's font-size (the die's size)
+       * and is set per mark, because it depends on both the square it is in
+       * and how many characters it has to fit.
+       */
+      .content > span,
+      .corner > span {
+        line-height: 1;
+        white-space: nowrap;
       }
 
-      .pip.top {
-        top: calc(50% - var(--pip-size) * 1.5 - var(--pip-size) / 2);
+      /*
+       * The corner marks of a die that is read from a face nobody can see.
+       * Position and size are percentages of the FACET's box, never em: the
+       * span inside sets a font-size, and an em on the same element would then
+       * resolve against that instead of the die's size.
+       */
+      .corner {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        opacity: 0.85;
       }
 
-      .pip.left {
-        left: calc(50% - var(--pip-size) * 1.5 - var(--pip-size) / 2);
-      }
-
-      .pip.bottom {
-        top: calc(50% + var(--pip-size) * 1.5 - var(--pip-size) / 2);
-      }
-
-      .pip.right {
-        left: calc(50% + var(--pip-size) * 1.5 - var(--pip-size) / 2);
-      }
-
-      .face.one .pip.mid.center {
-        display: block;
-      }
-
-      .face.two .pip.top.right, .face.two .pip.bottom.left {
-        display: block;
-      }
-
-      .face.three .pip.top.right, .face.three .pip.mid.center, .face.three .pip.bottom.left {
-        display: block;
-      }
-
-      .face.four .pip.top.right, .face.four .pip.top.left, .face.four .pip.bottom.left, .face.four .pip.bottom.right {
-        display: block;
-      }
-
-      .face.five .pip.top.right, .face.five .pip.top.left, .face.five .pip.bottom.left, .face.five .pip.bottom.right, .face.five .pip.mid.center {
-        display: block;
-      }
-
-      .face.six .pip.top.right, .face.six .pip.top.left, .face.six .pip.bottom.left, .face.six .pip.bottom.right, .face.six .pip.mid.left, .face.six .pip.mid.right {
-        display: block;
+      /*
+       * Pips are placed on the 3x3 lattice of the content square: cell centres
+       * at a sixth, a half and five sixths of it. The cells a value occupies
+       * are computed (see pipCells), not enumerated in CSS -- which is what
+       * used to cap the die at six faces.
+       */
+      .pip {
+        background-color: currentColor;
+        height: var(--pip-size);
+        width: var(--pip-size);
+        border-radius: 50%;
+        position: absolute;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4),
+                    0 1px 0 rgba(255, 255, 255, 0.2);
       }
     `
   ];
@@ -607,6 +867,29 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
   @property({ type: Number })
   selectedFace = 0;
+
+  /**
+   * Face VALUE to the name that face carries — `{ 3: 'Star' }`.
+   *
+   * The seam an enum plugs into. The framework's `enum` package already sends
+   * its values to the client, so a later change supplies this from the enum a
+   * die's faces are typed with and nothing else here moves: a name selects the
+   * glyph out of `symbols`, and it is what the die announces. With no names
+   * attached, a face's name is its own value written out, so a symbol set can
+   * be keyed by plain integers and still work.
+   */
+  @property({ type: Object })
+  faceNames: Record<string, string> | null = null;
+
+  /**
+   * Face NAME to the glyph drawn for it — `{ Star: '★' }`.
+   *
+   * The author-supplied symbol set, and the first thing face content resolves
+   * to: a face with a glyph draws the glyph whatever its value would otherwise
+   * have generated.
+   */
+  @property({ type: Object })
+  symbols: Record<string, string> | null = null;
 
   @property({ type: Boolean })
   disabled = false;
@@ -725,32 +1008,6 @@ class BoardgameDie extends BoardgameAnimatableItem {
     this.value = newValue.DynamicValues.Value;
   }
 
-  private _classForFace(face: number): string {
-    let str = '';
-    switch (face) {
-      case 1:
-        str = 'one';
-        break;
-      case 2:
-        str = 'two';
-        break;
-      case 3:
-        str = 'three';
-        break;
-      case 4:
-        str = 'four';
-        break;
-      case 5:
-        str = 'five';
-        break;
-      case 6:
-        str = 'six';
-        break;
-    }
-
-    return 'face ' + str;
-  }
-
   private _classes(disabled: boolean, solid: boolean): string {
     const pieces: string[] = [];
     pieces.push(disabled ? 'disabled' : 'interactive');
@@ -783,30 +1040,124 @@ class BoardgameDie extends BoardgameAnimatableItem {
     return Number.isFinite(index) && index >= 0 && index < faceCount ? index : 0;
   }
 
-  // The face's own content. Values one to six draw pips (the .face.one ...
-  // .face.six CSS below hides the numeral for exactly those); anything else
-  // shows the numeral. Task 9 replaces this with a computed pip layout that
-  // is not capped at six.
-  private _faceContent(value: number) {
-    return html`
-      <span>${value}</span>
-      <div class="pip mid center"></div>
-      <div class="pip top left"></div>
-      <div class="pip top right"></div>
-      <div class="pip bottom left"></div>
-      <div class="pip bottom right"></div>
-      <div class="pip mid left"></div>
-      <div class="pip mid right"></div>
-    `;
+  /**
+   * The name a face carries: the enum's string name once one is attached, and
+   * otherwise the value written out. Also the die's accessible label for that
+   * face, which is why it is one function and not two.
+   */
+  private _nameForValue(value: number): string {
+    const names = this.faceNames;
+    if (names && typeof names === 'object') {
+      const name = names[String(value)];
+      if (typeof name === 'string' && name.length > 0) return name;
+    }
+    return String(value);
+  }
+
+  /** The author-supplied glyph for a face name, or null when there is none. */
+  private _glyphForName(name: string): string | null {
+    const symbols = this.symbols;
+    if (!symbols || typeof symbols !== 'object') return null;
+    const glyph = symbols[name];
+    return typeof glyph === 'string' && glyph.length > 0 ? glyph : null;
+  }
+
+  /**
+   * Whether THIS DIE draws its unlettered faces as pips.
+   *
+   * A property of the whole die, not of each face: a die that mixed dots on
+   * one face with a numeral on the next would read as two different dice, so
+   * one value past the lattice's capacity (see `MAX_PIP_VALUE`) moves all of
+   * them to numerals. That is what makes a d6 pipped and a d20 numbered
+   * without either being named anywhere.
+   *
+   * Corner-printed dice (a d4, an odd barrel) are always numbered: their value
+   * has to fit in a small square at a corner, where dots do not read, and a
+   * face carrying pips in the middle and numerals at its corners reads as a
+   * mistake.
+   */
+  private _usesPips(solid: DieSolid | null): boolean {
+    if (solid?.cornerPrinted) return false;
+    const faces = Array.isArray(this.faces) ? this.faces : [];
+    return faces.every((value) =>
+      isPipValue(value) || this._glyphForName(this._nameForValue(value)) !== null);
+  }
+
+  /**
+   * A face's content, resolved in the one order this component documents:
+   * author symbol set, then generated pips, then a numeral. `label` is what
+   * the die ANNOUNCES for that face, and it always describes what is actually
+   * drawn — which is the assertion that catches drawing one face's value while
+   * announcing another's.
+   */
+  private _resolveFace(value: number, usePips: boolean): {
+    kind: 'symbol' | 'pips' | 'numeral';
+    text: string;
+    cells: readonly PipCell[];
+    label: string;
+  } {
+    const name = this._nameForValue(value);
+    const glyph = this._glyphForName(name);
+    if (glyph !== null) {
+      return { kind: 'symbol', text: glyph, cells: [], label: name };
+    }
+    // A named face with no glyph draws its number and announces both: the
+    // number is what is on the facet, the name is what it means.
+    const label = name === String(value) ? String(value) : `${name} (${value})`;
+    if (usePips && isPipValue(value)) {
+      return { kind: 'pips', text: '', cells: pipCells(value), label };
+    }
+    return { kind: 'numeral', text: String(value), cells: [], label };
+  }
+
+  /** The content square of one face: its dots, or its glyph/numeral. */
+  private _faceContent(value: number, usePips: boolean) {
+    const content = this._resolveFace(value, usePips);
+    if (content.kind === 'pips') {
+      return html`<div class="content">
+        ${content.cells.map(([col, row]) => html`<div
+          class="pip"
+          style="left:calc(${num(((col + 0.5) / 3) * 100)}% - var(--pip-size) / 2);top:calc(${num(((row + 0.5) / 3) * 100)}% - var(--pip-size) / 2)"
+        ></div>`)}
+      </div>`;
+    }
+    return html`<div class="content"><span
+      style="font-size:calc(var(--content-size) * ${num(glyphScale(content.text, GLYPH_HEIGHT))})"
+    >${content.text}</span></div>`;
+  }
+
+  /**
+   * The values printed at a facet's corners, for a die read from a face nobody
+   * can see. Each mark carries the value that would be READ if that corner
+   * were the top of the die — so a d4 resting on face 2 shows a 2 at the apex
+   * of the three faces still facing the player. Always a single glyph or
+   * numeral, never dots: the square at a corner is a third of the face's.
+   */
+  private _cornerContent(facet: DieFacet) {
+    return facet.corners.map((corner) => {
+      const value = this.faces[corner.faceIndex];
+      const content = this._resolveFace(value, false);
+      return html`<div
+        class="corner"
+        data-corner-face-index="${corner.faceIndex}"
+        style="left:${num(corner.left)}%;top:${num(corner.top)}%;width:${num(corner.width)}%;height:${num(corner.height)}%"
+      ><span
+        style="font-size:${num(corner.size * glyphScale(content.text, CORNER_GLYPH_HEIGHT))}em"
+      >${content.text}</span></div>`;
+    });
   }
 
   // The degenerate fallback: the pre-3D vertical reel of flat faces, scrolled
-  // to the selected one by #inner's translateY.
+  // to the selected one by #inner's translateY. It has no geometry, so no
+  // corner marks -- and nothing with fewer than three faces is read from a
+  // face it rests on anyway.
   private _renderReel() {
+    const usePips = this._usesPips(null);
     return html`
       <div id="inner" class="reel">
         ${repeat(this.faces, (face) => face, (face) => html`
-          <div class="${this._classForFace(face)}">${this._faceContent(face)}</div>
+          <div class="face" data-face-value="${face}" data-face-label="${this._resolveFace(face, usePips).label}"
+            >${this._faceContent(face, usePips)}</div>
         `)}
       </div>
     `;
@@ -815,6 +1166,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _renderSolid(solid: DieSolid) {
     const presented = this._presentedFaceIndex(solid.geometry.faceCount);
     const orient = presentationTransform(solid.geometry, presented);
+    const usePips = this._usesPips(solid);
     return html`
       <div id="stage">
         <div id="inner" class="solid">
@@ -822,15 +1174,29 @@ class BoardgameDie extends BoardgameAnimatableItem {
             ${repeat(solid.facets, (facet) => facet.key, (facet) => facet.faceIndex < 0
               ? html`<div class="facet cap" style="${facet.style}"></div>`
               : html`<div
-                    class="facet ${this._classForFace(this.faces[facet.faceIndex])}"
+                    class="facet"
                     style="${facet.style}"
                     data-face-index="${facet.faceIndex}"
                     data-face-value="${this.faces[facet.faceIndex]}"
-                  >${this._faceContent(this.faces[facet.faceIndex])}</div>`)}
+                    data-face-label="${this._resolveFace(this.faces[facet.faceIndex], usePips).label}"
+                  >${this._faceContent(this.faces[facet.faceIndex], usePips)}${this._cornerContent(facet)}</div>`)}
           </div>
         </div>
       </div>
     `;
+  }
+
+  /**
+   * What the die announces: the label of the face it is presenting, so a
+   * screen reader is told the same thing the facet draws. Absent entirely for
+   * a die with no faces, which is what an unconfigured `<boardgame-die>` is.
+   */
+  private _ariaLabel(interactive: boolean, solid: DieSolid | null): string {
+    const base = interactive ? 'Roll die' : 'Die';
+    const faces = Array.isArray(this.faces) ? this.faces : [];
+    if (faces.length === 0) return base;
+    const presented = this._presentedFaceIndex(faces.length);
+    return `${base} showing ${this._resolveFace(faces[presented], this._usesPips(solid)).label}`;
   }
 
   override render() {
@@ -850,7 +1216,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
         <button
           id="main"
           type="button"
-          aria-label=${interactive ? 'Roll die' : 'Die'}
+          aria-label=${this._ariaLabel(interactive, solid)}
           aria-describedby=${reason ? 'action-status' : ''}
           aria-busy=${String(bound && action.submission.kind === 'pending')}
           ?disabled=${effectiveDisabled}
