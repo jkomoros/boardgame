@@ -17,9 +17,13 @@ treatments in the catalog remain reachable later.
 - Author-defined containers (invisible bounds, rendered trays) — designed
   for, not implemented.
 - Lift-to-foreground staging — explicitly the cliff; its own later slice.
-- Symbol faces and polyhedral shapes beyond cubes — these need a Go-side
-  model change (`dice.Value` is `Faces []int`, carrying no shape, symbol or
-  colour) and are out of scope here.
+- Rendering polyhedra other than the cube — the architecture is
+  shape-parameterized from the start (see "Generalizing to other dice"), but
+  only the cube's face geometry ships in this slice.
+- Symbol faces — the client can already render arbitrary face content, but
+  the server model cannot *say* a face is a symbol (`dice.Value` is
+  `Faces []int`, carrying no shape, symbol or colour). That is a Go-side
+  change and is out of scope here.
 - Multi-die choreography beyond simultaneous rolls.
 
 ## Why only three axes are new
@@ -157,6 +161,65 @@ today's reel rather than throwing. Deliberately *not* following the
 `unknown stack layout` throw precedent: graceful degradation is what makes
 "exotic is possible" affordable, and a d20 rendering as a numeral reel is
 strictly better than an exception.
+
+## Generalizing to other dice
+
+The point of the architecture is that a d20 is *data*, not a rewrite. Three
+things have to be shape-parameterized from the start, or they calcify around
+the cube:
+
+**One geometry table drives everything.** A die shape is described once as
+`{ vertices, faces: [{ normal, centroid, polygon }], inertiaTensor }`. Both
+the simulator and the renderer consume that same table — the CSS face
+transforms are *derived* from each face's normal and centroid rather than
+hand-authored per shape. Adding a d8 means adding a geometry entry, not
+touching either subsystem.
+
+**Vertex-based contact resolution.** The simulator must not special-case box
+faces. Detecting penetration per *vertex* against the container planes and
+applying the impulse at that contact point is both simple and shape-agnostic:
+the identical code tumbles a cube, an octahedron and an icosahedron once the
+vertex list and inertia tensor change. Writing it box-specific first is the
+one decision that would make d20 a rewrite, so it is ruled out now even
+though this slice only ships a cube.
+
+**Relabeling holds for every standard die.** d4/d6/d8/d12/d20 are Platonic
+solids and the d10 is a pentagonal trapezohedron — all face-transitive, so
+any face can carry any value and the "simulate once, paint the wanted value
+on whichever face lands up" solution is valid for all of them. Numbering
+conventions loosen as face count rises (the d6's opposite-faces-sum-to-7 rule
+has no universal d20 analogue), which makes the constraint solver *easier*,
+not harder. One genuine quirk: a d4 rests on a face and is conventionally
+read from the top vertex, so its "presented value" lookup differs from every
+other die and needs an explicit per-shape reading rule rather than a shared
+"which normal points up" assumption.
+
+**Rendering cost is per-shape but bounded.** A cube's faces are rectangles;
+a d12's are pentagons and a d20's are triangles, cut with `clip-path`. That
+is real per-shape work, but it is confined to the geometry table and does not
+touch the sim, the baking, the gate integration or the harness.
+
+## Face content: pips, numerals, and beyond
+
+Faces are DOM elements, so their content is free-form and this dimension is
+largely already solved:
+
+- **Numerals already work today.** The numeral `<span>` is suppressed by CSS
+  only for the classes `one`…`six`, so any other face value already renders
+  as a number — which is exactly what a d20 wants (nobody prints 20 pips).
+- **Pips** stay the default where they read well: a six-or-fewer-sided die
+  with consecutive values from 1.
+- **Automatic selection, author override.** Pips for the classic d6 case,
+  numerals otherwise, with an explicit knob for authors who want numerals on
+  a d6 (or pips on something unusual).
+- **Arbitrary content — including symbols — is a client non-issue.** Because
+  a face is a DOM element, slotting an icon into it needs no new client
+  machinery. The blocker for symbol dice (Catan event dice, Warhammer
+  hit/wound) is purely that Go's `Faces []int` cannot express "this face is a
+  wheat icon", and that `Value` doubles as the accessible human-readable
+  result. That is the server-model seam named in the non-goals, and it is
+  worth fixing *once* for both symbol faces and shape metadata rather than
+  twice.
 
 ## API surface (this slice)
 
