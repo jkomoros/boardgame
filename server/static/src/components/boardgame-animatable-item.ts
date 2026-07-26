@@ -12,6 +12,7 @@ import type {
 import {
   componentMotionChannel,
   componentMotionKeyframes,
+  componentMotionTrackEasing,
 } from '../motion/component-track.js';
 import type {
   ComponentMotionChannel,
@@ -179,11 +180,36 @@ export class BoardgameAnimatableItem extends LitElement {
     if (tracks.length === 0) {
       return Object.freeze({ status: 'skipped', reason: 'not-started' });
     }
-    const bindings = tracks.map(track => Object.freeze({
-      track,
-      channel: componentMotionChannel(track),
-      target: this.motionTrackTarget(track.target),
-    }));
+    // Timing is derived PER TRACK, not shared across the batch. A sampled
+    // track already encodes its own timing in its samples, so the kernel's
+    // default effect-level 'ease-in-out' would time-warp it; an endpoint track
+    // in the same batch still wants that default. One shared OptionalEffectTiming
+    // cannot express both.
+    //
+    // Effect level, not per-keyframe, deliberately: WAAPI keyframe easing
+    // already defaults to linear (a per-keyframe write would be a no-op), and
+    // boardgame-component-animator publishes effect.getTiming().easing into
+    // StructuralExecutedTiming, which would report 'linear' for every track --
+    // and so stop meaning anything -- if character lived in the keyframes.
+    const bindings = tracks.map(track => {
+      const channel = componentMotionChannel(track);
+      const easing = componentMotionTrackEasing(track);
+      if (easing !== undefined && timing?.easing !== undefined) {
+        // Two time warps on one channel is the same class of producer error as
+        // two owners on one channel: the sampled trajectory and the caller's
+        // easing curve both claim the channel's timeline.
+        throw new Error(
+          `component motion channel ${channel} carries its own sampled timeline; `
+          + `an explicit timing.easing (${String(timing.easing)}) would warp it`,
+        );
+      }
+      return Object.freeze({
+        track,
+        channel,
+        target: this.motionTrackTarget(track.target),
+        timing: easing === undefined ? timing : { ...timing, easing },
+      });
+    });
     const missing = bindings.find(binding => !binding.target);
     if (missing) {
       return Object.freeze({
@@ -199,7 +225,7 @@ export class BoardgameAnimatableItem extends LitElement {
         const animation = this.play(
           binding.target!,
           [...componentMotionKeyframes(binding.track)],
-          timing,
+          binding.timing,
           opts,
         );
         if (!animation) {
@@ -209,6 +235,23 @@ export class BoardgameAnimatableItem extends LitElement {
             reason: 'not-started',
             channel: binding.channel,
           });
+        }
+        // Animations run with fill:'none', so the instant one settles -- by
+        // natural completion, by finish() from the cycle sweep, or by the
+        // duration-0 effect reduced motion resolves to -- the element renders
+        // its RESTING style, not the last keyframe. playAnimation writes a
+        // resting style for the host channel only; a component-owned visual
+        // channel has no framework write, which is why the card maintains its
+        // inner transform by hand. Writing the track's declared resting value
+        // here makes that structural rather than per-producer discipline. Safe
+        // to write while the animation is live: an active effect overrides the
+        // inline style for the length of its active interval.
+        if (binding.track.resting !== undefined) {
+          if (binding.track.property === 'transform') {
+            binding.target!.style.transform = binding.track.resting;
+          } else {
+            binding.target!.style.opacity = binding.track.resting;
+          }
         }
         playbacks.push(Object.freeze({
           channel: binding.channel,
@@ -311,18 +354,26 @@ export class BoardgameAnimatableItem extends LitElement {
     this._liveAnimations.set(anim, gated);
     if (gated) {
       this._liveGatedCount++;
-      if (this._liveGatedCount === 1) {
-        // Tell the render-game watchdog how long this gated play is
-        // declared to run so it can extend its deadline past a legitimately
-        // long cycle (stagger delay + duration + post-animation-delay)
-        // instead of force-closing mid-animation. Numbers only — coerce the
-        this.dispatchEvent(new CustomEvent('will-animate',
-          {
-            bubbles: true,
-            composed: true,
-            detail: { ele: this, expectedSettleMs: resolution.expectedSettleMs },
-          }));
-      }
+      // Tell the render-game watchdog how long this gated play is declared to
+      // run so it can extend its deadline past a legitimately long cycle
+      // (stagger delay + duration + post-animation-delay) instead of
+      // force-closing mid-animation.
+      //
+      // EVERY gated play declares, not just the 0->1 transition. Declaring
+      // once was only ever harmless because every track in a batch shared one
+      // timing, so the first play's expectedSettleMs spoke for the whole
+      // element. It no longer does: a sampled track carries its own (longer)
+      // duration, and compileComponentMotionTracks orders visual tracks LAST,
+      // so a first-play-only declaration would arm the watchdog from the short
+      // host FLIP and force-close mid-tumble. AnimationGate.willAnimate is
+      // idempotent (a Map set keyed by element) and monotone (it only ever
+      // extends the deadline, never shrinks it), so re-declaring is safe.
+      this.dispatchEvent(new CustomEvent('will-animate',
+        {
+          bubbles: true,
+          composed: true,
+          detail: { ele: this, expectedSettleMs: resolution.expectedSettleMs },
+        }));
     }
     animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
     if (instrumentation?.recordActive !== false) {
