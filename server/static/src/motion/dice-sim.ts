@@ -45,14 +45,29 @@
  * and the solver's target separating velocity is `-gap/dt`, so the vertex is
  * allowed to close the gap this step and no further. That is what keeps a die
  * spinning at 30 rad/s from burying a corner in the floor between steps, and it
- * means depenetration is done by impulse rather than by teleporting the body
- * (which would silently add potential energy and break the energy invariant).
+ * is why nearly all depenetration is done by impulse.
+ *
+ * NEARLY all. The linearised constraint still leaves the arc a vertex on a
+ * spinning die travels within one step, so the step ends with a positional
+ * clamp that TELEPORTS the body back inside the container (`maxWallCorrection`
+ * reports how far). A teleport upward is free potential energy: measured across
+ * 84 three-die rolls the worst single step gained 6.8e-5 of the launch energy
+ * this way, which is above the suite's `RELATIVE_STEP_TOLERANCE` of 1e-5 on its
+ * own — the energy assertion passes because the same step's contact and drag
+ * dissipation is larger still, not because the clamp is free. Shrink the
+ * dissipation or grow the clamp and that assertion is what fails first.
+ *
+ * ## Restitution
+ *
+ * Bounce is applied by Poisson's hypothesis, not by giving each contact its own
+ * target separating velocity; see `applyRestitution` for why the obvious
+ * formulation pumps energy into a die that lands flat.
  *
  * ## Why the inner loop looks the way it does
  *
  * `die-geometry.ts`'s vector helpers return FROZEN tuples, which is right for
  * geometry built once and wrong for a solver that runs ten impulse iterations
- * over a dozen contacts at 480 Hz. Written with them, a two-die roll cost 100 ms
+ * over a dozen contacts at 720 Hz. Written with them, a two-die roll cost 100 ms
  * — a visible hitch on every mount. The integrator and the contact solver
  * therefore work on preallocated `Float64Array`s with the arithmetic spelled out
  * component by component, and allocate nothing per step; the helpers are still
@@ -73,11 +88,24 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface RollConfig {
-  /** Any finite number. Equal seeds produce bitwise-equal trajectories. */
+  /**
+   * Any finite number, and every bit of it counts: `2**32 + 1`, `1.5` and `1`
+   * are three different rolls. See `createRandom` for the exact contract — the
+   * caller that derives a seed from `(component id, state version)` needs it.
+   */
   readonly seed: number;
   readonly geometry: DieGeometry;
   readonly dieCount: number;
-  /** HALF-extents of the container box, in die circumradii. See the file docs. */
+  /**
+   * HALF-extents of the container box, in die circumradii. See the file docs.
+   *
+   * The floor of 1.5 is only what the SPAWN needs. A die also has to be able to
+   * fall over once it lands, and a tray near that floor cannot let it: with 3
+   * d20 over 25 seeds, `{x: 2, y: 5, z: 2}` came out cocked 17 times and
+   * `{3, 3, 3}` once, against never at `{4, 4, 4}` and above. Four circumradii
+   * of half-extent is the size to reach for; below it, read
+   * `RollTrajectory.cocked`.
+   */
   readonly bounds: { readonly x: number; readonly y: number; readonly z: number };
   /** Vigour of the throw; the launch kinetic energy is linear in it. Default 1. */
   readonly energy?: number;
@@ -105,6 +133,33 @@ export interface DieTrajectory {
 export interface RollTrajectory {
   readonly durationMs: number;
   readonly dice: readonly DieTrajectory[];
+  /**
+   * Worst `cos(tilt)` over the dice at rest, where tilt is the angle between
+   * straight down and the nearest READABLE face normal. 1 is dead flat.
+   *
+   * Public because `cocked` needs a magnitude behind it: a caller that wants to
+   * treat 1 degree differently from 15 can, and a test can assert on it.
+   */
+  readonly restAlignment: number;
+  /**
+   * True when at least one die is not lying flat on a readable face, i.e. every
+   * retry landed cocked and the least-cocked attempt was returned anyway.
+   *
+   * This is NOT hypothetical in a cramped container. `bounds` is only required
+   * to be 1.5 circumradii of half-extent, and the retry cannot rescue a die
+   * that has nowhere to fall over: measured with 3 d20 over 25 seeds, half-
+   * extents of `{x: 2, y: 5, z: 2}` came out cocked 17 times, by up to 15.8
+   * degrees, with all 8 attempts exhausted on 18 of them; `{3, 3, 3}` cocked
+   * once at 3.3 degrees; `{4, 4, 4}` and up, never. The 6-cubed tray the suite
+   * uses is comfortably in the "never" regime, which is why this went unseen.
+   *
+   * A cocked die matters because the renderer reads a value off the face it
+   * decides is up, and on a cocked die that face is not actually up — so the
+   * animation ends showing a number the die is not really displaying. React to
+   * this by widening the tray, hiding the roll, or annotating the result;
+   * ignoring it is a choice, but it should be a choice.
+   */
+  readonly cocked: boolean;
 }
 
 /** A half-space of the container or of a die: inside means `n . p <= offset`. */
@@ -152,10 +207,8 @@ export interface RollDiagnostics {
    */
   readonly attempts: number;
   /**
-   * Worst `cos(tilt)` over the dice at rest, where tilt is the angle between
-   * straight down and the nearest READABLE face normal. 1 is dead flat. Below
-   * `SETTLE_ALIGNMENT` means the roll ran out of attempts and the returned
-   * trajectory is the least-cocked one found.
+   * The same number as `RollTrajectory.restAlignment`, kept here so a test that
+   * already holds the diagnostics does not have to reach through `trajectory`.
    */
   readonly restAlignment: number;
 }
@@ -203,6 +256,13 @@ const CONTACT_ANGULAR_DRAG = 7;
 /** A vertex this close to a surface is a contact candidate even at rest. */
 const CONTACT_MARGIN = 0.02;
 /**
+ * How far ahead a speculative contact reaches: a vertex closing at `v` is made
+ * a contact once its gap drops below `CONTACT_MARGIN + v * dt * LOOKAHEAD`.
+ * Named because the broad phase has to reach at least as far, or it would skip
+ * a pair the narrow phase would have found.
+ */
+const CONTACT_LOOKAHEAD = 1.5;
+/**
  * Below this approach speed a contact is treated as resting and gets no
  * restitution. Bouncing a die that is settling is both unphysical (a real die
  * has no coefficient of restitution at 0.1 mm/s) and the classic way a
@@ -225,8 +285,18 @@ const REST_HOLD_STEPS = Math.round(REST_HOLD_SECONDS * PHYSICS_HZ);
  *
  * Three degrees. Deliberately tighter than the five the suite asserts, so the
  * assertion keeps margin to bite with; a die balanced on an edge (45 degrees
- * for a cube), leaning on a wall, or — for a barrel — sitting on one of its
- * unreadable cap facets (61 degrees for a d7) is nowhere near either number.
+ * for a cube) or leaning on a wall is nowhere near either number.
+ *
+ * The limit of a fixed angle: a barrel resting on a SIDE EDGE is only pi/N from
+ * a side-face normal, which is 25.7 degrees for a d7 but 5 degrees at N = 36 and
+ * 1.8 at N = 100. This constant therefore stops distinguishing a flat rest from
+ * an edge rest somewhere around a d36. Nothing ships anywhere near that — the
+ * suite tops out at a d24, where pi/N is 7.5 degrees — and a barrel that many
+ * sides cannot be read at a glance anyway; if one is ever wanted, this wants to
+ * become `min(3 degrees, pi / (2N))` and the suite's limits with it.
+ * (Cap facets are a different question and no longer a live one: they used to
+ * be stable rests 61 degrees off readable, and `die-geometry.ts` now
+ * proportions every barrel so no cap facet is a stable rest at all.)
  *
  * Resting-on-a-readable-face is used rather than presenting-one because it is
  * the same criterion for all three reading rules: an `up-face` die presents the
@@ -241,7 +311,8 @@ const SETTLE_ALIGNMENT = Math.cos((3 * Math.PI) / 180);
  * attempt's seed is drawn from a stream rooted at `config.seed`, so the whole
  * retried roll still reproduces bit for bit. If every attempt lands cocked the
  * least-cocked one is returned rather than a throw — a slightly ugly die beats
- * no animation — and `RollDiagnostics.restAlignment` says so.
+ * no animation — and `RollTrajectory.cocked` says so out loud, because a caller
+ * that is told nothing will render a face that is not really up.
  */
 const MAX_ATTEMPTS = 8;
 
@@ -266,22 +337,54 @@ const LAUNCH_SPIN_RANGE = 24;
 // Seeded randomness
 // ---------------------------------------------------------------------------
 
+/** splitmix32's finaliser: the avalanche step, on its own. */
+function mix32(value: number): number {
+  let x = value >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x21f0aaad) >>> 0;
+  x = Math.imul(x ^ (x >>> 15), 0x735a2d97) >>> 0;
+  return (x ^ (x >>> 15)) >>> 0;
+}
+
+/**
+ * Scratch for reading a double's bits. A `DataView` rather than a
+ * `Uint32Array` over a `Float64Array` because the latter is host-endian and
+ * this module's whole contract is that a seed reproduces on any engine;
+ * `getUint32(_, true)` pins little-endian regardless of the machine.
+ */
+const SEED_BITS = new DataView(new ArrayBuffer(8));
+
 /**
  * mulberry32. Chosen because its whole state is one uint32 and every operation
  * is integer, so it reproduces exactly on any conforming engine — which is the
  * entire point of having a PRNG here instead of `Math.random`.
  *
- * The seed is avalanched through a splitmix32 finaliser first. Without it,
+ * ## The seed contract
+ *
+ * ALL 64 bits of the seed are hashed, not just an int32 of it. This used to be
+ * `Math.trunc(seed) ^ ...`, an implicit ToInt32, and the aliasing that produced
+ * was structural rather than rare: `3` and `3.7` rolled identically, so did `1`
+ * and `2**32 + 1`, and so did `-1` and `2**32 - 1`. The renderer derives its
+ * seed from `(component id, state version)`, and a hash that overflows 32 bits
+ * or lands on a fraction would have replayed one roll's animation for a
+ * different roll with no signal anywhere. Distinct finite doubles now give
+ * distinct hash inputs; `-0` is folded onto `0` (`seed + 0`) because the two
+ * are `===` and callers have no way to tell which one they produced.
+ *
+ * What is NOT promised: mulberry32's state is 32 bits, so there are only 2^32
+ * possible streams and distinct seeds must sometimes collide. The guarantee is
+ * that collisions are unstructured — a pseudorandom ~2^-32 per pair — rather
+ * than the systematic families ToInt32 created.
+ *
+ * The hash is a splitmix32 avalanche of each half in turn. Without avalanching,
  * consecutive seeds differ by one bit of state and mulberry32's FIRST few
  * outputs stay correlated — which here means seed 1 and seed 2 throw their dice
  * in nearly the same direction. Every seed-dependent quantity in this module is
  * drawn in the first dozen outputs, so that is exactly the regime that matters.
  */
 function createRandom(seed: number): () => number {
-  let state = (Math.trunc(seed) ^ 0x9e3779b9) >>> 0;
-  state = Math.imul(state ^ (state >>> 16), 0x21f0aaad) >>> 0;
-  state = Math.imul(state ^ (state >>> 15), 0x735a2d97) >>> 0;
-  state = (state ^ (state >>> 15)) >>> 0;
+  SEED_BITS.setFloat64(0, seed + 0, true);
+  let state = mix32(SEED_BITS.getUint32(0, true) ^ 0x9e3779b9);
+  state = mix32(state ^ SEED_BITS.getUint32(4, true));
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
     let t = state;
@@ -602,19 +705,33 @@ class Contact {
   /** Positive is a gap, negative is penetration. */
   separation = 0;
   /**
-   * Separating speed the bounce wants, computed before any impulse — and
-   * `-Infinity` when this contact is not an impact.
-   *
-   * NOT zero. A speculative contact is created while the vertex still has a
-   * gap, and its non-penetration target is the NEGATIVE speed `-gap/dt`; a
-   * floor of zero would forbid closing the gap at all and every die would come
-   * to rest hovering exactly one `CONTACT_MARGIN` above the floor, wedgeable
-   * into a corner at any angle. That bug is invisible in a containment test —
-   * a hovering die is very definitely contained.
+   * The restitution coefficient this contact bounces with, or 0 when it is not
+   * an impact — a resting contact, or one whose approach speed is below
+   * `RESTITUTION_THRESHOLD`. Decided before any impulse is applied, from the
+   * pre-solve approach speed. See `applyRestitution`.
    */
-  restitutionTarget = 0;
+  restitution = 0;
+  /** Normal-relative speed before any impulse; negative means approaching. */
+  approachSpeed = 0;
   effectiveMass = 0;
   normalImpulse = 0;
+}
+
+/**
+ * An upper bound on how fast any point of `a` can be approaching any point of
+ * `b`. Both solids are normalised to circumradius 1, so a body's surface points
+ * move at most `|v| + |omega|`. Used only by the broad phase.
+ */
+function closingSpeedBound(a: Body, b: Body): number {
+  const speed = (body: Body): number => {
+    const v = body.velocity;
+    const w = body.angular;
+    return (
+      Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) +
+      Math.sqrt(w[0] * w[0] + w[1] * w[1] + w[2] * w[2])
+    );
+  };
+  return speed(a) + speed(b);
 }
 
 /** Relative velocity of the contact point, `a` with respect to `b`. */
@@ -645,6 +762,7 @@ function fillContact(
   nz: number,
   separation: number,
   restitution: number,
+  gravityStep: number,
 ): void {
   contact.a = a;
   contact.b = b;
@@ -660,11 +778,20 @@ function fillContact(
   contact.separation = separation;
   contact.normalImpulse = 0;
   relativeVelocity(contact);
-  const approach = RELATIVE[0] * nx + RELATIVE[1] * ny + RELATIVE[2] * nz;
-  contact.restitutionTarget =
-    separation < CONTACT_MARGIN && approach < -RESTITUTION_THRESHOLD
-      ? -approach * restitution
-      : -Infinity;
+  // The impact speed restitution is entitled to is the one the bodies had when
+  // the step began, NOT the one they have after this step's gravity increment
+  // has been added to them. Bouncing off the increment as well hands a die
+  // `gravity * dt` of free speed at every contact — invisible at the default
+  // 0.32, where the same step throws most of the impact away, and a per-step
+  // energy gain of 2.4e-3 of the launch energy at restitution 1, where nothing
+  // else is throwing anything away. A wall is immovable so the increment shows
+  // up in full; two dice both received it, so it cancels out of their relative
+  // velocity and only the wall case corrects.
+  const approach =
+    RELATIVE[0] * nx + RELATIVE[1] * ny + RELATIVE[2] * nz + (b === null ? gravityStep * ny : 0);
+  contact.approachSpeed = approach;
+  contact.restitution =
+    separation < CONTACT_MARGIN && approach < -RESTITUTION_THRESHOLD ? restitution : 0;
   contact.effectiveMass =
     (b ? 2 : 1) +
     angularMass(a.inverseInertiaWorld, contact.rax, contact.ray, contact.raz, nx, ny, nz) +
@@ -681,11 +808,20 @@ function solveContact(contact: Contact, friction: number, dt: number): void {
   // Non-penetration: after `dt` the gap must not have gone negative. When it
   // already has, undo at most `MAX_DEPENETRATION` this step so a deep overlap
   // resolves smoothly instead of firing the body out.
-  const allowed =
+  //
+  // The target is NOT zero. A speculative contact is created while the vertex
+  // still has a gap, and its non-penetration target is the NEGATIVE speed
+  // `-gap/dt`; a floor of zero would forbid closing the gap at all and every
+  // die would come to rest hovering exactly one `CONTACT_MARGIN` above the
+  // floor, wedgeable into a corner at any angle. That bug is invisible in a
+  // containment test — a hovering die is very definitely contained.
+  //
+  // Nor does the target carry any bounce: restitution is a separate pass, and
+  // this loop solves the perfectly inelastic problem. See `applyRestitution`.
+  const target =
     contact.separation >= 0
       ? -contact.separation / dt
       : Math.min(-contact.separation, MAX_DEPENETRATION) / dt;
-  const target = Math.max(allowed, contact.restitutionTarget);
 
   const change = (target - separating) / contact.effectiveMass;
   const total = Math.max(0, contact.normalImpulse + change);
@@ -747,6 +883,99 @@ function solveContact(contact: Contact, friction: number, dt: number): void {
       ux * magnitude,
       uy * magnitude,
       uz * magnitude,
+    );
+  }
+}
+
+/**
+ * Bounce, by Poisson's hypothesis: a second impulse of `restitution` times the
+ * impulse the inelastic solve already used, applied once, after that solve has
+ * converged.
+ *
+ * ## Why not the obvious thing
+ *
+ * The obvious formulation gives every contact its own target separating speed,
+ * `restitution * (its own pre-solve approach speed)`, and maxes that into the
+ * non-penetration target inside the iteration loop. For ONE contact that is
+ * exactly Newton's rule and it is what this module used to do. For a die that
+ * lands flat it is a pump: the several vertex contacts of a single face each
+ * independently demand a bounce computed from a velocity that the other
+ * contacts' impulses have already cancelled, and the solver obliges. Measured
+ * worst single-step gain as a fraction of the launch energy, ONE die, 40 seeds
+ * x 7 shapes:
+ *
+ *     r=0.32 -> 1.6e-7    r=0.7 -> 1.2e-2    r=0.85 -> 8.3e-2
+ *     r=0.95 -> 2.1e-1    r=1.0 -> 2.8e-1
+ *
+ * `resolved()` accepts every one of those restitutions. More solver iterations
+ * do not help — raising `SOLVER_ITERATIONS` to 60 improved r=0.32 to 5.7e-10
+ * and left r=0.95 at 2.3e-1 — because the fixed point the iteration converges
+ * to is itself the energy-gaining one. It is the formulation, not the solve.
+ *
+ * ## Why this one cannot pump
+ *
+ * Write the inelastic solve's accumulated normal impulses as `L >= 0`, the
+ * pre-solve normal velocities as `u0` and the post-solve ones as `u1`. Applying
+ * `E L`, with `E` diagonal in [0, 1], leaves the energy change
+ *
+ *     dKE = L^T (I + E)(I - E) u0 / 2 + L^T (I + E)^2 u1 / 2,
+ *
+ * and `u0 <= 0` wherever `E` is nonzero (a contact only earns a restitution
+ * coefficient while it is approaching), so the first term can only take energy
+ * out however many contacts fire at once. That is the sense in which
+ * restitution is applied once per MANIFOLD: the bounce a face gets is
+ * `restitution` times the impulse that whole face was JOINTLY solved to need,
+ * not the sum of what each of its vertices would have demanded alone.
+ *
+ * ## The second cap, and why it is not optional
+ *
+ * The `u1` term needs `u1 <= 0` and that is only true where the inelastic
+ * target was `-gap/dt`. For a contact that is already PENETRATING, the target
+ * is the depenetration bias — up to `MAX_DEPENETRATION / dt`, which is 14.4
+ * circumradii per second — so `L` there is not a compression impulse at all,
+ * and scaling it by `restitution` is scaling a position correction. Poisson
+ * alone measured WORSE than what it replaced (r=0.95 gained 5.6e-1 against
+ * 2.1e-1, one die, 40 seeds x 7 shapes) entirely on that term.
+ *
+ * So the impulse is also capped by Newton's rule at this contact: never push
+ * harder than would leave the contact separating at `restitution` times its own
+ * approach speed. A bias-driven contact is already separating faster than that,
+ * so its cap is zero and it gets no bounce; a clean impact has `u1` near zero,
+ * so its cap is `restitution * -u0 / m` and does not bind. Taking the smaller
+ * of the two leaves each cap covering the case the other misses.
+ *
+ * For a single isolated impact `L = -u0 / m` and both caps agree on exactly the
+ * Newton result, so the default 0.32 bounce is unchanged in feel.
+ */
+function applyRestitution(contact: Contact): void {
+  if (contact.restitution <= 0 || contact.normalImpulse <= 0) return;
+  const { a, b, nx, ny, nz } = contact;
+  relativeVelocity(contact);
+  const separating = RELATIVE[0] * nx + RELATIVE[1] * ny + RELATIVE[2] * nz;
+  // `effectiveMass` is the constraint's INVERSE mass, as in `solveContact`:
+  // an impulse of `dv / effectiveMass` changes the separating speed by `dv`.
+  const newton =
+    (-contact.restitution * contact.approachSpeed - separating) / contact.effectiveMass;
+  const magnitude = Math.min(contact.restitution * contact.normalImpulse, newton);
+  if (magnitude <= 0) return;
+  applyImpulse(
+    a,
+    contact.rax,
+    contact.ray,
+    contact.raz,
+    nx * magnitude,
+    ny * magnitude,
+    nz * magnitude,
+  );
+  if (b) {
+    applyImpulse(
+      b,
+      contact.rbx,
+      contact.rby,
+      contact.rbz,
+      -nx * magnitude,
+      -ny * magnitude,
+      -nz * magnitude,
     );
   }
 }
@@ -914,6 +1143,9 @@ function throwOnce(
     bounds.x, bounds.x, bounds.y, bounds.y, bounds.z, bounds.z,
   ]);
 
+  // How much downward speed one step of gravity adds; `fillContact` takes it
+  // back out before deciding what a contact is entitled to bounce with.
+  const gravityStep = gravity * dt;
   const linearDrag = Math.max(0, 1 - LINEAR_DRAG * dt);
   const angularDrag = Math.max(0, 1 - ANGULAR_DRAG * dt);
   const contactDrag = Math.max(0, 1 - CONTACT_ANGULAR_DRAG * dt);
@@ -990,9 +1222,9 @@ function throwOnce(
           // solver can stop it exactly at the surface instead of the clamp
           // having to dig it back out afterwards.
           const closing = vx * nx + vy * ny + vz * nz;
-          if (gap >= CONTACT_MARGIN + Math.max(0, closing) * dt * 1.5) continue;
+          if (gap >= CONTACT_MARGIN + Math.max(0, closing) * dt * CONTACT_LOOKAHEAD) continue;
           body.touching = true;
-          fillContact(take(), body, null, px, py, pz, -nx, -ny, -nz, gap, restitution);
+          fillContact(take(), body, null, px, py, pz, -nx, -ny, -nz, gap, restitution, gravityStep);
         }
       }
     }
@@ -1005,8 +1237,19 @@ function throwOnce(
         const dx = a.position[0] - b.position[0];
         const dy = a.position[1] - b.position[1];
         const dz = a.position[2] - b.position[2];
-        // Broad phase: unit circumradii, so hulls cannot touch beyond 2 apart.
-        if (dx * dx + dy * dy + dz * dz > 2.4 * 2.4) continue;
+        // Broad phase, stated as the bound it is rather than as a literal.
+        // Both hulls have circumradius exactly 1, so the surfaces cannot be
+        // closer than `distance - 2`; the narrow phase makes a contact at
+        // `CONTACT_MARGIN + closing * dt * CONTACT_LOOKAHEAD`, and no point of
+        // either body closes faster than the two centre speeds plus the two
+        // spin rates (a point is at most one circumradius from its centre).
+        // Skipping a pair beyond that provably drops no contact.
+        if (
+          dx * dx + dy * dy + dz * dz >
+          (2 + CONTACT_MARGIN + closingSpeedBound(a, b) * dt * CONTACT_LOOKAHEAD) ** 2
+        ) {
+          continue;
+        }
         maxDieOverlap = Math.max(
           maxDieOverlap,
           collectDieContacts(a, b, kernel, restitution, dt, take),
@@ -1017,6 +1260,9 @@ function throwOnce(
     for (let iteration = 0; iteration < SOLVER_ITERATIONS; iteration++) {
       for (let c = 0; c < used; c++) solveContact(pool[c], friction, dt);
     }
+    // One pass, after convergence, and never inside the loop above: that is the
+    // whole of why this cannot pump energy. See `applyRestitution`.
+    for (let c = 0; c < used; c++) applyRestitution(pool[c]);
 
     for (const body of bodies) {
       if (body.touching) {
@@ -1098,7 +1344,12 @@ function throwOnce(
     );
   }
   return Object.freeze({
-    trajectory: Object.freeze({ durationMs, dice: Object.freeze(dice) }),
+    trajectory: Object.freeze({
+      durationMs,
+      dice: Object.freeze(dice),
+      restAlignment,
+      cocked: restAlignment < SETTLE_ALIGNMENT,
+    }),
     energyPerStep: Object.freeze(energyPerStep),
     maxWallCorrection,
     maxDieOverlap,
@@ -1172,10 +1423,12 @@ function collectDieContacts(
     const vz =
       a.velocity[2] + wa[0] * ray - wa[1] * rax - (b.velocity[2] + wb[0] * dy - wb[1] * dx);
     const closing = -(vx * nx + vy * ny + vz * nz);
-    if (best >= CONTACT_MARGIN + Math.max(0, closing) * dt * 1.5) continue;
+    if (best >= CONTACT_MARGIN + Math.max(0, closing) * dt * CONTACT_LOOKAHEAD) continue;
     a.touching = true;
     b.touching = true;
-    fillContact(take(), a, b, px, py, pz, nx, ny, nz, best, restitution);
+    // Two dice both got this step's gravity increment, so it cancels out of
+    // their relative velocity and the correction is zero for a die-die contact.
+    fillContact(take(), a, b, px, py, pz, nx, ny, nz, best, restitution, 0);
   }
   return deepest;
 }

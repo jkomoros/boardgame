@@ -19,6 +19,7 @@ const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const addv = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const mag = (a: Vec3): number => Math.sqrt(dot(a, a));
+const scaleVec = (a: Vec3, factor: number): Vec3 => [a[0] * factor, a[1] * factor, a[2] * factor];
 
 /** Rotate `v` by quaternion `q` through the rotation matrix, not the shorthand. */
 function rotate(q: Quat, v: Vec3): Vec3 {
@@ -120,7 +121,19 @@ const REST_SPEED = 0.1;
 const REST_ANGULAR_SPEED = 0.2;
 const REST_WINDOW_MS = 200;
 
-/** A die balanced on an edge or a corner must fail this. */
+/**
+ * A die balanced on an edge or a corner must fail this.
+ *
+ * Five degrees is a real bound for every shape in `SHAPES`: the smallest angle
+ * any of them can be tilted by and still be balanced on something is the d7's
+ * side edge, at 180/7 = 25.7 degrees. It is NOT a bound that generalises. A
+ * barrel's adjacent side-face normals are 360/N apart, so resting on a side
+ * edge puts it 180/N from a face normal, and by N = 36 that is 5 degrees
+ * exactly: a d36 balanced on an edge would sail through this. Nothing here
+ * rolls a barrel that large — `die-geometry.test.ts` scales the same limit by
+ * face count where it does go up to a d24 — but the constant is only as strong
+ * as the shapes it is applied to, and that is worth saying next to it.
+ */
 const MAX_COCK_DEGREES = 5;
 
 describe('simulateRoll determinism', () => {
@@ -141,6 +154,51 @@ describe('simulateRoll determinism', () => {
       a.dice[0].restingOrientation,
       'seeds 1 and 2 came to rest identically',
     );
+  });
+
+  /**
+   * Seeds that used to collide, and the shape of the bug they came from.
+   *
+   * `createRandom` truncated its seed to an int32, so everything in each of
+   * these pairs hashed to the same uint32 and produced the SAME ROLL: a
+   * fractional part was thrown away, anything at or above 2^32 wrapped, and
+   * negatives wrapped onto the top of the range. The renderer derives its seed
+   * from `(component id, state version)`, so a hash wider than 32 bits or a
+   * ratio would have replayed one roll's animation for a different roll with
+   * nothing anywhere saying so.
+   *
+   * Bitwise-identical trajectories are the assertion, not merely "different
+   * resting faces": two rolls can land the same way by chance, but they cannot
+   * agree on every sample of a 40-sample tumble unless the streams are equal.
+   */
+  const ALIASING_PAIRS: readonly (readonly [number, number])[] = [
+    [3, 3.7],
+    [3, 3.2],
+    [1, 2 ** 32 + 1],
+    [7, 2 ** 32 + 7],
+    [-1, 2 ** 32 - 1],
+    [0, 1e-9],
+    // Two more the same reasoning implies: the low half of a double is not the
+    // only half that matters, and the sign bit is not noise.
+    [1, -1],
+    [2 ** 53, 2 ** 53 + 2],
+  ];
+
+  it('gives every distinct finite seed its own roll', () => {
+    for (const [a, b] of ALIASING_PAIRS) {
+      assert.notEqual(a, b, `${a} and ${b} are the same number; the pair proves nothing`);
+      assert.notDeepStrictEqual(
+        simulateRoll(config(6, b)),
+        simulateRoll(config(6, a)),
+        `seeds ${a} and ${b} produced the same roll`,
+      );
+    }
+  });
+
+  it('treats -0 and 0 as the same seed, because === does', () => {
+    // The one collision that is deliberate. A caller computing a seed has no
+    // way to know which zero it produced, so they had better roll the same.
+    assert.deepStrictEqual(simulateRoll(config(6, -0)), simulateRoll(config(6, 0)));
   });
 
   it('is unaffected by an intervening simulation', () => {
@@ -222,29 +280,84 @@ describe('simulationSolid', () => {
     }
   });
 
-  it('scales the inertia tensor with the geometry, so shapes tumble comparably', () => {
+  it('has a real size spread to cancel in the first place', () => {
     // Unit-mass inertia goes as R^2, and the geometry module builds each solid
-    // at its own natural scale. Compare traces of the INVERSE tensor, which is
-    // what the integrator actually multiplies an impulse by.
+    // at its own natural scale. Measured: 3.14 (d20) against 0.76 (d10). That
+    // 4x is exactly what a die tumbling at the wrong rate for its face count
+    // would come from, so this pins the fact the normalisation exists to
+    // cancel — if `die-geometry.ts` ever starts normalising itself, everything
+    // downstream becomes a silent no-op and this is what says so.
     const trace = (t: readonly number[]): number => t[0] + t[4] + t[8];
     const raw = SHAPES.map((faceCount) => trace(dieGeometry(faceCount).inertiaTensor));
-    const normalised = SHAPES.map((faceCount) =>
-      trace(simulationSolid(dieGeometry(faceCount)).inverseInertia),
+    const spread = Math.max(...raw) / Math.min(...raw);
+    assert.ok(
+      spread > 3.5,
+      `raw inertia traces span only ${spread}x; normalisation may be a no-op now`,
     );
-    const spread = (values: number[]): number => Math.max(...values) / Math.min(...values);
 
-    // Measured: 3.14 (d20) against 0.76 (d10). The 4x is what a die tumbling at
-    // the wrong rate for its face count would come from, so this is the fact the
-    // normalisation exists to cancel — pinned so that if `die-geometry.ts` ever
-    // starts normalising itself, this stops being a silent no-op.
-    assert.ok(
-      spread(raw) > 3.5,
-      `raw inertia traces span only ${spread(raw)}x; normalisation may be a no-op now`,
-    );
-    assert.ok(
-      spread(normalised) < spread(raw) / 1.5,
-      `normalising barely narrowed the spread: ${spread(raw)}x -> ${spread(normalised)}x`,
-    );
+    // There used to be a second assertion here: that the spread of the
+    // NORMALISED inverse traces was at least 1.5x narrower than the raw one.
+    // It passed with 9% to spare and it bounded nothing. What survives
+    // normalisation is genuine SHAPE variation — a tetrahedron really does
+    // resist rotation differently from a d20 — so there is no principled
+    // number to hold it against, and mutating the normalisation to `/ R`
+    // instead of `/ R^2` still satisfied it. The test below, and the closed
+    // forms after that, are what actually pin the transform.
+  });
+
+  it('is exactly invariant to the scale the geometry happens to be built at', () => {
+    // The real bound the "spread narrows" heuristic was reaching for. A die
+    // uniformly scaled by any factor is the SAME die to the physics, so
+    // `simulationSolid` must return bit-comparable output for both. This is the
+    // property that makes `circumradius` cancel; it fails outright for the
+    // classic mistake of dividing the tensor by `circumradius` instead of its
+    // square, which no comparison of one shape against another can see.
+    const stretched = (geometry: DieGeometry, factor: number): DieGeometry => ({
+      ...geometry,
+      vertices: geometry.vertices.map((v) => scaleVec(v, factor)),
+      faces: geometry.faces.map((face) => ({
+        normal: face.normal,
+        centroid: scaleVec(face.centroid, factor),
+        polygon: face.polygon.map((v) => scaleVec(v, factor)),
+      })),
+      capFaces: geometry.capFaces.map((face) => ({
+        normal: face.normal,
+        centroid: scaleVec(face.centroid, factor),
+        polygon: face.polygon.map((v) => scaleVec(v, factor)),
+      })),
+      // Unit-mass second moments are lengths squared; the circumradius is a
+      // length. Both scalings are the geometry module's own contract.
+      inertiaTensor: geometry.inertiaTensor.map((entry) => entry * factor * factor),
+      circumradius: geometry.circumradius * factor,
+    });
+
+    for (const faceCount of SHAPES) {
+      const geometry = dieGeometry(faceCount);
+      const reference = simulationSolid(geometry);
+      for (const factor of [0.125, 3, 1000]) {
+        const scaled = simulationSolid(stretched(geometry, factor));
+        for (let i = 0; i < reference.vertices.length; i++) {
+          for (let axis = 0; axis < 3; axis++) {
+            assert.ok(
+              Math.abs(scaled.vertices[i][axis] - reference.vertices[i][axis]) < 1e-12,
+              `d${faceCount} at ${factor}x: vertex ${i} moved`,
+            );
+          }
+        }
+        for (let i = 0; i < reference.planes.length; i++) {
+          assert.ok(
+            Math.abs(scaled.planes[i].offset - reference.planes[i].offset) < 1e-12,
+            `d${faceCount} at ${factor}x: plane ${i} offset moved`,
+          );
+        }
+        for (let i = 0; i < 9; i++) {
+          assert.ok(
+            Math.abs(scaled.inertia[i] - reference.inertia[i]) < 1e-12,
+            `d${faceCount} at ${factor}x: inertia entry ${i} is ${scaled.inertia[i]}, not ${reference.inertia[i]}`,
+          );
+        }
+      }
+    }
   });
 
   it('matches the published inertia of a unit-circumradius Platonic solid', () => {
@@ -398,6 +511,66 @@ describe('simulateRoll settling', () => {
     }
   });
 
+  it('says so when it hands back a cocked die', () => {
+    /**
+     * The retry loop cannot save a die that has nowhere to fall over, and
+     * `resolved()` accepts half-extents down to 1.5. Three d20 in a
+     * `{x: 2, y: 5, z: 2}` shaft come out cocked in most rolls, by as much as
+     * 15.8 degrees, with all eight attempts exhausted. That used to be
+     * reported nowhere a caller could see it, so the renderer would read a
+     * value off a face that is not actually up and show it as the result.
+     *
+     * The contract asserted here is not "cramped containers work" — they do
+     * not — it is that the caller is TOLD. Every roll must either be flat or
+     * be flagged, and the flag must agree with the alignment it reports.
+     */
+    const cramped = { x: 2, y: 5, z: 2 } as const;
+    const cosLimit = Math.cos((MAX_COCK_DEGREES * Math.PI) / 180);
+    let flagged = 0;
+    const trials = 12;
+    for (let seed = 1; seed <= trials; seed++) {
+      const roll = simulateRoll(config(20, seed, { dieCount: 3, bounds: cramped }));
+      const geometry = dieGeometry(20);
+      // Recomputed here from the resting orientations rather than trusted, so
+      // `restAlignment` is checked against this file's own arithmetic.
+      let worst = Infinity;
+      for (const die of roll.dice) {
+        let best = -Infinity;
+        for (const face of geometry.faces) {
+          best = Math.max(best, dot(rotate(die.restingOrientation, face.normal), [0, -1, 0]));
+        }
+        worst = Math.min(worst, best);
+      }
+      assert.ok(
+        Math.abs(worst - roll.restAlignment) < 1e-12,
+        `seed ${seed}: reported restAlignment ${roll.restAlignment}, measured ${worst}`,
+      );
+      if (roll.cocked) flagged++;
+      else {
+        const degrees = (Math.acos(Math.min(1, worst)) * 180) / Math.PI;
+        assert.ok(
+          worst >= cosLimit,
+          `seed ${seed}: not flagged as cocked but sits ${degrees.toFixed(2)} degrees off a readable face`,
+        );
+      }
+    }
+    // And the shaft really is the hard case, or the assertion above would be
+    // vacuous: it has to actually produce cocked dice.
+    assert.ok(flagged > 0, `${cramped.x}-wide shaft never cocked a die in ${trials} rolls`);
+  });
+
+  it('lands flat, and says so, in a container big enough to fall over in', () => {
+    // The other side of the measurement that justifies the tray sizes above.
+    // Three d20 over these seeds: 17/25 cocked at {2, 5, 2}, 1/25 at {3, 3, 3},
+    // 0/25 at {4, 4, 4} and at {6, 6, 6}. Four circumradii of half-extent is
+    // where the retry loop starts winning every time, so it is what a caller
+    // should reach for; the suite's own 6-cubed tray is well past it.
+    for (let seed = 1; seed <= 12; seed++) {
+      const roll = simulateRoll(config(20, seed, { dieCount: 3, bounds: { x: 4, y: 4, z: 4 } }));
+      assert.equal(roll.cocked, false, `seed ${seed} cocked a die in a 4-cubed tray`);
+    }
+  });
+
   it('settles well inside the duration cap', () => {
     for (const faceCount of SHAPES) {
       for (const seed of SEEDS) {
@@ -427,6 +600,15 @@ describe('simulateRoll energy', () => {
   // single-step gain measured across 480 three-die rolls was 4.5e-7, so this
   // sits about 20x above the noise and orders of magnitude below anything a
   // real instability produces.
+  //
+  // It is not ALL noise, and the margin here is thinner than it looks. The
+  // step ends with a positional clamp that teleports an escaped body back
+  // inside the container, and a teleport upward is free potential energy: the
+  // worst single step measured injects 6.8e-5 of the launch energy that way,
+  // seven times this budget. What keeps the assertion true is that the same
+  // step's contact and drag dissipation is larger still. See `dice-sim.ts`'s
+  // header — if this ever starts failing by a factor of a few, the clamp is
+  // where to look, not the contact solver.
   const RELATIVE_STEP_TOLERANCE = 1e-5;
 
   for (const faceCount of SHAPES) {
@@ -449,6 +631,78 @@ describe('simulateRoll energy', () => {
       }
     });
   }
+
+  /**
+   * Every restitution `resolved()` will accept, not just the default.
+   *
+   * The old solver gave each contact its own restitution target inside the
+   * iteration loop, and a die landing FLAT — several vertices of one face
+   * touching at once — had each of them demand a bounce computed from an
+   * approach speed the others had already cancelled. The gain grew with
+   * restitution and was completely invisible to the tests above, which only
+   * ever ran the default 0.32. Measured on this exact configuration against
+   * the pre-fix module:
+   *
+   *     r<=0.7 -> 1.6e-9 (fine)   r=0.85 -> 1.4e-2   r=0.95 -> 8.2e-2
+   *     r=1.0  -> 1.2e-1
+   *
+   * against 4.2e-9 or better at every one of them now, so the budget below
+   * clears the fixed solver by six orders and catches the old one by three.
+   * `restitution: 1` is in the sweep deliberately: it is legal, it is the
+   * worst case, and it is the value at which nothing else in the step is
+   * dissipating enough to hide a pump.
+   */
+  const RESTITUTIONS = [0, 0.32, 0.5, 0.7, 0.85, 0.95, 1] as const;
+
+  it('never gains energy at any restitution the API accepts', () => {
+    // A subset of shapes and seeds, because this is 84 rolls: the cube for the
+    // flat multi-vertex manifold that is the whole point, the tetrahedron
+    // because it was the worst offender before the fix, and the d20 as the
+    // roundest thing here.
+    for (const restitution of RESTITUTIONS) {
+      for (const faceCount of [4, 6, 20] as const) {
+        for (const seed of SEEDS) {
+          const diagnostics = simulateRollWithDiagnostics(
+            config(faceCount, seed, { dieCount: 2, restitution }),
+          );
+          const energy = diagnostics.energyPerStep;
+          assert.ok(energy.length > 100, `only ${energy.length} steps`);
+          const budget = energy[0] * RELATIVE_STEP_TOLERANCE;
+          for (let i = 1; i < energy.length; i++) {
+            assert.ok(
+              energy[i] <= energy[i - 1] + budget,
+              `d${faceCount} seed ${seed} restitution ${restitution} gained energy at step ${i}: ${energy[i - 1]} -> ${energy[i]} (budget ${budget})`,
+            );
+          }
+        }
+      }
+    }
+  });
+
+  it('still bounces: a higher restitution keeps more energy alive', () => {
+    // The other half of the sweep above, and the reason it is not vacuous. A
+    // solver that satisfied "never gains energy" by quietly dropping the
+    // bounce altogether would pass every other assertion in this file, so pin
+    // that the parameter does the thing it names. Energy a second into the
+    // roll, as a fraction of the launch energy, averaged over the seeds:
+    // 0.072 at restitution 0 against 0.231 at 0.95.
+    const survived = (restitution: number): number => {
+      let total = 0;
+      for (const seed of SEEDS) {
+        const energy = simulateRollWithDiagnostics(
+          config(6, seed, { dieCount: 2, restitution }),
+        ).energyPerStep;
+        total += energy[Math.min(700, energy.length - 1)] / energy[0];
+      }
+      return total / SEEDS.length;
+    };
+    const dead = survived(0);
+    const lively = survived(0.95);
+    assert.ok(
+      lively > dead * 2,
+      `restitution barely changed how much energy survives: ${dead} at 0 against ${lively} at 0.95`,
+    );
+  });
 
   it('applies only negligible positional correction', () => {
     // Contacts are resolved by impulse; the positional clamp is a backstop for
