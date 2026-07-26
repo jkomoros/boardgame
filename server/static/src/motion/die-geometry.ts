@@ -93,10 +93,10 @@ export interface DieGeometry {
    *
    * NOT size-normalized: this is the tensor of the solid at the scale it is
    * built at, and those scales differ between face counts (see `circumradius`).
-   * Unit-mass inertia goes as R^2, so a d20's Izz is roughly 9x a d10's.
-   * Consumers must divide lengths by `circumradius` (and the tensor by
-   * `circumradius^2`) or dice of different face counts will tumble at visibly
-   * different rates.
+   * Unit-mass inertia goes as R^2, and the d20 is built 1.89x the size of the
+   * d10, so a d20's Izz measures 3.73x a d10's (4.11x on the trace). Consumers
+   * must divide lengths by `circumradius` (and the tensor by `circumradius^2`)
+   * or dice of different face counts will tumble at visibly different rates.
    */
   readonly inertiaTensor: readonly number[];
   /**
@@ -391,8 +391,19 @@ function trapezohedronVertices(): readonly Vec3[] {
  * the band keeps the square height only while that is at least the
  * length-minimising height, which is true for N = 3 alone, and is stretched to
  * the minimising height otherwise. Every barrel is then between 1.37 and 2.64
- * times longer than it is wide, the d3 is unchanged, and the side faces are
- * rectangles rather than squares for N >= 5.
+ * times longer than it is wide, the d3 is unchanged TO WITHIN A ULP, and the
+ * side faces are rectangles rather than squares for N >= 5.
+ *
+ * "To within a ulp" and not "bit for bit": `barrelCapHeight(3)` now comes out
+ * of `sqrt(3) * cos^2(60) / sin(60)` rather than the literal `0.5`, and that
+ * evaluates to 0.5000000000000002 — one ulp high. The circumradius shifts in
+ * its last bit, and because a tumbling die is chaotic that ulp grows: measured
+ * against a d3 pinned to exactly 0.5, poses across 20 two-die rolls diverge by
+ * up to 2.3e-5 of a circumradius, while all 20 durations and every presented
+ * face stay identical. Still physically nothing, but it is not zero, and the
+ * distinction matters because the argument that sqrt(3) is INHERITED from the
+ * d3 rather than tuned to it rests on the d3 coming out the same — an argument
+ * only as good as its statement of what "the same" means.
  */
 const BARREL_CAP_SAFETY = Math.sqrt(3);
 

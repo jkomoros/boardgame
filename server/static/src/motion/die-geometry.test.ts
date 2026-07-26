@@ -616,6 +616,25 @@ describe('die geometry', () => {
       }
     });
 
+    /**
+     * How far INSIDE a readable side face the centre of mass must project, as
+     * a fraction of the circumradius, and the honest edge of what this module
+     * supports.
+     *
+     * `margin > 0` alone is not a bound: the side margin is `sin(pi/N)` in raw
+     * units and the circumradius tends to 2.632, so it falls off as `1/N` —
+     * 0.634 at the d3, 0.050 at the d24, 0.012 at the d100, and 0.0012 at a
+     * hypothetical d1000. That last one is "stable" in exactly the way the
+     * needle the `BARREL_CAP_SAFETY` doc rejects was stable: true on paper,
+     * balanceable by a breath in practice. `dieGeometry` puts no upper limit on
+     * `faceCount`, so this number is the limit, not the type signature: the
+     * shapes this module claims to produce real dice for are those whose side
+     * faces are at least a hundredth of a circumradius wide, which is N <= 119.
+     * Beyond that the geometry is still well-formed and the physics still runs,
+     * but nothing here asserts a die that many sides comes to rest readably.
+     */
+    const SIDE_STABILITY_MARGIN = 0.01;
+
     it('keeps every readable side face a stable rest', () => {
       // The other direction of the same measurement. Steepening the caps until
       // the die cannot rest on them would be no use if it also stopped resting
@@ -625,7 +644,11 @@ describe('die geometry', () => {
         const geometry = dieGeometry(faceCount);
         for (const [index, face] of geometry.faces.entries()) {
           const margin = supportMargin(face);
-          assert.ok(margin > 0, `d${faceCount} side face ${index} is not a stable rest`);
+          const normalised = margin / geometry.circumradius;
+          assert.ok(
+            normalised > SIDE_STABILITY_MARGIN,
+            `d${faceCount} side face ${index} rests on only ${normalised} of a circumradius`,
+          );
           close(
             margin,
             Math.sin(Math.PI / faceCount),
@@ -634,6 +657,25 @@ describe('die geometry', () => {
           );
         }
       }
+    });
+
+    it('runs out of side-face stability where the doc says it does', () => {
+      // The claim above, as an assertion rather than a comment: N = 119 is the
+      // last face count whose side faces clear the margin, and N = 120 is the
+      // first that does not. If the barrel proportions change, this is what
+      // says the supported range moved.
+      const normalisedMargin = (faceCount: number): number => {
+        const geometry = dieGeometry(faceCount);
+        return supportMargin(geometry.faces[0]) / geometry.circumradius;
+      };
+      assert.ok(
+        normalisedMargin(119) > SIDE_STABILITY_MARGIN,
+        `d119 margin is ${normalisedMargin(119)}, so the supported range is narrower than documented`,
+      );
+      assert.ok(
+        normalisedMargin(120) <= SIDE_STABILITY_MARGIN,
+        `d120 margin is ${normalisedMargin(120)}, so the supported range is wider than documented`,
+      );
     });
 
     it('stays a die rather than a needle', () => {
@@ -661,8 +703,23 @@ describe('die geometry', () => {
       // failed this badly even with the retries (12% of settled d5s through 83%
       // of d24s, tilted about 61 degrees), so the retry loop is not what is
       // being measured here.
-      const MAX_TILT_DEGREES = 5;
+      /**
+       * The tolerance has to shrink with the face count, because a fixed one
+       * stops meaning anything.
+       *
+       * Adjacent side-face normals of an N-barrel are `2 * pi / N` apart, so a
+       * barrel balanced on a side EDGE — the failure this is looking for — sits
+       * only `pi / N` from a face normal: 60 degrees at the d3, 25.7 at the d7,
+       * 11.25 at the d16, and 7.5 at the d24. A flat 5 degrees still separates
+       * a good landing from an edge at every count tested here, but only just
+       * at the top, and by N = 36 it would not separate them at all. Half the
+       * edge angle keeps the same PROPORTIONAL margin at every count, so the
+       * d24 is held to 3.75 degrees rather than 5 and the assertion stays a
+       * statement about the shape instead of about the number 5.
+       */
+      const tiltLimit = (faceCount: number): number => Math.min(5, 180 / (2 * faceCount));
       for (const faceCount of [3, 5, 7, 9, 16, 24]) {
+        const MAX_TILT_DEGREES = tiltLimit(faceCount);
         const geometry = dieGeometry(faceCount);
         // An odd barrel is read from the face it RESTS on, an even one from the
         // face opposite; either way the presented face must be square to the
