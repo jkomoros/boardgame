@@ -58,6 +58,21 @@ before/after anchors — full-game flows can't drive them deterministically).
 
 Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
 
+- **`will-animate` DOM event VOLUME** — the trace goldens record `play`,
+  `active`, `settle`, `gate-open` and `gate-close`; they do *not* record
+  `will-animate`. So a change in how often that event fires is structurally
+  invisible to this harness. This is not hypothetical: the 3D-dice branch made
+  `will-animate` a per-gated-play *declaration* rather than a 0→1 transition,
+  which doubles its volume on an ordinary FLIP-plus-fade (two host tracks), and
+  every golden stayed byte-identical. What the goldens *do* pin is the part
+  that matters — `gateOpens`/`gateCloses` stay 1/1 and `plays`/`settles` are
+  unchanged, because `AnimationGate.willAnimate` is idempotent (a keyed write
+  plus a strictly monotone deadline). Exposure is therefore limited to a
+  NON-idempotent listener being added later. Owner: the three current
+  listeners were each traced by hand (`animation-gate.willAnimate`,
+  `boardgame-render-game._componentWillAnimate`,
+  `boardgame-game-view._rosterWillAnimate`); any new `will-animate` listener
+  must be checked for idempotence by review, because no test will catch it.
 - **Absolute endpoints / raw positions** — per-game layout randomness makes
   raw-rect goldens unreproducible. Wrong-final-position bugs that preserve
   curve shape are not caught here; the existing behavioral suites

@@ -167,9 +167,13 @@ through a single method, `play(element, keyframes, timing, opts)`:
   without a test that pins the same-host composite case.
 - Unless `noAnimate` is set (a barrier used while the animator is measuring
   before/after layout) or `opts.gated === false`, the animation counts toward
-  the item's *gated* set: on the first gated animation to start, the item
-  fires `will-animate`; when the gated count returns to zero it fires
-  `animation-done`.
+  the item's *gated* set: **every** gated animation that starts fires
+  `will-animate`; when the gated count returns to zero it fires
+  `animation-done`. `will-animate` is a *declaration*, not a 0→1 transition —
+  each firing declares that play's own settle budget, so a long animation
+  starting alongside a short one still extends the watchdog to cover itself.
+  Listeners must therefore be idempotent; `AnimationGate.willAnimate` is, by
+  construction (a keyed write plus a strictly monotone deadline).
 - Timing resolves against the ambient `animationContext` discovered by
   climbing ancestors — crossing shadow roots and slots, and past any
   intermediate `null` context — so a wrapper element (e.g. status-text
