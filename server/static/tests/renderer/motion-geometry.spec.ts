@@ -399,46 +399,72 @@ test('a throwing component planner degrades to framework-owned structural channe
   }
 });
 
-test('standalone die spin uses the shared visual-track executor', async ({ page }) => {
+test('standalone die roll uses the shared visual-track executor', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
     const result = await page.evaluate(async () => {
       await import('/src/components/boardgame-die.ts');
       const die = document.createElement('boardgame-die') as HTMLElement & {
+        item: unknown;
         faces: number[];
         selectedFace: number;
         updateComplete: Promise<unknown>;
       };
-      die.faces = [1, 2, 3, 4, 5, 6];
       die.style.setProperty('--animation-length', '80ms');
       document.body.append(die);
-      await die.updateComplete;
-      die.selectedFace = 4;
-      await die.updateComplete;
+      // Driven by `item`, the way a game drives it: assigning `.faces`
+      // directly is undone by the null-item install the first update runs, and
+      // leaves the die on its degenerate reel fallback rather than a solid.
+      const faces = [1, 2, 3, 4, 5, 6];
+      const install = async (selectedFace: number) => {
+        die.item = {
+          ID: 'renderer-fixture-die',
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: selectedFace, Value: faces[selectedFace] },
+        };
+        for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+      };
+      // The first install is the die being shown a state it was already in.
+      await install(0);
+      // ...this one is a roll: the face change plans it, and the pass after
+      // that plays it, so the render carrying its face values lands first.
+      await install(4);
       const inner = die.shadowRoot?.querySelector<HTMLElement>('#inner');
       const animations = inner?.getAnimations() ?? [];
       const animation = animations[0];
-      const frames = animation?.effect instanceof KeyframeEffect
-        ? animation.effect.getKeyframes()
-        : [];
+      const effect = animation?.effect instanceof KeyframeEffect ? animation.effect : null;
+      const frames = effect ? effect.getKeyframes() : [];
       const during = {
         count: animations.length,
-        from: frames[0]?.transform,
-        to: frames.at(-1)?.transform,
+        // A sampled physics trajectory: many keyframes, timed by the curve
+        // itself (hence linear), and running for its own duration rather than
+        // the element's --animation-length.
+        frameCount: frames.length,
+        easing: String(effect?.getTiming().easing ?? ''),
+        duration: Number(effect?.getTiming().duration ?? -1),
+        first: String(frames[0]?.transform ?? ''),
+        last: String(frames.at(-1)?.transform ?? ''),
+        usesCustomProperties: frames.some(
+          (frame) => /var\(|calc\(/.test(String(frame.transform))),
       };
-      await Promise.all(animations.map(item => item.finished));
+      await Promise.all(animations.map(item => item.finished.catch(() => undefined)));
       return during;
     });
 
-    // --reel-step is one die-size per reel face, and zero on a solid (which
-    // has no reel to scroll): a variable of its own so that neutralizing the
-    // reel scroll cannot zero anything else measured against the die's size.
-    expect(result).toEqual({
-      count: 1,
-      from: 'translateY(calc(-1 * var(--reel-step) * 0))',
-      to: 'translateY(calc(-1 * var(--reel-step) * 4))',
-    });
+    // One animation, on the one channel the die owns.
+    expect(result.count).toBe(1);
+    // The roll is a baked trajectory, not the two-endpoint reel scroll it
+    // replaced: --animation-length is 80ms and the die runs for seconds.
+    expect(result.frameCount).toBeGreaterThan(20);
+    expect(result.easing).toBe('linear');
+    expect(result.duration).toBeGreaterThan(600);
+    // Literal transforms only: a var() or calc() here forfeits compositing and
+    // drops a multi-second tumble onto the main thread.
+    expect(result.usesCustomProperties).toBe(false);
+    expect(result.first).toMatch(/matrix3d\(/);
+    expect(result.last).toMatch(/matrix3d\(/);
+    expect(result.first).not.toBe(result.last);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

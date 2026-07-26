@@ -1,5 +1,5 @@
 import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
-import { html, css } from 'lit';
+import { html, css, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
 import { query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -18,9 +18,12 @@ import {
   vec3,
   type DieFace,
   type DieGeometry,
+  type Quat,
   type Vec3,
 } from '../motion/die-geometry.js';
-import { resolveReadingRule } from '../motion/die-faces.js';
+import { assignFaceValues, presentedFaceIndex, resolveReadingRule } from '../motion/die-faces.js';
+import { simulateRoll, type DieTrajectory, type RollTrajectory } from '../motion/dice-sim.js';
+import { restingTransform, trajectoryCurve } from '../motion/dice-bake.js';
 
 /**
  * Drawing a die as a solid.
@@ -35,10 +38,9 @@ import { resolveReadingRule } from '../motion/die-faces.js';
  * 2.37 long by 0.87 wide.
  *
  * Coordinate frames. The geometry is in the physics frame (+Y up, right
- * handed). CSS screen space is x right, y DOWN, z toward the viewer. The two
- * are related by a 180-degree rotation about X, `(x, y, z) -> (x, -y, -z)`,
- * which is a PROPER rotation: simply flipping Y would mirror the solid, and a
- * mirrored facet renders its glyphs backwards (task 9 paints those).
+ * handed). CSS screen space is x right, y DOWN, z toward the viewer -- which is
+ * a LEFT handed triple. The two are related by `(x, y, z) -> (x, -y, z)`; see
+ * `toScreen`, which is where the reasoning lives and where the trap is.
  *
  * Units. Lengths are emitted in `em`, and `#stage` sets `font-size:
  * var(--effective-die-size)`, so `1em` is the die's size and the whole solid
@@ -288,9 +290,26 @@ function inscribedSquareHalfSide(points: readonly PlanePoint[], cx: number, cy: 
   return Number.isFinite(best) ? best : 0;
 }
 
-/** Body frame (+Y up) to CSS frame (+Y down): a 180-degree turn about X. */
+/**
+ * Body frame (+Y up, right handed) to CSS frame (+Y down): flip Y, and Y only.
+ *
+ * A point at body `(x, y, z)`, seen by a camera on the body's +Z side, appears
+ * `x` to the right, `y` UP and `z` toward the viewer. CSS places `(cx, cy, cz)`
+ * at `cx` right, `cy` DOWN and `cz` toward the viewer, so `cy = -y` and nothing
+ * else moves. This is the same map `dice-bake.ts` applies to a simulated pose
+ * (`S = diag(1, -1, 1)`), and it has to be: a facet placed by one convention and
+ * then rotated by a matrix built in the other renders as a MIRRORED solid, with
+ * the pair of faces along the axis they disagree on swapped -- so the die lands
+ * showing the face opposite the one the physics turned up. (That is exactly what
+ * `(x, -y, -z)` did here before the roll was wired up. It is a proper rotation,
+ * which is the trap: CSS's own frame is LEFT handed, so the map from a
+ * right-handed body frame has to have determinant -1 to keep the solid's
+ * handedness, and a rotation cannot. `die-roll.spec.ts` measures the
+ * consequence directly -- the winding of a right-handed triple of face normals
+ * on screen.)
+ */
 function toScreen(v: Vec3): Vec3 {
-  return vec3(v[0], -v[1], -v[2]);
+  return vec3(v[0], -v[1], v[2]);
 }
 
 /** Short, stable decimal text: keeps generated style strings readable. */
@@ -671,6 +690,193 @@ function dieSolid(faceCount: number): DieSolid | null {
   return solid;
 }
 
+/**
+ * Rolling the die.
+ *
+ * The outcome is the SERVER's, and it is known before any pixel moves. So the
+ * simulation is never asked to produce it: `dice-sim.ts` throws the die ONCE
+ * from a seed, `die-faces.ts` reads which face that throw landed, and
+ * `assignFaceValues` paints the server's value onto that face while permuting
+ * the rest into a still-legitimate die. Re-simulating until the physics agrees
+ * would cost `sides^dice` throws in expectation and is unbounded; this costs
+ * one, always. The visible consequence is that the die's OTHER faces carry
+ * different numbers after every roll, which is the price of a real tumble and
+ * is invisible in practice — see `_startRoll` for when the swap happens.
+ *
+ * The seed comes from `(component ID, state version)` and nothing else, so a
+ * remount mid-roll — a re-render, a tab returning to the foreground, a replay —
+ * rebuilds the same throw bit for bit instead of re-throwing the die.
+ *
+ * ## The scene: why the baked trajectory is not enough on its own
+ *
+ * `dice-bake.ts` emits the die's pose in the SIMULATION's world: a tray centred
+ * on the origin, with the die's landing spot wherever it happens to be on the
+ * floor, and world-up mapped to screen-up. Rendered as-is, that world is
+ * useless: the face the die landed on points straight UP THE SCREEN, which is
+ * edge-on to a viewer looking down the +Z axis, so the player reads a side face
+ * — and the die comes to rest on the tray's floor, about three quarters of a box
+ * below the middle of the box it is laid out in, and wherever it drifted to.
+ *
+ * Three constant turns/translations fix that, composed in front of every
+ * keyframe as ONE literal prefix (see `sceneTransform`):
+ *
+ *   1. a LANDING SQUARE-UP, the minimal turn putting the read face exactly
+ *      along the world's reading axis. Almost always the identity — dice settle
+ *      flat — but it is what makes a COCKED roll (`RollTrajectory.cocked`, a die
+ *      the simulator could not settle in eight throws) land readable instead of
+ *      leaning. There is no floor drawn, so rotating the whole world by a couple
+ *      of degrees costs nothing visually and the value is never displayed on a
+ *      face that is not really up.
+ *   2. the CAMERA, a fixed elevation above the tray, so the reading face faces
+ *      the player.
+ *   3. a RECENTRING translation, so the die comes to rest at the centre of its
+ *      own box whatever spot on the floor it landed on.
+ *
+ * All three are the same for every keyframe of one roll, so composing them here
+ * rather than in `dice-bake.ts` costs one string concatenation per keyframe and
+ * keeps the bake a pure function of the physics.
+ */
+
+/**
+ * HALF-extents of the tray a die is thrown in, in die circumradii.
+ *
+ * The tray is invisible, so its size is a purely visual budget: it is how far
+ * the die may travel from the centre of its own box. At 1.6 a d6 stays within
+ * about one box width of centre and drops a little over one box height, which
+ * reads as a throw without the die leaving the region a game laid out for it. A
+ * roomier tray (`dice-sim.ts` recommends 4 for three dice) settles more
+ * reliably, but that recommendation is about dice knocking EACH OTHER cocked; a
+ * lone die measured over 300 seeds per solid landed cocked once, for a d7, and
+ * the landing square-up above covers even that.
+ *
+ * `dice-sim.ts` rejects anything under 1.5 (its spawn needs the clearance).
+ */
+const TRAY_BOUNDS = Object.freeze({ x: 1.6, y: 2.0, z: 1.6 });
+
+/**
+ * How far above the tray floor the camera sits, in degrees.
+ *
+ * Not a taste knob: at 0 the reading face is exactly edge-on and the die is
+ * unreadable; at 90 the tray is seen straight down, the die's fall projects
+ * entirely into depth and reads as a die that grows rather than one that drops.
+ * 55 leaves the reading face 35 degrees off the camera axis — foreshortened to
+ * 82%, comfortably legible — while the fall still carries more than half its
+ * length down the screen. It is close to the 23.6-degree tilt `RESTING_VIEW`
+ * uses for the pre-roll pose, seen from the other side.
+ */
+const CAMERA_ELEVATION_DEGREES = 55;
+
+/** The camera, as a turn of the whole scene about the screen's x axis. */
+const CAMERA_TURN: Turn = { axis: vec3(1, 0, 0), degrees: -CAMERA_ELEVATION_DEGREES };
+
+/**
+ * One 60Hz frame, in ms: the grid the baked curve is sampled on.
+ *
+ * The compiler clamps the resolution to [2, 256], so a roll past ~4.3 seconds
+ * samples coarser than a frame. `dice-sim.ts` caps a throw at 5 seconds and the
+ * measured 99th percentile is under 3, so that ceiling is not normally reached.
+ */
+const FRAME_MS = 16.7;
+
+/**
+ * The seed for one roll, from the identity of the roll and nothing else.
+ *
+ * FNV-1a over `id#version`: the point is only that distinct rolls land on
+ * distinct uint32s without structure, which `dice-sim.ts`'s own splitmix
+ * avalanche then spreads across its stream. Exported because it IS the roll's
+ * identity — a test that wants to know which throw a die must be playing has to
+ * derive it the same way, and so would a replay or a dice tray built later.
+ */
+export function dieRollSeed(componentId: string, stateVersion: number): number {
+  const text = `${componentId}#${stateVersion}`;
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * The throw a die of this geometry makes for this identity. Pure, deterministic
+ * and independent of the DOM: same arguments, same trajectory, forever.
+ */
+export function dieRollTrajectory(
+  geometry: DieGeometry,
+  componentId: string,
+  stateVersion: number,
+): RollTrajectory {
+  return simulateRoll({
+    seed: dieRollSeed(componentId, stateVersion),
+    geometry,
+    dieCount: 1,
+    bounds: TRAY_BOUNDS,
+  });
+}
+
+/** Rotate `v` by the unit quaternion `q` (`v + 2w(a x v) + 2a x (a x v)`). */
+function rotateByQuat(q: Quat, v: Vec3): Vec3 {
+  const axis = vec3(q[0], q[1], q[2]);
+  const t = scaleVec(cross(axis, v), 2);
+  return add(add(v, scaleVec(t, q[3])), cross(axis, t));
+}
+
+/**
+ * The constant prefix that turns one simulated world into one rendered scene:
+ * `translate3d(recentre) rotate3d(camera) rotate3d(square-up)`, applied in front
+ * of every baked `matrix3d`.
+ *
+ * CSS applies a transform list left to right, so the list reads outermost
+ * first: a point is squared up, then swung under the camera, then moved so that
+ * the RESTING pose lands on the origin. The recentring offset is therefore
+ * `-(camera . square)(restingPosition)` and has to be computed after the two
+ * turns, not before.
+ *
+ * Every number here is a literal: a `var()` or `calc()` anywhere in a transform
+ * keyframe forfeits compositing and drops a multi-second tumble onto the main
+ * thread, which is exactly the behaviour this feature replaces.
+ */
+function sceneTransform(
+  geometry: DieGeometry,
+  die: DieTrajectory,
+  presented: number,
+  radiusPx: number,
+): string {
+  // The reading face's normal where the die came to rest, in CSS space. For a
+  // d4 and an odd barrel the face that is READ is the one the die rests ON, so
+  // it is squared onto screen-DOWN; for everything else, onto screen-up.
+  const landed = normalize(toScreen(
+    rotateByQuat(die.restingOrientation, geometry.faces[presented].normal)));
+  const readingAxis = resolveReadingRule(geometry) === 'up-face'
+    ? SCREEN_UP
+    : scaleVec(SCREEN_UP, -1);
+  const square = minimalTurn(landed, readingAxis);
+  const rest = die.samples[die.samples.length - 1].position;
+  const posed = applyTurn(applyTurn(scaleVec(toScreen(rest), radiusPx), square), CAMERA_TURN);
+  // A die that settled flat -- almost all of them -- squares up by an angle
+  // `minimalTurn` reports as a fraction of a millidegree rather than as `null`,
+  // and writing that out would put a dead `rotate3d(..., 0deg)` in every one of
+  // up to 256 keyframes.
+  const turns = [CAMERA_TURN, square].filter(
+    (turn): turn is Turn => turn !== null && Math.abs(turn.degrees) > 1e-4);
+  return `translate3d(${num(-posed[0])}px,${num(-posed[1])}px,${num(-posed[2])}px) `
+    + turns.map(rotate3d).join(' ');
+}
+
+/** One planned roll: what to draw, and what to play. */
+interface DieRoll {
+  /** Face VALUES by face index, with the server's value on the landed face. */
+  readonly faces: readonly number[];
+  /** The face index the physics turned up, i.e. the one carrying the value. */
+  readonly presented: number;
+  /** The simulator could not settle this throw in eight attempts. */
+  readonly cocked: boolean;
+  readonly durationMs: number;
+  readonly curve: (progress: number) => string;
+  /** Byte-identical to `curve(1)`: see `_playRoll`. */
+  readonly resting: string;
+}
+
 class BoardgameDie extends BoardgameAnimatableItem {
   static override styles = [
     ...(BoardgameAnimatableItem.styles ? [BoardgameAnimatableItem.styles] : []),
@@ -963,6 +1169,19 @@ class BoardgameDie extends BoardgameAnimatableItem {
   @property({ type: Object })
   symbols: Record<string, string> | null = null;
 
+  /**
+   * The version of the game state this die is showing.
+   *
+   * One half of a roll's identity — the other is the component's own ID — and
+   * so the thing that makes two mounts of the same state replay the same throw
+   * while the next state throws a different one. Left unset, it is discovered
+   * from the nearest ancestor renderer's `gameVersion`, the same ambient climb
+   * `animationContext` uses, so no game has to wire it up; set it explicitly to
+   * drive a die that has no such ancestor.
+   */
+  @property({ type: Number })
+  stateVersion: number | null = null;
+
   @property({ type: Boolean })
   disabled = false;
 
@@ -971,6 +1190,28 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
   @query('#inner')
   private _innerElement?: HTMLElement;
+
+  @query('#stage')
+  private _stageElement?: HTMLElement;
+
+  /** The roll the die is currently showing, or null before it has ever rolled. */
+  private _roll: DieRoll | null = null;
+
+  /**
+   * A roll planned but not yet played. It is played from the update pass AFTER
+   * the one that planned it, which is what puts the roll's new face values on
+   * screen before its first frame — see `_startRoll`.
+   */
+  private _pendingRoll: DieRoll | null = null;
+
+  /** How many times an `item` has been installed; the first one is not a roll. */
+  private _itemInstalls = 0;
+
+  /** Set while the face change that the FIRST item install causes is in flight. */
+  private _installingFace = false;
+
+  /** The component ID the current item carries; half of a roll's seed. */
+  private _componentId = '';
 
   private _boundHandleClick?: (e: Event) => void;
   private _unsubscribeAction: (() => void) | null = null;
@@ -994,15 +1235,26 @@ class BoardgameDie extends BoardgameAnimatableItem {
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
 
-    if (changedProperties.has('selectedFace')) {
-      this._selectedFaceChanged(
-        this.selectedFace,
-        changedProperties.get('selectedFace') as number | undefined
-      );
-    }
+    // A roll planned during the PREVIOUS pass is played first, because the
+    // render that has just finished is the one carrying its face assignment.
+    const pending = this._pendingRoll;
+    this._pendingRoll = null;
+    if (pending) this._playRoll(pending);
 
     if (changedProperties.has('item')) {
       this._itemChanged(this.item);
+    } else {
+      // The face change an item install causes lands one pass later than the
+      // install itself, and installing the first item is not a roll: the die is
+      // being shown a state it was already in when it mounted.
+      const installing = this._installingFace;
+      this._installingFace = false;
+      if (!installing && !pending && changedProperties.has('selectedFace')) {
+        this._selectedFaceChanged(
+          this.selectedFace,
+          changedProperties.get('selectedFace') as number | undefined
+        );
+      }
     }
 
     if (changedProperties.has('action')) {
@@ -1036,14 +1288,9 @@ class BoardgameDie extends BoardgameAnimatableItem {
   // we build an explicit transform so WAAPI can interpolate the spin instead
   // of relying on a CSS transition.
   //
-  // IN SOLID MODE THIS ANIMATION IS A DELIBERATE VISUAL NO-OP. #inner.solid
-  // sets --reel-step to 0px, so both keyframes resolve to translateY(0) and
-  // the solid does not move: a solid has no reel to scroll, and letting the
-  // reel's translateY through would slide the die by a multiple of its own
-  // size and back on every roll. The track is still scheduled because the
-  // gate/play/active events it produces are pinned by the pig-roll parity
-  // golden -- the die's animation contract is unchanged by drawing it as a
-  // solid. The next task replaces this track with the real tumble.
+  // THE REEL FALLBACK ONLY. A solid rolls through a baked physics curve (see
+  // _playRoll); this is what a die with no geometry -- fewer than three faces --
+  // still does, and it is the pre-3D behaviour untouched.
   private _innerTransformForFace(face: number): string {
     return `translateY(calc(-1 * var(--reel-step) * ${face}))`;
   }
@@ -1052,14 +1299,16 @@ class BoardgameDie extends BoardgameAnimatableItem {
     return target === 'host' ? this : this._innerElement ?? null;
   }
 
-  // Schedules the face-change spin. On a solid the spin it schedules moves
-  // nothing on screen by design -- see _innerTransformForFace -- but it is
-  // scheduled all the same, because the motion-track events are the die's
-  // observable animation contract and a parity golden pins them.
+  // A face change on a die that has already been mounted is a ROLL: the solid
+  // tumbles through the physics, and only the degenerate reel still scrolls.
   private _selectedFaceChanged(newValue: number, oldValue: number | undefined) {
     if (!this._innerElement) return;
-    // On first render there's no meaningful spin to animate from.
+    // On first render there's no meaningful transition to animate from.
     if (oldValue === undefined || oldValue === newValue) return;
+    if (this._solid()) {
+      this._startRoll();
+      return;
+    }
     this.playMotionTracks(componentMotionTracks([{
       target: 'visual',
       property: 'transform',
@@ -1073,11 +1322,136 @@ class BoardgameDie extends BoardgameAnimatableItem {
       this.faces = [];
       this.selectedFace = 0;
       this.value = 0;
+      this._roll = null;
+      this._componentId = '';
+      this._itemInstalls = 0;
       return;
     }
     this.faces = newValue.Values.Faces;
     this.selectedFace = newValue.DynamicValues.SelectedFace;
     this.value = newValue.DynamicValues.Value;
+    this._componentId = typeof newValue.ID === 'string' ? newValue.ID : '';
+    // A different die entirely: the old roll's assignment and resting pose are
+    // for a solid this one no longer is.
+    const faceCount = Array.isArray(this.faces) ? this.faces.length : 0;
+    if (this._roll && this._roll.faces.length !== faceCount) this._roll = null;
+    // A FACE CHANGE is what a roll is, and the face change an install causes
+    // arrives one update pass later than the install itself. The exception is
+    // the FIRST install: the die is being shown a state it was already in when
+    // it mounted, and a die that tumbled because a page loaded would be lying
+    // about what had just happened.
+    //
+    // Deliberately not "the state version moved". The version moves for every
+    // move any player makes -- a game view mounting installs this die three
+    // times, at versions 0, 2 and 6, with the die untouched throughout -- so it
+    // says nothing about whether THIS die was thrown. The cost is that a roll
+    // landing on the face the die was already showing does not tumble; see the
+    // task report.
+    if (this._itemInstalls++ === 0) this._installingFace = true;
+  }
+
+  /**
+   * The state version this die's rolls are seeded from.
+   *
+   * The ambient renderer's `gameVersion` when there is one, exactly as
+   * `animationContext` is discovered, so a game gets deterministic rolls without
+   * wiring anything; the `stateVersion` property otherwise, for a die mounted on
+   * its own. Ambient wins for the same reason it does there: the framework's
+   * value is the authoritative one when the framework is present.
+   */
+  private _resolvedStateVersion(): number {
+    const ambient = this._ambientLookup<number>(
+      'gameVersion', (value) => typeof value === 'number' && Number.isFinite(value));
+    if (ambient !== null) return ambient;
+    const own = this.stateVersion;
+    return typeof own === 'number' && Number.isFinite(own) ? own : 0;
+  }
+
+  /**
+   * Throw the die, and schedule the tumble for the pass after this one.
+   *
+   * WHEN THE FACE VALUES SWAP. The assignment is recomputed for every roll, so
+   * every face but the landed one carries a different number afterwards. That
+   * swap has to happen either as the roll starts or as it ends, and this is
+   * deliberately the start: `requestUpdate` re-renders with the new assignment
+   * and `updated` plays the tumble on the NEXT pass, so the first frame anyone
+   * sees is already both airborne and correctly numbered. Swapping at the end
+   * instead would change a number under the eye of a player who has just watched
+   * the die stop moving, which is the one moment they are certainly reading it.
+   *
+   * A roll that cannot be planned (no solid, no measurable size, a trajectory
+   * the bake refuses) leaves `_roll` null, and the die falls back to the
+   * deterministic presentation pose rather than half-rendering a physics one.
+   */
+  private _startRoll(): void {
+    const roll = this._planRoll();
+    this._roll = roll;
+    this._pendingRoll = roll;
+    // _roll is not a reactive property: nothing re-renders without this.
+    this.requestUpdate();
+  }
+
+  private _planRoll(): DieRoll | null {
+    const solid = this._solid();
+    if (!solid) return null;
+    const geometry = solid.geometry;
+    const faces = this.faces;
+    const desired = faces[this._presentedFaceIndex(geometry.faceCount)];
+    if (!Number.isFinite(desired)) return null;
+    // One circumradius on screen. Read from #stage's font-size because that IS
+    // the die's size (the solid is built at 1em across), and it is a NUMBER of
+    // pixels: interpolating a CSS variable into the matrix instead would forfeit
+    // compositing for the whole tumble.
+    const stage = this._stageElement;
+    const radiusPx = stage ? parseFloat(getComputedStyle(stage).fontSize) / 2 : NaN;
+    if (!Number.isFinite(radiusPx) || radiusPx <= 0) return null;
+    try {
+      const trajectory = dieRollTrajectory(
+        geometry, this._componentId, this._resolvedStateVersion());
+      const die = trajectory.dice[0];
+      const presented = presentedFaceIndex(geometry, die.restingOrientation);
+      const scene = sceneTransform(geometry, die, presented, radiusPx);
+      const curve = trajectoryCurve(die, trajectory.durationMs, { radiusPx });
+      return {
+        faces: assignFaceValues(geometry, faces, presented, desired),
+        presented,
+        cocked: trajectory.cocked,
+        durationMs: trajectory.durationMs,
+        curve: (progress: number) => `${scene} ${curve(progress)}`,
+        // The same prefix in front of the same formatter's output as curve(1),
+        // so the two agree BYTE FOR BYTE. Animations run with fill:'none', so
+        // the element renders this the instant the tumble finishes -- or is
+        // finished early by the cycle sweep -- and a single rounding digit of
+        // disagreement would show up as the die twitching as it settles.
+        resting: `${scene} ${restingTransform(die, { radiusPx })}`,
+      };
+    } catch (error) {
+      // A geometry the simulator or the bake refuses. Nothing here may throw
+      // during a render pass, and a die that quietly stops rolling is worth a
+      // line in the console.
+      console.warn('boardgame-die: could not plan a roll; showing the value without one', error);
+      return null;
+    }
+  }
+
+  private _playRoll(roll: DieRoll): void {
+    this.playMotionTracks(
+      componentMotionTracks([{
+        target: 'visual',
+        property: 'transform',
+        curve: roll.curve,
+        resolution: Math.round(roll.durationMs / FRAME_MS),
+        resting: roll.resting,
+      }]),
+      { duration: roll.durationMs },
+      // REQUIRED. Under the default 'version' policy the kernel clamps the
+      // duration into the cycle's slot -- a three-second bake played in 600ms is
+      // geometrically faithful and physically absurd -- and can resolve to skip
+      // outright, which reports 'not-started' and takes sibling tracks down with
+      // it. The context is null in solo play, so both failures would appear only
+      // in companion mode.
+      { timing: 'immediate' },
+    );
   }
 
   private _classes(disabled: boolean, solid: boolean): string {
@@ -1100,6 +1474,19 @@ class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   /**
+   * The face VALUES the die is currently drawing, by face index.
+   *
+   * The server's list until the die has rolled, and the roll's own assignment
+   * afterwards — same multiset, permuted so the value the server chose sits on
+   * the face the physics turned up.
+   */
+  private _faceValues(): readonly number[] {
+    const faces = Array.isArray(this.faces) ? this.faces : [];
+    const roll = this._roll;
+    return roll && roll.faces.length === faces.length ? roll.faces : faces;
+  }
+
+  /**
    * Which FACE the die presents, as an index into `faces`.
    *
    * `selectedFace` is an index (the server sends `DynamicValues.SelectedFace`
@@ -1110,6 +1497,18 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _presentedFaceIndex(faceCount: number): number {
     const index = Math.trunc(this.selectedFace);
     return Number.isFinite(index) && index >= 0 && index < faceCount ? index : 0;
+  }
+
+  /**
+   * Which face the die is actually SHOWING: the one the physics landed once it
+   * has rolled, and the selected one before that. The two carry the same value
+   * either way — that is what the face assignment is for — but they are
+   * different facets, and everything the player reads hangs off the facet.
+   */
+  private _shownFaceIndex(faceCount: number): number {
+    const roll = this._roll;
+    if (roll && roll.presented >= 0 && roll.presented < faceCount) return roll.presented;
+    return this._presentedFaceIndex(faceCount);
   }
 
   /**
@@ -1213,9 +1612,9 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * of the three faces still facing the player. Always a single glyph or
    * numeral, never dots: the square at a corner is a third of the face's.
    */
-  private _cornerContent(facet: DieFacet) {
+  private _cornerContent(facet: DieFacet, values: readonly number[]) {
     return facet.corners.map((corner) => {
-      const value = this.faces[corner.faceIndex];
+      const value = values[corner.faceIndex];
       const content = this._resolveFace(value, false);
       return html`<div
         class="corner"
@@ -1247,23 +1646,30 @@ class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   private _renderSolid(solid: DieSolid) {
-    const presented = this._presentedFaceIndex(solid.geometry.faceCount);
-    const orient = presentationTransform(solid.geometry, presented);
+    const values = this._faceValues();
     const usePips = this._usesPips(solid);
+    // Once the die has rolled, its pose is the physics's ENTIRELY: #inner holds
+    // the tumble (and, once it finishes, the trajectory's own resting transform,
+    // written by the motion-track kernel), so #orient must contribute nothing or
+    // the two poses would compose into a third. The presentation pose is what a
+    // die that has never rolled is shown in, and only that.
+    const orient = this._roll
+      ? 'none'
+      : presentationTransform(solid.geometry, this._presentedFaceIndex(solid.geometry.faceCount));
     return html`
       <div id="stage">
         <div id="inner" class="solid">
           <div id="orient" style="transform:${orient}">
             ${repeat(solid.facets, (facet) => facet.key, (facet) => {
               if (facet.faceIndex < 0) return html`<div class="facet cap" style="${facet.style}"></div>`;
-              const content = this._resolveFace(this.faces[facet.faceIndex], usePips);
+              const content = this._resolveFace(values[facet.faceIndex], usePips);
               return html`<div
                     class="facet"
                     style="${facet.style}"
                     data-face-index="${facet.faceIndex}"
-                    data-face-value="${this.faces[facet.faceIndex]}"
+                    data-face-value="${values[facet.faceIndex]}"
                     data-face-label="${content.label}"
-                  >${this._faceContent(content)}${this._cornerContent(facet)}</div>`;
+                  >${this._faceContent(content)}${this._cornerContent(facet, values)}</div>`;
             })}
           </div>
         </div>
@@ -1278,10 +1684,10 @@ class BoardgameDie extends BoardgameAnimatableItem {
    */
   private _ariaLabel(interactive: boolean, solid: DieSolid | null): string {
     const base = interactive ? 'Roll die' : 'Die';
-    const faces = Array.isArray(this.faces) ? this.faces : [];
-    if (faces.length === 0) return base;
-    const presented = this._presentedFaceIndex(faces.length);
-    return `${base} showing ${this._resolveFace(faces[presented], this._usesPips(solid)).label}`;
+    const values = this._faceValues();
+    if (values.length === 0) return base;
+    const shown = this._shownFaceIndex(values.length);
+    return `${base} showing ${this._resolveFace(values[shown], this._usesPips(solid)).label}`;
   }
 
   override render() {
@@ -1305,6 +1711,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
           aria-describedby=${reason ? 'action-status' : ''}
           aria-busy=${String(bound && action.submission.kind === 'pending')}
           ?disabled=${effectiveDisabled}
+          data-cocked=${this._roll?.cocked ? 'true' : nothing}
           style="--selected-face:${this.selectedFace}"
           class="${this._classes(effectiveDisabled, solid !== null)}">
           ${solid ? this._renderSolid(solid) : this._renderReel()}

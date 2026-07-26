@@ -129,7 +129,7 @@ async function facetInventory(page: import('@playwright/test').Page, faceCount: 
 //     where the box centre was moved to;
 //   - from `die-geometry.ts`: the facet's polygon, scaled the one way the
 //     component documents (`0.5 / circumradius` per em, `1em` = --die-size)
-//     and turned into CSS space by the documented (x, -y, -z).
+//     and turned into CSS space by the documented (x, -y, z).
 //
 // and requires that the polygon, projected onto the rendered u/v axes about
 // the rendered box centre, spans that box EXACTLY -- from -width/2 to +width/2
@@ -169,9 +169,9 @@ async function facetBoxes(page: import('@playwright/test').Page, faceCount: numb
       const height = parseFloat(style.height);
 
       // The geometry's polygon, in the same frame the box centre is given in:
-      // px, about the solid's centre, CSS axes (x, -y, -z).
+      // px, about the solid's centre, CSS axes (x, -y, z).
       const projected: number[][] = face.polygon.map((point: number[]) => {
-        const screen = [point[0] * unitsToPx, -point[1] * unitsToPx, -point[2] * unitsToPx];
+        const screen = [point[0] * unitsToPx, -point[1] * unitsToPx, point[2] * unitsToPx];
         const offset = [0, 1, 2].map((i) => screen[i] - centre[i]);
         return [dot(offset, u), dot(offset, v)];
       });
@@ -530,14 +530,17 @@ test.describe('boardgame-die solid', () => {
     expect(scaled.facet / defaults.facet).toBeCloseTo(160 / DIE_SIZE_DEFAULT_PX, 1);
   });
 
-  // The reel's face-change spin is UNCHANGED by this task -- same track, same
-  // hooks, so the trace goldens cannot move -- but a solid has no reel to
-  // scroll, and letting that translateY through would slide the die by a
-  // multiple of its own size and back on every roll. #inner.solid zeroes
-  // --reel-step instead, which both the CSS resting rule and the keyframes
-  // read, and which is a variable of its own precisely so that zeroing it
-  // cannot zero anything else the solid measures against the die's size.
-  test('the face-change spin still plays, and does not displace the solid', async ({ page }) => {
+  // Task 8 left the solid's face-change spin a deliberate visual NO-OP: the reel
+  // track still played (the parity goldens pin its hooks) but #inner.solid
+  // zeroed --reel-step so the die did not slide by a multiple of its own size.
+  // Task 10 replaces that track with the physics tumble, so the solid now MOVES
+  // -- a lot, for seconds -- and the reel translateY is gone from it entirely.
+  // What survives unchanged is the contract around the track: exactly one
+  // animation on #inner, and a die that ends where its curve ends.
+  //
+  // The tumble's own guarantees (duration, determinism, which face lands, what
+  // it presents when interrupted) live in die-roll.spec.ts.
+  test('the face change tumbles the solid, and it settles where the curve ends', async ({ page }) => {
     await mountDie(page, { faceCount: 6, selectedFace: 0 });
     const result = await page.evaluate(async () => {
       const die = document.getElementById('fixture-die') as any;
@@ -546,28 +549,41 @@ test.describe('boardgame-die solid', () => {
       const at = () => getComputedStyle(inner).transform;
       const before = at();
       die.item = {
+        ID: 'fixture-component',
         Values: { Faces: die.faces },
         DynamicValues: { SelectedFace: 5, Value: die.faces[5] },
       };
-      await die.updateComplete;
-      await die.updateComplete;
+      for (let pass = 0; pass < 4; pass++) await die.updateComplete;
       const animations = inner.getAnimations();
-      const keyframes = animations[0]?.effect instanceof KeyframeEffect
-        ? animations[0].effect.getKeyframes().map((frame: any) => frame.transform)
-        : [];
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      const effect = animations[0]?.effect as KeyframeEffect | undefined;
+      const keyframes = effect ? effect.getKeyframes().map((frame: any) => String(frame.transform)) : [];
+      const duration = effect ? Number(effect.getTiming().duration) : -1;
+      await new Promise((resolve) => setTimeout(resolve, 120));
       const during = at();
       await Promise.all(animations.map((a) => a.finished.catch(() => undefined)));
-      return { before, during, after: at(), count: animations.length, keyframes };
+      const after = at();
+      // The element renders its RESTING style once the animation is gone
+      // (fill: 'none'), and the resting style is the curve's own last frame.
+      const ends = new DOMMatrix(keyframes[keyframes.length - 1] ?? 'none');
+      const held = new DOMMatrix(after);
+      const jump = held.toFloat64Array().reduce(
+        (worst, value, index) => Math.max(worst, Math.abs(value - ends.toFloat64Array()[index])), 0);
+      return { before, during, after, count: animations.length, duration, keyframes, jump };
     });
 
+    // Still exactly one animation on #inner: one channel, one owner.
     expect(result.count).toBe(1);
-    expect(result.keyframes).toEqual([
-      'translateY(calc(-1 * var(--reel-step) * 0))',
-      'translateY(calc(-1 * var(--reel-step) * 5))',
-    ]);
-    expect([result.before, result.during, result.after])
-      .toEqual(['matrix(1, 0, 0, 1, 0, 0)', 'matrix(1, 0, 0, 1, 0, 0)', 'matrix(1, 0, 0, 1, 0, 0)']);
+    // Seconds of physics, not one animation-length slot.
+    expect(result.duration).toBeGreaterThan(600);
+    // A sampled trajectory, not the two-endpoint reel scroll it replaces.
+    expect(result.keyframes.length).toBeGreaterThan(20);
+    expect(result.keyframes.filter((value: string) => value.includes('--reel-step'))).toEqual([]);
+    // The die was at rest, then moved, and the movement was not a no-op.
+    expect(result.before).toBe('matrix(1, 0, 0, 1, 0, 0)');
+    expect(result.during).not.toBe(result.before);
+    expect(result.after).not.toBe(result.before);
+    // ...and it settled exactly where the curve ends rather than snapping.
+    expect(result.jump).toBeLessThan(1e-3);
   });
 
   test('falls back to the reel for a die with fewer than three faces', async ({ page }) => {
@@ -773,10 +789,10 @@ async function faceContent(page: import('@playwright/test').Page, faceCount: num
       const height = parseFloat(style.height);
 
       // The polygon in the facet's plane, about its centroid.
-      const centroid = [face.centroid[0], -face.centroid[1], -face.centroid[2]]
+      const centroid = [face.centroid[0], -face.centroid[1], face.centroid[2]]
         .map((value: number) => value * unitsToPx);
       const polygon = face.polygon.map((point: number[]) => {
-        const screen = [point[0] * unitsToPx, -point[1] * unitsToPx, -point[2] * unitsToPx];
+        const screen = [point[0] * unitsToPx, -point[1] * unitsToPx, point[2] * unitsToPx];
         const offset = [0, 1, 2].map((i) => screen[i] - centroid[i]);
         return [dot(offset, u), dot(offset, v)];
       });
@@ -919,9 +935,9 @@ async function facetAxes(page: import('@playwright/test').Page, faceCount: numbe
         faceIndex: index,
         // The box's local +y: the direction its content reads downwards in.
         v: [matrix.m21, matrix.m22, matrix.m23],
-        // The facet's outward normal in CSS space, by the (x, -y, -z) the
+        // The facet's outward normal in CSS space, by the (x, -y, z) the
         // component documents. From the geometry, not from the render.
-        normal: [face.normal[0], -face.normal[1], -face.normal[2]],
+        normal: [face.normal[0], -face.normal[1], face.normal[2]],
       };
     });
   }, faceCount);

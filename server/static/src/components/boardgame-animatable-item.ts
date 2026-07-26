@@ -279,7 +279,12 @@ export class BoardgameAnimatableItem extends LitElement {
   // animatable wrappers like status-text don't sever deeper items from the
   // real provider above them) but disagree on what "provider" means for
   // their respective property, hence the caller-supplied predicate.
-  private _ambientLookup<T>(propName: string, isProvider: (value: T) => boolean): T | null {
+  //
+  // `protected` because it is the framework's one ambient-discovery walk and a
+  // subclass may need a third: <boardgame-die> seeds its physics roll from the
+  // ambient `gameVersion` the same way, so that a game gets reproducible rolls
+  // without wiring a property through every renderer.
+  protected _ambientLookup<T>(propName: string, isProvider: (value: T) => boolean): T | null {
     let node: Node | null = this.assignedSlot ?? this.parentNode;
     while (node) {
       if (propName in node) {
