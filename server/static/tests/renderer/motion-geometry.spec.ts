@@ -431,10 +431,13 @@ test('standalone die spin uses the shared visual-track executor', async ({ page 
       return during;
     });
 
+    // --reel-step is one die-size per reel face, and zero on a solid (which
+    // has no reel to scroll): a variable of its own so that neutralizing the
+    // reel scroll cannot zero anything else measured against the die's size.
     expect(result).toEqual({
       count: 1,
-      from: 'translateY(calc(-1 * var(--effective-die-size) * 0))',
-      to: 'translateY(calc(-1 * var(--effective-die-size) * 4))',
+      from: 'translateY(calc(-1 * var(--reel-step) * 0))',
+      to: 'translateY(calc(-1 * var(--reel-step) * 4))',
     });
     diagnostics.assertEmpty();
   } finally {

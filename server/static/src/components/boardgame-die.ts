@@ -7,6 +7,7 @@ import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 import { componentMotionTracks } from '../motion/component-track.js';
 import type { ComponentMotionTarget } from '../motion/component-track.js';
 import {
+  add,
   cross,
   dieGeometry,
   dot,
@@ -52,6 +53,9 @@ import {
 /** Screen up in CSS space: CSS y points down. */
 const SCREEN_UP: Vec3 = vec3(0, -1, 0);
 
+/** Straight at the viewer, in CSS space: the direction a facet must face. */
+const CAMERA_AXIS: Vec3 = vec3(0, 0, 1);
+
 /**
  * Where the presented face is pointed, in CSS space, when the die is at rest.
  *
@@ -61,8 +65,36 @@ const SCREEN_UP: Vec3 = vec3(0, -1, 0);
  * above and to the right of it, so a d6 shows its presented face plus the
  * faces above and to its right — a die seen on a table. The physics-driven
  * resting pose replaces this when the roll is wired up.
+ *
+ * This fixed tilt is enough ONLY while the solid's other faces are within
+ * ~90 degrees of the presented one; `companionTilt` covers the rest.
  */
 const RESTING_VIEW: Vec3 = normalize(vec3(-0.32, 0.26, 1));
+
+/**
+ * How far off the camera axis the most face-on of the OTHER facets is allowed
+ * to sit, in degrees. Past 90 it is a back-face and `backface-visibility:
+ * hidden` culls it outright, so a fixed tilt of 23.6 degrees (`RESTING_VIEW`)
+ * is not enough for a solid whose faces are far apart in normal angle: a
+ * tetrahedron's other three normals are 109.47 degrees from the presented one
+ * — 86 to 133 degrees off the camera axis once RESTING_VIEW is applied — so a
+ * d4 renders as a single flat triangle, which is exactly the 2D die this
+ * replaces. (A d8's are 70.5 apart, a d12's 63.4, a d20's 41.8, a barrel's
+ * side faces closer still; none of them need any of this.)
+ *
+ * 75 rather than a hair under 90 because a facet within a few degrees of
+ * edge-on is a sliver, not a visible face.
+ */
+const COMPANION_VIEW_LIMIT = 75;
+
+/**
+ * The most the pose may be tilted to bring that facet into view. The presented
+ * face is the value the player has to read, so it stays the dominant one: the
+ * tilt moves every direction by at most its own angle, which keeps the
+ * presented face within 23.6 + 30 degrees of the camera axis while the facet
+ * it reveals sits at 75.
+ */
+const MAX_COMPANION_TILT = 30;
 
 /** Pip diameter as a fraction of the facet's shorter side (was 7px on 50px). */
 const PIP_FRACTION = 0.14;
@@ -168,27 +200,93 @@ function facetStyle(face: DieFace, unitsToEm: number): string {
   ].join(';');
 }
 
+/** An axis-angle turn, in the degrees CSS wants. */
+interface Turn {
+  readonly axis: Vec3;
+  readonly degrees: number;
+}
+
+function rotate3d(turn: Turn): string {
+  const { axis, degrees } = turn;
+  return `rotate3d(${num(axis[0])},${num(axis[1])},${num(axis[2])},${num(degrees)}deg)`;
+}
+
 /**
- * The rotation that points `face`'s normal at `RESTING_VIEW`, as a CSS
- * `rotate3d`. The minimal rotation between two directions: axis `n x view`,
- * angle `atan2(|n x view|, n . view)`. CSS `rotate3d` is the right-handed
- * Rodrigues rotation in the same coordinate triple, so no sign fixing.
+ * The minimal rotation carrying direction `from` to direction `to`, or `null`
+ * when they already agree: axis `from x to`, angle `atan2(|from x to|, from .
+ * to)`. CSS `rotate3d` is the right-handed Rodrigues rotation in the same
+ * coordinate triple, so no sign fixing.
  */
-function presentationTransform(face: DieFace): string {
-  const n = normalize(toScreen(face.normal));
-  const axis = cross(n, RESTING_VIEW);
+function minimalTurn(from: Vec3, to: Vec3): Turn | null {
+  const axis = cross(from, to);
   const sine = magnitude(axis);
-  const cosine = dot(n, RESTING_VIEW);
+  const cosine = dot(from, to);
   if (sine < 1e-9) {
     // Already there, or pointing exactly backwards: a half turn about any
     // perpendicular then does it, and `facetBasis` names one.
-    if (cosine > 0) return 'none';
-    const { u } = facetBasis(n);
-    return `rotate3d(${num(u[0])},${num(u[1])},${num(u[2])},180deg)`;
+    if (cosine > 0) return null;
+    return { axis: facetBasis(from).u, degrees: 180 };
   }
-  const degrees = (Math.atan2(sine, cosine) * 180) / Math.PI;
-  const unit = scaleVec(axis, 1 / sine);
-  return `rotate3d(${num(unit[0])},${num(unit[1])},${num(unit[2])},${num(degrees)}deg)`;
+  return {
+    axis: scaleVec(axis, 1 / sine),
+    degrees: (Math.atan2(sine, cosine) * 180) / Math.PI,
+  };
+}
+
+/** Rodrigues: `v` turned about the UNIT axis of `turn`, right-handed. */
+function applyTurn(v: Vec3, turn: Turn | null): Vec3 {
+  if (!turn) return v;
+  const radians = (turn.degrees * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  return add(
+    add(scaleVec(v, cosine), scaleVec(cross(turn.axis, v), Math.sin(radians))),
+    scaleVec(turn.axis, dot(turn.axis, v) * (1 - cosine)),
+  );
+}
+
+/**
+ * The extra turn, if any, that brings `companion` — the most face-on of the
+ * facets OTHER than the presented one, already in its resting direction — to
+ * `COMPANION_VIEW_LIMIT` of the camera axis, so that the die reads as a solid
+ * and not as one flat polygon. `null` when it is visible enough already, which
+ * is every solid except the tetrahedron. See `COMPANION_VIEW_LIMIT`.
+ *
+ * Rotating about `companion x cameraAxis` carries `companion` towards the
+ * camera along the shortest path, and moves everything else — the presented
+ * face included — by at most the same angle.
+ */
+function companionTilt(companion: Vec3): Turn | null {
+  const cosine = Math.min(1, Math.max(-1, dot(companion, CAMERA_AXIS)));
+  const offAxis = (Math.acos(cosine) * 180) / Math.PI;
+  const degrees = Math.min(offAxis - COMPANION_VIEW_LIMIT, MAX_COMPANION_TILT);
+  if (!(degrees > 0)) return null;
+  const axis = cross(companion, CAMERA_AXIS);
+  const sine = magnitude(axis);
+  // Dead ahead or dead behind: no shortest path to pick, and dead ahead is
+  // not a case that needs one anyway.
+  if (sine < 1e-9) return null;
+  return { axis: scaleVec(axis, 1 / sine), degrees };
+}
+
+/**
+ * The resting pose: the rotation that points the presented face's normal at
+ * `RESTING_VIEW`, then whatever extra tilt it takes for at least one other
+ * facet to be visible (`companionTilt`), so the die reads as a solid whatever
+ * its face count. CSS applies a transform list left to right, so the extra
+ * tilt is written FIRST to be applied after the base pose.
+ */
+function presentationTransform(geometry: DieGeometry, presented: number): string {
+  const base = minimalTurn(normalize(toScreen(geometry.faces[presented].normal)), RESTING_VIEW);
+  const surface = [...geometry.faces, ...geometry.capFaces];
+  let companion: Vec3 | null = null;
+  for (let index = 0; index < surface.length; index++) {
+    if (index === presented) continue;
+    const direction = applyTurn(normalize(toScreen(surface[index].normal)), base);
+    if (companion === null || direction[2] > companion[2]) companion = direction;
+  }
+  const tilt = companion === null ? null : companionTilt(companion);
+  const turns = [tilt, base].filter((turn): turn is Turn => turn !== null);
+  return turns.length ? turns.map(rotate3d).join(' ') : 'none';
 }
 
 /** The full facet list for a face count, plus the geometry it came from. */
@@ -200,6 +298,10 @@ interface DieSolid {
 // Building a solid runs a convex hull for the closed-form shapes, so it is
 // cached per face count. `null` records a face count that has no solid, so a
 // malformed die does not retry the failure on every render pass.
+//
+// Deliberately unbounded: the key is a die's face count, so the cache is
+// bounded by the number of DISTINCT dice the loaded games define (a handful),
+// not by the number of dice on the board or by anything a player can drive.
 const SOLID_CACHE = new Map<number, DieSolid | null>();
 
 function dieSolid(faceCount: number): DieSolid | null {
@@ -218,9 +320,13 @@ function dieSolid(faceCount: number): DieSolid | null {
         style: facetStyle(face, unitsToEm),
       })),
     };
-  } catch {
+  } catch (error) {
     // A face count with no solid (fewer than 3 faces, or a shape the geometry
     // module rejects) falls back to the reel rather than throwing mid-render.
+    // Silently is not good enough: a bug in `facetStyle` would land here too
+    // and degrade a d20 into a 20-tall reel with nothing in the console to say
+    // why, so say it — once per face count, since the result is then cached.
+    console.warn(`boardgame-die: no solid for ${faceCount} faces; falling back to the reel`, error);
     solid = null;
   }
   SOLID_CACHE.set(faceCount, solid);
@@ -245,6 +351,15 @@ class BoardgameDie extends BoardgameAnimatableItem {
          * measures against; it is not part of the component's API.
          */
         --effective-die-size: var(--die-size, 50px);
+        /*
+         * How far #inner scrolls per face of the REEL. One die-size, which is
+         * a reel face's height -- except on a solid, which has no reel to
+         * scroll and sets it to zero (see #inner.solid). It is a variable of
+         * its own rather than a re-definition of --effective-die-size so that
+         * zeroing it cannot silently zero anything else below #inner that
+         * measures against the die's size.
+         */
+        --reel-step: var(--effective-die-size);
         --pip-size: 7px;
       }
 
@@ -343,7 +458,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
       #inner {
         position: relative;
-        transform: translateY(calc(-1 * var(--effective-die-size) * var(--selected-face)));
+        transform: translateY(calc(-1 * var(--reel-step) * var(--selected-face)));
         /* The spin is WAAPI-driven now; no CSS transform transition. */
       }
 
@@ -352,13 +467,15 @@ class BoardgameDie extends BoardgameAnimatableItem {
         inset: 0;
         transform-style: preserve-3d;
         /*
-         * There is no reel to scroll, so the reel step is zero. The rule above
-         * and the WAAPI spin keyframes (_innerTransformForFace) both read
-         * --effective-die-size, so zeroing it here makes the face-change spin
+         * There is no reel to scroll, so the reel step is zero. The #inner
+         * rule above and the WAAPI spin keyframes (_innerTransformForFace)
+         * both read --reel-step, so zeroing it here makes the face-change spin
          * a no-op on the solid without touching either -- the roll is a real
          * tumble in a later task, and until then the die must not slide.
+         * Scoped to --reel-step and NOT to --effective-die-size, which
+         * everything under here still needs at its true value.
          */
-        --effective-die-size: 0px;
+        --reel-step: 0px;
       }
 
       #orient {
@@ -559,18 +676,31 @@ class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   // _innerTransformForFace mirrors the CSS resting transform on #inner for
-  // a given selectedFace: translateY(-1 * effective-die-size * face). The
-  // #main element carries the --selected-face var that drives the CSS
-  // resting position; here we build an explicit transform so WAAPI can
-  // interpolate the spin instead of relying on a CSS transition.
+  // a given selectedFace: translateY(-1 * reel-step * face). The #main element
+  // carries the --selected-face var that drives the CSS resting position; here
+  // we build an explicit transform so WAAPI can interpolate the spin instead
+  // of relying on a CSS transition.
+  //
+  // IN SOLID MODE THIS ANIMATION IS A DELIBERATE VISUAL NO-OP. #inner.solid
+  // sets --reel-step to 0px, so both keyframes resolve to translateY(0) and
+  // the solid does not move: a solid has no reel to scroll, and letting the
+  // reel's translateY through would slide the die by a multiple of its own
+  // size and back on every roll. The track is still scheduled because the
+  // gate/play/active events it produces are pinned by the pig-roll parity
+  // golden -- the die's animation contract is unchanged by drawing it as a
+  // solid. The next task replaces this track with the real tumble.
   private _innerTransformForFace(face: number): string {
-    return `translateY(calc(-1 * var(--effective-die-size) * ${face}))`;
+    return `translateY(calc(-1 * var(--reel-step) * ${face}))`;
   }
 
   protected override motionTrackTarget(target: ComponentMotionTarget): HTMLElement | null {
     return target === 'host' ? this : this._innerElement ?? null;
   }
 
+  // Schedules the face-change spin. On a solid the spin it schedules moves
+  // nothing on screen by design -- see _innerTransformForFace -- but it is
+  // scheduled all the same, because the motion-track events are the die's
+  // observable animation contract and a parity golden pins them.
   private _selectedFaceChanged(newValue: number, oldValue: number | undefined) {
     if (!this._innerElement) return;
     // On first render there's no meaningful spin to animate from.
@@ -684,7 +814,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
   private _renderSolid(solid: DieSolid) {
     const presented = this._presentedFaceIndex(solid.geometry.faceCount);
-    const orient = presentationTransform(solid.geometry.faces[presented]);
+    const orient = presentationTransform(solid.geometry, presented);
     return html`
       <div id="stage">
         <div id="inner" class="solid">
