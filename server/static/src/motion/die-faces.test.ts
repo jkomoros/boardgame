@@ -618,6 +618,76 @@ describe('assignFaceValues', () => {
     });
   });
 
+  describe('duplicate face values', () => {
+    // Face values are a MULTISET everywhere in this module, deliberately: a
+    // game-defined face enum may legally repeat a value (three blanks, two
+    // skulls). Nothing above exercises that, so these lock in the behaviour
+    // before the enum lands. `sorted` compares multisets, so a "permutation"
+    // assertion here is genuinely a multiset assertion.
+    const cube = dieGeometry(6);
+
+    /** Every distinct value, so `desired` covers the choices without repeats. */
+    const distinct = (values: readonly number[]): number[] => [...new Set(values)];
+
+    const cases: { label: string; faces: number[]; sum: number | null }[] = [
+      // Pairs up as (1,3),(1,3),(2,2): the standard arrangement is reachable
+      // even though two value pairs are identical.
+      { label: 'two of each, complementary', faces: [1, 1, 2, 2, 3, 3], sum: 4 },
+      // Three copies of one pair. Every pair is (1,6), so the "which pair is
+      // forced" search has three equally good answers.
+      { label: 'three lows and three highs', faces: [1, 1, 1, 6, 6, 6], sum: 7 },
+      // The degenerate multiset. min+max is 0 and every face satisfies it, so
+      // the only real content is that a bijection still comes back.
+      { label: 'all identical', faces: [0, 0, 0, 0, 0, 0], sum: 0 },
+    ];
+
+    for (const { label, faces, sum } of cases) {
+      it(`is a bijection of the multiset and presents the value: ${label}`, () => {
+        for (let presented = 0; presented < 6; presented++) {
+          for (const desired of distinct(faces)) {
+            const values = assignFaceValues(cube, faces, presented, desired);
+            const where = `${label}: presented ${presented}, desired ${desired}`;
+            assert.deepEqual(
+              sorted(values),
+              sorted(faces),
+              `${where}: ${JSON.stringify(values)} is not a permutation of the multiset`,
+            );
+            assert.equal(values[presented], desired, `${where}: wrong face presented`);
+          }
+        }
+      });
+
+      if (sum !== null) {
+        it(`keeps opposite faces summing to min+max: ${label}`, () => {
+          for (let presented = 0; presented < 6; presented++) {
+            for (const desired of distinct(faces)) {
+              const values = assignFaceValues(cube, faces, presented, desired);
+              for (let i = 0; i < 6; i++) {
+                assert.equal(
+                  values[i] + values[oppositeFace(cube, i)],
+                  sum,
+                  `${label}: presented ${presented}, desired ${desired}: faces ${i} and ` +
+                    `${oppositeFace(cube, i)} do not sum to ${sum}`,
+                );
+              }
+            }
+          }
+        });
+      }
+    }
+
+    it('places every copy of a repeated value, not just the first', () => {
+      // The multiset guarantee is exactly what a Set-based implementation
+      // would lose: [1,1,2,2,3,3] must come back with two 1s, not one.
+      const faces = [1, 1, 2, 2, 3, 3];
+      const values = assignFaceValues(cube, faces, 0, 2);
+      const count = (value: number) => values.filter((v) => v === value).length;
+      assert.equal(count(1), 2, 'lost a copy of 1');
+      assert.equal(count(2), 2, 'lost a copy of 2');
+      assert.equal(count(3), 2, 'lost a copy of 3');
+    });
+  });
+
   describe('end to end', () => {
     it('shows the desired value on the face the roll actually presented', () => {
       // The whole point of the module, stated once without any helper: land

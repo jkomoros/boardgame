@@ -185,7 +185,22 @@ function faceOppositeTopVertex(geometry: DieGeometry, bodyUp: Vec3): number {
 }
 
 /**
- * Which face index a die in `orientation` is showing.
+ * Which face index a die in `orientation` is READ FROM — which is not always a
+ * face a viewer can see.
+ *
+ * For a d6/d8/d10/d12/d20 and every even-sided barrel the returned face points
+ * up, as you would expect. For a d4 and every ODD-SIDED BARREL it is the face
+ * the die is RESTING ON: those solids present no single face upward (see
+ * `resolveReadingRule` and `faceOppositeTopVertex`), and reading from below is
+ * the only unambiguous rule. `resolveReadingRule(geometry)` distinguishes the
+ * cases: `'up-face'` is visible, `'down-face'` and `'top-vertex'` are not.
+ *
+ * A renderer must not assume it can print the value at the centre of the
+ * returned face: on those solids that centre is face-down against the table.
+ * A physical d4 prints its value at the apex corner of the three faces that ARE
+ * visible, and a physical odd barrel prints it beside the resting face; a
+ * renderer that draws one glyph per face centre has to make the same choice, or
+ * the die will land showing nothing.
  *
  * Rather than rotating every normal into the world frame, the world up vector
  * is rotated once into the body frame by the inverse orientation; the two are
@@ -227,7 +242,11 @@ function complementaryValuePairs(
   return pairs;
 }
 
-/** The values in ascending order, with `desiredValue` pulled out and placed. */
+/**
+ * The values in the order the caller GAVE them — not sorted — with
+ * `desiredValue` pulled out, placed on `presented`, and the rest laid down
+ * across the remaining faces in that same given order.
+ */
 function plainBijection(
   values: readonly number[],
   presented: number,
