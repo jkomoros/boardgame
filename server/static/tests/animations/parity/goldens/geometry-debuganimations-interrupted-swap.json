@@ -10,51 +10,24 @@
     {
       "progress": [
         0,
-        0.1,
-        0.5,
-        0.9,
-        1
-      ],
-      "transform": [
-        0,
-        0.2,
-        0.71,
-        0.98,
-        1
-      ],
-      "opacity": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "timing": [
-        500,
-        0
-      ],
-      "zIndex": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    {
-      "progress": [
-        0,
         0.12,
         0.5,
         0.88,
         1
       ],
-      "transform": [
+      "rotation": [
         0,
-        0.2,
-        0.71,
-        0.98,
+        0.13,
+        0.5,
+        0.87,
         1
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "opacity": [
         null,
@@ -83,7 +56,14 @@
         0.87,
         1
       ],
-      "transform": [
+      "rotation": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "translation": [
         0,
         0.13,
         0.5,
@@ -117,12 +97,19 @@
         0.87,
         1
       ],
-      "transform": [
+      "rotation": [
         0,
         0.13,
         0.5,
         0.87,
         1
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "opacity": [
         null,
@@ -151,45 +138,18 @@
         0.87,
         1
       ],
-      "transform": [
-        0,
-        0.2,
-        0.71,
-        0.98,
-        1
-      ],
-      "opacity": [
+      "rotation": [
         null,
         null,
         null,
         null,
         null
       ],
-      "timing": [
-        500,
-        0
-      ],
-      "zIndex": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    {
-      "progress": [
+      "translation": [
         0,
         0.13,
         0.5,
-        0.88,
-        1
-      ],
-      "transform": [
-        0,
-        0.2,
-        0.71,
-        0.98,
+        0.87,
         1
       ],
       "opacity": [
@@ -219,12 +179,19 @@
         0.86,
         1
       ],
-      "transform": [
+      "rotation": [
         0,
-        0.2,
-        0.71,
-        0.98,
+        0.13,
+        0.5,
+        0.87,
         1
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "opacity": [
         null,
@@ -253,7 +220,14 @@
         null,
         null
       ],
-      "transform": [
+      "rotation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "translation": [
         null,
         null,
         null,

@@ -15,7 +15,14 @@
         null,
         null
       ],
-      "transform": [
+      "rotation": [
+        0,
+        0.21,
+        0.38,
+        0.5,
+        1
+      ],
+      "translation": [
         null,
         null,
         null,

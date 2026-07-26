@@ -37,22 +37,60 @@ assert open/close balance.
 **Geometry suite** (`geometry.spec.ts`): motion-curve fingerprints. Every
 animation in a scenario (deep shadow-root walk — `document.getAnimations()`
 returns NOTHING for shadow-tree animations in this Chromium) is paused and
-seeked to fractions 0/.25/.5/.75/1 of its own delay+duration; per curve:
-displacement-normalized progress, transform-matrix (Frobenius) progress,
-opacity, declared `[duration, delay]` on a 25ms grid, and z-index. Curves
-compare as a SET under 0.08 tolerance (counts are per-game random; count
-regressions are the trace suite's job). Wave-union sampling captures chained
-cohorts. Scenarios: swap flight, reveal flip, interrupted-swap retarget, plus
+seeked to fractions 0/.25/.5/.75/1 of its own delay+duration. Curves compare
+as a SET under 0.08 tolerance (counts are per-game random; count regressions
+are the trace suite's job). Wave-union sampling captures chained cohorts.
+Scenarios: swap flight, reveal flip, interrupted-swap retarget, plus
 component fixtures for `fading-text` and `game-outcome` (the Phase 1
 before/after anchors — full-game flows can't drive them deterministically).
+
+Per curve, five channels:
+
+| Channel | What it is | Null when |
+|---|---|---|
+| `progress` | bounding-rect-center travel | net displacement ≤ 2px (not a travel animation) |
+| `rotation` | transform matrix's LINEAR part — rotation/scale/skew/perspective, every entry except the translation column | that part's path ≤ 0.01 |
+| `translation` | transform matrix's translation column (tx, ty, tz), in px | its path ≤ 0.01 |
+| `opacity` | raw measured opacity | constant within 0.01 |
+| `timing` / `zIndex` | declared `[duration, delay]` on a 25ms grid; computed z-index | z-index constant for the whole flight |
+
+The three motion channels are normalized by **cumulative path length**
+(`Σ‖pᵢ − pᵢ₋₁‖` accumulated, over the total), NOT by net displacement, so
+each is monotone non-decreasing and in `[0,1]` by construction. That matters
+for anything that does not travel monotonically from A to B — a tumbling
+die, or any out-and-back — where the old chord-over-net-displacement ratio
+produced values well past 1 on an absolute 0.08 tolerance, non-monotone
+samples, and (for a landing near the start pose) a near-zero denominator
+that either exploded the ratios or nulled the channel outright. It was not
+hypothetical: `fading-text`'s `scale(1) → scale(6)` fade snaps back to base
+on the final sample, so its whole transform channel used to record as null.
+`rotation` and `translation` are separate channels because their scales are
+incomparable — rotation entries are unitless (2.83 for a whole matrix) while
+translation is raw pixels, so one Frobenius sum over both let a 60px travel
+drown the rotation to ~5% of the norm and degenerate into a duplicate of
+`progress`. `fingerprint-normalization.spec.ts` pins these invariants twice:
+on synthetic non-monotone input, and over the recorded golden corpus itself.
+
+**A curve whose `progress`, `rotation`, `translation` AND `opacity` are all
+null is DROPPED** (sub-threshold noise — near-no-op FLIPs whose presence is
+per-game random — asserts nothing). Recording a scenario therefore fails
+loudly only if it produces NO curves at all; a scenario for a specific
+element must additionally assert that its own curve survived, or a
+regression that stops the element moving would just shrink the curve set
+inside the tolerant set comparison. A die scenario in particular must assert
+it is never all-null.
 
 ## Teeth (verified failure detection)
 
 - Suppressing card `play` hooks → trace suite fails debuganimations, memory,
   blackjack (pig legitimately unaffected).
 - `ease-in-out` → `linear` sabotage → geometry fails the swap scenario.
-- Flip-shape sabotage (`rotateY(180)` → `rotateY(90)`) → geometry fails the
-  memory reveal.
+  (Preserved across the path-length change by construction: pure-translation
+  curves record byte-identical values under the new normalizer.)
+- ~~Flip-shape sabotage (`rotateY(180)` → `rotateY(90)`) → geometry fails the
+  memory reveal.~~ **NO LONGER BITES** — see the rotation-MAGNITUDE blind
+  spot below. Re-verified by hand on 2026-07-26: with the sabotage applied,
+  `geometry: memory reveal flip curves` PASSES.
 
 ## Accepted residual blind spots (harness-critic ledger)
 
@@ -73,6 +111,27 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   `boardgame-render-game._componentWillAnimate`,
   `boardgame-game-view._rosterWillAnimate`); any new `will-animate` listener
   must be checked for idempotence by review, because no test will catch it.
+- **Rotation MAGNITUDE (NEW, and a real regression in coverage)** — the
+  path-length normalizer is magnitude-invariant by construction: a rotation
+  through 180° and one through 90° under the same easing produce the SAME
+  normalized `rotation` channel. The previous chord-over-net-displacement
+  lens was magnitude-SENSITIVE for rotations by accident, not by design —
+  normalized chord is `sin(θ/2)/sin(Θ/2)`, which depends on the total angle
+  `Θ` (a 180° flip recorded `[0, 0.2, 0.71, 0.98, 1]`, a 90° one would have
+  recorded `[0, 0.14, 0.54, 0.89, 1]`, and the 0.17 midpoint gap exceeded the
+  0.08 tolerance). That entanglement of shape with magnitude is exactly what
+  made the lens unusable for a tumbling die, so it had to go — but the flip-
+  shape tooth went with it, VERIFIED by re-running the documented sabotage
+  above. Nothing else in the harness pins how FAR a rotation turns. Restoring
+  it needs a separate scalar, e.g. a per-channel `directness` = net
+  displacement over path length (`2·sin(Θ/2)/Θ`: 0.64 for a half turn, 0.90
+  for a quarter, ~1.0 for the small per-game-random messy-stack tilts, 0 for
+  an out-and-back), which stays deterministic for every current scenario —
+  but would be per-ROLL random for a tumbling die, so a die scenario would
+  have to opt out of it. Deliberately NOT added here: it is an undeclared
+  channel, and planting a per-roll-random value in the die golden is the
+  failure mode this whole harness exists to prevent. Owner: unassigned —
+  needs an explicit decision before Phase 3 relies on flip shape.
 - **Absolute endpoints / raw positions** — per-game layout randomness makes
   raw-rect goldens unreproducible. Wrong-final-position bugs that preserve
   curve shape are not caught here; the existing behavioral suites

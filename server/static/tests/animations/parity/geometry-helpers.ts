@@ -18,16 +18,31 @@ import { fileURLToPath } from 'node:url';
 // easing + timing (an ease-in-out mid-point is ~0.5 regardless of whether
 // the card flies 40px or 400px), so curves from different games compare
 // equal exactly when the animation timing behavior is unchanged.
+//
+// The in-page pass does MEASUREMENT only (it must run in the browser); the
+// normalization math lives in module scope below so it can be exercised
+// directly by unit-style specs with synthetic sample sequences.
 
 export interface MotionCurve {
-  // Normalized displacement progress at each sampled fraction, rounded to
-  // 2dp; null when the element does not translate (pure opacity/rotation).
+  // Normalized bounding-rect-center progress at each sampled fraction,
+  // rounded to 2dp; null when the element does not travel (pure
+  // opacity/rotation). Normalized by CUMULATIVE path length, so a curved or
+  // out-and-back flight still reads as monotone progress in [0,1].
   progress: (number | null)[];
-  // Normalized computed-transform-matrix progress (Frobenius distance from
-  // the start matrix over total matrix travel); null when the transform
-  // channel does not change. Catches rotations/scales/flips that move no
-  // pixels of bounding-rect center (e.g. a card flip's rotateY).
-  transform: (number | null)[];
+  // Normalized progress through the transform matrix's LINEAR part
+  // (rotation/scale/skew/perspective — every entry except the translation
+  // column), by cumulative path length; null when that part does not move.
+  // Catches rotations/scales/flips that move no pixels of bounding-rect
+  // center (e.g. a card flip's rotateY, a die's tumble).
+  rotation: (number | null)[];
+  // Normalized progress through the transform matrix's TRANSLATION column,
+  // by cumulative path length; null when it does not move. Split out from
+  // `rotation` because the two live on incomparable scales — rotation
+  // entries are unitless (a whole matrix's worth is at most 2.83) while
+  // translation is raw pixels, so a single Frobenius sum over both makes a
+  // 60px travel drown the rotation to ~5% of the norm and degenerates into
+  // a duplicate of `progress`.
+  translation: (number | null)[];
   // Opacity at each sampled fraction, rounded to 2dp; null when opacity is
   // not animated (stays within 0.01 of constant).
   opacity: (number | null)[];
@@ -51,8 +66,125 @@ export interface GeometryFingerprint {
   curves: MotionCurve[];
 }
 
+// One measurement of one animated element at one sampled fraction.
+export interface MotionSample {
+  // Bounding-rect center, viewport px.
+  x: number;
+  y: number;
+  // Computed transform as a 16-entry column-major 4x4 matrix.
+  matrix: number[];
+  opacity: number;
+  z: number;
+}
+
+// The raw per-animation measurement record the in-page pass returns; the
+// normalizer below turns a list of these into MotionCurves.
+export interface SampledAnimation {
+  samples: MotionSample[];
+  durationMs: number;
+  delayMs: number;
+}
+
 const GOLDEN_DIR = join(dirname(fileURLToPath(import.meta.url)), 'goldens');
 const FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
+
+const round = (v: number) => Math.round(v * 100) / 100;
+const grid25 = (v: number) => Math.round(v / 25) * 25;
+const euclidean = (a: number[], b: number[]): number =>
+  Math.sqrt(a.reduce((acc, v, i) => acc + (v - (b[i] ?? 0)) ** 2, 0));
+
+// Column-major 4x4 index groups. 12/13/14 are the translation column
+// (tx, ty, tz); everything else is the linear part (rotation, scale, skew
+// and the perspective row) — reported as the `rotation` channel.
+const TRANSLATION_INDICES = [12, 13, 14];
+const LINEAR_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15];
+const pick = (m: number[], indices: number[]): number[] => indices.map((i) => m[i] ?? 0);
+
+// Normalized CUMULATIVE path length along a sequence of points in some
+// metric space: sum the step lengths and divide by the total.
+//
+// This replaces the old chord-from-start over net-displacement ratio, which
+// silently assumed motion travels monotonically from A to B. A tumbling die
+// breaks that assumption four ways: its path length far exceeds its net
+// displacement (values ran well past 1 against an absolute 0.08 tolerance),
+// the values were non-monotone, a landing near the start pose drove the
+// denominator toward zero (exploding the ratios, or — just under the
+// threshold — nulling the channel, and an all-null curve is DROPPED
+// entirely), and the landing pose depends on the server-rolled value so the
+// denominator moved run to run. Cumulative arc length is monotone
+// non-decreasing and lands in [0,1] by construction, which kills all four.
+//
+// Returns null when the total path is at or below `epsilon` — i.e. this
+// channel did not move at all, so it fingerprints nothing.
+const cumulativeProfile = (
+  points: number[][],
+  epsilon: number,
+): number[] | null => {
+  const travelled: number[] = [0];
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    total += euclidean(points[i]!, points[i - 1]!);
+    travelled.push(total);
+  }
+  if (!(total > epsilon)) return null;
+  return travelled.map((d) => round(d / total));
+};
+
+// Turns raw per-animation samples into the deduplicated curve set. Pure —
+// no DOM, no page — so specs can feed it synthetic sequences directly.
+export function fingerprintFromSamples(
+  sampledAnimations: SampledAnimation[],
+  fractions: number[],
+): GeometryFingerprint {
+  const curves = sampledAnimations
+    .filter((e) => e.samples.length === fractions.length)
+    .map((e) => {
+      const s = e.samples;
+      const first = s[0]!, last = s[s.length - 1]!;
+      const nulls = s.map(() => null);
+      // The travel gate stays on NET bounding-rect displacement (an
+      // in-place tumble is not a travel animation, and widening this gate
+      // to path length would newly open the channel on curves that only
+      // jitter). What changed is the VALUE: cumulative path length, so a
+      // curved or doubling-back flight reads monotone. Nothing is lost for
+      // an in-place tumble — the `rotation`/`translation` channels below
+      // are path-gated and carry it.
+      const travels = Math.hypot(last.x - first.x, last.y - first.y) > 2; // px
+      const progress = travels ? cumulativeProfile(s.map((p) => [p.x, p.y]), 0) : null;
+      const rotation = cumulativeProfile(
+        s.map((p) => pick(p.matrix, LINEAR_INDICES)), 0.01);
+      const translation = cumulativeProfile(
+        s.map((p) => pick(p.matrix, TRANSLATION_INDICES)), 0.01);
+      const opacities = s.map((p) => p.opacity);
+      const opacityAnimates = Math.max(...opacities) - Math.min(...opacities) > 0.01;
+      const zs = s.map((p) => p.z);
+      const zChanges = Math.max(...zs) !== Math.min(...zs);
+      return {
+        progress: progress ?? nulls,
+        rotation: rotation ?? nulls,
+        translation: translation ?? nulls,
+        opacity: opacities.map((o) => (opacityAnimates ? round(o) : null)),
+        timing: [grid25(e.durationMs), grid25(e.delayMs)] as [number, number],
+        zIndex: zs.map((z) => (zChanges ? z : null)),
+      };
+    });
+  // Unique by JSON identity, sorted for stable comparison. All-null
+  // curves are dropped: they are sub-threshold noise (near-no-op FLIPs
+  // whose presence is per-game random) and assert nothing.
+  const seen = new Map<string, MotionCurve>();
+  for (const c of curves) {
+    // Timing/zIndex don't count toward "observable motion": a curve whose
+    // visual channels are all null asserts nothing regardless of its
+    // declared timing.
+    const allNull = [...c.progress, ...c.rotation, ...c.translation, ...c.opacity]
+      .every((v) => v === null);
+    if (!allNull) seen.set(JSON.stringify(c), c);
+  }
+  return {
+    fractions: [...fractions],
+    curves: [...seen.keys()].sort().map((k) => seen.get(k)!),
+  };
+}
 
 // Runs `trigger`, waits for animations to exist and their population to
 // stabilize across two frames, pauses them all, seeks each through the
@@ -70,7 +202,7 @@ export async function sampleMotionCurves(
   // 0 at document level while 141 ran inside component shadow roots), so
   // every step walks the shadow trees and collects per-element
   // getAnimations() instead.
-  const fingerprint: GeometryFingerprint = await page.evaluate(async (fractions) => {
+  const sampledAnimations: SampledAnimation[] = await page.evaluate(async (fractions) => {
     const deepAnimations = (): Animation[] => {
       const out: Animation[] = [];
       const walk = (root: Document | ShadowRoot) => {
@@ -166,60 +298,9 @@ export async function sampleMotionCurves(
       samplesAll.push(...waveEntries);
       quietSince = performance.now();
     }
-
-    const round = (v: number) => Math.round(v * 100) / 100;
-    const grid25 = (v: number) => Math.round(v / 25) * 25;
-    const curves = samplesAll
-      .filter((e) => e.samples.length === fractions.length)
-      .map((e) => {
-        const s = e.samples;
-        const first = s[0]!, last = s[s.length - 1]!;
-        const totalDist = Math.hypot(last.x - first.x, last.y - first.y);
-        const translates = totalDist > 2; // px; below this it's not a travel animation
-        const matrixDist = (a: number[], b: number[]): number =>
-          Math.sqrt(a.reduce((acc, v, i) => acc + (v - (b[i] ?? 0)) ** 2, 0));
-        const totalMatrix = matrixDist(last.matrix, first.matrix);
-        const transforms = totalMatrix > 0.01;
-        const opacities = s.map((p) => p.opacity);
-        const opacityAnimates = Math.max(...opacities) - Math.min(...opacities) > 0.01;
-        const zs = s.map((p) => p.z);
-        const zChanges = Math.max(...zs) !== Math.min(...zs);
-        return {
-          progress: s.map((p) => translates
-            ? round(Math.hypot(p.x - first.x, p.y - first.y) / totalDist)
-            : null),
-          transform: s.map((p) => transforms
-            ? round(matrixDist(p.matrix, first.matrix) / totalMatrix)
-            : null),
-          opacity: opacities.map((o) => (opacityAnimates ? round(o) : null)),
-          timing: [grid25(e.durationMs), grid25(e.delayMs)] as [number, number],
-          zIndex: zs.map((z) => (zChanges ? z : null)),
-        };
-      });
-    // Unique by JSON identity, sorted for stable comparison. All-null
-    // curves are dropped: they are sub-threshold noise (near-no-op FLIPs
-    // whose presence is per-game random) and assert nothing.
-    const seen = new Map<string, MotionCurveLike>();
-    interface MotionCurveLike {
-      progress: (number | null)[];
-      transform: (number | null)[];
-      opacity: (number | null)[];
-      timing: [number, number];
-      zIndex: (number | null)[];
-    }
-    for (const c of curves) {
-      // Timing/zIndex don't count toward "observable motion": a curve whose
-      // visual channels are all null asserts nothing regardless of its
-      // declared timing.
-      const allNull = [...c.progress, ...c.transform, ...c.opacity].every((v) => v === null);
-      if (!allNull) seen.set(JSON.stringify(c), c);
-    }
-    return {
-      fractions: [...fractions],
-      curves: [...seen.keys()].sort().map((k) => seen.get(k)!),
-    };
+    return samplesAll;
   }, FRACTIONS);
-  return fingerprint;
+  return fingerprintFromSamples(sampledAnimations, FRACTIONS);
 }
 
 // Compares (or with PARITY_RECORD=1, rewrites) the golden. Each golden
@@ -264,7 +345,8 @@ export function expectCurvesMatchGolden(
     const exact = (xs: (number | null)[], ys: (number | null)[]): boolean =>
       xs.length === ys.length && xs.every((x, i) => x === ys[i]);
     return channel(a.progress, b.progress)
-      && channel(a.transform, b.transform)
+      && channel(a.rotation, b.rotation)
+      && channel(a.translation, b.translation)
       && channel(a.opacity, b.opacity)
       && a.timing[0] === b.timing[0]
       && a.timing[1] === b.timing[1]
