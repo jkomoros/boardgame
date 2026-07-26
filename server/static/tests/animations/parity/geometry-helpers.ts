@@ -130,6 +130,90 @@ const cumulativeProfile = (
   return travelled.map((d) => round(d / total));
 };
 
+// Extracts the pure ROTATION from a column-major 4x4 transform matrix, as
+// the three columns of an orthonormal 3x3 (column-major, 9 entries).
+// Gram-Schmidt, i.e. the standard matrix-decomposition first step: divide
+// out scale and skew so a `scale(...) rotateY(...)` composite reports the
+// same orientation as the bare rotation. A degenerate (zero-scale) column
+// yields identity — no orientation is recoverable from a collapsed matrix.
+const rotationBasis = (m: number[]): number[] => {
+  const col = (i: number): number[] => [m[i] ?? 0, m[i + 1] ?? 0, m[i + 2] ?? 0];
+  const dot = (a: number[], b: number[]) => a[0]! * b[0]! + a[1]! * b[1]! + a[2]! * b[2]!;
+  const sub = (a: number[], b: number[], k: number) => a.map((v, i) => v - k * b[i]!);
+  const norm = (a: number[]) => Math.sqrt(dot(a, a));
+  const IDENTITY = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  let x = col(0), y = col(4), z = col(8);
+  const sx = norm(x);
+  if (!(sx > 1e-6)) return IDENTITY;
+  x = x.map((v) => v / sx);
+  y = sub(y, x, dot(x, y));
+  const sy = norm(y);
+  if (!(sy > 1e-6)) return IDENTITY;
+  y = y.map((v) => v / sy);
+  z = sub(sub(z, x, dot(x, z)), y, dot(y, z));
+  const sz = norm(z);
+  if (!(sz > 1e-6)) return IDENTITY;
+  z = z.map((v) => v / sz);
+  // Left-handed (mirrored) basis: flip the third axis so the result is a
+  // proper rotation and the trace formula below stays valid.
+  const det = x[0]! * (y[1]! * z[2]! - y[2]! * z[1]!)
+    - y[0]! * (x[1]! * z[2]! - x[2]! * z[1]!)
+    + z[0]! * (x[1]! * y[2]! - x[2]! * y[1]!);
+  if (det < 0) z = z.map((v) => -v);
+  return [...x, ...y, ...z];
+};
+
+// Angle in DEGREES between two orientations. For column-major bases A and
+// B, the relative rotation is AᵀB, whose trace is just the sum of the dot
+// products of corresponding columns; angle = acos((trace − 1) / 2).
+const angleBetweenBases = (a: number[], b: number[]): number => {
+  let trace = 0;
+  for (let c = 0; c < 3; c++) {
+    for (let r = 0; r < 3; r++) trace += a[c * 3 + r]! * b[c * 3 + r]!;
+  }
+  const cos = Math.min(1, Math.max(-1, (trace - 1) / 2));
+  return (Math.acos(cos) * 180) / Math.PI;
+};
+
+// TOTAL SWEPT ROTATION, in degrees, of one animation's transform across the
+// sampled fractions: accumulate the angle between successive orientations.
+//
+// This is the one thing the path-length normalizer structurally cannot see.
+// That normalizer is magnitude-INVARIANT by construction — a 180° turn and
+// a 90° turn under the same easing produce an identical normalized
+// `rotation` channel — so nothing in the curve set pins how FAR a rotation
+// actually turns. This does, as a plain scalar.
+//
+// It is deliberately NOT a fingerprint channel: the curve set is compared
+// as a SET across every animating element, and debuganimations' messy-stack
+// tilts are per-game RANDOM in magnitude, so a general magnitude channel
+// would flake on every run. Use this only from a scenario whose rotation
+// magnitude is a genuine invariant of the product (memory's reveal is
+// always exactly a half turn; a fixed-seed die roll lands a fixed pose).
+//
+// Accumulating step-wise, rather than measuring start-to-end, is what makes
+// a multi-turn tumble measurable at all: a 360° roll returns to its start
+// orientation, so the start-to-end angle would read 0.
+export function sweptRotationDegrees(samples: MotionSample[]): number {
+  let total = 0;
+  for (let i = 1; i < samples.length; i++) {
+    total += angleBetweenBases(
+      rotationBasis(samples[i - 1]!.matrix),
+      rotationBasis(samples[i]!.matrix),
+    );
+  }
+  return total;
+}
+
+// Swept rotation of every sampled animation, descending. A scenario picks
+// the entry it means (usually the largest — the element it triggered) and
+// asserts its magnitude; the sampler cannot label animations by role.
+export function sweptRotationsDegrees(sampled: SampledAnimation[]): number[] {
+  return sampled
+    .map((e) => sweptRotationDegrees(e.samples))
+    .sort((a, b) => b - a);
+}
+
 // Turns raw per-animation samples into the deduplicated curve set. Pure —
 // no DOM, no page — so specs can feed it synthetic sequences directly.
 export function fingerprintFromSamples(
@@ -191,10 +275,10 @@ export function fingerprintFromSamples(
 // sample fractions of its own (delay + activeDuration), measuring targets'
 // positions and opacity, then finishes everything so the gate settles
 // normally. Total paused wall-time stays well under the 4s watchdog floor.
-export async function sampleMotionCurves(
+export async function sampleRawMotion(
   page: Page,
   trigger: () => Promise<void>,
-): Promise<GeometryFingerprint> {
+): Promise<SampledAnimation[]> {
   await trigger();
   // One atomic in-page pass: find animations, wait for their population to
   // stabilize, pause, seek, sample, finish. document.getAnimations() does
@@ -300,7 +384,22 @@ export async function sampleMotionCurves(
     }
     return samplesAll;
   }, FRACTIONS);
-  return fingerprintFromSamples(sampledAnimations, FRACTIONS);
+  return sampledAnimations;
+}
+
+// The fingerprint of an already-sampled run, at the harness's fractions.
+// Split from `sampleRawMotion` so a scenario that also needs a scalar
+// measurement (e.g. `sweptRotationDegrees`) can take both off ONE trigger
+// rather than driving the scenario twice.
+export function fingerprintOf(sampled: SampledAnimation[]): GeometryFingerprint {
+  return fingerprintFromSamples(sampled, FRACTIONS);
+}
+
+export async function sampleMotionCurves(
+  page: Page,
+  trigger: () => Promise<void>,
+): Promise<GeometryFingerprint> {
+  return fingerprintOf(await sampleRawMotion(page, trigger));
 }
 
 // Compares (or with PARITY_RECORD=1, rewrites) the golden. Each golden

@@ -87,10 +87,24 @@ it is never all-null.
 - `ease-in-out` → `linear` sabotage → geometry fails the swap scenario.
   (Preserved across the path-length change by construction: pure-translation
   curves record byte-identical values under the new normalizer.)
-- ~~Flip-shape sabotage (`rotateY(180)` → `rotateY(90)`) → geometry fails the
-  memory reveal.~~ **NO LONGER BITES** — see the rotation-MAGNITUDE blind
-  spot below. Re-verified by hand on 2026-07-26: with the sabotage applied,
-  `geometry: memory reveal flip curves` PASSES.
+- Flip-MAGNITUDE sabotage (`rotateY(180)` → `rotateY(90)` in
+  `boardgame-card.ts`'s `_innerTransformFor`) → geometry fails the memory
+  reveal. **RESTORED** (re-verified by hand 2026-07-26): the curve SET no
+  longer catches this — path-length normalization is magnitude-invariant, so
+  the sabotaged `rotation` channel is byte-identical — a separate scalar
+  assertion does. `sweptRotationDegrees()` decomposes each sampled matrix to
+  its pure rotation (Gram-Schmidt, so scale/skew divide out) and accumulates
+  the angle between successive orientations; `geometry: memory reveal flip
+  curves` asserts the largest swept angle in the cycle is 180° ± 3°. Measured
+  clean: `[180, 0, 0, …]` — only the flip rotates at all. Under the sabotage:
+  `Error: memory's reveal must sweep a half turn; swept angles (deg, desc)
+  were [90,0,0,…]`. Scope: this pins memory's half turn ONLY. The assertion
+  lives in the scenario, not in the fingerprint, deliberately — see the
+  rotation-MAGNITUDE entry below. The helper is scenario-agnostic and is
+  meant to be pointed at any scenario whose rotation magnitude is a real
+  invariant (next: a fixed-seed die roll); step-wise accumulation is what
+  makes a multi-turn tumble measurable, since a 360° roll's start-to-end
+  angle is 0.
 
 ## Accepted residual blind spots (harness-critic ledger)
 
@@ -111,27 +125,28 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   `boardgame-render-game._componentWillAnimate`,
   `boardgame-game-view._rosterWillAnimate`); any new `will-animate` listener
   must be checked for idempotence by review, because no test will catch it.
-- **Rotation MAGNITUDE (NEW, and a real regression in coverage)** — the
+- **Rotation MAGNITUDE — narrowed to rotations nothing pins** — the
   path-length normalizer is magnitude-invariant by construction: a rotation
   through 180° and one through 90° under the same easing produce the SAME
-  normalized `rotation` channel. The previous chord-over-net-displacement
+  normalized `rotation` channel. (The previous chord-over-net-displacement
   lens was magnitude-SENSITIVE for rotations by accident, not by design —
   normalized chord is `sin(θ/2)/sin(Θ/2)`, which depends on the total angle
-  `Θ` (a 180° flip recorded `[0, 0.2, 0.71, 0.98, 1]`, a 90° one would have
-  recorded `[0, 0.14, 0.54, 0.89, 1]`, and the 0.17 midpoint gap exceeded the
-  0.08 tolerance). That entanglement of shape with magnitude is exactly what
-  made the lens unusable for a tumbling die, so it had to go — but the flip-
-  shape tooth went with it, VERIFIED by re-running the documented sabotage
-  above. Nothing else in the harness pins how FAR a rotation turns. Restoring
-  it needs a separate scalar, e.g. a per-channel `directness` = net
-  displacement over path length (`2·sin(Θ/2)/Θ`: 0.64 for a half turn, 0.90
-  for a quarter, ~1.0 for the small per-game-random messy-stack tilts, 0 for
-  an out-and-back), which stays deterministic for every current scenario —
-  but would be per-ROLL random for a tumbling die, so a die scenario would
-  have to opt out of it. Deliberately NOT added here: it is an undeclared
-  channel, and planting a per-roll-random value in the die golden is the
-  failure mode this whole harness exists to prevent. Owner: unassigned —
-  needs an explicit decision before Phase 3 relies on flip shape.
+  `Θ`. That entanglement of shape with magnitude is exactly what made the
+  lens unusable for a tumbling die, so it had to go, and the flip-shape
+  tooth went with it.) **No fingerprint CHANNEL will ever cover this**, and
+  the task-3 report's proposed `directness` scalar (`2·sin(Θ/2)/Θ`) is
+  unusable for the same reason any magnitude channel is: curves compare as a
+  SET across every animating element, and debuganimations' messy-stack tilts
+  are per-game RANDOM in magnitude, so such a channel would flake every run
+  (and would be per-ROLL random for a tumbling die besides). What covers it
+  instead is a per-scenario scalar assertion — `sweptRotationDegrees()` —
+  used where the magnitude is a genuine product invariant. Currently that is
+  memory's reveal flip and nothing else (see Teeth above). **Still
+  uncovered**: every rotation whose magnitude no invariant pins — the
+  per-game-random messy-stack tilts above all, and any future rotation added
+  to a scenario without its own swept-angle assertion; a change to how far
+  those turn is invisible here. Owner: whoever adds a rotating animation
+  adds the assertion, or accepts the gap explicitly.
 - **Absolute endpoints / raw positions** — per-game layout randomness makes
   raw-rect goldens unreproducible. Wrong-final-position bugs that preserve
   curve shape are not caught here; the existing behavioral suites
