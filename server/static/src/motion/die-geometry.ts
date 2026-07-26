@@ -8,10 +8,12 @@
  * Face counts 4, 6, 8, 12 and 20 get their face-transitive Platonic solid and
  * 10 gets the pentagonal trapezohedron of a real d10. Every other count N >= 3
  * gets a generated barrel: N side faces around an axis, capped at both ends by
- * a pointed apex vertex rather than a flat face, so the die cannot come to rest
- * on an end. For a barrel the readable faces are the side faces only, which is
- * why `faceCount === faces.length` holds for every shape; the cap triangles are
- * still part of the surface and are exposed separately as `capFaces`.
+ * a cone of triangular facets meeting at an apex rather than by a flat face, in
+ * proportions that make every cap facet an UNSTABLE rest (see `barrelSolid`), so
+ * the die always comes to rest on a readable side face. For a barrel the
+ * readable faces are the side faces only, which is why `faceCount ===
+ * faces.length` holds for every shape; the cap triangles are still part of the
+ * surface and are exposed separately as `capFaces`.
  */
 
 /** A point or direction in 3D. Deliberately a plain tuple: no dependencies. */
@@ -106,9 +108,22 @@ export interface DieGeometry {
    * must scale by `1 / circumradius` itself.
    */
   readonly circumradius: number;
-  /** A d4 rests on a face and is read from the apex pointing up. */
-  readonly readingRule: 'up-face' | 'top-vertex';
+  /**
+   * Which face of a resting die carries its value.
+   *
+   * `'up-face'` for anything that presents a single face upward. `'top-vertex'`
+   * for the d4: it rests ON a face, three faces tilt equally upward, and a real
+   * d4 is read from the apex. `'down-face'` for an ODD-SIDED BARREL: resting on
+   * a side face it points an EDGE at the ceiling, so its two best up-face
+   * candidates are a floating-point tie (1.1e-16 apart for a d7) while the face
+   * it rests on wins by more than 1e-3 — which is also how physical odd barrel
+   * dice are read.
+   */
+  readonly readingRule: ReadingRule;
 }
+
+/** See `DieGeometry.readingRule`. */
+export type ReadingRule = 'up-face' | 'down-face' | 'top-vertex';
 
 /** Coplanarity/convexity slack. Constructions here land ~1e-15 from exact. */
 const EPSILON = 1e-9;
@@ -124,7 +139,7 @@ export interface RawSolid {
   readonly vertices: readonly Vec3[];
   readonly surface: readonly (readonly number[])[];
   readonly readable: readonly number[];
-  readonly readingRule: 'up-face' | 'top-vertex';
+  readonly readingRule: ReadingRule;
 }
 
 /** Newell's method: robust for polygons with more than three vertices. */
@@ -325,22 +340,90 @@ function trapezohedronVertices(): readonly Vec3[] {
   return vertices;
 }
 
-/** Half the axial length of a barrel's side band; makes side faces square. */
+/**
+ * Barrel proportions: why a pointed cap is not enough, and what fixes it.
+ *
+ * A barrel is a ring of radius 1, a band of half-height `h`, and two cones of
+ * height `c` rising to an apex, so the die is `2(h + c)` long and 2 wide. The
+ * intent is that it can only come to rest on a readable SIDE face. A pointed
+ * apex does NOT deliver that: each cap is 2N flat triangular facets, and a
+ * facet is a stable rest exactly when the centre of mass — the origin, by
+ * symmetry — projects inside it.
+ *
+ * Write a = h + c and alpha = pi/N. One cap facet has its apex at (0, 0, a) and
+ * a base edge of the ring at height h; by symmetry the centre of mass projects
+ * onto that facet's median, a fraction
+ *
+ *     t = a * c / (c^2 + cos^2 alpha)
+ *
+ * of the way from the apex to the base edge, and the facet's support margin —
+ * the signed distance from that projection to the base edge, positive inside —
+ * works out to
+ *
+ *     margin = (cos^2 alpha - h * c) / sqrt(c^2 + cos^2 alpha).
+ *
+ * So the whole question is one product:
+ *
+ *     h * c > cos^2(pi/N)   <=>   the cap facets are UNSTABLE.        (*)
+ *
+ * The original barrel used h = sin(pi/N) (which made the side faces square)
+ * with a flat c = 0.5, which satisfies (*) only for N = 3: a d7 rested on a cap
+ * facet in 64% of unretried rolls, 61 degrees off a readable face. `dice-sim.ts`
+ * found that; no structural check about the apex VERTEX can, because the apex
+ * is a legitimately unique extreme point the whole time.
+ *
+ * `BARREL_CAP_SAFETY` is how many times the threshold this module puts h*c at —
+ * `h * c = BARREL_CAP_SAFETY * cos^2(pi/N)` for every barrel, so every barrel
+ * clears (*) by the same factor. sqrt(3) is not a tuned number: it is
+ * exactly the ratio the shipped d3 — the one barrel whose caps were already
+ * unstable — already had (0.5 * sin 60 / cos^2 60 = sqrt(3)), so every other
+ * face count simply inherits the margin of the case that was right. It leaves
+ * every cap facet unstable by 0.168 (large N) to 0.189 (the d3) of a
+ * circumradius, against the +0.161 by which a d7's cap facets were STABLE
+ * before.
+ *
+ * Splitting that product between band and cap is what decides the die's SHAPE,
+ * and it is why the square-side-face rule had to go. h + c is minimised at
+ * h = c = sqrt(BARREL_CAP_SAFETY) * cos alpha; the square rule instead drives
+ * h to 0 as N grows, so c ~ N/pi and the die becomes a needle (a d24 eleven
+ * times longer than wide, a d100 forty-eight times) whose margins collapse to
+ * 0.0002 of a circumradius — unstable on paper, balanceable in practice. So
+ * the band keeps the square height only while that is at least the
+ * length-minimising height, which is true for N = 3 alone, and is stretched to
+ * the minimising height otherwise. Every barrel is then between 1.37 and 2.64
+ * times longer than it is wide, the d3 is unchanged, and the side faces are
+ * rectangles rather than squares for N >= 5.
+ */
+const BARREL_CAP_SAFETY = Math.sqrt(3);
+
+/** Half the axial length of a barrel's side band. See `BARREL_CAP_SAFETY`. */
 function barrelHalfHeight(sideCount: number): number {
-  return Math.sin(Math.PI / sideCount);
+  const alpha = Math.PI / sideCount;
+  return Math.max(Math.sin(alpha), Math.sqrt(BARREL_CAP_SAFETY) * Math.cos(alpha));
 }
 
-/** How far each pointed cap rises above the side band. */
-const BARREL_CAP_HEIGHT = 0.5;
+/**
+ * How far each pointed cap rises above the side band: enough that
+ * `halfHeight * capHeight` clears the tipping threshold `cos^2(pi/N)` by
+ * `BARREL_CAP_SAFETY`, which is what keeps the die off its caps.
+ */
+function barrelCapHeight(sideCount: number): number {
+  const alpha = Math.PI / sideCount;
+  return (BARREL_CAP_SAFETY * Math.cos(alpha) ** 2) / barrelHalfHeight(sideCount);
+}
 
 /**
  * A barrel with `sideCount` readable side faces and two pointed caps. The caps
- * are fans of triangles meeting at an apex vertex, never a flat face, so the
- * die cannot come to rest on an end and every readable face is a side face.
+ * are fans of triangles meeting at an apex vertex, never a flat face, and are
+ * steep enough (see `BARREL_CAP_SAFETY`) that no facet of them is a stable
+ * rest, so every resting pose presents a readable side face.
+ *
+ * An odd-sided barrel resting on a side face points an EDGE at the ceiling, so
+ * it has no up face to read and is read from the face it rests on instead.
  */
 function barrelSolid(sideCount: number): RawSolid {
   const halfHeight = barrelHalfHeight(sideCount);
-  const apexHeight = halfHeight + BARREL_CAP_HEIGHT;
+  const apexHeight = halfHeight + barrelCapHeight(sideCount);
   const vertices: Vec3[] = [];
   for (let k = 0; k < sideCount; k++) {
     const angle = (2 * Math.PI * k) / sideCount;
@@ -365,7 +448,12 @@ function barrelSolid(sideCount: number): RawSolid {
     surface.push([topApex, k, next]);
     surface.push([bottomApex, sideCount + k, sideCount + next]);
   }
-  return { vertices, surface, readable, readingRule: 'up-face' };
+  return {
+    vertices,
+    surface,
+    readable,
+    readingRule: sideCount % 2 === 0 ? 'up-face' : 'down-face',
+  };
 }
 
 /**
@@ -407,6 +495,82 @@ function triangulate(polygon: readonly Vec3[]): Vec3[][] {
 }
 
 /**
+ * Reject a `RawSolid` whose index lists are not usable, before any arithmetic
+ * touches them.
+ *
+ * Out-of-range indices would otherwise surface as a `TypeError` from inside a
+ * vector helper, and a duplicated `readable` index would quietly break the
+ * module's headline invariant `faceCount === faces.length` from outside.
+ */
+function validateIndices(raw: RawSolid): void {
+  if (raw.surface.length < 4) {
+    throw new Error(`degenerate solid: ${raw.surface.length} surface loops cannot enclose a volume`);
+  }
+  for (const [face, loop] of raw.surface.entries()) {
+    if (loop.length < 3) {
+      throw new Error(`surface loop ${face} has ${loop.length} vertices: a face needs at least 3`);
+    }
+    const seen = new Set<number>();
+    for (const index of loop) {
+      if (!Number.isInteger(index) || index < 0 || index >= raw.vertices.length) {
+        throw new Error(
+          `surface loop ${face} references vertex ${index}, which is not in the 0..${raw.vertices.length - 1} vertex list`,
+        );
+      }
+      if (seen.has(index)) {
+        throw new Error(`surface loop ${face} uses vertex ${index} twice`);
+      }
+      seen.add(index);
+    }
+  }
+  const seenReadable = new Set<number>();
+  for (const index of raw.readable) {
+    if (!Number.isInteger(index) || index < 0 || index >= raw.surface.length) {
+      throw new Error(
+        `readable face ${index} is not one of the ${raw.surface.length} surface loops`,
+      );
+    }
+    if (seenReadable.has(index)) {
+      throw new Error(`readable face ${index} appears twice: faces would be counted twice`);
+    }
+    seenReadable.add(index);
+  }
+}
+
+/**
+ * Reject a surface that is not a closed, consistently oriented manifold.
+ *
+ * The half-edge check: walking every loop in its own winding must use each
+ * directed edge exactly once and must supply the reverse of every one of them.
+ * A hole (say a pyramid handed over without its base loop) leaves the boundary
+ * edges without reverses; a duplicated or inconsistently wound face uses one
+ * directed edge twice.
+ *
+ * This is what the `volume > 0` guard below cannot do. An open pyramid still
+ * integrates to a positive volume — the divergence theorem happily closes the
+ * hole through the interior point — and returns an inertia tensor 4% wrong with
+ * no signal at all, which then feeds the physics.
+ */
+function validateClosedSurface(loops: readonly (readonly number[])[]): void {
+  const directed = new Set<string>();
+  for (const loop of loops) {
+    for (let i = 0; i < loop.length; i++) {
+      const key = `${loop[i]}->${loop[(i + 1) % loop.length]}`;
+      if (directed.has(key)) {
+        throw new Error(`surface is not a manifold: directed edge ${key} is used twice`);
+      }
+      directed.add(key);
+    }
+  }
+  for (const key of directed) {
+    const [from, to] = key.split('->');
+    if (!directed.has(`${to}->${from}`)) {
+      throw new Error(`surface is not closed: edge ${key} has no face on its other side`);
+    }
+  }
+}
+
+/**
  * Orient, centre and measure a raw solid.
  *
  * Exported as a testing seam: every face count this module supports produces a
@@ -414,10 +578,15 @@ function triangulate(polygon: readonly Vec3[]): Vec3[][] {
  * the volume centroid always coincide and the centring below would be untested.
  * Tests build a deliberately asymmetric solid (where they differ) and hand it
  * here. Not part of the public geometry API.
+ *
+ * Structurally invalid input is rejected rather than measured: see
+ * `validateIndices` and `validateClosedSurface`.
  */
 export function finishSolid(raw: RawSolid): DieGeometry {
+  validateIndices(raw);
   const interior = meanPoint(raw.vertices);
   const oriented = raw.surface.map((loop) => orientLoop(loop, raw.vertices, interior));
+  validateClosedSurface(oriented);
 
   // Volume-weighted centroid, from tetrahedra hung off the interior point.
   let volume = 0;
@@ -469,10 +638,7 @@ export function finishSolid(raw: RawSolid): DieGeometry {
   });
 }
 
-function hullSolid(
-  vertices: readonly Vec3[],
-  readingRule: 'up-face' | 'top-vertex',
-): RawSolid {
+function hullSolid(vertices: readonly Vec3[], readingRule: ReadingRule): RawSolid {
   const surface = convexHullFaces(vertices);
   return {
     vertices,

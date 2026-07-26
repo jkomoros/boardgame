@@ -93,12 +93,13 @@ function config(faceCount: number, seed: number, overrides: Partial<RollConfig> 
  * trapezohedral d10, the d12 and the d20 (whose raw unit-mass inertia is 4x a
  * d10's before normalisation).
  *
- * Barrels with five or more sides are covered separately: their cap facets are
- * stable resting faces and carry no value, so they cannot be asked to land
- * readable. See the `barrel cap facets` block, which pins that as a geometry
- * defect rather than papering over it.
+ * The d7 is here for a specific reason: its cap facets used to be stable rests,
+ * so it landed on an unreadable cap in most rolls and had to be held out of
+ * this list. `die-geometry.ts` now proportions the caps so no facet of them is
+ * a stable rest, and the d7 is held to the same landing contract as everything
+ * else.
  */
-const SHAPES = [3, 4, 6, 10, 12, 20] as const;
+const SHAPES = [3, 4, 6, 7, 10, 12, 20] as const;
 const SEEDS = [1, 2, 7, 12345] as const;
 
 /**
@@ -609,93 +610,3 @@ describe('simulateRoll physical plausibility', () => {
   });
 });
 
-describe('barrel cap facets', () => {
-  /**
-   * GEOMETRY DEFECT, pinned here because the physics is what exposes it.
-   *
-   * `die-geometry.ts` builds every non-closed-form face count as a barrel and
-   * documents the pointed caps as making the die "unrestable on an end". That is
-   * true of the apex POINT and false of the cap FACETS: for every side count of
-   * five or more, the cap fan triangles are broad enough that the centre of mass
-   * projects well inside one, so the die rests on a facet that carries no value.
-   * A d7 does it about 64% of the time, tilting the presented face 61 degrees.
-   *
-   * The physics is not at fault and cannot fix it — `simulateRoll` re-throws a
-   * cocked die, which reduces a d7 to a few per cent and a THREE-d7 roll not at
-   * all. The fix belongs in `die-geometry.ts`: raise `BARREL_CAP_HEIGHT` (0.5
-   * today) until the cap facets stop being stable rests. This test states the
-   * present fact so the day it changes, someone notices.
-   */
-  function restSupportMargin(polygon: readonly Vec3[], normal: Vec3, centroid: Vec3): number {
-    // Distance from the centre of mass's projection to the nearest polygon
-    // edge, positive when the solid can balance on this face.
-    const depth = dot(normal, centroid);
-    const projected: Vec3 = [normal[0] * depth, normal[1] * depth, normal[2] * depth];
-    let margin = Infinity;
-    for (let i = 0; i < polygon.length; i++) {
-      const a = polygon[i];
-      const b = polygon[(i + 1) % polygon.length];
-      const edge = sub(b, a);
-      const to = sub(projected, a);
-      const side: Vec3 = [
-        edge[1] * to[2] - edge[2] * to[1],
-        edge[2] * to[0] - edge[0] * to[2],
-        edge[0] * to[1] - edge[1] * to[0],
-      ];
-      margin = Math.min(margin, dot(side, normal) / mag(edge));
-    }
-    return margin;
-  }
-
-  it('are stable resting faces for every barrel of five or more sides', () => {
-    for (const faceCount of [5, 7, 9, 14, 21] as const) {
-      const geometry = dieGeometry(faceCount);
-      const best = Math.max(
-        ...geometry.capFaces.map((face) =>
-          restSupportMargin(face.polygon, face.normal, face.centroid),
-        ),
-      );
-      assert.ok(
-        best > 0,
-        `d${faceCount} cap facets are no longer stable rests (margin ${best}) - the geometry was fixed, so delete this test and fold d${faceCount} back into SHAPES`,
-      );
-    }
-    // A triangular barrel is the exception, which is why d3 IS in SHAPES.
-    const d3 = dieGeometry(3);
-    assert.ok(
-      Math.max(
-        ...d3.capFaces.map((face) => restSupportMargin(face.polygon, face.normal, face.centroid)),
-      ) < 0,
-      'a d3 cap facet became a stable rest',
-    );
-  });
-
-  it('still obeys the physics contract, only landing unreadable', () => {
-    // Containment, settling to rest and non-increasing energy are shape-general
-    // and must hold for a barrel too; only READABILITY is lost.
-    const geometry = dieGeometry(7);
-    const solid = simulationSolid(geometry);
-    const planes = containerPlanes(BOUNDS);
-    for (const seed of [1, 2] as const) {
-      const diagnostics = simulateRollWithDiagnostics(config(7, seed));
-      const die = diagnostics.trajectory.dice[0];
-      for (const sample of die.samples) {
-        for (const vertex of worldVertices(solid.vertices, sample.position, sample.orientation)) {
-          for (const plane of planes) {
-            assert.ok(dot(plane.normal, vertex) - plane.offset <= CONTAINMENT_EPSILON);
-          }
-        }
-      }
-      const energy = diagnostics.energyPerStep;
-      for (let i = 1; i < energy.length; i++) {
-        assert.ok(energy[i] <= energy[i - 1] + energy[0] * 1e-5, `d7 gained energy at step ${i}`);
-      }
-      const tail = die.samples.slice(-8);
-      for (let i = 1; i < tail.length; i++) {
-        const dt = (tail[i].t - tail[i - 1].t) / 1000;
-        assert.ok(mag(sub(tail[i].position, tail[i - 1].position)) / dt <= REST_SPEED);
-        assert.ok(quatAngle(tail[i - 1].orientation, tail[i].orientation) / dt <= REST_ANGULAR_SPEED);
-      }
-    }
-  });
-});

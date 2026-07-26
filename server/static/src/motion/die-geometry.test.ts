@@ -3,10 +3,18 @@ import { describe, it } from 'node:test';
 import {
   dieGeometry,
   finishSolid,
+  type DieFace,
   type DieGeometry,
+  type Quat,
   type RawSolid,
   type Vec3,
 } from './die-geometry.ts';
+// Test-only dependencies, both one layer above this module. A barrel's caps
+// were once proved unrestable by a structural argument about the apex VERTEX,
+// which is true and does not imply the thing that matters; only rolling the
+// die shows whether it lands readable. See `describe('barrel resting poses')`.
+import { presentedFaceIndex, resolveReadingRule, WORLD_UP } from './die-faces.ts';
+import { simulateRoll } from './dice-sim.ts';
 
 const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -16,6 +24,22 @@ const cross = (a: Vec3, b: Vec3): Vec3 => [
   a[2] * b[0] - a[0] * b[2],
   a[0] * b[1] - a[1] * b[0],
 ];
+
+/** Rotate `v` by quaternion `q` through the rotation matrix, not the shorthand. */
+function rotate(q: Quat, v: Vec3): Vec3 {
+  const length = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+  const [x, y, z, w] = [q[0] / length, q[1] / length, q[2] / length, q[3] / length];
+  const m = [
+    1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w),
+    2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w),
+    2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y),
+  ];
+  return [
+    m[0] * v[0] + m[1] * v[1] + m[2] * v[2],
+    m[3] * v[0] + m[4] * v[1] + m[5] * v[2],
+    m[6] * v[0] + m[7] * v[1] + m[8] * v[2],
+  ];
+}
 
 /** Tolerances named by the brief. */
 const PLANARITY_TOLERANCE = 1e-9;
@@ -255,8 +279,22 @@ describe('die geometry', () => {
         );
       });
 
-      it('uses the up-face reading rule unless it is a d4', () => {
-        assert.equal(geometry.readingRule, faceCount === 4 ? 'top-vertex' : 'up-face');
+      it('reports the reading rule the solid actually admits', () => {
+        // 'up-face' unless the solid presents no single face upward: the d4
+        // (three faces tilt equally up, so it is read from the apex) and every
+        // ODD-sided barrel (an edge points up, and the two best up-face
+        // candidates are a floating-point tie).
+        const oddBarrel = !STANDARD_FACE_COUNTS.includes(faceCount) && faceCount % 2 === 1;
+        const expected =
+          faceCount === 4 ? 'top-vertex' : oddBarrel ? 'down-face' : 'up-face';
+        assert.equal(geometry.readingRule, expected);
+      });
+
+      it('reports the same rule die-faces.ts derives from the shape', () => {
+        // `resolveReadingRule` works the rule out at runtime by asking whether
+        // every face has an antipode. Asserting the two agree for every shape is
+        // what lets that derivation be dropped in favour of the stated rule.
+        assert.equal(resolveReadingRule(geometry), geometry.readingRule);
       });
     });
   }
@@ -423,17 +461,52 @@ describe('die geometry', () => {
         }
       });
 
-      it(`gives the d${faceCount} barrel square side faces`, () => {
-        // The documented proportion: half-height sin(pi/N) makes the vertical
-        // edge match the ring chord, so every side face is a square. Nothing
-        // else pins the barrel's aspect ratio, so assert it directly.
+      it(`gives the d${faceCount} barrel rectangular side faces on a unit ring`, () => {
+        // The side faces are rectangles: the ring chord wide (which fixes the
+        // ring radius at 1) and the band tall. They are only SQUARE for the d3;
+        // for every other N the band is stretched, which is what keeps the caps
+        // unstable without a needle (see 'barrel resting poses').
         const geometry = dieGeometry(faceCount);
         const chord = 2 * Math.sin(Math.PI / faceCount);
         for (const [index, face] of geometry.faces.entries()) {
-          for (let i = 0; i < face.polygon.length; i++) {
-            const edge = mag(sub(face.polygon[(i + 1) % face.polygon.length], face.polygon[i]));
-            close(edge, chord, 1e-12, `d${faceCount} side face ${index} edge ${i} is not square`);
+          assert.equal(face.polygon.length, 4);
+          const edges = face.polygon.map((vertex, i) =>
+            sub(face.polygon[(i + 1) % face.polygon.length], vertex),
+          );
+          // Opposite edges equal, adjacent edges perpendicular: a rectangle.
+          for (let i = 0; i < 4; i++) {
+            close(
+              mag(edges[i]),
+              mag(edges[(i + 2) % 4]),
+              1e-12,
+              `d${faceCount} side face ${index} is not a parallelogram`,
+            );
+            close(
+              dot(edges[i], edges[(i + 1) % 4]) / (mag(edges[i]) * mag(edges[(i + 1) % 4])),
+              0,
+              1e-12,
+              `d${faceCount} side face ${index} corner ${i} is not square`,
+            );
           }
+          // Two horizontal edges of exactly the ring chord (which is what pins
+          // the ring radius at 1) and two edges parallel to the axis.
+          const horizontal = edges.filter((edge) => Math.abs(edge[2]) < 1e-12);
+          const vertical = edges.filter(
+            (edge) => Math.abs(edge[0]) < 1e-12 && Math.abs(edge[1]) < 1e-12,
+          );
+          assert.equal(horizontal.length, 2, `d${faceCount} side face ${index} is not upright`);
+          assert.equal(vertical.length, 2, `d${faceCount} side face ${index} is not upright`);
+          for (const edge of horizontal) {
+            close(mag(edge), chord, 1e-12, `d${faceCount} side face ${index} is not a chord wide`);
+          }
+          // Centred on the band, one apothem out from the axis.
+          close(
+            mag([face.centroid[0], face.centroid[1], 0]),
+            Math.cos(Math.PI / faceCount),
+            1e-12,
+            'side face is off the unit ring',
+          );
+          close(face.centroid[2], 0, 1e-12, 'side face is not centred on the band');
         }
       });
 
@@ -464,6 +537,170 @@ describe('die geometry', () => {
           2 * faceCount + 2,
           `d${faceCount} looks like a barrel`,
         );
+      }
+    });
+  });
+
+  describe('barrel resting poses', () => {
+    /**
+     * The property the whole barrel construction exists for: a barrel comes to
+     * rest on a readable SIDE face and never on a cap facet.
+     *
+     * Both halves below are needed and neither substitutes for the other. The
+     * previous version of this suite proved "the cap is pointed" structurally —
+     * the apex is the unique extreme vertex along the axis — which is true, is
+     * still asserted above, and says nothing about whether the die can rest on
+     * one of the 2N flat facets that make the cap up. It could: `dice-sim.ts`
+     * landed a d7 on a cap facet in 64% of unretried rolls. So the analytic
+     * half measures facet stability directly, and the empirical half rolls the
+     * die.
+     */
+
+    /**
+     * Signed distance from the centre of mass's projection onto this face's
+     * plane to the nearest polygon edge. Positive means the projection falls
+     * INSIDE the polygon, i.e. the solid can balance on this face; negative
+     * means it topples off it.
+     *
+     * The solid is centred on its centroid, so the centre of mass is the origin
+     * and `dot(normal, centroid)` is the plane's distance from it.
+     */
+    function supportMargin(face: DieFace): number {
+      const depth = dot(face.normal, face.centroid);
+      const projected: Vec3 = [
+        face.normal[0] * depth,
+        face.normal[1] * depth,
+        face.normal[2] * depth,
+      ];
+      let margin = Infinity;
+      for (let i = 0; i < face.polygon.length; i++) {
+        const a = face.polygon[i];
+        const b = face.polygon[(i + 1) % face.polygon.length];
+        const edge = sub(b, a);
+        // Left of every edge, walking the polygon counter-clockwise about its
+        // outward normal, is inside it.
+        margin = Math.min(margin, dot(cross(edge, sub(projected, a)), face.normal) / mag(edge));
+      }
+      return margin;
+    }
+
+    /**
+     * Face counts spanning the whole barrel range: the smallest barrel, the
+     * odd ones the reading rule cares about, an even one, and two so many-sided
+     * that the solid is nearly a cylinder — which is the regime where keeping
+     * the caps unstable is hardest and where a needle would show up.
+     */
+    const STABILITY_FACE_COUNTS = [3, 5, 7, 9, 11, 16, 24, 100] as const;
+
+    /**
+     * How far outside a cap facet the centre of mass must project, as a
+     * fraction of the circumradius. Scale-free on purpose: `dice-sim.ts`
+     * normalises every die to circumradius 1, so this is the margin in the
+     * units the physics actually works in. The measured values run -0.168
+     * (large N) to -0.189 (d3); before the fix a d7 scored +0.161, i.e. stable
+     * by about as much as it is now unstable.
+     */
+    const CAP_INSTABILITY_MARGIN = 0.1;
+
+    it('never has a stable cap facet, from the d3 to the d100', () => {
+      for (const faceCount of STABILITY_FACE_COUNTS) {
+        const geometry = dieGeometry(faceCount);
+        assert.equal(geometry.capFaces.length, 2 * faceCount);
+        for (const [index, face] of geometry.capFaces.entries()) {
+          const margin = supportMargin(face) / geometry.circumradius;
+          assert.ok(
+            margin < -CAP_INSTABILITY_MARGIN,
+            `d${faceCount} cap facet ${index} is a stable rest: margin ${margin} of a circumradius`,
+          );
+        }
+      }
+    });
+
+    it('keeps every readable side face a stable rest', () => {
+      // The other direction of the same measurement. Steepening the caps until
+      // the die cannot rest on them would be no use if it also stopped resting
+      // on its sides: the margin here is exactly half the side face's width,
+      // because the centre of mass projects onto the face's centre.
+      for (const faceCount of STABILITY_FACE_COUNTS) {
+        const geometry = dieGeometry(faceCount);
+        for (const [index, face] of geometry.faces.entries()) {
+          const margin = supportMargin(face);
+          assert.ok(margin > 0, `d${faceCount} side face ${index} is not a stable rest`);
+          close(
+            margin,
+            Math.sin(Math.PI / faceCount),
+            1e-12,
+            `d${faceCount} side face ${index} rests on less than its half-width`,
+          );
+        }
+      }
+    });
+
+    it('stays a die rather than a needle', () => {
+      // A cap steep enough to be unstable is a cap that makes the die longer.
+      // Left unchecked that is a race to a knitting needle -- with square side
+      // faces the band half-height goes as sin(pi/N), so the cap height needed
+      // would go as N/pi and a d100 would be 48 times longer than it is wide.
+      for (let faceCount = 3; faceCount <= 200; faceCount++) {
+        if (STANDARD_FACE_COUNTS.includes(faceCount)) continue;
+        const geometry = dieGeometry(faceCount);
+        const halfLength = Math.max(...geometry.vertices.map((vertex) => Math.abs(vertex[2])));
+        // Ring radius is 1, so the die is 2 wide and 2 * halfLength long.
+        assert.ok(
+          halfLength <= 2.7,
+          `d${faceCount} is ${halfLength.toFixed(2)} times longer than it is wide`,
+        );
+        assert.ok(halfLength >= 1, `d${faceCount} is flatter than it is wide`);
+      }
+    });
+
+    it('lands on a readable side face in the physics, for every seed', () => {
+      // The check that would have caught the original defect. `simulateRoll`
+      // re-throws a cocked die, so a shape that lands unreadable only sometimes
+      // could still slip through a small sample -- but the pre-fix barrels
+      // failed this badly even with the retries (12% of settled d5s through 83%
+      // of d24s, tilted about 61 degrees), so the retry loop is not what is
+      // being measured here.
+      const MAX_TILT_DEGREES = 5;
+      for (const faceCount of [3, 5, 7, 9, 16, 24]) {
+        const geometry = dieGeometry(faceCount);
+        // An odd barrel is read from the face it RESTS on, an even one from the
+        // face opposite; either way the presented face must be square to the
+        // floor, and the die must be lying on a readable face at all.
+        const readDirection: Vec3 =
+          resolveReadingRule(geometry) === 'down-face' ? [0, -1, 0] : WORLD_UP;
+        for (const seed of [1, 2, 3, 5, 8, 13, 21, 34]) {
+          const roll = simulateRoll({
+            seed,
+            geometry,
+            dieCount: 2,
+            bounds: { x: 6, y: 6, z: 6 },
+          });
+          for (const [die, trajectory] of roll.dice.entries()) {
+            const orientation = trajectory.restingOrientation;
+            const label = `d${faceCount} seed ${seed} die ${die}`;
+
+            const resting = Math.max(
+              ...geometry.faces.map((face) => dot(rotate(orientation, face.normal), [0, -1, 0])),
+            );
+            const restTilt = (Math.acos(Math.min(1, resting)) * 180) / Math.PI;
+            assert.ok(
+              restTilt <= MAX_TILT_DEGREES,
+              `${label} came to rest ${restTilt.toFixed(1)} degrees off any readable face -- it is on a cap facet`,
+            );
+
+            const presented = presentedFaceIndex(geometry, orientation);
+            const aligned = dot(
+              rotate(orientation, geometry.faces[presented].normal),
+              readDirection,
+            );
+            const readTilt = (Math.acos(Math.min(1, aligned)) * 180) / Math.PI;
+            assert.ok(
+              readTilt <= MAX_TILT_DEGREES,
+              `${label} presents face ${presented} at ${readTilt.toFixed(1)} degrees off the reading direction`,
+            );
+          }
+        }
       }
     });
   });
@@ -540,6 +777,110 @@ describe('die geometry', () => {
           'a face of the pyramid points toward the centroid',
         );
       }
+    });
+  });
+
+  describe('structurally invalid raw solids', () => {
+    /**
+     * `finishSolid` is an exported seam whose input is hand-built by whoever
+     * calls it, so it cannot assume a well-formed surface. Every case here used
+     * to be accepted silently, and the first one is the dangerous one: an open
+     * surface still integrates to a POSITIVE volume, because the divergence
+     * theorem closes the hole through the interior point, so the `volume > 0`
+     * guard waves it through and the caller gets an inertia tensor that is
+     * wrong by a few percent with no signal at all — and that tensor is what
+     * `dice-sim.ts` integrates the die's tumble with.
+     */
+    function squarePyramid(): {
+      vertices: Vec3[];
+      surface: number[][];
+      readable: number[];
+      readingRule: RawSolid['readingRule'];
+    } {
+      return {
+        vertices: [
+          [1, 1, 0],
+          [1, -1, 0],
+          [-1, -1, 0],
+          [-1, 1, 0],
+          [0, 0, 2],
+        ],
+        surface: [
+          [0, 1, 2, 3], // base
+          [4, 0, 1],
+          [4, 1, 2],
+          [4, 2, 3],
+          [4, 3, 0],
+        ],
+        readable: [1, 2, 3, 4],
+        readingRule: 'up-face',
+      };
+    }
+
+    it('accepts the well-formed pyramid every case here is a mutation of', () => {
+      assert.equal(finishSolid(squarePyramid()).faceCount, 4);
+    });
+
+    it('rejects an open surface, which the volume guard cannot see', () => {
+      const raw = squarePyramid();
+      const open: RawSolid = {
+        ...raw,
+        surface: raw.surface.slice(1),
+        readable: [0, 1, 2, 3],
+      };
+      // Before the half-edge check this returned faceCount 4, capFaces 0 and a
+      // tensor of 0.336/0.336/0.400 where the closed pyramid gives
+      // 0.35/0.35/0.4: a 4% error, silently.
+      assert.throws(() => finishSolid(open), /not closed/);
+    });
+
+    it('rejects a face handed in twice', () => {
+      const raw = squarePyramid();
+      const doubled: RawSolid = { ...raw, surface: [...raw.surface, [0, 1, 2, 3]] };
+      assert.throws(() => finishSolid(doubled), /not a manifold/);
+    });
+
+    it('rejects a surface too small to enclose anything', () => {
+      const raw = squarePyramid();
+      assert.throws(
+        () => finishSolid({ ...raw, surface: raw.surface.slice(0, 3), readable: [0] }),
+        /cannot enclose a volume/,
+      );
+    });
+
+    it('rejects a loop with an out-of-range vertex index', () => {
+      const raw = squarePyramid();
+      raw.surface[2] = [4, 1, 9];
+      // Used to be an opaque TypeError from inside a vector helper.
+      assert.throws(() => finishSolid(raw), /references vertex 9/);
+    });
+
+    it('rejects a loop that uses one vertex twice', () => {
+      const raw = squarePyramid();
+      raw.surface[2] = [4, 1, 1];
+      assert.throws(() => finishSolid(raw), /uses vertex 1 twice/);
+    });
+
+    it('rejects a loop with fewer than three vertices', () => {
+      const raw = squarePyramid();
+      raw.surface[2] = [4, 1];
+      assert.throws(() => finishSolid(raw), /at least 3/);
+    });
+
+    it('rejects a duplicated readable index, which would double-count a face', () => {
+      const raw = squarePyramid();
+      // Used to return faceCount 5 for a four-faced pyramid, breaking
+      // `faceCount === faces.length` from outside the module.
+      assert.throws(() => finishSolid({ ...raw, readable: [1, 1, 2, 3] }), /appears twice/);
+    });
+
+    it('rejects an out-of-range readable index', () => {
+      const raw = squarePyramid();
+      assert.throws(
+        () => finishSolid({ ...raw, readable: [1, 2, 3, 9] }),
+        /readable face 9 is not one of the 5 surface loops/,
+      );
+      assert.throws(() => finishSolid({ ...raw, readable: [1, 2, 3, -1] }), /readable face -1/);
     });
   });
 
