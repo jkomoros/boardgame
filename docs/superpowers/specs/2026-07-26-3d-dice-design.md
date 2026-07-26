@@ -19,10 +19,9 @@ treatments in the catalog remain reachable later.
 - Lift-to-foreground staging — explicitly the cliff; its own later slice.
 - Hand-authored per-shape art. Shapes are *generated* from face count (see
   "Shape is inferred, never configured"), not drawn.
-- Symbol faces — the client can already render arbitrary face content, but
-  the server model cannot *say* a face is a symbol (`dice.Value` is
-  `Faces []int`, carrying no shape, symbol or colour). That is a Go-side
-  change and is out of scope here.
+- Server-side reasoning about symbols. Symbol *faces* are supported (see
+  "Face content"), because the mapping lives in the renderer; what stays out
+  of scope is the Go model learning that a face means anything but an int.
 - Multi-die choreography beyond simultaneous rolls.
 
 ## Why only three axes are new
@@ -241,26 +240,42 @@ needs measuring before dice counts get large.
 
 ## Face content: pips, numerals, and beyond
 
-Faces are DOM elements, so their content is free-form and this dimension is
-largely already solved:
+Faces are DOM elements, so content is free-form. Two ways to fill them, with
+the default requiring nothing:
 
-- **Numerals already work today.** The numeral `<span>` is suppressed by CSS
-  only for the classes `one`…`six`, so any other face value already renders
-  as a number — which is exactly what a d20 wants (nobody prints 20 pips).
-- **Pips** stay the default where they read well: a six-or-fewer-sided die
-  with consecutive values from 1.
-- **Automatic selection, author override.** Pips for the classic d6 case,
-  numerals otherwise, with an explicit knob for authors who want numerals on
-  a d6 (or pips on something unusual). Like shape, this is inferred from the
-  state rather than configured.
-- **Arbitrary content — including symbols — is a client non-issue.** Because
-  a face is a DOM element, slotting an icon into it needs no new client
-  machinery. The blocker for symbol dice (Catan event dice, Warhammer
-  hit/wound) is purely that Go's `Faces []int` cannot express "this face is a
-  wheat icon", and that `Value` doubles as the accessible human-readable
-  result. That is the server-model seam named in the non-goals, and it is
-  worth fixing *once* for both symbol faces and shape metadata rather than
-  twice.
+**1. Auto-generated pips (default).** Pip layouts are *computed* from the
+value rather than hand-written per face. Today's die hard-codes CSS for
+`.face.one` … `.face.six`, which is both the reason it stops at six and a
+seventh thing to keep in sync; a generator emits the classic patterns and
+extends past them on the same grid. Pips are used wherever they still read as
+pips, and the die falls back to numerals automatically beyond that — nobody
+wants twenty dots on one face of a d20.
+
+**2. An enumerated symbol set (author-supplied).** The renderer names what
+each face shows:
+
+```ts
+faceSymbols: ['🌾', '🐑', '🪵', '🧱', '⛰️', '❓']   // value 1..n
+```
+
+Entries are arbitrary — numerals, unicode, emoji, or slotted markup — indexed
+by face value. This is what makes Catan event dice and Warhammer hit/wound
+dice work, and it needs **no Go-side change**: the server continues to deal in
+ints, which is what game logic actually reasons about, and the renderer owns
+the presentation. That is a strictly better seam than teaching `Faces []int`
+about iconography.
+
+**Accessibility travels with the symbols, not the value.** `Value` is the
+accessible readout today, which is correct only while faces show numbers. A
+symbol set must therefore be able to carry a label per face, so a die
+showing wheat announces "wheat" rather than "3". The long form is a
+`{ symbol, label }` pair per face; the array shorthand above implies
+`label === symbol`, which is right for numerals and wrong for emoji, so a die
+with symbols and no labels should be a lint-able authoring mistake rather
+than a silent one.
+
+Resolution order is therefore: author symbol set → generated pips → numerals.
+Like shape, all of it is inferred from the state unless an author speaks up.
 
 ## API surface (this slice)
 
