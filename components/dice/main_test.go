@@ -88,3 +88,50 @@ func TestDieRoll(t *testing.T) {
 	}
 
 }
+
+//TestRollCountCountsEveryThrow pins the one thing RollCount exists for: a throw
+//that lands on the face already showing changes neither SelectedFace nor Value,
+//so without the counter a client cannot tell it from a state in which this die
+//was not thrown at all. About one throw in six for a six-sided die -- and a
+//renderer that animates rolls simply did not animate those.
+func TestRollCountCountsEveryThrow(t *testing.T) {
+
+	dynamic := &DynamicValue{}
+
+	values := DefaultDie()
+
+	deck := boardgame.NewDeck()
+	deck.AddComponent(values)
+	die := deck.ComponentAt(0)
+
+	dynamic.SetContainingComponent(die)
+
+	assert.For(t).ThatActual(dynamic.RollCount).Equals(0)
+
+	sameFaceThrows := 0
+
+	for i := 0; i < 200; i++ {
+		beforeFace := dynamic.SelectedFace
+		beforeValue := dynamic.Value
+		beforeCount := dynamic.RollCount
+
+		dynamic.Roll(nil)
+
+		//Every throw, without exception.
+		assert.For(t, i).ThatActual(dynamic.RollCount).Equals(beforeCount + 1)
+
+		if i > 0 && dynamic.SelectedFace == beforeFace {
+			sameFaceThrows++
+			//The case the counter exists for: nothing else moved.
+			assert.For(t, i).ThatActual(dynamic.Value).Equals(beforeValue)
+		}
+	}
+
+	//If this ever comes back zero the test has stopped exercising the case it
+	//was written for, which is louder than a silently vacuous pass. The
+	//expected count over 199 throws of a d6 is about 33.
+	if sameFaceThrows == 0 {
+		t.Error("no throw in 200 landed on the face already showing, so the case RollCount exists for was never exercised")
+	}
+
+}

@@ -30,6 +30,20 @@ type DynamicValue struct {
 	base.ComponentValues
 	Value        int
 	SelectedFace int
+	// RollCount is how many times this die has been rolled. Roll increments
+	// it; nothing else changes it.
+	//
+	// It exists because SelectedFace and Value cannot say whether a die was
+	// thrown. A roll that lands on the face already showing leaves both of
+	// them untouched -- one throw in six for a six-sided die -- so a client
+	// watching them sees a re-roll and a no-op as the same state, and a
+	// renderer that animates a roll cannot animate that one. Neither can the
+	// state version stand in: it moves for every move any player makes, and
+	// says nothing about whether THIS die was among the things that changed.
+	// A counter on the die itself is the smallest thing that distinguishes
+	// them, is per-die rather than per-game, and is deterministic under
+	// replay like the rest of the state.
+	RollCount int
 }
 
 // DefaultDie returns a die configured as as a typical six-sided die.
@@ -101,5 +115,9 @@ func (d *DynamicValue) Roll(r *rand.Rand) {
 
 	d.SelectedFace = val
 	d.Value = values.Faces[val]
+	//Bumped even when val is the face already showing: that case is exactly
+	//the one nothing else in this struct records, and it is the reason the
+	//counter exists.
+	d.RollCount++
 
 }

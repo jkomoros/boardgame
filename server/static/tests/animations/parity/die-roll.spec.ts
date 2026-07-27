@@ -30,6 +30,12 @@ import { createOfflineGame, gateSnapshot, expectCleanGate } from '../helpers';
 //      section below).
 //   8. Every keyframe is a literal transform list -- no `var()`, no `calc()` --
 //      because either one silently demotes the tumble off the compositor.
+//
+// Task 11 adds three groups below: what counts as a roll (the die's own
+// `DynamicValues.RollCount`, so a throw landing on the face already showing
+// still tumbles), what a roll's DURATION is (the throw with the simulator's
+// dead trailing hold cut off), and the first browser witness of the gate
+// watchdog's `expectedSettleMs` extension.
 
 
 
@@ -40,6 +46,8 @@ interface MountOptions {
   componentId?: string;
   stateVersion?: number;
   dieSize?: string;
+  /** `DynamicValues.RollCount`; omitted from the item entirely when null. */
+  rollCount?: number | null;
 }
 
 /**
@@ -62,10 +70,16 @@ async function mountDie(page: import('@playwright/test').Page, options: MountOpt
     die.style.setProperty('--die-size', opts.dieSize ?? '100px');
     const faces = opts.faces ?? Array.from({ length: opts.faceCount }, (_, i) => (i + 1) * 10);
     if (opts.stateVersion !== undefined) die.stateVersion = opts.stateVersion;
+    const dynamic: any = {
+      SelectedFace: opts.selectedFace ?? 0, Value: faces[opts.selectedFace ?? 0],
+    };
+    // The real server always sends this (components/dice's DynamicValue); a
+    // null asks for the pre-RollCount item shape, which the die still supports.
+    if (opts.rollCount !== null) dynamic.RollCount = opts.rollCount ?? 0;
     die.item = {
       ID: opts.componentId ?? 'fixture-component',
       Values: { Faces: faces },
-      DynamicValues: { SelectedFace: opts.selectedFace ?? 0, Value: faces[opts.selectedFace ?? 0] },
+      DynamicValues: dynamic,
     };
     document.body.appendChild(die);
     await die.updateComplete;
@@ -96,7 +110,10 @@ interface RollCapture {
   valuesAtPlay: (string | undefined)[];
   /** The trajectory the die should be playing, computed independently. */
   expected: {
+    /** The TRIMMED duration: what the die animates. */
     durationMs: number;
+    /** The simulator's own duration, dead trailing hold included. */
+    rawDurationMs: number;
     presented: number;
     restingTransform: string;
     seed: number;
@@ -114,7 +131,11 @@ interface RollCapture {
  */
 async function rollDie(
   page: import('@playwright/test').Page,
-  options: { selectedFace: number; stateVersion?: number; faceCount: number; componentId?: string },
+  options: {
+    selectedFace: number; stateVersion?: number; faceCount: number; componentId?: string;
+    /** `DynamicValues.RollCount`; omitted from the item entirely when null. */
+    rollCount?: number | null;
+  },
 ): Promise<RollCapture> {
   return await page.evaluate(async (opts) => {
     const dieModule: any = await import('/src/components/boardgame-die.ts');
@@ -161,10 +182,16 @@ async function rollDie(
 
     const faces = die.faces.slice();
     if (opts.stateVersion !== undefined) die.stateVersion = opts.stateVersion;
+    const dynamic: any = {
+      SelectedFace: opts.selectedFace, Value: faces[opts.selectedFace],
+    };
+    // One more throw than the mount installed, which is what the server sends
+    // for a roll -- INCLUDING one that lands on the face already showing.
+    if (opts.rollCount !== null) dynamic.RollCount = opts.rollCount ?? 1;
     die.item = {
       ID: opts.componentId ?? 'fixture-component',
       Values: { Faces: faces },
-      DynamicValues: { SelectedFace: opts.selectedFace, Value: faces[opts.selectedFace] },
+      DynamicValues: dynamic,
     };
     // Three passes, all inside the same frame: the install writes the face, the
     // face change plans the roll, and the pass after that -- the first one whose
@@ -178,8 +205,14 @@ async function rollDie(
     const seed = dieModule.dieRollSeed(opts.componentId ?? 'fixture-component', version);
     const trajectory = dieModule.dieRollTrajectory(
       geometry, opts.componentId ?? 'fixture-component', version);
+    // What is PLAYED is the throw with its trailing dead hold cut off (see
+    // settledTrajectory), so every expectation below is derived from that and
+    // not from the raw trajectory -- including its duration, which is the
+    // trimmed trajectory's last sample time.
+    const settled = dieModule.settledTrajectory(trajectory.dice[0]);
+    const settledDurationMs = settled.samples[settled.samples.length - 1].t;
     const presented = facesModule.presentedFaceIndex(
-      geometry, trajectory.dice[0].restingOrientation);
+      geometry, settled.restingOrientation);
 
     const frames: string[] = (calls[0]?.keyframes ?? []).map((frame: any) => String(frame.transform));
     return {
@@ -197,9 +230,10 @@ async function rollDie(
       valuesDuringRoll: (Array.from(root.querySelectorAll('.facet[data-face-index]')) as HTMLElement[])
         .map((el) => el.dataset.faceValue),
       expected: {
-        durationMs: trajectory.durationMs,
+        durationMs: settledDurationMs,
+        rawDurationMs: trajectory.durationMs,
         presented,
-        restingTransform: bakeModule.restingTransform(trajectory.dice[0], { radiusPx }),
+        restingTransform: bakeModule.restingTransform(settled, { radiusPx }),
         seed,
       },
       serverValue: faces[opts.selectedFace],
@@ -606,6 +640,109 @@ test.describe('boardgame-die physics roll', () => {
   });
 });
 
+// Task 11: WHAT COUNTS AS A ROLL.
+//
+// Task 10 triggered the tumble on `selectedFace`, which is an INDEX into the
+// face list. A throw landing on the face already showing leaves that index
+// alone -- one throw in six for a d6, measured at 4 of 20 rolls in pig -- so
+// the player clicked Roll and the die did not move. The state version cannot
+// stand in (it moves three times during one mount with the die untouched), and
+// neither can "the move that produced this state", which says nothing about
+// WHICH die was thrown. `components/dice`'s `DynamicValue.RollCount` is the
+// server saying it, per die, and it is now the trigger.
+test.describe('boardgame-die roll trigger', () => {
+  test('a throw landing on the face already showing still tumbles', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 3, stateVersion: 1, rollCount: 4 });
+    // Same face, same value, same everything the pre-RollCount die could see.
+    const roll = await rollDie(page, {
+      faceCount: 6, selectedFace: 3, stateVersion: 2, rollCount: 5,
+    });
+    expect(roll.animations).toBe(1);
+    expect(roll.gatedCount).toBe(1);
+    expect(roll.duration).toBeCloseTo(roll.expected.durationMs, 6);
+    expect(roll.declared).toEqual([roll.expected.durationMs]);
+    await page.evaluate(async () => {
+      const die = document.getElementById('fixture-die') as any;
+      const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
+      await Promise.all(inner.getAnimations().map((a) => a.finished.catch(() => undefined)));
+    });
+    const read = await restingRead(page);
+    // ...and it lands showing what it was already showing, on whichever facet
+    // the physics turned up, not on the one it started from.
+    expect(read.front.faceIndex).toBe(roll.expected.presented);
+    expect(read.front.value).toBe(String(roll.serverValue));
+    expect(read.ariaLabel).toBe(`Die showing ${roll.serverValue}`);
+  });
+
+  // The other half of the contract, and the reason a heuristic like "animate
+  // whenever the game version moved and this die is rollable" is not acceptable:
+  // a die's item is re-installed for every state a game reaches, and almost none
+  // of them threw it.
+  test('an install that did not throw the die does not tumble', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1, rollCount: 4 });
+    // A later state version, a fresh item object, even a different face -- but
+    // the same roll count, so nothing threw this die.
+    const quiet = await rollDie(page, {
+      faceCount: 6, selectedFace: 2, stateVersion: 9, rollCount: 4,
+    });
+    expect(quiet.animations).toBe(0);
+    expect(quiet.declared).toEqual([]);
+    expect(quiet.gatedCount).toBe(0);
+  });
+
+  // A die driven by hand, or by a game that does not use `components/dice`,
+  // reports no roll count at all. It keeps the pre-RollCount trigger, which is
+  // the best available signal when there is no better one -- and which every
+  // other test in this file exercises through the same fallback.
+  test('a die that reports no roll count still tumbles on a face change', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1, rollCount: null });
+    const roll = await rollDie(page, {
+      faceCount: 6, selectedFace: 3, stateVersion: 2, rollCount: null,
+    });
+    expect(roll.animations).toBe(1);
+    expect(roll.duration).toBeCloseTo(roll.expected.durationMs, 6);
+  });
+});
+
+// Task 11: the trailing hold.
+//
+// `dice-sim.ts` only calls a die at rest after 0.3s of continuous stillness, and
+// it emits that hold as samples. Animating it is not free: the roll is GATED, so
+// it is 0.3s of a median 1.0s roll during which the whole game's animation cycle
+// waits on a die that has already stopped. It is cut off, and this is what says
+// so and what says it costs nothing to look at.
+test.describe('boardgame-die roll duration', () => {
+  test('plays the motion and not the dead hold at the end of it', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1 });
+    const roll = await rollDie(page, { faceCount: 6, selectedFace: 3, stateVersion: 2 });
+    // What is played is the trimmed duration, and it is materially shorter --
+    // for this seed 633ms against the simulator's 933ms.
+    expect(roll.duration).toBeCloseTo(roll.expected.durationMs, 6);
+    expect(roll.expected.rawDurationMs - roll.expected.durationMs).toBeGreaterThan(250);
+    // The cut costs nothing to LOOK at: the pose at the cut is the pose at the
+    // end, to well under a tenth of a pixel on this 100px die. Measured through
+    // the same bake the keyframes come from, so this is the rendered pose and
+    // not an approximation of it.
+    const drift = await page.evaluate(async (version: number) => {
+      const dieModule: any = await import('/src/components/boardgame-die.ts');
+      const geometryModule: any = await import('/src/motion/die-geometry.ts');
+      const bakeModule: any = await import('/src/motion/dice-bake.ts');
+      const geometry = geometryModule.dieGeometry(6);
+      const trajectory = dieModule.dieRollTrajectory(geometry, 'fixture-component', version);
+      const full = trajectory.dice[0];
+      const cut = dieModule.settledTrajectory(full);
+      const atCut = new DOMMatrix(bakeModule.restingTransform(cut, { radiusPx: 50 }));
+      const atEnd = new DOMMatrix(bakeModule.restingTransform(full, { radiusPx: 50 }));
+      const a = atCut.toFloat64Array();
+      const b = atEnd.toFloat64Array();
+      return a.reduce((worst, value, index) => Math.max(worst, Math.abs(value - b[index])), 0);
+    }, 2);
+    // Translation components are pixels, rotation components are unit-scale, so
+    // this bound is a pixel bound on the worst of the two.
+    expect(drift).toBeLessThan(0.1);
+  });
+});
+
 test.describe('boardgame-die physics roll, reduced motion', () => {
   test('runs no tumble and still presents the right face', async ({ browser }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
@@ -643,9 +780,11 @@ test.describe('boardgame-die physics roll, in the app', () => {
     test.setTimeout(120000);
     await createOfflineGame(page, 'pig');
     await expect(page.getByRole('button', { name: 'Roll die' })).toBeEnabled({ timeout: 30000 });
-    // A roll landing on the face the die is already showing does not tumble
-    // (~1 in 6; see the report), so this retries until one does. P(4 in a row)
-    // is under a percent.
+    // Every roll tumbles now, including one that lands on the face already
+    // showing: `DynamicValues.RollCount` is the trigger, not the face index.
+    // The retry is bounded and is NOT about that -- it is tolerance for an API
+    // binary built before `RollCount` existed, against which the die falls back
+    // to the face change and a same-face roll still moves nothing.
     let before = await gateSnapshot(page);
     let declared = 0;
     for (let attempt = 0; attempt < 4 && declared === 0; attempt++) {
@@ -653,10 +792,10 @@ test.describe('boardgame-die physics roll, in the app', () => {
       const die = page.getByRole('button', { name: 'Roll die' });
       await expect(die).toBeEnabled({ timeout: 20000 });
       await die.click();
-      declared = await longRollDuration(page);
+      declared = await liveRollDuration(page);
       if (declared === 0) await expectCleanGate(page, before, 30000);
     }
-    expect(declared).toBeGreaterThan(600);
+    expect(declared).toBeGreaterThan(0);
     // The watchdog's floor is well under a physics roll, so the die's
     // will-animate declaration is the only thing keeping the cycle from being
     // force-closed mid-tumble.
@@ -664,14 +803,168 @@ test.describe('boardgame-die physics roll, in the app', () => {
     const after = await gateSnapshot(page);
     expect(after.watchdogFirings).toBe(before.watchdogFirings);
   });
+
+  // Task 11: THE WATCHDOG EXTENSION, WITNESSED.
+  //
+  // `AnimationGate` arms a backstop at a 4000ms FLOOR when a cycle opens and
+  // force-closes the cycle if it is still open then -- which, for an animation
+  // that was legitimately going to run longer, means the tumble is cut off
+  // mid-air and the game moves on. The escape hatch is `willAnimate`'s
+  // `expectedSettleMs`: a participant that declares a longer settle re-arms the
+  // backstop at `declaration + 1500ms`.
+  //
+  // Until now nothing in a browser had ever exercised that -- the parity
+  // README listed it as an accepted blind spot owned only by the gate's unit
+  // tests -- because no scenario ran long enough. A physics roll can: the
+  // simulator caps a throw at 5000ms, and a big barrel reaches the cap. The
+  // seed below is a d48 that is STILL TUMBLING when the cap cuts it off, so it
+  // declares 5000ms against a 4000ms floor, and a full second of it exists only
+  // because the declaration moved the deadline.
+  //
+  // The die is a fixture, but nothing else here is: it is mounted inside the
+  // live renderer, so it registers with the real ambient registry, its
+  // `will-animate` reaches the real gate through the real listener, and it is
+  // thrown inside a real cycle opened by a real move.
+  test('a roll past the watchdog floor extends the deadline instead of being cut off',
+    async ({ page }) => {
+      test.setTimeout(180000);
+      await createOfflineGame(page, 'pig');
+      await expect(page.getByRole('button', { name: 'Roll die' })).toBeEnabled({ timeout: 30000 });
+
+      // A d48 whose throw runs to the simulator's own 5000ms cap.
+      const LONG_FACES = 48;
+      const LONG_VERSION = 118;
+      const LONG_ID = 'watchdog-die';
+      // Mount it inside the live renderer, so it joins the real gate.
+      // `<boardgame-die>` is already defined by the app; importing the module
+      // again through a second URL would re-run customElements.define.
+      await page.evaluate(async (opts) => {
+        const find = (root: DocumentFragment | Document): HTMLElement | null => {
+          const direct = root.querySelector('boardgame-render-game') as HTMLElement | null;
+          if (direct) return direct;
+          for (const element of Array.from(root.querySelectorAll('*'))) {
+            const shadow = (element as HTMLElement).shadowRoot;
+            if (!shadow) continue;
+            const found = find(shadow);
+            if (found) return found;
+          }
+          return null;
+        };
+        const renderGame = find(document) as HTMLElement;
+        const host = renderGame.shadowRoot as ShadowRoot;
+        // A wrapper that answers the ambient `gameVersion` climb, so the die's
+        // seed is this test's and not the live game's -- the roll has to be a
+        // KNOWN long one. `animatableRegistry` and `animationContext` are not on
+        // it, so those two climbs run past it to the real renderer above: the
+        // die is a genuine participant in the real gate.
+        const wrapper = document.createElement('div') as any;
+        wrapper.gameVersion = opts.version;
+        wrapper.style.cssText = 'position:absolute;top:0;left:0;';
+        const die = document.createElement('boardgame-die') as any;
+        die.id = 'watchdog-die';
+        const faces = Array.from({ length: opts.faces }, (_, i) => i + 1);
+        die.item = {
+          ID: opts.id,
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: 0, Value: 1, RollCount: 0 },
+        };
+        wrapper.appendChild(die);
+        host.appendChild(wrapper);
+        // Kept on window: the die now lives in a shadow root, where
+        // document.getElementById cannot reach it.
+        (window as any).__watchdogDie = die;
+        await die.updateComplete;
+        await die.updateComplete;
+      }, { faces: LONG_FACES, id: LONG_ID, version: LONG_VERSION });
+
+      const before = await gateSnapshot(page);
+      // Throw the long die INSIDE the cycle pig's own roll opens: a declaration
+      // made while no cycle is open is not a gate participant at all, and the
+      // watchdog it would have to outlast never gets armed.
+      await page.getByRole('button', { name: 'Roll die' }).click();
+      const observed = await page.evaluate(async (opts) => {
+        const hooks = (window as any).__bgAnimTestHooks;
+        const opensBefore = hooks.gateOpens;
+        const start = performance.now();
+        while (hooks.gateOpens === opensBefore && performance.now() - start < 20000) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
+        if (hooks.gateOpens === opensBefore) return { opened: false } as any;
+        const die = (window as any).__watchdogDie as any;
+        const declared: number[] = [];
+        die.addEventListener('will-animate', (event: Event) =>
+          declared.push((event as CustomEvent).detail.expectedSettleMs));
+        const faces = Array.from({ length: opts.faces }, (_, i) => i + 1);
+        die.item = {
+          ID: opts.id,
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: 0, Value: 1, RollCount: 1 },
+        };
+        for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+        const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
+        const animation = inner.getAnimations()[0];
+        const duration = animation
+          ? Number((animation.effect as KeyframeEffect).getTiming().duration) : 0;
+        // Wait for the cycle to finish one way or the other, then read how long
+        // the gate actually stayed open and whether the tumble reached its end.
+        const closesBefore = hooks.gateCloses;
+        while (hooks.gateCloses === closesBefore && performance.now() - start < 30000) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
+        const log = hooks.log as { t: number; ev: string }[];
+        let openAt = 0;
+        let closeAt = 0;
+        for (const entry of log) {
+          if (entry.ev === 'gate-open') { openAt = entry.t; closeAt = 0; }
+          if (entry.ev === 'gate-close' && openAt && !closeAt) closeAt = entry.t;
+        }
+        return {
+          opened: true,
+          declared,
+          duration,
+          gateOpenMs: closeAt - openAt,
+          animationProgress: animation
+            ? Number(animation.currentTime ?? 0) / Math.max(1, duration) : 0,
+          playState: animation ? animation.playState : 'none',
+          watchdogFirings: hooks.watchdogFirings,
+        };
+      }, { faces: LONG_FACES, id: LONG_ID });
+
+      expect(observed.opened).toBe(true);
+      // The die really did play a throw past the floor, and really did declare
+      // it. If the physics ever stops producing one this test would be vacuous,
+      // so the length is asserted rather than assumed.
+      expect(observed.duration,
+        'the fixture seed no longer produces a roll past the 4000ms watchdog floor')
+        .toBeGreaterThan(4000);
+      expect(observed.declared).toEqual([observed.duration]);
+      // THE ASSERTION. The gate stayed open for the tumble's own length, not
+      // for the 4000ms floor. Without the extension the backstop fires at the
+      // floor, the cycle is force-closed and the registry sweep force-settles
+      // the die a second short of its landing.
+      expect(observed.watchdogFirings).toBe(before.watchdogFirings);
+      expect(observed.gateOpenMs).toBeGreaterThan(4500);
+      // ...and the tumble was allowed to finish rather than being cut off.
+      expect(observed.animationProgress).toBeGreaterThan(0.98);
+
+      await page.evaluate(() => {
+        (window as any).__watchdogDie?.parentElement?.remove();
+        delete (window as any).__watchdogDie;
+      });
+    });
 });
 
 /**
- * The duration the die's live tumble was declared for, or 0 if it did not
- * tumble. The die lives several shadow roots down, so this walks for it rather
- * than querying the document, which sees nothing inside a shadow tree.
+ * The duration of the die's live tumble, or 0 if it did not tumble. The die
+ * lives several shadow roots down, so this walks for it rather than querying the
+ * document, which sees nothing inside a shadow tree.
+ *
+ * Any animation on `#inner` IS the tumble: a solid die plays nothing else there
+ * (the reel's scroll is the fallback for a die with no geometry). Duration is
+ * deliberately NOT used as the discriminator -- trimming the trailing hold puts
+ * a fast d6 roll under 400ms, well inside the version slot's own 600ms.
  */
-async function longRollDuration(page: import('@playwright/test').Page): Promise<number> {
+async function liveRollDuration(page: import('@playwright/test').Page): Promise<number> {
   return await page.waitForFunction(() => {
     const find = (root: DocumentFragment | Document): any => {
       const direct = root.querySelector('boardgame-die');
@@ -685,13 +978,11 @@ async function longRollDuration(page: import('@playwright/test').Page): Promise<
       return null;
     };
     const die = find(document);
-    if (!die) return 0;
+    if (!die) return false;
     const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
     const effect = inner?.getAnimations()[0]?.effect as KeyframeEffect | undefined;
     const duration = effect ? Number(effect.getTiming().duration) : 0;
-    // A tumble is seconds long; nothing else this die plays is. Settle for 0
-    // once the client has gone quiet, so a same-face roll can be retried.
-    if (duration > 600) return duration;
+    if (duration > 0) return duration;
     const hooks = (window as any).__bgAnimTestHooks;
     return hooks && hooks.gateCloses >= hooks.gateOpens ? 0 : false;
   }, undefined, { timeout: 25000 }).then((handle) => handle.jsonValue()) as Promise<number>;

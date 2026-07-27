@@ -5,6 +5,8 @@
 		"ID": "81137F3F9F5D40BA",
 		"SecretSalt": "FBB49C983100331F",
 		"Version": 27,
+		"ProposalFrontierVersion": 27,
+		"ProposalFrontierKnown": true,
 		"Winners": null,
 		"Finished": false,
 		"Created": "2018-09-23T21:08:09.718054-07:00",
@@ -311,6 +313,7 @@
 				{
 					"dice": [
 						{
+							"RollCount": 0,
 							"SelectedFace": 0,
 							"Value": 1
 						}
@@ -404,6 +407,10 @@
 			"Components": {
 				"dice": {
 					"0": {
+						"RollCount": [
+							0,
+							1
+						],
 						"SelectedFace": [
 							0,
 							4
@@ -445,6 +452,10 @@
 			"Components": {
 				"dice": {
 					"0": {
+						"RollCount": [
+							1,
+							2
+						],
 						"SelectedFace": [
 							4,
 							3
@@ -483,6 +494,17 @@
 			}
 		},
 		{
+			"Components": {
+				"dice": {
+					"0": {
+						"RollCount": [
+							2,
+							3
+						]
+					},
+					"_t": "a"
+				}
+			},
 			"Players": {
 				"1": {
 					"DieCounted": [
@@ -548,6 +570,10 @@
 			"Components": {
 				"dice": {
 					"0": {
+						"RollCount": [
+							3,
+							4
+						],
 						"SelectedFace": [
 							3,
 							1
@@ -589,6 +615,10 @@
 			"Components": {
 				"dice": {
 					"0": {
+						"RollCount": [
+							4,
+							5
+						],
 						"SelectedFace": [
 							1,
 							2
@@ -627,6 +657,17 @@
 			}
 		},
 		{
+			"Components": {
+				"dice": {
+					"0": {
+						"RollCount": [
+							5,
+							6
+						]
+					},
+					"_t": "a"
+				}
+			},
 			"Players": {
 				"0": {
 					"DieCounted": [
@@ -692,6 +733,10 @@
 			"Components": {
 				"dice": {
 					"0": {
+						"RollCount": [
+							6,
+							7
+						],
 						"SelectedFace": [
 							2,
 							0
@@ -750,6 +795,10 @@
 			"Components": {
 				"dice": {
 					"0": {
+						"RollCount": [
+							7,
+							8
+						],
 						"SelectedFace": [
 							0,
 							4
@@ -788,6 +837,17 @@
 			}
 		},
 		{
+			"Components": {
+				"dice": {
+					"0": {
+						"RollCount": [
+							8,
+							9
+						]
+					},
+					"_t": "a"
+				}
+			},
 			"Players": {
 				"0": {
 					"DieCounted": [

@@ -404,6 +404,36 @@ function trapezohedronVertices(): readonly Vec3[] {
  * distinction matters because the argument that sqrt(3) is INHERITED from the
  * d3 rather than tuned to it rests on the d3 coming out the same — an argument
  * only as good as its statement of what "the same" means.
+ *
+ * ## Signed off, not inherited (Task 11)
+ *
+ * sqrt(3) leaves a visible discontinuity in the family — the d3 is 1.37 long
+ * and everything from the d5 up is 2.13 to 2.63 — because the factor is the
+ * d3's own and the d3 is the one barrel the length-minimising split does not
+ * bind for. A factor of 1.2 removes most of that (d3 1.21, d5 1.77, d100 2.19)
+ * and it was measured, rendered and REJECTED, for three reasons:
+ *
+ *   1. It buys almost nothing legible. A side face's glyphs are sized by the
+ *      largest square inscribed in that face, and for N >= 5 that square is
+ *      bounded by the face's WIDTH (the ring chord, 2 sin(pi/N)), which the
+ *      aspect ratio does not touch. All 1.2 changes is the whole solid's
+ *      circumradius, so at a fixed `--die-size` a shorter barrel's faces come
+ *      out about 17% wider. Rendered side by side at 160px, a d7's and a d16's
+ *      numerals are the same size to the eye in both; the die is simply
+ *      stubbier.
+ *   2. It costs most of the safety margin the factor exists for: cap facets go
+ *      from unstable by 0.168 of a circumradius to unstable by 0.062, which is
+ *      below the 0.1 bound `never has a stable cap facet, from the d3 to the
+ *      d100` asserts — a bound that is itself backed by measurement (the
+ *      pre-fix geometry landed a d16 unreadable 171 times in 240). Adopting
+ *      1.2 means loosening a safety test to fit, which is the wrong direction
+ *      for a shape that only matters when the physics gets it wrong.
+ *   3. It changes the d3 (1.37 -> 1.21), and the d3 being unchanged is the
+ *      whole argument that this factor is inherited rather than tuned.
+ *
+ * The discontinuity is therefore deliberate: the d3 is short because a
+ * triangular prism does not need to be long to be unstable on its caps, and
+ * every other barrel is as short as the tipping threshold lets it be.
  */
 const BARREL_CAP_SAFETY = Math.sqrt(3);
 

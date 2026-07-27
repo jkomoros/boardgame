@@ -539,6 +539,7 @@ func (v *Value) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for DynamicValue
 
 var ȧutoGeneratedDynamicValueReaderProps = map[string]boardgame.PropertyType{
+	"RollCount":    boardgame.TypeInt,
 	"SelectedFace": boardgame.TypeInt,
 	"Value":        boardgame.TypeInt,
 }
@@ -594,6 +595,8 @@ func (d *ȧutoGeneratedDynamicValueReader) Prop(name string) (interface{}, error
 
 func (d *ȧutoGeneratedDynamicValueReader) PropMutable(name string) bool {
 	switch name {
+	case "RollCount":
+		return true
 	case "SelectedFace":
 		return true
 	case "Value":
@@ -817,6 +820,8 @@ func (d *ȧutoGeneratedDynamicValueReader) ConfigureProp(name string, value inte
 func (d *ȧutoGeneratedDynamicValueReader) IntProp(name string) (int, error) {
 
 	switch name {
+	case "RollCount":
+		return d.data.RollCount, nil
 	case "SelectedFace":
 		return d.data.SelectedFace, nil
 	case "Value":
@@ -831,6 +836,9 @@ func (d *ȧutoGeneratedDynamicValueReader) IntProp(name string) (int, error) {
 func (d *ȧutoGeneratedDynamicValueReader) SetIntProp(name string, value int) error {
 
 	switch name {
+	case "RollCount":
+		d.data.RollCount = value
+		return nil
 	case "SelectedFace":
 		d.data.SelectedFace = value
 		return nil

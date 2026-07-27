@@ -15,6 +15,7 @@ export interface ComponentCatalog {
 }
 
 export interface DiceDynamicComponentValues {
+  readonly RollCount: number;
   readonly SelectedFace: number;
   readonly Value: number;
 }

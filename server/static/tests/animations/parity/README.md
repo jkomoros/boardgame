@@ -164,8 +164,22 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   size-normalized in principle. Low value vs cost.
 - **Roster / player-info animations** — currently un-gated (the #714 gap);
   the Phase 2 change lands with its own gate-witness test (plan Task 10).
-- **`expectedSettleMs` watchdog extension end-to-end** — no scenario is long
-  enough to need it; owned by the gate-kernel unit tests (plan Task 8).
+- ~~**`expectedSettleMs` watchdog extension end-to-end**~~ — NOW COVERED (was
+  "no scenario is long enough to need it; owned by the gate-kernel unit tests").
+  A physics die roll is long enough: `dice-sim.ts` caps a throw at 5000ms and a
+  big barrel reaches the cap, against the gate's 4000ms floor.
+  `die-roll.spec.ts`'s *a roll past the watchdog floor extends the deadline
+  instead of being cut off* mounts a d48 inside the LIVE renderer — real ambient
+  registry, real `will-animate` listener, real cycle opened by a real move — and
+  throws it. Measured: with the declaration reaching `AnimationGate.willAnimate`
+  the gate stays open 5532ms, the watchdog does not fire and the tumble reaches
+  progress 1.0; with `expectedSettleMs` dropped on the way into the gate the
+  gate closes at 4003ms (the floor, to three milliseconds), the watchdog fires
+  once, and the die is force-settled at 78% of its throw, still `running`.
+  Note that the OTHER app-level roll test (*a multi-second roll never trips the
+  gate watchdog*) still passes under that same sabotage — a one-second pig roll
+  never reaches the floor, which is exactly why this blind spot survived until a
+  scenario was built that does.
 - **0.08 tolerance** — validated against large-effect teeth (0.17–0.21
   midpoint deltas); a sub-tolerance easing tweak (<0.08 at every fraction)
   would pass. The midpoint sample carries most discriminative power.
