@@ -57,9 +57,12 @@
  * `+Z`. That test is only the same question as "can the camera see it?" when the
  * facet sits on the camera's axis.
  *
- * A tumble carries the solid across its own box — a median of 56px on a 100px
- * die, up to 91px — so with a camera pinned to the middle of the box the two
- * tests disagree for a facet up to ~17 degrees off axis. The disagreement is
+ * A tumble carries the solid across its own box — a median of 53px on a 100px
+ * die and up to 114px before `MAX_ENTRY_OFFSET_DIE_WIDTHS` capped the entry,
+ * 32px and 38px after it — so with a camera pinned to the middle of the box the
+ * two tests disagree for a facet up to ~17 degrees off axis (~7 with the cap;
+ * the cap shrinks the disagreement and does not remove it, and a hole in the
+ * die is just as visible at 7 degrees as at 17). The disagreement is
  * visible both ways: a facet the camera CAN see gets culled (a see-through hole
  * in the solid, 10-25% of the silhouette, lasting several frames), and a facet
  * it cannot see gets drawn over the front of the die. Measured over 20 seeded
@@ -174,20 +177,23 @@ export function dieRollTrajectory(
 /**
  * How far the die may still be from its final pose for a frame to count as
  * part of the trailing HOLD rather than as motion: half a thousandth of a
- * circumradius, and a fiftieth of a degree.
+ * bounding radius, and a fiftieth of a degree.
  *
- * `dice-sim.ts` only declares a die at rest after `REST_HOLD_SECONDS` (0.3s)
- * of continuous stillness, and it emits that hold as samples, so the last
- * ~300ms of every trajectory is the die frozen on its final pose. Animating it
- * is not neutral: the roll is GATED, so those 300ms are 30% of a median roll
- * during which the whole game's animation cycle waits on a die that has already
- * stopped. `settledTrajectory` cuts them off.
+ * This is now a backstop that never fires. `dice-sim.ts` used to run its rest
+ * hold out as samples, so the last ~300ms of every trajectory was the die
+ * frozen on its final pose and cutting it was worth 300ms of a gated
+ * animation; it now ends a roll at the last frame in which a die turned faster
+ * than 120 degrees a second, and a sample sitting a fiftieth of a degree from
+ * the final pose is 3.6 degrees a second at the simulator's 180Hz grid, i.e.
+ * more than thirty times finer than the cut that has already happened.
+ * Measured over 210 throws (7 face counts x 30 seeds) this removes zero frames
+ * from zero rolls.
  *
- * The tolerances are deliberately far below anything a screen can show — at
- * pig's 100px die they are 0.025px of travel and 0.035px of surface swing — so
- * this cannot cut a frame that a player could tell apart from the last one.
- * Measured over 1800 throws (9 face counts x 200 seeds) it removes a median of
- * 300ms and never once changes which face `presentedFaceIndex` reads.
+ * It is kept because the trim is the SIMULATOR's policy and this is the
+ * renderer's, and a renderer that animates a dead frame is wrong whoever
+ * produced it -- but if `dice-sim.ts` is ever the only producer of a
+ * `DieTrajectory`, delete this rather than leaving a no-op that reads like a
+ * live optimisation.
  */
 const SETTLED_POSITION_TOLERANCE = 5e-4;
 const SETTLED_ANGLE_TOLERANCE = 0.02;
@@ -226,6 +232,93 @@ export function settledTrajectory(die: DieTrajectory): DieTrajectory {
   if (first >= samples.length - 1 || !(samples[first].t > 0)) return die;
   const trimmed = samples.slice(0, first + 1);
   return { samples: trimmed, restingOrientation: trimmed[trimmed.length - 1].orientation };
+}
+
+/**
+ * How far from where it lands a roll may START, in DIE WIDTHS.
+ *
+ * A roll enters mid-flight on purpose. The animation is handed a trajectory
+ * that begins at the simulator's spawn near the ceiling, and the die's first
+ * rendered frame is that spawn: it appears already tumbling, already off
+ * centre, and travels to its landing spot over the roll. A die that instead
+ * began at rest in the middle of its box and only then started to move would
+ * read as a stutter rather than as a throw.
+ *
+ * What was wrong was the MAGNITUDE. Measured over 210 throws (7 face counts x
+ * 30 seeds) at a 100px die, the first frame put the die a median of 53px and up
+ * to 114px from where it would come to rest, while the largest step anywhere in
+ * the flight was 8px — so the first frame carried ten frames' worth of travel
+ * on top of a complete change of orientation, which is a cut and not an entry.
+ * At 0.4 die widths nothing may enter further than 40px on a 100px die, and
+ * because the cap is applied SOFTLY (see `entrySimilarity`) the same 210 throws
+ * enter a median of 32px and at most 38px. Still a jump, and still several
+ * frames of flight, but now the same order as the motion around it, and the
+ * largest in-flight step falls with it (median 8px -> 4px, worst 16px -> 11px)
+ * because the whole path is rescaled rather than just its first frame.
+ *
+ * In die widths and not in pixels because `radiusPx` is the caller's: the bound
+ * has to mean the same thing on a 40px die and a 240px one.
+ */
+export const MAX_ENTRY_OFFSET_DIE_WIDTHS = 0.4;
+/**
+ * How far off vertical a roll may enter, in degrees, and why it is not zero.
+ *
+ * A die must come from ABOVE. It used to come from below in 56% of rolls, by up
+ * to 74px on a 100px die — the die rising off the table and settling downward,
+ * which is the one thing a thrown die never does. That is not the simulator's
+ * doing: the throw really does fall, and then the scene turns the whole world
+ * to aim the landed face at the camera (see `rollScene`), and that turn is free
+ * to point the fall in any screen direction at all.
+ *
+ * Forcing every entry straight down the screen would fix it and would make
+ * every roll enter identically, which is its own tell. 60 degrees keeps the die
+ * unambiguously above where it lands while leaving the entry direction as
+ * varied as the throws are.
+ */
+export const MAX_ENTRY_LEAN_DEGREES = 60;
+
+/**
+ * The scale and screen-plane turn that bring a roll's entry inside those two
+ * bounds, as `(scale, cos, sin)` of one similarity about the resting point.
+ *
+ * ONE similarity for the whole path, derived from the entry frame alone, and
+ * that is the entire design: a per-frame correction would bend the throw, put a
+ * corner in the travel where the correction stopped biting, and break the
+ * agreement between `transform(1)` and `resting`. A similarity cannot. It fixes
+ * the origin, so the roll still ends dead centre in its own box to the last
+ * bit; it is conformal, so the path keeps its shape and its smoothness; and its
+ * scale is at most 1, so it can only ever make a throw travel less.
+ *
+ * The turn is in the screen plane only — depth is scaled and never rotated —
+ * because "above" is a screen direction and rotating the depth term would move
+ * the die off the camera's axis, which is what `rollScene`'s whole travel/
+ * projection split exists to prevent.
+ */
+function entrySimilarity(entry: Vec3, radiusPx: number): {
+  scale: number;
+  cos: number;
+  sin: number;
+} {
+  const lateral = Math.hypot(entry[0], entry[1]);
+  const cap = MAX_ENTRY_OFFSET_DIE_WIDTHS * 2 * radiusPx;
+  // A SOFT cap: `l -> l * cap / hypot(cap, l)`, which is within a percent of
+  // the identity for an entry a seventh of a cap, approaches `cap` from below
+  // without ever reaching it however long the entry is, and is monotone in
+  // between. A hard clamp would be simpler and would pin four rolls in five to
+  // exactly the cap — the median entry is 1.3 caps and the worst 2.9 — so every
+  // throw would start the same distance out, which is its own tell. This leaves
+  // the entry as varied as the throws are (measured over 210 throws: 2.3px to
+  // 37.7px on a 100px die, median 31.9px) while bounding it.
+  const scale = cap / Math.hypot(cap, lateral);
+  // A die that starts on the spot it lands has no bearing to correct, and
+  // `atan2` would invent one out of the sign of a zero.
+  if (!(lateral > 1e-9)) return { scale, cos: 1, sin: 0 };
+  // The entry's bearing, measured clockwise from straight UP the screen (CSS y
+  // points down, so up is -y), clamped into the cone around vertical.
+  const bearing = Math.atan2(entry[0], -entry[1]);
+  const lean = (MAX_ENTRY_LEAN_DEGREES * Math.PI) / 180;
+  const turn = Math.min(lean, Math.max(-lean, bearing)) - bearing;
+  return { scale, cos: Math.cos(turn), sin: Math.sin(turn) };
 }
 
 /**
@@ -334,7 +427,9 @@ export interface RollScene {
  *
  * The travel is minus the POSED resting position, so it is zero at progress 1
  * exactly and the die always comes to rest dead centre in its own box, whatever
- * spot on the tray's floor it landed on.
+ * spot on the tray's floor it landed on — and then rescaled and turned by one
+ * similarity about that resting point, which is what caps how far the roll
+ * enters from and makes it enter from above. See `entrySimilarity`.
  *
  * `matrix3d` comes from `dice-bake.ts` with the trajectory's positions removed:
  * the bake owns the physics-to-CSS reflection and the slerp, and this module
@@ -377,10 +472,22 @@ export function rollScene(
   const spin = trajectoryCurve(spinning, durationMs, { radiusPx });
   const depthPx = PERSPECTIVE_DEPTH_DIE_SIZES * 2 * radiusPx;
   const pose = turns.length ? ` ${turns.map(rotate3d).join(' ')}` : '';
+  // Read off the ENTRY frame and then applied to every frame: see
+  // `entrySimilarity` for why the correction has to be one rigid rescaling of
+  // the whole path rather than something that eases off as the roll goes on.
+  const entry = entrySimilarity(
+    subtract(posedPosition(samples, turns, radiusPx, first), rest), radiusPx);
   const transform = (progress: number): string => {
     const clamped = progress <= 0 ? 0 : progress >= 1 ? 1 : progress;
     const t = Math.min(last, Math.max(first, first + clamped * durationMs));
-    const travel = subtract(posedPosition(samples, turns, radiusPx, t), rest);
+    const raw = subtract(posedPosition(samples, turns, radiusPx, t), rest);
+    const x = raw[0] * entry.scale;
+    const y = raw[1] * entry.scale;
+    const travel = vec3(
+      x * entry.cos - y * entry.sin,
+      x * entry.sin + y * entry.cos,
+      raw[2] * entry.scale,
+    );
     return `translate3d(${cssNumber(travel[0])}px,${cssNumber(travel[1])}px,0px)`
       + ` perspective(${cssNumber(depthPx)}px)`
       + ` translate3d(0px,0px,${cssNumber(travel[2])}px)`

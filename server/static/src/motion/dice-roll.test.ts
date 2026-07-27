@@ -4,12 +4,16 @@ import { QUAT_IDENTITY, dieGeometry, vec3, type Quat, type Vec3 } from './die-ge
 import type { DieTrajectory } from './dice-sim.ts';
 import {
   FRAME_MS,
+  MAX_ENTRY_LEAN_DEGREES,
+  MAX_ENTRY_OFFSET_DIE_WIDTHS,
   PERSPECTIVE_DEPTH_DIE_SIZES,
   TRAY_BOUNDS,
   dieRollSeed,
+  dieRollTrajectory,
   rollScene,
   settledTrajectory,
 } from './dice-roll.ts';
+import { presentedFaceIndex } from './die-faces.ts';
 import { readingPose, surfaceDirections } from '../solid/reading-pose.ts';
 
 /**
@@ -155,11 +159,7 @@ test('a roll comes to rest on the origin of its own box', () => {
   // ...and it got there from somewhere. The travel at the start of the throw is
   // minus the posed resting position, applied the way the browser will: the list
   // reads outermost first, so the last entry acts first.
-  const first = scene.transform(0);
-  const travel = /^translate3d\(([-\d.]+)px,([-\d.]+)px,0px\) perspective\(([\d.]+)px\) translate3d\(0px,0px,([-\d.]+)px\)/
-    .exec(first);
-  assert.ok(travel, `a frame must lead with its travel and then the camera: ${first}`);
-  const offset = vec3(Number(travel[1]), Number(travel[2]), Number(travel[4]));
+  const offset = travelOf(scene.transform(0));
   const turns = readingPose(
     surfaceDirections(geometry, die.restingOrientation), 0, { uprightContent: false },
   ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
@@ -168,10 +168,26 @@ test('a roll comes to rest on the origin of its own box', () => {
   // toScreen (CSS y points down), then to px.
   const start = posedAt(vec3(0.4 * radiusPx, -2.5 * radiusPx, -0.3 * radiusPx));
   const rest = posedAt(vec3(1.2 * radiusPx, -0.5 * radiusPx, -0.9 * radiusPx));
-  for (let axis = 0; axis < 3; axis++) {
-    assert.ok(Math.abs(offset[axis] - (start[axis] - rest[axis])) < 1e-3,
-      `axis ${axis}: travel ${offset[axis]} is not ${start[axis] - rest[axis]}`);
-  }
+  const posed = vec3(start[0] - rest[0], start[1] - rest[1], start[2] - rest[2]);
+  // The entry similarity then rescales that offset and turns it in the SCREEN
+  // PLANE, so the depth axis carries the scale on its own and the lateral
+  // magnitude has to agree with it. See `entrySimilarity`.
+  const scale = offset[2] / posed[2];
+  assert.ok(scale > 0 && scale <= 1 + EMITTED_SLACK, `entry scale ${scale}`);
+  assert.ok(
+    Math.abs(Math.hypot(offset[0], offset[1]) - scale * Math.hypot(posed[0], posed[1]))
+      < EMITTED_SLACK,
+    `lateral travel ${Math.hypot(offset[0], offset[1])} is not ${scale} of ${Math.hypot(posed[0], posed[1])}`,
+  );
+  // And it is the POSED offset and not the raw one: this throw's pose really
+  // does move the die somewhere else, so subtracting the raw resting position
+  // would leave it resting off its own square rather than in the middle of it.
+  const raw = vec3(
+    (0.4 - 1.2) * radiusPx, -(2.5 - 0.5) * radiusPx, (-0.3 + 0.9) * radiusPx);
+  assert.ok(Math.abs(Math.hypot(...raw) - Math.hypot(...posed)) > 1e-6
+    || raw.some((value, axis) => Math.abs(value - posed[axis]) > 1e-6),
+    'the pose does nothing to this throw, so nothing here distinguishes it');
+  assert.ok(Math.abs(offset[2] - raw[2] * scale) > 1e-3, `travel is the RAW offset: ${offset}`);
 });
 
 /**
@@ -246,6 +262,172 @@ test('a roll that landed on the origin still emits its travel and its camera', (
   ]);
   const scene = rollScene(geometry, die, 2, 25, 400);
   assert.ok(scene.resting.startsWith('translate3d(0px,0px,0px) perspective('), scene.resting);
+});
+
+/** The travel of one emitted frame: the outer translate3d, plus the depth. */
+function travelOf(transform: string): Vec3 {
+  const outer = /^translate3d\(([-\d.]+)px,([-\d.]+)px,0px\)/.exec(transform);
+  const depth = /perspective\([^)]*\) translate3d\(0px,0px,([-\d.]+)px\)/.exec(transform);
+  assert.ok(outer && depth, `a frame must lead with its travel and then its depth: ${transform}`);
+  return vec3(Number(outer[1]), Number(outer[2]), Number(depth[1]));
+}
+
+/**
+ * Every roll a shape makes over a run of identities, framed the way
+ * `boardgame-die.ts` frames it. Real throws, because the entry offset is a
+ * property of where the SIMULATOR spawns a die and where the reading pose then
+ * puts that spawn on screen, and no synthetic track states it.
+ */
+const ENTRY_SHAPES = [3, 4, 6, 7, 10, 12, 20] as const;
+const ENTRY_SEEDS = 30;
+const ENTRY_RADIUS_PX = 50; // A 100px die: `--die-size` on pig's board.
+/**
+ * Emitted lengths are rounded to five decimals (`cssNumber`), so a bound read
+ * back off a transform string is only ever exact to about that. Far below a
+ * pixel, and stated rather than hidden inside a fudged tolerance.
+ */
+const EMITTED_SLACK = 1e-4;
+
+function* seededScenes(radiusPx: number) {
+  for (const faceCount of ENTRY_SHAPES) {
+    const geometry = dieGeometry(faceCount);
+    for (let seed = 0; seed < ENTRY_SEEDS; seed++) {
+      const die = settledTrajectory(
+        dieRollTrajectory(geometry, `die-${faceCount}-${seed}`, 1).dice[0]);
+      const durationMs = die.samples[die.samples.length - 1].t;
+      const presented = presentedFaceIndex(geometry, die.restingOrientation);
+      yield {
+        faceCount,
+        seed,
+        scene: rollScene(geometry, die, presented, radiusPx, durationMs),
+      };
+    }
+  }
+}
+
+/**
+ * A roll enters mid-flight on purpose — a die that starts from rest and then
+ * begins to tumble reads as a stutter, not a throw — but the SIZE of that jump
+ * has to stay inside what a frame of the flight itself covers. Unbounded, it
+ * was a median of 53px and up to 114px on a 100px die against a largest
+ * in-flight step of 8px, i.e. the first frame carrying ten frames' worth of
+ * travel on top of a complete change of orientation.
+ *
+ * Stated in DIE WIDTHS, never in pixels: `radiusPx` is the caller's and the
+ * whole point of the bound is that it holds at any die size.
+ */
+test('a roll never enters further than the cap from where it lands', () => {
+  let worst = 0;
+  for (const { faceCount, seed, scene } of seededScenes(ENTRY_RADIUS_PX)) {
+    const entry = travelOf(scene.transform(0));
+    const offset = Math.hypot(entry[0], entry[1]) / (2 * ENTRY_RADIUS_PX);
+    worst = Math.max(worst, offset);
+    assert.ok(
+      offset <= MAX_ENTRY_OFFSET_DIE_WIDTHS + EMITTED_SLACK,
+      `d${faceCount} seed ${seed} enters ${offset} die widths away`,
+    );
+  }
+  // ...and the cap really is doing work rather than sitting above every roll.
+  assert.ok(worst > MAX_ENTRY_OFFSET_DIE_WIDTHS * 0.8, `the cap never binds: worst ${worst}`);
+});
+
+/**
+ * A HARD clamp would satisfy the bound above and would pin four rolls in five
+ * to exactly the cap — the median entry is 1.3 caps and the worst 2.9 — so
+ * every throw would begin the same distance from where it lands, which is its
+ * own kind of tell. The soft cap keeps the spread the throws have.
+ */
+test('the entry cap keeps the spread the throws have', () => {
+  const offsets = [...seededScenes(ENTRY_RADIUS_PX)].map(({ scene }) => {
+    const entry = travelOf(scene.transform(0));
+    return Math.hypot(entry[0], entry[1]) / (2 * ENTRY_RADIUS_PX);
+  });
+  const sorted = [...offsets].sort((a, b) => a - b);
+  const atTheCap = offsets.filter(
+    (offset) => offset > MAX_ENTRY_OFFSET_DIE_WIDTHS - EMITTED_SLACK).length;
+  assert.equal(atTheCap, 0, `${atTheCap} rolls sit exactly on the cap`);
+  assert.ok(
+    sorted[sorted.length - 1] / sorted[Math.floor(sorted.length / 2)] > 1.1,
+    `entry offsets are flattened onto one value: ${sorted[0]} to ${sorted[sorted.length - 1]}`,
+  );
+});
+
+/**
+ * A die that enters BELOW where it lands floats upward onto the table, which is
+ * the one thing a thrown die never does. It happened in 56% of rolls, by as
+ * much as 74px on a 100px die, because the reading pose turns the whole world
+ * to aim at the landed face and that turn is free to point the fall upward.
+ */
+test('a roll always enters from above where it lands', () => {
+  for (const { faceCount, seed, scene } of seededScenes(ENTRY_RADIUS_PX)) {
+    const entry = travelOf(scene.transform(0));
+    // CSS y points down, so entering from above is a negative y offset.
+    assert.ok(
+      entry[1] <= EMITTED_SLACK,
+      `d${faceCount} seed ${seed} enters ${entry[1]}px BELOW its resting centre`,
+    );
+    // Leaning is allowed — a die that always fell straight down the screen
+    // would read as a lift, not a throw — but only this far off vertical.
+    const lean = (Math.atan2(Math.abs(entry[0]), -entry[1]) * 180) / Math.PI;
+    assert.ok(
+      lean <= MAX_ENTRY_LEAN_DEGREES + EMITTED_SLACK,
+      `d${faceCount} seed ${seed} enters ${lean} degrees off vertical`,
+    );
+  }
+});
+
+/**
+ * WHAT THE CAP MAY NOT DO: bend the throw. It is applied as one similarity of
+ * the whole travel path — a single scale and a single turn about the resting
+ * point, chosen from the entry frame and then used for every frame — so the
+ * path keeps its shape, keeps ending exactly at the origin, and gains no corner
+ * for a player to see.
+ */
+test('the entry cap is one similarity of the whole path, not a per-frame nudge', () => {
+  const geometry = dieGeometry(20);
+  const die = trajectory([
+    { t: 0, position: vec3(1.4, 1.9, 0.8) },
+    { t: 200, position: vec3(0.9, 1.4, 0.5) },
+    { t: 400, position: vec3(0.2, 0.9, 0.1) },
+    { t: 600, position: vec3(0, 0, 0) },
+  ]);
+  const radiusPx = 50;
+  const scene = rollScene(geometry, die, 3, radiusPx, 600);
+  const raw = readingPose(
+    surfaceDirections(geometry, die.restingOrientation), 3, { uprightContent: false },
+  ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
+  const posedAt = (point: Vec3) => raw.reduceRight(
+    (value, turn) => rotate(value, turn.axis, turn.degrees), point);
+  const rest = posedAt(vec3(0, 0, 0));
+  const untouched = (position: Vec3) =>
+    posedAt(vec3(position[0] * radiusPx, -position[1] * radiusPx, position[2] * radiusPx))
+      .map((value, axis) => value - rest[axis]);
+
+  let ratio = NaN;
+  let turn = NaN;
+  for (const sample of die.samples) {
+    const before = untouched(sample.position);
+    const after = travelOf(scene.transform(sample.t / 600));
+    const beforeLength = Math.hypot(before[0], before[1], before[2]);
+    if (beforeLength < 1e-3) {
+      // The resting frame: a similarity fixes the origin, whatever it does.
+      assert.ok(Math.hypot(after[0], after[1], after[2]) < 1e-3, `${after}`);
+      continue;
+    }
+    const afterLength = Math.hypot(after[0], after[1], after[2]);
+    // One scale for every frame, all three axes.
+    if (Number.isNaN(ratio)) ratio = afterLength / beforeLength;
+    assert.ok(Math.abs(afterLength / beforeLength - ratio) < 1e-4,
+      `t=${sample.t}: scaled by ${afterLength / beforeLength}, not ${ratio}`);
+    assert.ok(Math.abs(after[2] - before[2] * ratio) < 1e-4,
+      `t=${sample.t}: depth ${after[2]} is not ${before[2] * ratio}`);
+    // ...and one turn, in the screen plane only.
+    const angle = Math.atan2(after[1], after[0]) - Math.atan2(before[1], before[0]);
+    const wrapped = Math.atan2(Math.sin(angle), Math.cos(angle));
+    if (Number.isNaN(turn)) turn = wrapped;
+    assert.ok(Math.abs(wrapped - turn) < 1e-4, `t=${sample.t}: turned ${wrapped}, not ${turn}`);
+  }
+  assert.ok(ratio > 0 && ratio <= 1, `a similarity may only shrink the throw: ${ratio}`);
 });
 
 /** Rodrigues, restated here so the test does not lean on the code it checks. */
