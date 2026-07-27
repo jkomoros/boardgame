@@ -385,7 +385,7 @@ export class BoardgameComponentAnimator extends LitElement {
     // Interruption semantics (spec): a new cycle must measure resting
     // positions, so jump any still-live GATED animations to their end state.
     // finishGatedAnimations (not finishAllAnimations) so a highlighted stack
-    // token's UNGATED infinite throb -- which pulses #inner's filter, not the
+    // token's UNGATED infinite throb -- which pulses #outer's filter, not the
     // host transform, and so is irrelevant to resting-position measurement --
     // survives the cycle instead of being cancelled every state change (the
     // ambient-animation-sweep regression; same rationale as render-game's

@@ -28,17 +28,20 @@ export class BoardgameToken extends BoardgameComponent {
         --component-aspect-ratio: 1.25;
       }
 
-      #outer.active #inner {
+      /* Declared on #outer, which is where the throb that reads them plays.
+         They still inherit down to #inner, so a reader that has not caught up
+         sees the same values. */
+      #outer.active {
         --throb-color-from: rgba(136,136,38,1.0);
         --throb-color-to: rgba(136,136,38,0.5);
       }
 
-      #outer.highlighted #inner {
+      #outer.highlighted {
         --throb-color-from: rgba(0,0,0,1.0);
         --throb-color-to: rgba(0,0,0,0.5);
       }
 
-      #outer.active.highlighted #inner {
+      #outer.active.highlighted {
         --throb-color-from: rgba(255,255,0,1.0);
         --throb-color-to: rgba(255,255,0,0.0);
       }
@@ -140,7 +143,7 @@ export class BoardgameToken extends BoardgameComponent {
     this.altShadow = true;
   }
 
-  // The infinite highlight throb (#inner's drop-shadow pulse while
+  // The infinite highlight throb (#outer's drop-shadow pulse while
   // active/highlighted). Ambient decoration, not a state-arrival cue: it
   // must never hold the completion gate, so it is always started with
   // { gated: false }. Tracked here so a state change or disconnect can
@@ -179,14 +182,23 @@ export class BoardgameToken extends BoardgameComponent {
   // keyframes cannot resolve var() portably, so the colors are read once
   // via getComputedStyle at (re)start time -- same restart-on-change
   // tradeoff the legacy CSS-variable-driven @keyframes had.
+  //
+  // The pulsed property is `filter`, and it plays on #outer, not on #inner,
+  // for the same reason the alt-shadow elevation does (argued at length in
+  // boardgame-component.ts's styles): a filter forces `transform-style: flat`
+  // on the element that carries it, and #inner is what
+  // motionTrackTarget('visual') returns -- the mount point for a
+  // component-owned 3D scene. Nothing else about the throb changes: same
+  // silhouette (#outer paints only #inner), same colors, same ungated
+  // immediate infinite play, same start/cancel points.
   private _syncThrob(): void {
     this._throb?.cancel();
     this._throb = null;
-    const inner = this.innerElement;
-    if (inner) inner.style.filter = '';
+    const outer = this.outerElement;
+    if (outer) outer.style.filter = '';
     if (!this.active && !this.highlighted) return;
-    if (!inner) return;
-    const style = getComputedStyle(inner);
+    if (!outer) return;
+    const style = getComputedStyle(outer);
     const colorFrom = style.getPropertyValue('--throb-color-from').trim();
     const colorTo = style.getPropertyValue('--throb-color-to').trim();
     // Reduced motion: the highlight AFFORDANCE must survive even though
@@ -197,11 +209,11 @@ export class BoardgameToken extends BoardgameComponent {
     // ('from') glow statically instead. (Phase 1 gate regression-critic
     // finding; declared in the token-throb evidence pack.)
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      inner.style.filter =
+      outer.style.filter =
         `drop-shadow(0 0 0.25em ${colorFrom}) drop-shadow(0 0 0.25em ${colorFrom})`;
       return;
     }
-    this._throb = this.play(inner, [
+    this._throb = this.play(outer, [
       { filter: `drop-shadow(0 0 0.25em ${colorTo}) drop-shadow(0 0 0.25em ${colorTo})` },
       // double the effect so it's darker
       { filter: `drop-shadow(0 0 0.25em ${colorFrom}) drop-shadow(0 0 0.25em ${colorFrom})` },

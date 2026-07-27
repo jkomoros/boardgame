@@ -20,7 +20,10 @@ function deepQueryFirstScript() {
 }
 
 // Task 7: boardgame-token's infinite "throb" highlight (the drop-shadow
-// pulse while active/highlighted) migrates from self-driven CSS @keyframes
+// pulse on #outer while active/highlighted -- it pulses #outer's filter and
+// NOT #inner's, because a filter forces transform-style:flat and #inner has
+// to stay free to carry a component-owned 3D scene) migrates from self-driven
+// CSS @keyframes
 // onto the shared WAAPI play() kernel (BoardgameAnimatableItem), but UNLIKE
 // every other migrated component this is deliberately routed UNGATED
 // ({ gated: false }): an ambient, infinite highlight must never hold the
@@ -56,8 +59,8 @@ test.describe('boardgame-token throb', () => {
       // shadow tree (confirmed by the existing geometry.spec.ts interrupt
       // scenario, which uses the identical walk for the same reason).
       const liveAnimations = (): Animation[] => {
-        const inner = el.shadowRoot?.querySelector('#inner') as HTMLElement | null;
-        return inner?.getAnimations({ subtree: false }) ?? [];
+        const outer = el.shadowRoot?.querySelector('#outer') as HTMLElement | null;
+        return outer?.getAnimations({ subtree: false }) ?? [];
       };
 
       el.highlighted = true;
@@ -123,7 +126,7 @@ test.describe('boardgame-token throb', () => {
       };
     });
 
-    expect(result.infiniteRunning, 'a live infinite Animation must be running on #inner').toBe(true);
+    expect(result.infiniteRunning, 'a live infinite Animation must be running on #outer').toBe(true);
     // play() records the 'play' hook unconditionally (it is not gate-scoped
     // instrumentation), so an ungated play still increments hooks.plays --
     // what it must NOT do is dispatch will-animate/animation-done or hold
@@ -149,8 +152,8 @@ test.describe('boardgame-token throb', () => {
       await el.updateComplete;
 
       const liveCount = () => {
-        const inner = el.shadowRoot?.querySelector('#inner') as HTMLElement | null;
-        return inner?.getAnimations({ subtree: false }).length ?? 0;
+        const outer = el.shadowRoot?.querySelector('#outer') as HTMLElement | null;
+        return outer?.getAnimations({ subtree: false }).length ?? 0;
       };
       const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
@@ -218,8 +221,8 @@ test.describe('boardgame-token throb', () => {
       // eslint-disable-next-line no-eval
       const dq = eval(`(${src})`);
       const token = dq(document, 'boardgame-token') as any;
-      const inner = token?.shadowRoot?.querySelector('#inner') as HTMLElement | null;
-      const anims = inner ? inner.getAnimations({ subtree: false }) : [];
+      const outer = token?.shadowRoot?.querySelector('#outer') as HTMLElement | null;
+      const anims = outer ? outer.getAnimations({ subtree: false }) : [];
       const infiniteRunning = anims.filter((a: Animation) =>
         a.playState === 'running'
         && (a.effect as KeyframeEffect | null)?.getComputedTiming().iterations === Infinity).length;
@@ -271,8 +274,8 @@ test.describe('boardgame-token throb', () => {
       await el.updateComplete;
 
       const infiniteRunning = () => {
-        const inner = el.shadowRoot?.querySelector('#inner') as HTMLElement | null;
-        return (inner?.getAnimations({ subtree: false }) ?? []).filter((anim: Animation) =>
+        const outer = el.shadowRoot?.querySelector('#outer') as HTMLElement | null;
+        return (outer?.getAnimations({ subtree: false }) ?? []).filter((anim: Animation) =>
           anim.playState === 'running'
           && (anim.effect as KeyframeEffect | null)?.getComputedTiming().iterations === Infinity).length;
       };
@@ -318,16 +321,16 @@ test('reduced motion holds a static glow instead of pulsing', async ({ browser }
       el.highlighted = true;
       await el.updateComplete;
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-      const inner = el.renderRoot.querySelector('#inner') as HTMLElement;
+      const outer = el.renderRoot.querySelector('#outer') as HTMLElement;
       // Setting the static filter starts the pre-existing 280ms CSS filter
-      // TRANSITION on #inner (component base styles) — transient and fine.
+      // TRANSITION on #outer (component base styles) — transient and fine.
       // The property under test is that no INFINITE pulse runs.
-      const infiniteAnimations = inner.getAnimations()
+      const infiniteAnimations = outer.getAnimations()
         .filter((a) => a.effect?.getComputedTiming().iterations === Infinity).length;
-      const filter = inner.style.filter;
+      const filter = outer.style.filter;
       el.highlighted = false;
       await el.updateComplete;
-      const filterCleared = inner.style.filter;
+      const filterCleared = outer.style.filter;
       return { infiniteAnimations, filter, filterCleared };
     });
     expect(result.infiniteAnimations).toBe(0);

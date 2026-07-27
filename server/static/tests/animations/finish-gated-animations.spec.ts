@@ -24,6 +24,9 @@ test.describe('finishGatedAnimations', () => {
       document.body.appendChild(el);
       await el.updateComplete;
       const inner = el.shadowRoot.querySelector('#inner') as HTMLElement;
+      // The throb pulses #outer's filter (a filter on #inner would flatten a
+      // component-owned 3D scene), so the ambient loop is counted there.
+      const outer = el.shadowRoot.querySelector('#outer') as HTMLElement;
       const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
       // Ungated infinite ambient loop (the throb).
@@ -40,7 +43,7 @@ test.describe('finishGatedAnimations', () => {
       ) as Animation;
       await frame();
 
-      const runningInfinite = () => inner.getAnimations({ subtree: false }).filter((a: Animation) =>
+      const runningInfinite = () => outer.getAnimations({ subtree: false }).filter((a: Animation) =>
         a.playState === 'running'
         && (a.effect as KeyframeEffect | null)?.getComputedTiming().iterations === Infinity).length;
 
@@ -77,19 +80,19 @@ test.describe('finishGatedAnimations', () => {
       el.style.cssText = 'position:fixed;top:200px;left:200px;';
       document.body.appendChild(el);
       await el.updateComplete;
-      const inner = el.shadowRoot.querySelector('#inner') as HTMLElement;
+      const outer = el.shadowRoot.querySelector('#outer') as HTMLElement;
       const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
       el.highlighted = true;
       await el.updateComplete;
       await frame();
-      const infiniteBefore = inner.getAnimations({ subtree: false }).filter((a: Animation) =>
+      const infiniteBefore = outer.getAnimations({ subtree: false }).filter((a: Animation) =>
         a.playState === 'running'
         && (a.effect as KeyframeEffect | null)?.getComputedTiming().iterations === Infinity).length;
 
       el.finishAllAnimations();
       await frame();
-      const infiniteAfter = inner.getAnimations({ subtree: false }).filter((a: Animation) =>
+      const infiniteAfter = outer.getAnimations({ subtree: false }).filter((a: Animation) =>
         a.playState === 'running'
         && (a.effect as KeyframeEffect | null)?.getComputedTiming().iterations === Infinity).length;
 
