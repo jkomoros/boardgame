@@ -4,6 +4,7 @@ import {
   MoveSubmissionGate,
   cancelMoveActionPreview,
   createMoveAction,
+  moveActionReasonSeverity,
   notifyMoveActionLiveStateChanged,
   type MoveActionFor,
   type MoveActionLegality,
@@ -12,6 +13,7 @@ import {
   type MovePreviewRequest,
   type MovePreviewTransport,
   type MoveSubmissionRequest,
+  type MoveActionReasonCode,
   type MoveTransportResult,
 } from './action.ts';
 import { serializeCreatorMoveInput, validateCreatorMoveInput } from './input.ts';
@@ -394,3 +396,73 @@ function sequence(): () => string {
   let value = 0;
   return () => `request-${++value}`;
 }
+
+/**
+ * SEVERITY, which is the judgement every consumer of `reason` has to make and
+ * none of them could.
+ *
+ * The defect this answers: <boardgame-die> rendered every reason under the die
+ * in the error colour, so a two-second roll put red text under a tumbling die
+ * for the whole of it -- the client displays the state BEFORE the throw, whose
+ * legality says the move is not possible, and the gate says an animation is
+ * running. Neither is a failure, and neither is worth an error style.
+ */
+test('a reason that clears itself is busy, not an error', () => {
+  for (const code of [
+    'animation-running', 'submission-pending', 'another-submission-pending',
+    'snapshot-consumed', 'stale-snapshot', 'preview-unchecked',
+  ] as const) {
+    assert.equal(moveActionReasonSeverity(code), 'busy', code);
+    assert.equal(moveActionReasonSeverity({ code, message: 'x' }), 'busy', code);
+  }
+});
+
+test('a move that is simply not on offer is unavailable, not an error', () => {
+  for (const code of ['move-not-possible', 'not-legal-for-player', 'preview-illegal'] as const) {
+    assert.equal(moveActionReasonSeverity(code), 'unavailable', code);
+  }
+});
+
+test('a reason someone has to act on is an error', () => {
+  for (const code of [
+    'schema-mismatch', 'transport-unavailable', 'preview-failed',
+    'submission-rejected', 'invalid-input',
+  ] as const) {
+    assert.equal(moveActionReasonSeverity(code), 'error', code);
+  }
+});
+
+test('every reason code is classified, and no reason is classified twice', () => {
+  // The table is exhaustive over MoveActionReasonCode by construction (a Record
+  // over the union), but a code added to the union and given a severity by
+  // accident of the compiler rather than by decision is exactly what this
+  // catches: every code the module can PRODUCE is listed here, so a new one has
+  // to be added to this list and classified deliberately.
+  const codes: MoveActionReasonCode[] = [
+    'move-not-possible', 'not-legal-for-player', 'animation-running', 'schema-mismatch',
+    'transport-unavailable', 'preview-unchecked', 'preview-illegal', 'preview-failed',
+    'submission-pending', 'another-submission-pending', 'snapshot-consumed',
+    'stale-snapshot', 'submission-rejected', 'invalid-input',
+  ];
+  const buckets = new Map<string, string[]>();
+  for (const code of codes) {
+    const severity = moveActionReasonSeverity(code)!;
+    buckets.set(severity, [...(buckets.get(severity) ?? []), code]);
+  }
+  assert.deepEqual([...buckets.keys()].sort(), ['busy', 'error', 'unavailable']);
+  assert.equal(codes.length, [...buckets.values()].flat().length);
+  // Nothing to say about nothing.
+  assert.equal(moveActionReasonSeverity(null), null);
+  assert.equal(moveActionReasonSeverity(undefined), null);
+  // An unrecognised code is an error: a message that should have been quiet is
+  // a smaller failure than a failure that was silent.
+  assert.equal(moveActionReasonSeverity('who-knows' as MoveActionReasonCode), 'error');
+});
+
+test('the die\'s two roll-time reasons are the two the classification exists for', () => {
+  // Measured through a real pig roll: "Roll Dice is not possible right now"
+  // from 78ms to 724ms, then "Wait for the current animation to finish" to
+  // 1233ms. Both were drawn in the error colour under the die.
+  assert.notEqual(moveActionReasonSeverity('move-not-possible'), 'error');
+  assert.notEqual(moveActionReasonSeverity('animation-running'), 'error');
+});

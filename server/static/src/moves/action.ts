@@ -37,6 +37,71 @@ export interface MoveActionReason {
   readonly preconditions?: readonly MoveActionPrecondition[];
 }
 
+/**
+ * How LOUD a reason is, which is the one thing every consumer of `reason` has to
+ * decide and none of them could.
+ *
+ * `reason` answers "why can this control not be used right now?", and its
+ * answers are not the same kind of thing. A UI that paints all of them the same
+ * way is wrong for most of them: a die that rolls for two seconds reports
+ * `animation-running` and, because the client is still displaying the state
+ * BEFORE the throw, `move-not-possible` — and a control that renders every
+ * reason in the error colour then puts red text under the die for the whole of
+ * every roll, saying nothing is wrong in the loudest available voice.
+ *
+ *   - `busy`: a state that clears itself with no one doing anything. Waiting for
+ *     an animation, for a submission, or for a legality check. Never worth an
+ *     error style, and usually not worth any visible text at all — the control
+ *     is disabled, which already says "not now".
+ *   - `unavailable`: the move is not on offer in this state. Legitimate,
+ *     expected, and the normal condition of most controls most of the time; the
+ *     disabled control is the message.
+ *   - `error`: something is actually wrong and a person has to act — a schema
+ *     that does not match the server, a transport that is not connected, input
+ *     that does not validate, a rejection. This is what an error style is for.
+ *
+ * Stated here rather than in each component so that "is this worth shouting
+ * about?" has ONE answer, and so that a new code has to be classified before it
+ * can be reported: the table below is exhaustive over `MoveActionReasonCode`.
+ */
+export type MoveActionReasonSeverity = 'busy' | 'unavailable' | 'error';
+
+const REASON_SEVERITY: Readonly<Record<MoveActionReasonCode, MoveActionReasonSeverity>> = {
+  // Clears itself.
+  'animation-running': 'busy',
+  'submission-pending': 'busy',
+  'another-submission-pending': 'busy',
+  'snapshot-consumed': 'busy',
+  'stale-snapshot': 'busy',
+  'preview-unchecked': 'busy',
+  // Not on offer in this state.
+  'move-not-possible': 'unavailable',
+  'not-legal-for-player': 'unavailable',
+  'preview-illegal': 'unavailable',
+  // Someone has to do something.
+  'schema-mismatch': 'error',
+  'transport-unavailable': 'error',
+  'preview-failed': 'error',
+  'submission-rejected': 'error',
+  'invalid-input': 'error',
+};
+
+/**
+ * How loud a reason is; see `MoveActionReasonSeverity`.
+ *
+ * An unrecognised code is an `error`, deliberately: a code this table has not
+ * been taught about is more likely to be a real failure than a transient, and
+ * the visible consequence of guessing wrong that way is a message that should
+ * have been quiet rather than a failure that was silent.
+ */
+export function moveActionReasonSeverity(
+  reason: MoveActionReason | MoveActionReasonCode | null | undefined,
+): MoveActionReasonSeverity | null {
+  if (reason === null || reason === undefined) return null;
+  const code = typeof reason === 'string' ? reason : reason.code;
+  return REASON_SEVERITY[code] ?? 'error';
+}
+
 export interface MoveActionPrecondition {
   readonly name: string;
   readonly args?: readonly string[];
