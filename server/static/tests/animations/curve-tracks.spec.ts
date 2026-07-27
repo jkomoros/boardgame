@@ -114,7 +114,19 @@ test('a sampled track plays linear while an endpoint track keeps the kernel easi
 // (b) Two time warps on one channel is the same class of error as two owners.
 // The throw happens BEFORE any animation starts, so there is nothing half
 // played to unwind; the control call proves the batch is otherwise playable.
-test('an explicit timing.easing alongside a sampled track throws before anything plays', async ({ page }) => {
+// (b) The easing collision. A sampled track carries its own timeline, so a
+// caller-supplied easing on the same channel is a producer error and has to be
+// refused before anything plays.
+//
+// Refused, and REPORTED -- not thrown out of playMotionTracks.
+// boardgame-component-animator plays a cycle's components in a bare `for` loop
+// and each component writes its own final transform only after playMotionTracks
+// returns, so an exception escaping here would unwind the loop and strand every
+// component after the offending one at its inverted FLIP transform: one bad
+// track, a boardful of components frozen where they were animating out of. The
+// diagnosis has to stay loud (console.error names the channel and the easing)
+// and the result has to say 'playback-error', but it must be survivable.
+test('an explicit timing.easing alongside a sampled track is refused loudly, without throwing', async ({ page }) => {
   await setup(page);
 
   const result = await page.evaluate(async () => {
@@ -132,14 +144,20 @@ test('an explicit timing.easing alongside a sampled track throws before anything
 
     const hooks = (window as any).__bgAnimTestHooks;
     const playsBefore = hooks.plays;
+    const logged: string[] = [];
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => { logged.push(args.map(String).join(' ')); };
     let threw: string | null = null;
-    let statusWhenNotThrown: string | null = null;
+    let badStatus: string | null = null;
+    let badReason: string | null = null;
     try {
       const bad = el.playTracks(tracks, { duration: 400, easing: 'ease-out' }, { timing: 'immediate' });
-      statusWhenNotThrown = bad.status;
+      badStatus = bad.status;
+      badReason = bad.reason ?? null;
     } catch (error) {
       threw = String((error as Error).message);
     }
+    console.error = originalError;
     const playsAfterBad = hooks.plays;
 
     // Control: the very same batch without an explicit easing plays fine, so
@@ -163,7 +181,9 @@ test('an explicit timing.easing alongside a sampled track throws before anything
 
     return {
       threw,
-      statusWhenNotThrown,
+      badStatus,
+      badReason,
+      logged,
       playsDuringBad: playsAfterBad - playsBefore,
       controlStatus: control.status,
       endpointThrew,
@@ -171,14 +191,80 @@ test('an explicit timing.easing alongside a sampled track throws before anything
     };
   });
 
-  expect(result.statusWhenNotThrown,
-    'playMotionTracks must throw, not report a status, when a sampled channel is given an easing')
+  expect(result.threw,
+    'playMotionTracks must not throw: the animator plays a whole cycle in a bare loop')
     .toBe(null);
-  expect(result.threw).toContain('visual:transform');
-  expect(result.playsDuringBad, 'the throw must precede every play in the batch').toBe(0);
+  expect(result.badStatus).toBe('skipped');
+  expect(result.badReason).toBe('playback-error');
+  // Loud and diagnosable: the console line has to name the channel and the
+  // easing, or a producer gets a silently dead animation and no lead.
+  expect(result.logged.join('\n')).toContain('visual:transform');
+  expect(result.logged.join('\n')).toContain('ease-out');
+  expect(result.playsDuringBad, 'the refusal must precede every play in the batch').toBe(0);
   expect(result.controlStatus, 'the same batch without an easing must still play').toBe('started');
   expect(result.endpointThrew, 'an endpoint-only batch may carry a caller easing').toBe(null);
   expect(result.endpointStatus).toBe('started');
+});
+
+// The consequence, stated as the animator sees it: three components played in
+// one bare `for` loop, the middle one poisoned. Before the refusal was made
+// survivable this test's third component never played at all and never wrote
+// its final transform -- it stayed at the inverted transform the FLIP had put
+// it at, i.e. visibly parked wherever it had animated from.
+test('a track the kernel refuses does not strand the components played after it', async ({ page }) => {
+  await setup(page);
+
+  const result = await page.evaluate(async () => {
+    const { componentMotionTracks } = await import('/src/motion/component-track.ts');
+    const probes = [0, 1, 2].map(() => (window as any).__mountCurveProbe());
+    for (const probe of probes) await probe.el.updateComplete;
+
+    const sampled = componentMotionTracks([{
+      target: 'visual', property: 'transform',
+      curve: (progress: number) => `rotate(${progress * 360}deg)`,
+      resolution: 8,
+    }]);
+    const endpoint = componentMotionTracks([
+      { target: 'host', property: 'opacity', from: '1', to: '0.5' },
+    ]);
+
+    const originalError = console.error;
+    console.error = () => undefined;
+    const statuses: string[] = [];
+    const finals: string[] = [];
+    let escaped: string | null = null;
+    try {
+      // The animator's loop, in miniature: for each component, play its tracks
+      // and then write its own final transform. The write is what a stranded
+      // component never reaches.
+      for (const [index, probe] of probes.entries()) {
+        const poisoned = index === 1;
+        const result = probe.el.playTracks(
+          poisoned ? sampled : endpoint,
+          poisoned ? { duration: 400, easing: 'ease-out' } : { duration: 400 },
+          { timing: 'immediate' },
+        );
+        statuses.push(result.status);
+        for (const playback of result.playbacks ?? []) playback.animation.cancel();
+        probe.el.style.transform = `translateX(${index * 10}px)`;
+        finals.push(probe.el.style.transform);
+      }
+    } catch (error) {
+      escaped = String((error as Error).message);
+    }
+    console.error = originalError;
+    for (const probe of probes) { probe.el.remove(); probe.visual.remove(); }
+    return { escaped, statuses, finals };
+  });
+
+  expect(result.escaped, 'nothing may escape into the animator\'s loop').toBe(null);
+  // The middle component fails, alone.
+  expect(result.statuses).toEqual(['started', 'skipped', 'started']);
+  // And every component -- including the one played AFTER the failure -- ends
+  // up on its own final transform rather than parked at its inverted one.
+  expect(result.finals).toEqual([
+    'translateX(0px)', 'translateX(10px)', 'translateX(20px)',
+  ]);
 });
 
 // (c) The resting-pose contract. Animations run with fill:'none', so the

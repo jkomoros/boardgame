@@ -191,36 +191,47 @@ export class BoardgameAnimatableItem extends LitElement {
     // boardgame-component-animator publishes effect.getTiming().easing into
     // StructuralExecutedTiming, which would report 'linear' for every track --
     // and so stop meaning anything -- if character lived in the keyframes.
-    const bindings = tracks.map(track => {
-      const channel = componentMotionChannel(track);
-      const easing = componentMotionTrackEasing(track);
-      if (easing !== undefined && timing?.easing !== undefined) {
-        // Two time warps on one channel is the same class of producer error as
-        // two owners on one channel: the sampled trajectory and the caller's
-        // easing curve both claim the channel's timeline.
-        throw new Error(
-          `component motion channel ${channel} carries its own sampled timeline; `
-          + `an explicit timing.easing (${String(timing.easing)}) would warp it`,
-        );
-      }
-      return Object.freeze({
-        track,
-        channel,
-        target: this.motionTrackTarget(track.target),
-        timing: easing === undefined ? timing : { ...timing, easing },
-      });
-    });
-    const missing = bindings.find(binding => !binding.target);
-    if (missing) {
-      return Object.freeze({
-        status: 'skipped',
-        reason: 'missing-target',
-        channel: missing.channel,
-      });
-    }
-
+    //
+    // BINDING HAPPENS INSIDE THE TRY, and that placement is load-bearing.
+    // boardgame-component-animator plays a whole cycle's components in a bare
+    // `for` loop, and a component's playAnimation() writes its FINAL transform
+    // only after this returns -- so an exception escaping here does not fail one
+    // component, it unwinds the loop and leaves every component after it in the
+    // cycle frozen at its INVERTED FLIP transform, off in the position it was
+    // animating out of. A producer error on one track has to stay one track's
+    // problem: the catch below reports it loudly (console.error, and a
+    // 'playback-error' result) and returns, so the caller still lands on its own
+    // resting style and its siblings still play.
     const playbacks: MotionTrackPlayback[] = [];
     try {
+      const bindings = tracks.map(track => {
+        const channel = componentMotionChannel(track);
+        const easing = componentMotionTrackEasing(track);
+        if (easing !== undefined && timing?.easing !== undefined) {
+          // Two time warps on one channel is the same class of producer error as
+          // two owners on one channel: the sampled trajectory and the caller's
+          // easing curve both claim the channel's timeline.
+          throw new Error(
+            `component motion channel ${channel} carries its own sampled timeline; `
+            + `an explicit timing.easing (${String(timing.easing)}) would warp it`,
+          );
+        }
+        return Object.freeze({
+          track,
+          channel,
+          target: this.motionTrackTarget(track.target),
+          timing: easing === undefined ? timing : { ...timing, easing },
+        });
+      });
+      const missing = bindings.find(binding => !binding.target);
+      if (missing) {
+        return Object.freeze({
+          status: 'skipped',
+          reason: 'missing-target',
+          channel: missing.channel,
+        });
+      }
+
       for (const binding of bindings) {
         const animation = this.play(
           binding.target!,
