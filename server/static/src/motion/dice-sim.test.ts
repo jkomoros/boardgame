@@ -116,10 +116,26 @@ const SEEDS = [1, 2, 7, 12345] as const;
  */
 const CONTAINMENT_EPSILON = 1e-9;
 
-/** Rest thresholds for the settled tail, from sample-to-sample differences. */
-const REST_SPEED = 0.1;
-const REST_ANGULAR_SPEED = 0.2;
-const REST_WINDOW_MS = 200;
+/**
+ * What the roll's LAST frame is allowed to be, now that the trajectory is cut
+ * at the last frame in which the dice visibly moved rather than run out to a
+ * dead stop.
+ *
+ * A trimmed roll cannot be checked for stillness at its end — its end is by
+ * construction a frame that was still moving. What can be checked, and is
+ * strictly more to the point, is that nothing worth watching was cut: how far
+ * the die still had to go when the animation stopped (`restingDrift`), and that
+ * it stopped ON the floor rather than a bounce above it.
+ *
+ * Both numbers are the trim's price and both are measured. Across the 7 shapes
+ * x 4 seeds x 2 dice this file rolls: the worst drift is 2.17 degrees, and the
+ * worst final-frame clearance above the floor is 3.1e-3 of a circumradius. The
+ * bounds below leave those roughly 40% of headroom. The clearance bound is also
+ * still well under `CONTACT_MARGIN` (0.02), which is what it has to be to keep
+ * catching the bug it was written for — see the test.
+ */
+const MAX_RESTING_DRIFT_DEGREES = 3;
+const MAX_FLOOR_CLEARANCE = 0.005;
 
 /**
  * A die balanced on an edge or a corner must fail this.
@@ -453,21 +469,6 @@ describe('simulateRoll settling', () => {
         for (let d = 0; d < roll.dice.length; d++) {
           const die = roll.dice[d];
           const label = `d${faceCount} seed ${seed} die ${d}`;
-          const tail = die.samples.filter(
-            (sample) => sample.t >= roll.durationMs - REST_WINDOW_MS,
-          );
-          assert.ok(tail.length >= 8, `${label}: only ${tail.length} samples in the rest window`);
-          for (let i = 1; i < tail.length; i++) {
-            const dt = (tail[i].t - tail[i - 1].t) / 1000;
-            const speed = mag(sub(tail[i].position, tail[i - 1].position)) / dt;
-            const spin = quatAngle(tail[i - 1].orientation, tail[i].orientation) / dt;
-            assert.ok(speed <= REST_SPEED, `${label}: still moving at ${speed} at t=${tail[i].t}`);
-            assert.ok(
-              spin <= REST_ANGULAR_SPEED,
-              `${label}: still spinning at ${spin} rad/s at t=${tail[i].t}`,
-            );
-          }
-
           // The cocked-die check. presentedFaceIndex always returns SOME face,
           // even for a cube balanced at 45 degrees where the winner leads by
           // 1e-16, so this tolerance is the only thing standing between a
@@ -485,6 +486,49 @@ describe('simulateRoll settling', () => {
       }
     });
   }
+
+  it('ends the animation the moment the dice stop being worth watching', () => {
+    // The trim's contract, from both sides.
+    //
+    // Below: nothing worth watching was cut. `restingDrift` is exactly how far
+    // the die still had to turn when the trajectory ended, so a trim that
+    // guessed too early shows up here as degrees and not as an opinion.
+    //
+    // Above: the trim actually happened. The last frame of a trimmed roll is by
+    // construction one in which a die still MOVED — everything after it was
+    // below the threshold, which is why it was cut — so a module that had
+    // quietly stopped trimming would end on a frame indistinguishable from its
+    // predecessor and fail this. Without it, `restingDrift < 3 degrees` is
+    // satisfied perfectly by not trimming at all.
+    for (const faceCount of SHAPES) {
+      for (const seed of SEEDS) {
+        const diagnostics = simulateRollWithDiagnostics(config(faceCount, seed, { dieCount: 2 }));
+        const label = `d${faceCount} seed ${seed}`;
+        assert.ok(
+          diagnostics.restingDrift < MAX_RESTING_DRIFT_DEGREES,
+          `${label}: the roll stopped ${diagnostics.restingDrift.toFixed(2)} degrees short of where the die settled`,
+        );
+        let turned = 0;
+        let travelled = 0;
+        for (const die of diagnostics.trajectory.dice) {
+          const samples = die.samples;
+          const n = samples.length;
+          turned = Math.max(
+            turned,
+            (quatAngle(samples[n - 2].orientation, samples[n - 1].orientation) * 180) / Math.PI,
+          );
+          travelled = Math.max(travelled, mag(sub(samples[n - 1].position, samples[n - 2].position)));
+        }
+        // Either kind of motion counts: the trim asks the same of rotation and
+        // of travel, and a die that slides to a halt without turning is still
+        // a die the player is watching.
+        assert.ok(
+          turned > 1 || travelled > 0.006,
+          `${label}: the roll ends on a dead frame - ${turned.toFixed(2)} degrees and ${travelled.toExponential(2)} circumradii`,
+        );
+      }
+    }
+  });
 
   it('comes to rest ON the floor, not hovering above it', () => {
     // The contact solver creates a contact while the vertex still has a gap and
@@ -505,7 +549,7 @@ describe('simulateRoll settling', () => {
           );
           const clearance = lowest + BOUNDS.y;
           assert.ok(
-            clearance < 1e-3,
+            clearance < MAX_FLOOR_CLEARANCE,
             `d${faceCount} seed ${seed} die ${d} came to rest ${clearance} above the floor`,
           );
         }
@@ -613,19 +657,41 @@ describe('simulateRoll energy', () => {
   // where to look, not the contact solver.
   const RELATIVE_STEP_TOLERANCE = 1e-5;
 
+  /**
+   * Every step of a roll's energy trace must fall, except the ones a settle
+   * retry declared it was putting energy into.
+   *
+   * The exemption is a list of exact indices the module reports, not a widened
+   * budget: a re-thrown die is handed a launch's worth of kinetic energy and no
+   * tolerance that admitted that would still catch a solver going unstable. So
+   * the assertion skips exactly the declared steps and holds everywhere else,
+   * which is strictly stronger than what it could check before — the retry used
+   * to run whole separate throws and only the chosen one's trace came back, so
+   * the steps of up to seven other throws were never looked at at all.
+   */
+  function assertDissipates(
+    diagnostics: ReturnType<typeof simulateRollWithDiagnostics>,
+    label: string,
+  ): void {
+    const energy = diagnostics.energyPerStep;
+    assert.ok(energy.length > 100, `${label}: only ${energy.length} steps`);
+    const injected = new Set(diagnostics.attemptStarts);
+    const budget = energy[0] * RELATIVE_STEP_TOLERANCE;
+    for (let i = 1; i < energy.length; i++) {
+      if (injected.has(i)) continue;
+      assert.ok(
+        energy[i] <= energy[i - 1] + budget,
+        `${label} gained energy at step ${i}: ${energy[i - 1]} -> ${energy[i]} (budget ${budget})`,
+      );
+    }
+  }
+
   for (const faceCount of SHAPES) {
     it(`never gains energy while rolling a d${faceCount}`, () => {
       for (const seed of SEEDS) {
         const diagnostics = simulateRollWithDiagnostics(config(faceCount, seed, { dieCount: 2 }));
         const energy = diagnostics.energyPerStep;
-        assert.ok(energy.length > 100, `only ${energy.length} steps`);
-        const budget = energy[0] * RELATIVE_STEP_TOLERANCE;
-        for (let i = 1; i < energy.length; i++) {
-          assert.ok(
-            energy[i] <= energy[i - 1] + budget,
-            `d${faceCount} seed ${seed} gained energy at step ${i}: ${energy[i - 1]} -> ${energy[i]} (budget ${budget})`,
-          );
-        }
+        assertDissipates(diagnostics, `d${faceCount} seed ${seed}`);
         assert.ok(
           energy[energy.length - 1] < energy[0] * 0.25,
           `d${faceCount} seed ${seed} only dissipated to ${energy[energy.length - 1]} of ${energy[0]}`,
@@ -664,18 +730,10 @@ describe('simulateRoll energy', () => {
     for (const restitution of RESTITUTIONS) {
       for (const faceCount of [4, 6, 20] as const) {
         for (const seed of SEEDS) {
-          const diagnostics = simulateRollWithDiagnostics(
-            config(faceCount, seed, { dieCount: 2, restitution }),
+          assertDissipates(
+            simulateRollWithDiagnostics(config(faceCount, seed, { dieCount: 2, restitution })),
+            `d${faceCount} seed ${seed} restitution ${restitution}`,
           );
-          const energy = diagnostics.energyPerStep;
-          assert.ok(energy.length > 100, `only ${energy.length} steps`);
-          const budget = energy[0] * RELATIVE_STEP_TOLERANCE;
-          for (let i = 1; i < energy.length; i++) {
-            assert.ok(
-              energy[i] <= energy[i - 1] + budget,
-              `d${faceCount} seed ${seed} restitution ${restitution} gained energy at step ${i}: ${energy[i - 1]} -> ${energy[i]} (budget ${budget})`,
-            );
-          }
         }
       }
     }
@@ -801,6 +859,128 @@ describe('simulateRoll with several dice', () => {
         assert.ok(mag(sub(last[a], last[b])) > 1, `dice ${a} and ${b} finished on top of each other`);
       }
     }
+  });
+});
+
+describe('simulateRoll retries the die that landed badly, not the throw', () => {
+  /**
+   * A whole-tray retry is a coin that has to come up heads for every die at
+   * once, so its success rate is the single-die rate raised to the DIE COUNT
+   * and it falls off a cliff as the tray fills up. Measured against the
+   * all-or-nothing loop, d20 in a 6-cubed tray, 12 seeds:
+   *
+   *     dice   cocked           attempts        ms
+   *        1    0/12 -> 0/12    1.08 -> 1.00      10 ->   11
+   *        5    0/12 -> 0/12    2.00 -> 2.00      42 ->   50
+   *       10    3/12 -> 0/12    4.83 -> 3.83     339 ->  280
+   *       25   12/12 -> 12/12   8.00 -> 5.75    3379 -> 2349
+   *
+   * Ten dice is not an exotic configuration and the throw was already failing
+   * at it. Twenty-five is a different problem and no retry policy fixes it:
+   * they land in a heap, and a die resting on another die is cocked whatever
+   * launch it was given. What the retry can do there is notice and stop, which
+   * is where most of that case's saving comes from.
+   */
+  const TRAY = { x: 6, y: 6, z: 6 } as const;
+
+  it('does not get likelier to hand back a cocked die as the tray fills', () => {
+    // Up to five dice, which is as many as this tray can hold WITHOUT them
+    // landing on each other; see the note above for why ten and twenty-five are
+    // a different problem that no retry policy solves.
+    for (const dieCount of [1, 5] as const) {
+      for (let seed = 1; seed <= 12; seed++) {
+        const roll = simulateRoll(config(20, seed, { dieCount, bounds: TRAY }));
+        assert.equal(
+          roll.cocked,
+          false,
+          `${dieCount} d20, seed ${seed}: came back cocked at ${roll.restAlignment}`,
+        );
+      }
+    }
+  });
+
+  it('stops throwing a tray that is not getting any better', () => {
+    // The cost assertion, in throws and physics steps rather than milliseconds
+    // so it says the same thing on every machine. Twenty-five d20 in this tray
+    // cannot be settled -- they land in a heap -- and the old loop spent all
+    // eight throws finding that out on every single seed, 8.00 of a possible 8.
+    // Stopping when the cocked count stops falling is most of that case's
+    // saving; the bound below is loose because progress is noisy (a throw can
+    // fix two dice and cock a third), and it is worth having anyway because
+    // 8.00 out of 8, every time, is what it is measuring against.
+    let attempts = 0;
+    let steps = 0;
+    const seeds = 8;
+    for (let seed = 1; seed <= seeds; seed++) {
+      const diagnostics = simulateRollWithDiagnostics(
+        config(20, seed, { dieCount: 25, bounds: TRAY }),
+      );
+      assert.ok(diagnostics.trajectory.cocked, `seed ${seed}: 25 d20 settled; this test needs the hopeless case`);
+      attempts += diagnostics.attempts;
+      steps += diagnostics.simulatedSteps;
+    }
+    assert.ok(
+      attempts / seeds < 7,
+      `averaged ${attempts / seeds} throws on a tray that was never going to settle`,
+    );
+    // In steps as well as throws, against the ceiling the old loop actually
+    // reached: eight throws, each free to run the whole 5-second cap.
+    assert.ok(
+      steps / seeds < 8 * 5 * 1080,
+      `averaged ${steps / seeds} physics steps, which is a full eight-throw budget`,
+    );
+    // And the same accounting on a roll that settles first time, where the two
+    // step counts must agree exactly or `simulatedSteps` is not measuring work.
+    const one = simulateRollWithDiagnostics(config(20, 3, { dieCount: 1, bounds: TRAY }));
+    assert.equal(one.attempts, 1);
+    assert.equal(one.simulatedSteps, one.stepCount);
+  });
+
+  it('reports every die\'s alignment, which is what it retries on', () => {
+    const diagnostics = simulateRollWithDiagnostics(config(20, 4, { dieCount: 3, bounds: TRAY }));
+    assert.equal(diagnostics.dieAlignment.length, 3);
+    assert.equal(diagnostics.restAlignment, Math.min(...diagnostics.dieAlignment));
+    // Recomputed from the resting orientations rather than trusted, so the
+    // per-die numbers the retry acts on are checked against this file's own
+    // arithmetic and not merely against each other.
+    const geometry = dieGeometry(20);
+    for (let d = 0; d < 3; d++) {
+      let best = -Infinity;
+      for (const face of geometry.faces) {
+        best = Math.max(
+          best,
+          dot(rotate(diagnostics.trajectory.dice[d].restingOrientation, face.normal), [0, -1, 0]),
+        );
+      }
+      assert.ok(
+        Math.abs(best - diagnostics.dieAlignment[d]) < 1e-12,
+        `die ${d}: reported ${diagnostics.dieAlignment[d]}, measured ${best}`,
+      );
+    }
+  });
+
+  it('keeps the whole energy history, including the throws it threw away', () => {
+    // A retried roll used to hand back only the chosen throw's energy trace, so
+    // a rejected throw took its history with it -- and a real energy pump was
+    // hiding in one (see `PENETRATION_SLOP` in the module). `attemptStarts`
+    // marks where each throw's trace begins, because the invariant holds WITHIN
+    // a throw and says nothing across the boundary, where a fresh launch is.
+    const diagnostics = simulateRollWithDiagnostics(
+      config(20, 3, { dieCount: 25, bounds: TRAY }),
+    );
+    assert.ok(diagnostics.attempts > 1, 'this test needs a roll that retried');
+    assert.equal(diagnostics.attemptStarts.length, diagnostics.attempts);
+    assert.equal(diagnostics.attemptStarts[0], 0);
+    for (let i = 1; i < diagnostics.attemptStarts.length; i++) {
+      assert.ok(
+        diagnostics.attemptStarts[i] > diagnostics.attemptStarts[i - 1],
+        'attempt traces are not in order',
+      );
+    }
+    assert.ok(
+      diagnostics.energyPerStep.length > diagnostics.stepCount,
+      'energyPerStep covers only the throw that was kept',
+    );
   });
 });
 
@@ -948,6 +1128,65 @@ describe('simulateRoll physical plausibility', () => {
       const lowest = Math.min(...samples.map((sample) => sample.position[1]));
       const highest = Math.max(...samples.map((sample) => sample.position[1]));
       assert.ok(highest - lowest > 2, `d${faceCount} barely fell (${highest - lowest})`);
+    }
+  });
+
+  it('rolls at a pace a player will sit through, in the tray the renderer uses', () => {
+    /**
+     * The feel contract, in the container it is actually felt in.
+     *
+     * Written out here rather than imported from `dice-roll.ts` for the same
+     * reason `containerPlanes` is: this file checks the module against numbers
+     * it owns. If the renderer's tray moves, this stops describing the shipped
+     * roll and should be updated deliberately.
+     */
+    const TRAY = { x: 1.6, y: 2.0, z: 1.6 } as const;
+    // Twenty seeds a shape. A single sample is worthless here — the spread
+    // within one shape is wider than the gap between shapes — so every bound
+    // below is on the MEDIAN and the seeds are fixed so it is reproducible.
+    const seeds = 20;
+    const median = (values: number[]): number => {
+      const sorted = [...values].sort((a, b) => a - b);
+      return sorted[Math.floor(sorted.length / 2)];
+    };
+    for (const faceCount of SHAPES) {
+      const geometry = dieGeometry(faceCount);
+      const durations: number[] = [];
+      const turns: number[] = [];
+      const dead: number[] = [];
+      for (let seed = 1; seed <= seeds; seed++) {
+        const roll = simulateRoll({ seed: seed * 7919, geometry, dieCount: 1, bounds: TRAY });
+        const samples = roll.dice[0].samples;
+        durations.push(roll.durationMs);
+        let turned = 0;
+        let still = 0;
+        for (let i = 1; i < samples.length; i++) {
+          const degrees = (quatAngle(samples[i - 1].orientation, samples[i].orientation) * 180) / Math.PI;
+          turned += degrees;
+          if (degrees < 1) still++;
+        }
+        turns.push(turned);
+        dead.push(still / (samples.length - 1));
+      }
+      // A roll gates the whole animation cycle, so its length is a budget and
+      // not a taste. Before the pace tuning the worst median was 1483 ms.
+      assert.ok(
+        median(durations) <= 800,
+        `d${faceCount} takes a median ${median(durations).toFixed(0)}ms to say a number`,
+      );
+      // And it has to be a throw rather than a topple. One full turn is the
+      // floor, not the goal: see `LAUNCH_SPIN_MIN` for the sampling ceiling
+      // that stops this being the two-to-three turns a real die makes.
+      assert.ok(
+        median(turns) >= 360,
+        `d${faceCount} turns a median ${median(turns).toFixed(0)} degrees, which is not a tumble`,
+      );
+      // Frames in which the die turns under a degree are frames the player is
+      // waiting through. Worst median before the trim and the pace tuning: 37%.
+      assert.ok(
+        median(dead) <= 0.25,
+        `d${faceCount} spends a median ${(median(dead) * 100).toFixed(0)}% of its frames not moving`,
+      );
     }
   });
 

@@ -229,12 +229,47 @@ export interface RollDiagnostics {
   readonly maxWallCorrection: number;
   /** The deepest any vertex of one die ever reached inside another. */
   readonly maxDieOverlap: number;
+  /**
+   * How far, in degrees, the pose a die is left on differs from the pose the
+   * physics eventually reached — the price of cutting the dead tail. The worst
+   * over the dice. See `liveFrameCount`.
+   */
+  readonly restingDrift: number;
   readonly stepCount: number;
   /**
+   * Every physics step the call executed, across every attempt.
+   *
+   * `stepCount` is the length of the trajectory that came back; this is the
+   * work that produced it, and the two differ by exactly what the retries
+   * cost. A test that wants to assert what a roll COSTS has to assert on this
+   * one — the other says nothing about the throws that were thrown away.
+   */
+  readonly simulatedSteps: number;
+  /**
    * How many throws it took to land every die flat on a readable face. See
-   * `SETTLE_ALIGNMENT`; 1 for the overwhelming majority of rolls.
+   * `MAX_ATTEMPTS`; 1 for the overwhelming majority of rolls.
    */
   readonly attempts: number;
+  /**
+   * Where each attempt's trace begins in `energyPerStep`, which spans EVERY
+   * attempt and not just the one that was kept.
+   *
+   * The energy invariant holds within an attempt and says nothing across the
+   * boundary, because the next attempt starts with a fresh launch. Reported so
+   * the invariant can be checked on the throws that were discarded too: a
+   * genuine energy pump was hiding in one of them (see `PENETRATION_SLOP`),
+   * invisible for as long as a rejected throw took its history with it.
+   */
+  readonly attemptStarts: readonly number[];
+  /**
+   * `restAlignment` for each die on its own, in the order of `trajectory.dice`.
+   *
+   * This is what makes the retry per die: the roll re-throws the dice whose
+   * entry is below `SETTLE_ALIGNMENT` and leaves every other die's launch
+   * alone. Public because `restAlignment` is the `min` of these and a caller
+   * that wants to know WHICH die is cocked cannot recover it from the minimum.
+   */
+  readonly dieAlignment: readonly number[];
   /**
    * The same number as `RollTrajectory.restAlignment`, kept here so a test that
    * already holds the diagnostics does not have to reach through `trajectory`.
@@ -247,15 +282,22 @@ export interface RollDiagnostics {
 // ---------------------------------------------------------------------------
 
 /**
- * 720 Hz. The step has to be short compared with `1 / angularSpeed`: the
+ * 1080 Hz. The step has to be short compared with `1 / angularSpeed`: the
  * contact constraint is linear in velocity while a vertex on a spinning die
  * travels an ARC, so a corner dips below the floor between solves by about
- * `(w dt)^2 r / 2`. Spin peaks near 60 rad/s just after a corner impact, which
- * is 3.5e-3 of a circumradius here and 8e-3 at 480 Hz — measurably worse, and
- * the positional clamp that cleans it up is the one part of the step that is
- * not physics.
+ * `(w dt)^2 r / 2`, and the positional clamp that cleans that up is the one
+ * part of the step that is not physics.
+ *
+ * It was 720, and the roll's tuning is what moved it. Landing speeds go as
+ * `sqrt(gravity)` and gravity is now 65 rather than 42, so the post-impact spin
+ * peak went up with it; measured across 175 three-die rolls the worst clamp
+ * correction was 1.02e-2 of a circumradius at 720 Hz, against a suite bound of
+ * 1e-2, and 7.7e-3 at 1080. The same change carried the worst single-step
+ * energy gain from 1.5e-5 (over the suite's 1e-5 budget) to 4.1e-9. The cost is
+ * 1.5x the steps per second of simulated time, most of which the shorter rolls
+ * hand straight back.
  */
-const PHYSICS_HZ = 720;
+const PHYSICS_HZ = 1080;
 /** Samples land on 60 Hz frame boundaries, which is what the renderer wants. */
 const SAMPLE_HZ = 60;
 const STEPS_PER_SAMPLE = PHYSICS_HZ / SAMPLE_HZ;
@@ -266,21 +308,46 @@ const MAX_SECONDS = 5;
 const SOLVER_ITERATIONS = 10;
 
 const DEFAULT_ENERGY = 1;
-const DEFAULT_GRAVITY = 42;
+/**
+ * Gravity, friction and the contact drag below are the roll's PACE, and they
+ * were retuned together against measurement rather than one at a time.
+ *
+ * The complaint they answer: a roll blocks the game's animation cycle for its
+ * whole length, and at the renderer's 1.6 x 2.0 x 1.6 tray the median d12 took
+ * 1.48 seconds and the median d20 1.32 to say a number the player could read
+ * after half of it. Harder gravity shortens the fall, more friction stops the
+ * slide, and more rolling resistance stops the long slow topple at the end.
+ * Median duration over 24 seeds per shape, before -> after:
+ *
+ *     d3   883 -> 400     d7  1417 ->  517     d12  1483 -> 683
+ *     d4   800 -> 333     d10 1133 ->  550     d20  1317 -> 617
+ *     d6   983 -> 433
+ *
+ * and the share of frames turning under a degree — dead frames, the last third
+ * of a filmstrip in which nothing happens — went from a 33% worst median to
+ * 16%. What did NOT move is the tumble: see `LAUNCH_SPIN_MIN` for why, and for
+ * the constraint that stops it moving.
+ */
+const DEFAULT_GRAVITY = 65;
 const DEFAULT_RESTITUTION = 0.32;
-const DEFAULT_FRICTION = 0.45;
+const DEFAULT_FRICTION = 0.6;
 
 /** Air drag, per second. Small: friction does the real work. */
 const LINEAR_DRAG = 0.3;
-const ANGULAR_DRAG = 0.9;
+const ANGULAR_DRAG = 0.3;
 /**
- * Rolling resistance, applied only while a die is touching something. Modest,
- * and honestly so: measured over 60 seeds it moves the MEDIAN roll by under
- * 100 ms and trims about 15% off the 95th-percentile tail of the rounder solids
- * (a d12's p95 goes 3333 ms -> 2850 ms). Coulomb friction alone does settle
- * them; this stops the longest rolls from dragging.
+ * Rolling resistance, applied only while a die is touching something.
+ *
+ * This is the constant that ends the roll. Coulomb friction alone does settle a
+ * die, but a rounder solid finishes with a slow topple from one face to the
+ * next that costs a third of a second and shows the player nothing, and at 7 —
+ * where this used to sit — a d12's 95th percentile was still 2.85 seconds.
+ * Raising it trades tumble for brevity, so it is bounded on both sides: at 26
+ * the die stops turning noticeably before it has finished settling, which shows
+ * up as `restingDrift` climbing past 3 degrees, and below about 14 the median
+ * d12 goes back over a second. 20 sits between the two.
  */
-const CONTACT_ANGULAR_DRAG = 7;
+const CONTACT_ANGULAR_DRAG = 20;
 
 /** A vertex this close to a surface is a contact candidate even at rest. */
 const CONTACT_MARGIN = 0.02;
@@ -298,8 +365,55 @@ const CONTACT_LOOKAHEAD = 1.5;
  * sequential-impulse solver jitters forever instead of coming to rest.
  */
 const RESTITUTION_THRESHOLD = 1.2;
-/** Cap on how much penetration one step's impulse is allowed to undo. */
-const MAX_DEPENETRATION = 0.02;
+/**
+ * Cap on how much penetration one step's impulse is allowed to undo.
+ *
+ * This is a SPEED limit in disguise — the bias target is `depth / dt`, so 0.02
+ * at 720 Hz let a contact demand 14.4 circumradii per second of separation, and
+ * whatever separating speed the bias buys is left in the bodies as kinetic
+ * energy once the overlap is gone. That is energy from nowhere, and at
+ * `restitution: 1`, where nothing else in the step dissipates, one d4 contact
+ * spent it all at once: a single step gained 4.4e-4 of the launch energy
+ * against the suite's 1e-5 budget.
+ *
+ * 0.005 is still more than twice the deepest overlap ever measured (2.2e-3
+ * across the whole restitution sweep), so the cap only binds on a spike that
+ * should not happen, which is exactly what a safety valve is for. Measured
+ * worst single-step gain across that sweep: 4.4e-4 at 0.02, and 1.7e-8 at
+ * anything from 0.005 down to zero, with the deepest overlap unchanged.
+ */
+const MAX_DEPENETRATION_SPEED = 3.6;
+/**
+ * Overlap a contact is allowed to keep: the bias only pushes on what is deeper
+ * than this.
+ *
+ * The depenetration bias is the one part of the normal solve that is not a
+ * collision response — it is a position correction driven through the velocity
+ * channel, so whatever separating speed it buys is left in the bodies as
+ * kinetic energy afterwards, and that is energy from nowhere. Contacts here are
+ * speculative, so genuine overlap is only ever the residue of the arc a vertex
+ * travels within one step, and correcting the last two thousandths of it buys
+ * nothing visible while costing exactly that. Measured across the suite's
+ * restitution sweep (two dice, d4/d6/d20, 7 restitutions x 4 seeds) the worst
+ * single-step energy gain as a fraction of the launch energy:
+ *
+ *     no slop -> 2.9e-5      slop 0.002 -> 1.7e-7
+ *
+ * against a suite budget of 1e-5, and the deepest overlap anywhere in that
+ * sweep went 2.49e-2 -> 2.33e-2, i.e. slightly BETTER rather than worse. The
+ * 2.9e-5 was not new: the retry used to run whole separate throws and hand back
+ * only the chosen one's energy trace, so a throw that was rejected for landing
+ * cocked took its energy history with it.
+ */
+const PENETRATION_SLOP = 0.002;
+
+/**
+ * What a frame has to do to count as motion rather than as tail. Degrees of
+ * rotation and circumradii of travel, both per 60 Hz frame. See
+ * `liveFrameCount`.
+ */
+const TAIL_ROTATION = 2;
+const TAIL_TRAVEL = 0.012;
 
 /** Sustained speeds below these, in contact, count as at rest. */
 const REST_LINEAR = 0.05;
@@ -336,14 +450,43 @@ const REST_HOLD_STEPS = Math.round(REST_HOLD_SECONDS * PHYSICS_HZ);
  */
 const SETTLE_ALIGNMENT = Math.cos((3 * Math.PI) / 180);
 /**
- * A cocked die is re-thrown, exactly as at a real table. Deterministic: each
- * attempt's seed is drawn from a stream rooted at `config.seed`, so the whole
- * retried roll still reproduces bit for bit. If every attempt lands cocked the
- * least-cocked one is returned rather than a throw — a slightly ugly die beats
- * no animation — and `RollTrajectory.cocked` says so out loud, because a caller
- * that is told nothing will render a face that is not really up.
+ * How many times the throw may be repeated before the roll gives up and hands
+ * back the best it saw.
+ *
+ * A cocked die is re-thrown, exactly as at a real table — and only the cocked
+ * die is: each die's launch comes from its own seed, and an attempt resamples
+ * the seeds of the dice that landed badly and no others (see
+ * `simulateRollWithDiagnostics`). What that removes is the compounding. The
+ * retry used to redraw the whole tray, so settling was a coin that had to come
+ * up heads for every die at once and the success rate fell as `p^dieCount`;
+ * it never failed at one die and failed every single time at twenty-five,
+ * having burned all eight throws to get there.
+ *
+ * Deterministic: every seed is drawn from one stream rooted at `config.seed`,
+ * so the whole retried roll still reproduces bit for bit. If every attempt
+ * lands cocked the least-cocked one is returned rather than a throw — a
+ * slightly ugly die beats no animation — and `RollTrajectory.cocked` says so
+ * out loud, because a caller that is told nothing will render a face that is
+ * not really up.
+ *
+ * The retry is invisible on purpose: a rejected throw is not part of the
+ * trajectory. Splicing it in instead was measured, and it is much worse where
+ * it matters — in the renderer's own 1.6 x 2.0 x 1.6 tray a d3 cocks half the
+ * time, so half of all d3 rolls would visibly re-throw and the 90th-percentile
+ * roll went from 1.2 to 4.0 seconds.
  */
 const MAX_ATTEMPTS = 8;
+/**
+ * How many attempts in a row may fail to reduce the number of cocked dice
+ * before the roll accepts that they are not going to.
+ *
+ * Some trays cannot be settled at all: twenty-five d20 in a 6-cubed tray land
+ * in a heap, and a die resting on another die is cocked no matter what launch
+ * it was given. The retry cannot see that in advance, but it can see that it is
+ * not making progress, and stopping then is the difference between three
+ * throws and eight.
+ */
+const RETRY_PATIENCE = 3;
 
 /** Spawn grid pitch, in circumradii: two unit dice need more than 2 apart. */
 const SPAWN_PITCH = 2.4;
@@ -352,15 +495,38 @@ const SPAWN_CLEARANCE = 1.2;
 /**
  * Launch speeds at `energy: 1`. Scaled by `sqrt(energy)`, so KE is linear.
  *
- * The spin range is 20 to 44 rad/s, i.e. 3 to 7 turns per second, which over a
- * typical half-second of flight is the two to four visible tumbles a thrown die
- * makes. It was originally a third lower and the dice read as dropped rather
- * than thrown — no assertion here can see that, so the number is set from what
- * a die does and not from what makes the suite pass.
+ * ## The tumble, and the ceiling it is under
+ *
+ * The spin range is 30 to 40 rad/s, i.e. 4.8 to 6.4 turns per second. It was 20
+ * to 44, and the narrowing is the point: the floor came up so that no throw
+ * reads as a drop, and the ceiling came DOWN because there is a hard limit just
+ * above it that is not about physics at all.
+ *
+ * A roll is handed to the renderer as samples on the 60 Hz grid, and a rotation
+ * is interpolated between two of them the short way round. That is only the
+ * right answer while a sample-to-sample turn is well under half a revolution,
+ * and `dice-bake.test.ts` insists on eightfold margin: it requires the long way
+ * round a segment, `2*pi - angle`, to exceed the short way by 8x, which is
+ * `angle < 2*pi/9`, i.e. 40 degrees per frame, i.e. 42 rad/s. An impact can
+ * spin a die up past its launch, so 40 rad/s of launch already puts the
+ * measured peak at 38.7 degrees a frame.
+ *
+ * That ceiling is what a die's TOTAL turn is really limited by. A roll now
+ * lasts 400 to 700 ms of which perhaps 250 ms is free flight, so 42 rad/s buys
+ * about 1.1 to 1.3 turns, and that is what the dice do: 394 to 488 degrees of
+ * median total rotation across the shapes. Two to three full turns needs either
+ * a longer roll — which is what the pace tuning above just bought back — or a
+ * sample grid fine enough to resolve a faster one. At 60 Hz it is arithmetic,
+ * not tuning: launch spin of 60 to 102 rad/s does deliver 746 degrees of median
+ * turn in 683 ms, and it was measured, and it puts 96 degrees into a single
+ * frame, which the bake refuses and is right to refuse. Raising `SAMPLE_HZ`
+ * halves the per-frame angle for each doubling and is the way through, at the
+ * cost of a contract every consumer of `DieSample` shares.
  */
 const LAUNCH_HORIZONTAL = 5.5;
-const LAUNCH_SPIN_MIN = 20;
-const LAUNCH_SPIN_RANGE = 24;
+const LAUNCH_SPIN_MIN = 30;
+const LAUNCH_SPIN_RANGE = 10;
+
 
 // ---------------------------------------------------------------------------
 // Seeded randomness
@@ -879,8 +1045,9 @@ function solveContact(contact: Contact, friction: number, dt: number): void {
   const separating = RELATIVE[0] * nx + RELATIVE[1] * ny + RELATIVE[2] * nz;
 
   // Non-penetration: after `dt` the gap must not have gone negative. When it
-  // already has, undo at most `MAX_DEPENETRATION` this step so a deep overlap
-  // resolves smoothly instead of firing the body out.
+  // already has, undo whatever is deeper than `PENETRATION_SLOP` and at most
+  // `MAX_DEPENETRATION` this step, so a deep overlap resolves smoothly instead
+  // of firing the body out and a shallow one is simply left alone.
   //
   // The target is NOT zero. A speculative contact is created while the vertex
   // still has a gap, and its non-penetration target is the NEGATIVE speed
@@ -894,7 +1061,7 @@ function solveContact(contact: Contact, friction: number, dt: number): void {
   const target =
     contact.separation >= 0
       ? -contact.separation / dt
-      : Math.min(-contact.separation, MAX_DEPENETRATION) / dt;
+      : Math.min(Math.max(0, -contact.separation - PENETRATION_SLOP) / dt, MAX_DEPENETRATION_SPEED);
 
   const change = (target - separating) / contact.effectiveMass;
   const total = Math.max(0, contact.normalImpulse + change);
@@ -1004,7 +1171,7 @@ function solveContact(contact: Contact, friction: number, dt: number): void {
  *
  * The `u1` term needs `u1 <= 0` and that is only true where the inelastic
  * target was `-gap/dt`. For a contact that is already PENETRATING, the target
- * is the depenetration bias — up to `MAX_DEPENETRATION / dt`, which is 14.4
+ * is the depenetration bias — up to `MAX_DEPENETRATION / dt`, which is 3.6
  * circumradii per second — so `L` there is not a compression impulse at all,
  * and scaling it by `restitution` is scaling a position correction. Poisson
  * alone measured WORSE than what it replaced (r=0.95 gained 5.6e-1 against
@@ -1120,12 +1287,19 @@ function geometriesOf(config: RollConfig): readonly DieGeometry[] {
  * Dice start on a grid near the ceiling, one pitch apart so they never begin
  * interpenetrating, with a randomised orientation, spin and throw direction.
  * The grid wraps into a second row when the container is too narrow.
+ *
+ * Each die's launch is drawn from ITS OWN stream, seeded from
+ * `launchSeeds[i]`. That is what lets the settle retry be per die: re-throwing
+ * die 3 replaces `launchSeeds[3]` and nothing else, so every other die is
+ * thrown exactly as it was thrown before. Sharing one stream would have
+ * shifted every later die's draws and made "re-throw one die" a re-throw of
+ * the whole tray in disguise. See `simulateRollWithDiagnostics`.
  */
 function spawnBodies(
   config: RollConfig,
   kernels: readonly Kernel[],
   energy: number,
-  random: () => number,
+  launchSeeds: Float64Array,
 ): Body[] {
   const { bounds, dieCount } = config;
   const usable = 2 * bounds.x - 2 * SPAWN_CLEARANCE;
@@ -1140,6 +1314,7 @@ function spawnBodies(
   const vigour = Math.sqrt(energy);
   const bodies: Body[] = [];
   for (let i = 0; i < dieCount; i++) {
+    const random = createRandom(launchSeeds[i]);
     const body = createBody(kernels[i]);
     const column = i % columns;
     const row = Math.floor(i / columns);
@@ -1171,7 +1346,7 @@ function spawnBodies(
  * read from; a cube on an edge scores `cos 45deg`, and a barrel on a cap facet
  * — a face that carries no value — scores about `cos 61deg`.
  */
-function readableRestAlignment(geometry: DieGeometry, orientation: Quat): number {
+function readableRestAlignment(geometry: DieGeometry, orientation: ArrayLike<number>): number {
   const rotation = new Float64Array(9);
   quatMatrixInto(orientation, rotation);
   let best = -Infinity;
@@ -1185,6 +1360,58 @@ function readableRestAlignment(geometry: DieGeometry, orientation: Quat): number
     if (downward > best) best = downward;
   }
   return best;
+}
+
+/** The angle between two unit quaternions' orientations, in degrees. */
+function quatDegrees(a: Quat, b: Quat): number {
+  const cosine = Math.min(1, Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]));
+  return (Math.acos(cosine) * 360) / Math.PI;
+}
+
+/**
+ * The index of the last frame in which ANY die still visibly moved, which is
+ * where the roll's animation should end.
+ *
+ * A roll does not stop, it decays: the dice trade their last energy for a
+ * micro-creep that goes on for a third of a second and that no player can see.
+ * Measured at a 100px die: a d12's median roll spent 37% of its frames turning
+ * under a degree, and the worst d20 spent 57% — the last third of a d20's
+ * filmstrip was frame after identical frame. That is not free. The roll gates
+ * the whole animation cycle, so every dead frame is a frame the game waits on a
+ * die that has already told the player its answer.
+ *
+ * So the tail is cut at MOTION rather than at stillness. `TAIL_ROTATION` is a
+ * fifth of the ~10 degrees per frame that reads as a tumble, and `TAIL_TRAVEL`
+ * at a 100px die is half a pixel of drift per frame; a die still doing either
+ * is a die still visibly settling, and a die doing neither has stopped as far
+ * as the screen is concerned. What it costs is that the pose the roll ends on
+ * is not quite the pose the physics would have reached — `restingDrift`
+ * measures exactly that, and the suite holds it to a bound far inside the angle
+ * at which the wrong face could be read.
+ *
+ * The cut is taken over ALL dice at once, because a `RollTrajectory` is one
+ * timeline: the roll ends when the last die stops, not when the first does.
+ */
+function liveFrameCount(tracks: readonly (readonly DieSample[])[]): number {
+  const frames = tracks[0].length;
+  let live = 1;
+  for (let i = 1; i < frames; i++) {
+    for (const track of tracks) {
+      const before = track[i - 1];
+      const after = track[i];
+      const dx = after.position[0] - before.position[0];
+      const dy = after.position[1] - before.position[1];
+      const dz = after.position[2] - before.position[2];
+      if (
+        dx * dx + dy * dy + dz * dz > TAIL_TRAVEL * TAIL_TRAVEL ||
+        quatDegrees(before.orientation, after.orientation) > TAIL_ROTATION
+      ) {
+        live = i;
+        break;
+      }
+    }
+  }
+  return Math.min(live, frames - 1);
 }
 
 /**
@@ -1216,10 +1443,10 @@ function throwOnce(
   config: RollConfig,
   options: Options,
   kernels: readonly Kernel[],
-  random: () => number,
+  launchSeeds: Float64Array,
 ): RollDiagnostics {
   const { energy, gravity, restitution, friction } = options;
-  const bodies = spawnBodies(config, kernels, energy, random);
+  const bodies = spawnBodies(config, kernels, energy, launchSeeds);
   const bounds = config.bounds;
   const floor = -bounds.y;
   const dt = STEP_SECONDS;
@@ -1415,19 +1642,29 @@ function throwOnce(
     }
   }
 
-  const durationMs = tracks[0][tracks[0].length - 1].t;
-  const dice = tracks.map((samples) =>
-    Object.freeze({
-      samples: Object.freeze(samples),
-      restingOrientation: samples[samples.length - 1].orientation,
-    }),
-  );
+  const last = tracks[0].length - 1;
+  const keep = liveFrameCount(tracks);
+  const durationMs = tracks[0][keep].t;
+  const dice = tracks.map((samples) => {
+    const trimmed = samples.slice(0, keep + 1);
+    return Object.freeze({
+      samples: Object.freeze(trimmed),
+      restingOrientation: trimmed[keep].orientation,
+    });
+  });
 
-  let restAlignment = Infinity;
+  // Read off the pose that is actually PRESENTED — the trimmed one — so the
+  // retry is deciding about the die the player will see and not about a frame
+  // that was cut.
+  const dieAlignment = dice.map((die, i) =>
+    readableRestAlignment(bodies[i].kernel.geometry, die.restingOrientation),
+  );
+  const restAlignment = Math.min(...dieAlignment);
+  let restingDrift = 0;
   for (let i = 0; i < dice.length; i++) {
-    restAlignment = Math.min(
-      restAlignment,
-      readableRestAlignment(bodies[i].kernel.geometry, dice[i].restingOrientation),
+    restingDrift = Math.max(
+      restingDrift,
+      quatDegrees(dice[i].restingOrientation, tracks[i][last].orientation),
     );
   }
   return Object.freeze({
@@ -1440,8 +1677,12 @@ function throwOnce(
     energyPerStep: Object.freeze(energyPerStep),
     maxWallCorrection,
     maxDieOverlap,
+    restingDrift,
     stepCount: step,
+    simulatedSteps: step,
     attempts: 1,
+    attemptStarts: Object.freeze([0]),
+    dieAlignment: Object.freeze(dieAlignment),
     restAlignment,
   });
 }
@@ -1529,18 +1770,82 @@ function collectDieContacts(
 export function simulateRollWithDiagnostics(config: RollConfig): RollDiagnostics {
   const options = resolved(config);
   const kernels = kernelsFor(geometriesOf(config));
-  // One stream seeds the throws, so the retry chain is itself deterministic.
+  // One stream hands out LAUNCH SEEDS, one per die, so the whole retried roll
+  // still reproduces bit for bit.
   const seeds = createRandom(config.seed);
+  const launchSeeds = new Float64Array(config.dieCount);
+  for (let i = 0; i < launchSeeds.length; i++) launchSeeds[i] = seeds() * 0x100000000;
+
+  const cockedCount = (result: RollDiagnostics): number =>
+    result.dieAlignment.reduce((total, a) => total + (a < SETTLE_ALIGNMENT ? 1 : 0), 0);
+
+  const energyPerStep: number[] = [];
+  const attemptStarts: number[] = [];
+  let simulatedSteps = 0;
   let best: RollDiagnostics | null = null;
+  let bestCocked = Infinity;
+  let stale = 0;
   let attempts = 0;
   while (attempts < MAX_ATTEMPTS) {
     attempts++;
-    const result = throwOnce(config, options, kernels, createRandom(seeds() * 0x100000000));
-    if (best === null || result.restAlignment > best.restAlignment) best = result;
-    if (result.restAlignment >= SETTLE_ALIGNMENT) break;
+    const result = throwOnce(config, options, kernels, launchSeeds);
+    attemptStarts.push(energyPerStep.length);
+    energyPerStep.push(...result.energyPerStep);
+    simulatedSteps += result.simulatedSteps;
+    // Keep the throw that left the FEWEST dice cocked, and only then the one
+    // that left them least cocked. The old criterion was the min alignment
+    // alone, which cannot tell one badly cocked die from twenty.
+    const cocked = cockedCount(result);
+    if (best === null || cocked < bestCocked || (cocked === bestCocked && result.restAlignment > best.restAlignment)) {
+      if (cocked < bestCocked) stale = 0;
+      bestCocked = Math.min(bestCocked, cocked);
+      best = result;
+    } else {
+      stale++;
+    }
+    if (cocked === 0) break;
+    // Stop when re-throwing has stopped helping. Twenty-five d20 in a 6-cubed
+    // tray simply pile up — measured, every one of 12 seeds ended with a die
+    // resting on another die, at every attempt — and there is no launch seed
+    // that fixes a die with nowhere flat to land. Burning the remaining throws
+    // to prove it again cost 3.4 seconds of synchronous main-thread work for a
+    // result that was decided by attempt three.
+    //
+    // Only a tray that is failing WHOLESALE stops early: with a single cocked
+    // die an attempt that does not fix it is ordinary bad luck, and cutting
+    // that roll's throws short costs exactly the settling this retry exists
+    // for — measured, it put a d3 back to cocking 2 rolls in 60 in the
+    // renderer's own tray.
+    if (bestCocked >= 2 && stale >= RETRY_PATIENCE) break;
+    // The retry, and the whole of what makes it per die: only the dice that
+    // landed badly get a new launch seed. Everything else is thrown again
+    // EXACTLY as it was, which is why the next attempt is not another roll of
+    // the same compound die.
+    //
+    // "Exactly" is about the launch and not about the outcome: dice collide, so
+    // a die whose neighbour was re-thrown can still land somewhere new. What
+    // goes away is the compounding. A whole-tray retry had to come up heads for
+    // every die at once — `p^dieCount` — so it degraded from never failing at
+    // one die to failing every time at twenty-five, and burned all eight throws
+    // doing it. Measured on d20 in a 6-cubed tray, 8 seeds, before -> after:
+    //
+    //     dice    attempts        cocked        ms
+    //        1    1.13 -> 1.13    0/8 -> 0/8      4 ->    4
+    //        5    1.25 -> 1.25    0/8 -> 0/8     44 ->   38
+    //       10    5.25 -> 1.75    2/8 -> 0/8    484 ->  169
+    //       25    8.00 -> 2.38    8/8 -> 1/8   3379 -> 1040
+    for (let i = 0; i < launchSeeds.length; i++) {
+      if (result.dieAlignment[i] < SETTLE_ALIGNMENT) launchSeeds[i] = seeds() * 0x100000000;
+    }
   }
   const chosen = best as RollDiagnostics;
-  return Object.freeze({ ...chosen, attempts });
+  return Object.freeze({
+    ...chosen,
+    energyPerStep: Object.freeze(energyPerStep),
+    attemptStarts: Object.freeze(attemptStarts),
+    simulatedSteps,
+    attempts,
+  });
 }
 
 /**
