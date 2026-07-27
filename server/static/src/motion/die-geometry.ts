@@ -100,14 +100,42 @@ export interface DieGeometry {
    */
   readonly inertiaTensor: readonly number[];
   /**
-   * Distance from the centroid to the farthest vertex.
+   * HALF THE DIE'S NOMINAL BOX: the radius every consumer normalizes by, so
+   * that a solid of any face count renders at a common `--die-size` and tumbles
+   * at a common rate. Divide lengths by it (and the inertia tensor by its
+   * square); `facet-placement.ts` does exactly that, at `0.5 / circumradius`
+   * per em.
    *
    * NOT normalized across face counts: it runs from 1.000 for the d8 to 1.902
-   * for the d20. This is deliberate — each solid keeps its natural closed-form
-   * coordinates — so every consumer that wants dice to render at a common size
-   * must scale by `1 / circumradius` itself.
+   * for the d20, because each solid keeps its natural closed-form coordinates.
+   *
+   * ## Why the name is a half-truth, and where
+   *
+   * For every solid with a closed form this IS the circumradius, and
+   * `circumradius === boundingRadius`. For a BARREL it is deliberately not: a
+   * barrel is 2.1 to 2.6 times longer than it is wide, so normalizing it by its
+   * circumsphere spends the whole die box on a diagonal nobody reads and leaves
+   * the readable side faces — whose content is bounded by the barrel's WIDTH —
+   * at a bit over 0.4 of the box. A d7's numeral measured 4.3px on a 50px die
+   * and could not be read from a screenshot at all. So a barrel is normalized
+   * by its SHORT axis instead (see `barrelSolid`): the die box is its width,
+   * its length overflows the box, and every mark on it roughly doubles.
+   *
+   * `boundingRadius` is the honest circumsphere and is what the PHYSICS
+   * normalizes by, so the two are not interchangeable — see `dice-sim.ts`.
    */
   readonly circumradius: number;
+  /**
+   * Distance from the centroid to the farthest vertex: the radius of the
+   * smallest bounding SPHERE, always, for every shape.
+   *
+   * Equal to `circumradius` except on a barrel, where it is 1.37x (d3) to 2.63x
+   * (large N) larger. `dice-sim.ts` normalizes by this rather than by
+   * `circumradius`, because the simulator's tray is measured in die radii and a
+   * die whose bounding sphere overflowed the tray would spend the throw
+   * embedded in a wall.
+   */
+  readonly boundingRadius: number;
   /**
    * Which face of a resting die carries its value.
    *
@@ -140,6 +168,19 @@ export interface RawSolid {
   readonly surface: readonly (readonly number[])[];
   readonly readable: readonly number[];
   readonly readingRule: ReadingRule;
+  /**
+   * What `DieGeometry.circumradius` should be, in THESE coordinates, for a
+   * solid that does not want to be normalized by its circumsphere. Omitted —
+   * the usual case — the circumsphere is used and `circumradius` is the
+   * circumradius.
+   *
+   * Only `barrelSolid` supplies it, and it supplies the barrel's short
+   * semi-axis. Stated about the raw coordinates rather than the centred ones
+   * because a solid that needs this knows its own construction; `finishSolid`
+   * centres on the volume centroid, so a raw solid that is not already centred
+   * on it must say so with that shift already taken out.
+   */
+  readonly nominalRadius?: number;
 }
 
 /** Newell's method: robust for polygons with more than three vertices. */
@@ -461,6 +502,38 @@ function barrelCapHeight(sideCount: number): number {
  *
  * An odd-sided barrel resting on a side face points an EDGE at the ceiling, so
  * it has no up face to read and is read from the face it rests on instead.
+ *
+ * ## Why a barrel is normalized by its SHORT axis
+ *
+ * `nominalRadius: 1` — the ring radius — rather than the circumsphere, and it
+ * is the single most legible thing about these dice. The die box is `2 *
+ * circumradius` across, so normalizing by the circumsphere spends the whole box
+ * on the barrel's LENGTH, which nothing is printed along, and leaves its width
+ * at `1 / aspect` of the box: 0.42 for a d7, 0.40 for a d9, 0.39 for a d16.
+ * Every mark shrinks with it, because a side face's content is the largest
+ * square inscribed in it and that square is bounded by the face's width (the
+ * ring chord, `2 sin(pi/N)`) for every N >= 5. Measured on a 50px die before
+ * this change: a d7's numeral 4.3px and its corner marks 3.2px, a d9's 3.3 and
+ * 2.4, a d16's 1.8 and 1.3 — against 5.1px for a d20 and 8.4 for a d12. A d7
+ * could not be read from a screenshot at all across eight rolls.
+ *
+ * Normalized by the short axis instead, the barrel's WIDTH is the die box, its
+ * length overflows it by the aspect ratio (1.37x for the d3, 2.13x to 2.63x
+ * from the d5 up, and never more than 2.632x however many sides — see
+ * `BARREL_CAP_SAFETY`), and every mark grows by that same ratio. The same d7
+ * numeral is 10.3px on a 50px die and its corner marks 7.7px, i.e. ahead of the
+ * d20 rather than half of it.
+ *
+ * What the overflow costs: the solid is drawn outside the box a layout gave it,
+ * so a row of barrels is drawn closer together than it is spaced. That is
+ * visible and it is the trade — a die that overlaps its neighbour by a little
+ * is legible, and a die that fits perfectly and cannot be read is not. Nothing
+ * downstream clips it (`boardgame-die.ts` keeps `overflow: visible` all the way
+ * down, because any clip would collapse the 3D context anyway).
+ *
+ * What it does NOT change is the physics: `dice-sim.ts` normalizes by
+ * `boundingRadius`, so the simulated barrel is the same size in the same tray
+ * it always was and every throw is unchanged bit for bit.
  */
 function barrelSolid(sideCount: number): RawSolid {
   const halfHeight = barrelHalfHeight(sideCount);
@@ -494,6 +567,9 @@ function barrelSolid(sideCount: number): RawSolid {
     surface,
     readable,
     readingRule: sideCount % 2 === 0 ? 'up-face' : 'down-face',
+    // THE SHORT AXIS, which is the ring radius: see `DieGeometry.circumradius`
+    // and the note above on what it buys.
+    nominalRadius: 1,
   };
 }
 
@@ -668,13 +744,22 @@ export function finishSolid(raw: RawSolid): DieGeometry {
     .filter((index) => !readable.has(index))
     .map(faceAt);
 
+  const boundingRadius = Math.max(...vertices.map((vertex) => magnitude(vertex)));
+  const nominalRadius = raw.nominalRadius ?? boundingRadius;
+  if (!(nominalRadius > 0) || nominalRadius > boundingRadius + EPSILON) {
+    throw new Error(
+      `nominalRadius must be positive and no larger than the bounding radius ${boundingRadius}, got ${nominalRadius}`,
+    );
+  }
+
   return Object.freeze({
     faceCount: faces.length,
     vertices: Object.freeze(vertices),
     faces: Object.freeze(faces),
     capFaces: Object.freeze(capFaces),
     inertiaTensor: Object.freeze(inertiaAboutOrigin(triangles)),
-    circumradius: Math.max(...vertices.map((vertex) => magnitude(vertex))),
+    circumradius: nominalRadius,
+    boundingRadius,
     readingRule: raw.readingRule,
   });
 }

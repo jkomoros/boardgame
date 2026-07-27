@@ -287,13 +287,37 @@ describe('simulateRoll shape', () => {
 });
 
 describe('simulationSolid', () => {
-  it('normalises every shape to a circumradius of 1', () => {
+  it('normalises every shape to a bounding radius of 1', () => {
     for (const faceCount of SHAPES) {
       const solid = simulationSolid(dieGeometry(faceCount));
       const radius = Math.max(...solid.vertices.map(mag));
       assert.ok(
         Math.abs(radius - 1) < 1e-12,
-        `d${faceCount} circumradius is ${radius}, not 1`,
+        `d${faceCount} bounding radius is ${radius}, not 1`,
+      );
+    }
+  });
+
+  /**
+   * The tray is measured in the radius this module normalises by, so it has to
+   * be the one that bounds the solid. `circumradius` is the RENDERER's
+   * normalisation and is a barrel's SHORT axis: a d7 normalised by it would be
+   * 2.37 radii long inside a tray only 1.6 radii of half-extent, i.e. wedged
+   * through both walls from the first step. That is invisible in any test that
+   * only rolls closed-form solids, where the two radii are the same number.
+   */
+  it('normalises by the bounding sphere and not by the renderer\'s die box', () => {
+    for (const faceCount of [3, 5, 7, 9, 16]) {
+      const geometry = dieGeometry(faceCount);
+      assert.ok(
+        geometry.boundingRadius > geometry.circumradius * 1.3,
+        `d${faceCount} is not a barrel any more; this test has stopped testing anything`,
+      );
+      const solid = simulationSolid(geometry);
+      const radius = Math.max(...solid.vertices.map(mag));
+      assert.ok(
+        Math.abs(radius - 1) < 1e-12,
+        `d${faceCount} simulates at radius ${radius}: it was scaled by the die box, not the sphere`,
       );
     }
   });
@@ -343,10 +367,11 @@ describe('simulationSolid', () => {
         centroid: scaleVec(face.centroid, factor),
         polygon: face.polygon.map((v) => scaleVec(v, factor)),
       })),
-      // Unit-mass second moments are lengths squared; the circumradius is a
-      // length. Both scalings are the geometry module's own contract.
+      // Unit-mass second moments are lengths squared; both radii are lengths.
+      // All three scalings are the geometry module's own contract.
       inertiaTensor: geometry.inertiaTensor.map((entry) => entry * factor * factor),
       circumradius: geometry.circumradius * factor,
+      boundingRadius: geometry.boundingRadius * factor,
     });
 
     for (const faceCount of SHAPES) {

@@ -11,19 +11,24 @@
  *
  * ## Units, and the size-normalisation trap
  *
- * `die-geometry.ts` does NOT normalise its solids: circumradius runs from 1.000
- * (d8) to 1.902 (d20), and unit-mass inertia goes as R^2, so a d20's inertia
- * tensor is about 4x a d10's at the scale each is built at. Fed straight into
- * the angular dynamics that makes different face counts tumble at visibly
+ * `die-geometry.ts` does NOT normalise its solids: the bounding radius runs from
+ * 1.000 (d8) to 1.902 (d20), and unit-mass inertia goes as R^2, so a d20's
+ * inertia tensor is about 4x a d10's at the scale each is built at. Fed straight
+ * into the angular dynamics that makes different face counts tumble at visibly
  * different rates for no reason a test would explain.
  *
  * This module normalises ON ENTRY, in `simulationSolid`: vertices and face
- * planes are divided by `circumradius` and the inertia tensor by
- * `circumradius^2`, so EVERY simulated die is a unit-circumradius, unit-mass
- * solid. One consequence for every consumer: all lengths in a `RollTrajectory`
- * — positions, and the `bounds` you hand in — are in units of the die's
- * circumradius, not pixels and not the geometry's native coordinates. A renderer
+ * planes are divided by `boundingRadius` and the inertia tensor by
+ * `boundingRadius^2`, so EVERY simulated die is a unit-radius, unit-mass solid.
+ * One consequence for every consumer: all lengths in a `RollTrajectory` —
+ * positions, and the `bounds` you hand in — are in units of the die's BOUNDING
+ * radius, not pixels and not the geometry's native coordinates. A renderer
  * scales the whole trajectory by whatever it wants a die radius to be on screen.
+ *
+ * `boundingRadius` is deliberately not `circumradius`: the latter is the
+ * RENDERER's normalisation and is a barrel's short axis. The two agree for every
+ * closed-form solid, and a barrel is drawn 2.1-2.6x larger than the sphere it is
+ * simulated in — see `die-geometry.ts` and `dice-roll.ts`'s `TRAY_BOUNDS`.
  *
  * ## Frame
  *
@@ -737,19 +742,26 @@ const CONJUGATE_SCRATCH = new Float64Array(9);
 // ---------------------------------------------------------------------------
 
 /**
- * `geometry` rescaled so its circumradius is exactly 1.
+ * `geometry` rescaled so its bounding sphere has radius exactly 1.
  *
  * See the file docs: this is where the size trap is defused. Lengths divide by
- * `circumradius`; the unit-mass inertia tensor, whose entries are second
- * moments of length, divides by `circumradius^2`. Face NORMALS are invariant
+ * `boundingRadius`; the unit-mass inertia tensor, whose entries are second
+ * moments of length, divides by `boundingRadius^2`. Face NORMALS are invariant
  * under a uniform scale, so they carry through untouched — and so, usefully,
  * does `presentedFaceIndex`, which reads only normals and argmax/argmin over
  * uniformly scaled distances. Reading a resting orientation therefore gives the
  * same answer against the original geometry as against this one.
+ *
+ * `boundingRadius` and NOT `circumradius`, which the renderer normalizes by and
+ * which is a barrel's short axis rather than its circumsphere. The two are the
+ * same number for every closed-form solid and differ by up to 2.63x on a
+ * barrel, and it is the bounding sphere that this module needs: `bounds` is a
+ * tray measured in die radii, and a die whose sphere overflowed the tray would
+ * spend the whole throw wedged in a wall. See `die-geometry.ts`.
  */
 export function simulationSolid(geometry: DieGeometry): SimulationSolid {
-  const radius = geometry.circumradius;
-  if (!(radius > 0)) throw new Error('die geometry has a non-positive circumradius');
+  const radius = geometry.boundingRadius;
+  if (!(radius > 0)) throw new Error('die geometry has a non-positive bounding radius');
   const inverse = 1 / radius;
   const vertices = geometry.vertices.map((vertex) => scale(vertex, inverse));
   const planes = [...geometry.faces, ...geometry.capFaces].map((face) =>

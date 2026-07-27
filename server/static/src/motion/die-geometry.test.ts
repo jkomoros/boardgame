@@ -262,9 +262,35 @@ describe('die geometry', () => {
         }
       });
 
-      it('reports the circumradius as the farthest vertex distance', () => {
+      it('reports the bounding radius as the farthest vertex distance', () => {
         const farthest = Math.max(...geometry.vertices.map((vertex) => mag(vertex)));
-        close(geometry.circumradius, farthest, 1e-12, 'circumradius');
+        close(geometry.boundingRadius, farthest, 1e-12, 'boundingRadius');
+      });
+
+      /**
+       * `circumradius` is the radius the RENDERER normalizes by — half the
+       * die's nominal box — and for everything except a barrel that is the
+       * circumsphere. A barrel is normalized by its SHORT axis instead, so its
+       * length overflows the box and its faces are drawn at the size the box
+       * deserves. See `barrelSolid`.
+       */
+      it('normalizes by the circumsphere, except a barrel, by its short axis', () => {
+        if (STANDARD_FACE_COUNTS.includes(faceCount)) {
+          close(geometry.circumradius, geometry.boundingRadius, 1e-12, 'nominal radius');
+          return;
+        }
+        // A barrel's long axis is z, so its short semi-axis is the radius of
+        // the smallest cylinder about that axis.
+        const shortAxis = Math.max(
+          ...geometry.vertices.map((vertex) => Math.hypot(vertex[0], vertex[1])),
+        );
+        close(geometry.circumradius, shortAxis, 1e-12, 'barrel nominal radius');
+        // Strictly smaller than the circumsphere, which is the whole point: at
+        // a fixed `--die-size` every length on the solid grows by this ratio.
+        assert.ok(
+          geometry.boundingRadius / geometry.circumradius >= (faceCount === 3 ? 1.35 : 2.1),
+          `d${faceCount} only gains ${geometry.boundingRadius / geometry.circumradius}x from short-axis normalization`,
+        );
       });
 
       it('has a symmetric, positive-definite inertia tensor', () => {
@@ -594,9 +620,11 @@ describe('die geometry', () => {
 
     /**
      * How far outside a cap facet the centre of mass must project, as a
-     * fraction of the circumradius. Scale-free on purpose: `dice-sim.ts`
-     * normalises every die to circumradius 1, so this is the margin in the
-     * units the physics actually works in. The measured values run -0.168
+     * fraction of the BOUNDING radius. Scale-free on purpose: `dice-sim.ts`
+     * normalises every die to a bounding radius of 1, so this is the margin in
+     * the units the physics actually works in — and it is deliberately not
+     * `circumradius`, which is the RENDERER's normalisation and is a barrel's
+     * short axis rather than its circumsphere. The measured values run -0.168
      * (large N) to -0.189 (d3); before the fix a d7 scored +0.161, i.e. stable
      * by about as much as it is now unstable.
      */
@@ -607,10 +635,10 @@ describe('die geometry', () => {
         const geometry = dieGeometry(faceCount);
         assert.equal(geometry.capFaces.length, 2 * faceCount);
         for (const [index, face] of geometry.capFaces.entries()) {
-          const margin = supportMargin(face) / geometry.circumradius;
+          const margin = supportMargin(face) / geometry.boundingRadius;
           assert.ok(
             margin < -CAP_INSTABILITY_MARGIN,
-            `d${faceCount} cap facet ${index} is a stable rest: margin ${margin} of a circumradius`,
+            `d${faceCount} cap facet ${index} is a stable rest: margin ${margin} of a bounding radius`,
           );
         }
       }
@@ -618,18 +646,18 @@ describe('die geometry', () => {
 
     /**
      * How far INSIDE a readable side face the centre of mass must project, as
-     * a fraction of the circumradius, and the honest edge of what this module
-     * supports.
+     * a fraction of the BOUNDING radius (see `CAP_INSTABILITY_MARGIN`), and the
+     * honest edge of what this module supports.
      *
      * `margin > 0` alone is not a bound: the side margin is `sin(pi/N)` in raw
-     * units and the circumradius tends to 2.632, so it falls off as `1/N` —
+     * units and the bounding radius tends to 2.632, so it falls off as `1/N` —
      * 0.634 at the d3, 0.050 at the d24, 0.012 at the d100, and 0.0012 at a
      * hypothetical d1000. That last one is "stable" in exactly the way the
      * needle the `BARREL_CAP_SAFETY` doc rejects was stable: true on paper,
      * balanceable by a breath in practice. `dieGeometry` puts no upper limit on
      * `faceCount`, so this number is the limit, not the type signature: the
      * shapes this module claims to produce real dice for are those whose side
-     * faces are at least a hundredth of a circumradius wide, which is N <= 119.
+     * faces are at least a hundredth of a bounding radius wide, i.e. N <= 119.
      * Beyond that the geometry is still well-formed and the physics still runs,
      * but nothing here asserts a die that many sides comes to rest readably.
      */
@@ -644,10 +672,10 @@ describe('die geometry', () => {
         const geometry = dieGeometry(faceCount);
         for (const [index, face] of geometry.faces.entries()) {
           const margin = supportMargin(face);
-          const normalised = margin / geometry.circumradius;
+          const normalised = margin / geometry.boundingRadius;
           assert.ok(
             normalised > SIDE_STABILITY_MARGIN,
-            `d${faceCount} side face ${index} rests on only ${normalised} of a circumradius`,
+            `d${faceCount} side face ${index} rests on only ${normalised} of a bounding radius`,
           );
           close(
             margin,
@@ -666,7 +694,7 @@ describe('die geometry', () => {
       // says the supported range moved.
       const normalisedMargin = (faceCount: number): number => {
         const geometry = dieGeometry(faceCount);
-        return supportMargin(geometry.faces[0]) / geometry.circumradius;
+        return supportMargin(geometry.faces[0]) / geometry.boundingRadius;
       };
       assert.ok(
         normalisedMargin(119) > SIDE_STABILITY_MARGIN,

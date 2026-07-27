@@ -104,7 +104,9 @@ import {
 } from '../solid/reading-pose.ts';
 
 /**
- * HALF-extents of the tray a die is thrown in, in die circumradii.
+ * HALF-extents of the tray a die is thrown in, in die BOUNDING radii — the unit
+ * `dice-sim.ts` normalises to, which is `DieGeometry.boundingRadius` and not
+ * `circumradius`.
  *
  * The tray is invisible, so its size is a purely visual budget: it is how far
  * the die may travel from the centre of its own box. At 1.6 a d6 stays within
@@ -246,6 +248,18 @@ const ORIGIN: Vec3 = vec3(0, 0, 0);
  *
  * The pose turns are applied with `reduceRight` because the emitted list is
  * outermost first, so it is applied last first.
+ *
+ * `radiusPx` is HALF THE DIE'S BOX on screen, which is what the caller can
+ * measure (`#stage`'s font-size, halved) and what the solid is drawn at. The
+ * trajectory is in `boundingRadius` units, and for every closed-form solid
+ * those are the same unit. For a BARREL they are not: the die is drawn 2.1-2.6x
+ * larger than the sphere it was simulated in, so one trajectory unit is still
+ * one die half-box here rather than one drawn bounding radius. The consequence
+ * is that a barrel roams the same number of PIXELS a d20 does while being
+ * larger, i.e. its tray is tighter relative to itself — which reads as a
+ * heavier die and is the conservative direction. Scaling the travel up to match
+ * the drawn size instead would have a d7 flying 190px on a 100px die, well
+ * outside anything a layout budgeted for it.
  */
 function posedPosition(
   samples: readonly DieSample[],
