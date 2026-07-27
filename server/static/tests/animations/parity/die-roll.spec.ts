@@ -138,7 +138,11 @@ async function rollDie(
   },
 ): Promise<RollCapture> {
   return await page.evaluate(async (opts) => {
-    const dieModule: any = await import('/src/components/boardgame-die.ts');
+    // Registering the element is still a side effect this block wants; the
+    // roll's seed, trajectory and settle-trim now live in the module that
+    // owns them.
+    await import('/src/components/boardgame-die.ts');
+    const rollModule: any = await import('/src/motion/dice-roll.ts');
     const geometryModule: any = await import('/src/motion/die-geometry.ts');
     const facesModule: any = await import('/src/motion/die-faces.ts');
     const bakeModule: any = await import('/src/motion/dice-bake.ts');
@@ -213,14 +217,14 @@ async function rollDie(
     // component derives it, so a seed taken from the wrong number shows up as
     // every frame mismatching rather than as a test quietly agreeing with a bug.
     const identity = opts.rollCount === null ? version : (opts.rollCount ?? version);
-    const seed = dieModule.dieRollSeed(opts.componentId ?? 'fixture-component', identity);
-    const trajectory = dieModule.dieRollTrajectory(
+    const seed = rollModule.dieRollSeed(opts.componentId ?? 'fixture-component', identity);
+    const trajectory = rollModule.dieRollTrajectory(
       geometry, opts.componentId ?? 'fixture-component', identity);
     // What is PLAYED is the throw with its trailing dead hold cut off (see
     // settledTrajectory), so every expectation below is derived from that and
     // not from the raw trajectory -- including its duration, which is the
     // trimmed trajectory's last sample time.
-    const settled = dieModule.settledTrajectory(trajectory.dice[0]);
+    const settled = rollModule.settledTrajectory(trajectory.dice[0]);
     const settledDurationMs = settled.samples[settled.samples.length - 1].t;
     const presented = facesModule.presentedFaceIndex(
       geometry, settled.restingOrientation);
@@ -526,7 +530,11 @@ test.describe('boardgame-die physics roll', () => {
       return m.m33;
     });
     const tilted = await page.evaluate(async () => {
-      const dieModule: any = await import('/src/components/boardgame-die.ts');
+      // Registering the element is still a side effect this block wants; the
+      // roll's seed, trajectory and settle-trim now live in the module that
+      // owns them.
+      await import('/src/components/boardgame-die.ts');
+      const rollModule: any = await import('/src/motion/dice-roll.ts');
       const geometryModule: any = await import('/src/motion/die-geometry.ts');
       const facesModule: any = await import('/src/motion/die-faces.ts');
       const geometry = geometryModule.dieGeometry(12);
@@ -543,7 +551,7 @@ test.describe('boardgame-die physics roll', () => {
         ];
       };
       for (let rollCount = 2; rollCount < 80; rollCount++) {
-        const trajectory = dieModule.dieRollTrajectory(geometry, 'fixture-component', rollCount);
+        const trajectory = rollModule.dieRollTrajectory(geometry, 'fixture-component', rollCount);
         const die = trajectory.dice[0];
         const presented = facesModule.presentedFaceIndex(geometry, die.restingOrientation);
         const world = rotate(
@@ -803,13 +811,17 @@ test.describe('boardgame-die roll duration', () => {
     // the same bake the keyframes come from, so this is the rendered pose and
     // not an approximation of it.
     const drift = await page.evaluate(async (version: number) => {
-      const dieModule: any = await import('/src/components/boardgame-die.ts');
+      // Registering the element is still a side effect this block wants; the
+      // roll's seed, trajectory and settle-trim now live in the module that
+      // owns them.
+      await import('/src/components/boardgame-die.ts');
+      const rollModule: any = await import('/src/motion/dice-roll.ts');
       const geometryModule: any = await import('/src/motion/die-geometry.ts');
       const bakeModule: any = await import('/src/motion/dice-bake.ts');
       const geometry = geometryModule.dieGeometry(6);
-      const trajectory = dieModule.dieRollTrajectory(geometry, 'fixture-component', version);
+      const trajectory = rollModule.dieRollTrajectory(geometry, 'fixture-component', version);
       const full = trajectory.dice[0];
-      const cut = dieModule.settledTrajectory(full);
+      const cut = rollModule.settledTrajectory(full);
       const atCut = new DOMMatrix(bakeModule.restingTransform(cut, { radiusPx: 50 }));
       const atEnd = new DOMMatrix(bakeModule.restingTransform(full, { radiusPx: 50 }));
       const a = atCut.toFloat64Array();
