@@ -60,19 +60,52 @@ const SCREEN_UP: Vec3 = vec3(0, -1, 0);
 const CAMERA_AXIS: Vec3 = vec3(0, 0, 1);
 
 /**
- * Where the presented face is pointed, in CSS space, when the die is at rest.
+ * Where the presented face is pointed, in CSS space, when the die is at rest
+ * and its shape can afford the whole lean.
  *
  * Not straight at the camera (`+Z`): a solid facing the viewer square-on
  * projects to a flat outline and reads as the 2D die this replaces. Pointing
  * the presented face slightly down and to the left instead puts the camera
  * above and to the right of it, so a d6 shows its presented face plus the
- * faces above and to its right — a die seen on a table. The physics-driven
- * resting pose replaces this when the roll is wired up.
+ * faces above and to its right — a die seen on a table.
  *
- * This fixed tilt is enough ONLY while the solid's other faces are within
- * ~90 degrees of the presented one; `companionTilt` covers the rest.
+ * This lean is enough ONLY while the solid's other faces are within ~90 degrees
+ * of the presented one; `companionTilt` covers the rest. And it is a MAXIMUM,
+ * not a constant: `presentedTiltLimit` shortens it for a solid whose facets sit
+ * close together, so that the face the player is reading is always the most
+ * square-on one.
  */
 const RESTING_VIEW: Vec3 = normalize(vec3(-0.32, 0.26, 1));
+
+/**
+ * `RESTING_VIEW` split into the direction it leans and how far it leans, so
+ * that the lean can be SHORTENED without moving to a differently-shaped pose:
+ * turning `+Z` about `RESTING_TILT_AXIS` by `RESTING_TILT_DEGREES` reproduces
+ * `RESTING_VIEW` exactly, and by less than that reproduces the same view seen
+ * from a little nearer the face's own normal.
+ */
+const RESTING_TILT_AXIS: Vec3 = normalize(cross(CAMERA_AXIS, RESTING_VIEW));
+const RESTING_TILT_DEGREES: number =
+  (Math.acos(Math.min(1, Math.max(-1, dot(CAMERA_AXIS, RESTING_VIEW)))) * 180) / Math.PI;
+
+/**
+ * How much more square-on the presented facet must be than every other facet on
+ * the die, in degrees. See `presentedTiltLimit`, which is what enforces it.
+ *
+ * Four degrees is not a tolerance, it is a legibility budget: two facets within
+ * a couple of degrees of each other in foreshortening are equally big on screen
+ * and the player has no reason to read one rather than the other, which on a
+ * d20 is the difference between reading 17 and reading 18. Larger would be
+ * safer still and buys nothing — the presented facet is also the CENTRED one,
+ * so a real margin plus the centre is unambiguous — while costing lean, and
+ * lean is what makes the die read as a solid at all.
+ */
+const READING_MARGIN = 4;
+
+/** `RESTING_VIEW`'s direction, leaned only `tiltDegrees` off the camera axis. */
+function restingView(tiltDegrees: number): Vec3 {
+  return applyTurn(CAMERA_AXIS, { axis: RESTING_TILT_AXIS, degrees: tiltDegrees });
+}
 
 /**
  * How far off the camera axis the most face-on of the OTHER facets is allowed
@@ -527,12 +560,15 @@ function applyTurn(v: Vec3, turn: Turn | null): Vec3 {
  *
  * Rotating about `companion x cameraAxis` carries `companion` towards the
  * camera along the shortest path, and moves everything else — the presented
- * face included — by at most the same angle.
+ * face included — by at most the same angle. Which is exactly why `headroom`
+ * exists: it is how much further the presented face may be leaned before it
+ * stops being the most square-on facet (`presentedTiltLimit`), and "at most the
+ * same angle" is what makes capping the tilt at it sufficient.
  */
-function companionTilt(companion: Vec3): Turn | null {
+function companionTilt(companion: Vec3, headroom: number): Turn | null {
   const cosine = Math.min(1, Math.max(-1, dot(companion, CAMERA_AXIS)));
   const offAxis = (Math.acos(cosine) * 180) / Math.PI;
-  const degrees = Math.min(offAxis - COMPANION_VIEW_LIMIT, MAX_COMPANION_TILT);
+  const degrees = Math.min(offAxis - COMPANION_VIEW_LIMIT, MAX_COMPANION_TILT, headroom);
   if (!(degrees > 0)) return null;
   const axis = cross(companion, CAMERA_AXIS);
   const sine = magnitude(axis);
@@ -565,46 +601,125 @@ function uprightRoll(posed: Vec3): Turn | null {
 }
 
 /**
- * The resting pose: the rotation that points the presented face's normal at
- * `RESTING_VIEW`, then whatever extra tilt it takes for at least one other
- * facet to be visible (`companionTilt`), so the die reads as a solid whatever
- * its face count, and finally the roll that leaves the presented face's
- * content the right way up. CSS applies a transform list left to right, so
- * each of those is written BEFORE the one it is applied after.
+ * Every facet's outward normal in CSS space, in surface order
+ * (`[...faces, ...capFaces]`, so a face index is also an index into this) —
+ * optionally as a throw left them, by applying the landing orientation first.
  *
- * The roll is why the pose is not just `minimalTurn`. `facetBasis` makes each
- * facet's local +y screen-down IN THE BODY FRAME; the turn that swings the
- * presented facet round to face the viewer then carries that +y wherever the
- * shortest path happens to leave it, and the shortest path knows nothing about
- * which way up a numeral is. Measured before this correction: a d4 presenting
- * face 1 was 122 degrees out and a d10 presenting face 2 was 116 -- an
- * upside-down number -- while a d20 was within 16.
- *
- * Only the PRESENTED facet can be corrected, and only the presented facet
- * should be: one roll is one degree of freedom, the other facets keep the
- * orientation their own geometry gives them, and that is right -- they are
- * seen at an angle anyway. It is also why this belongs here and not in
- * `facetBasis`: it is a property of the POSE, and it is the resting pose alone
- * that has to read like the flat 2D die this component replaces. Once a
- * physics roll lands the die, the content roll it stops at is whatever the
- * simulation says, exactly as a real die's is.
+ * The one place the body frame becomes the screen frame for a NORMAL, which is
+ * what lets the pose below be written once and used for a die that has never
+ * moved and for a die the physics has just put down.
  */
-function presentationTransform(geometry: DieGeometry, presented: number): string {
-  const presentedNormal = normalize(toScreen(geometry.faces[presented].normal));
-  const base = minimalTurn(presentedNormal, RESTING_VIEW);
-  const surface = [...geometry.faces, ...geometry.capFaces];
-  let companion: Vec3 | null = null;
-  for (let index = 0; index < surface.length; index++) {
+function surfaceDirections(geometry: DieGeometry, landed?: Quat): readonly Vec3[] {
+  return [...geometry.faces, ...geometry.capFaces].map((face) => normalize(toScreen(
+    landed ? rotateByQuat(landed, face.normal) : face.normal)));
+}
+
+/**
+ * How far off the camera axis facet `presented` may be leaned and still be the
+ * most square-on facet on the die, in degrees.
+ *
+ * A facet whose normal is `d` degrees from the presented one cannot get closer
+ * to the camera axis than `d - a` when the presented facet sits `a` degrees off
+ * it — that is the triangle inequality on the sphere, and it holds whichever
+ * way the pose leans and wherever a throw happened to leave the die. So
+ * `a <= (d - READING_MARGIN) / 2` makes the presented facet the most square-on
+ * by at least `READING_MARGIN`, and taking `d` as the SMALLEST angle to any
+ * other facet makes it so against all of them at once.
+ *
+ * `d` is a property of the solid and nothing else: 109.5 degrees for a d4, 90
+ * for a d6, 70.5 for a d8, 51.7 for a d10, 63.4 for a d12, 41.8 for a d20 and
+ * 37.2 for a d7 (a side face to the nearest cap triangle). Only the last two
+ * come out under `RESTING_TILT_DEGREES` and are actually shortened by this; for
+ * every other shape the limit is slack and the pose is exactly what it was.
+ *
+ * Rotation-invariant, so it may be handed either frame's directions.
+ */
+function presentedTiltLimit(directions: readonly Vec3[], presented: number): number {
+  let nearest = 180;
+  for (let index = 0; index < directions.length; index++) {
     if (index === presented) continue;
-    const direction = applyTurn(normalize(toScreen(surface[index].normal)), base);
+    const cosine = Math.min(1, Math.max(-1, dot(directions[presented], directions[index])));
+    nearest = Math.min(nearest, (Math.acos(cosine) * 180) / Math.PI);
+  }
+  return Math.max(0, (nearest - READING_MARGIN) / 2);
+}
+
+/**
+ * THE POSE A DIE IS READ IN, as a list of turns, from the facet directions it
+ * is being applied to.
+ *
+ * There is one of these and there must be exactly one. A die shows this pose
+ * twice: before it has ever rolled, and after a throw has put it down. Those
+ * used to be two independent producers, and they disagreed by 51.7 degrees —
+ * the pre-roll pose left the presented face 22.4 degrees off the camera axis
+ * and leaning down-left, the post-roll scene left it at 35 and leaning the
+ * other way. On a d20 that is enough for a NEIGHBOURING triangle to be more
+ * square-on than the face carrying the value, so the die announced 17 and drew
+ * a big central 18; measured over 25 seeded rolls it happened 24 times. Two
+ * producers of one pose is the bug, so there is now one, and the two callers
+ * differ only in the frame they hand it and in one flag.
+ *
+ * In order of application (CSS applies a transform list left to right, so the
+ * returned list reads outermost first):
+ *
+ *   1. `base`, the minimal turn pointing the presented facet's normal at
+ *      `restingView(...)` — the lean this shape can afford. Minimal means the
+ *      axis is perpendicular to that normal, so this AIMS the die without
+ *      twisting it about the face being read: it is where the camera stands,
+ *      not how the die came to rest.
+ *   2. `lean`, whatever extra tilt it takes for at least one other facet to be
+ *      visible (`companionTilt`), so the die reads as a solid whatever its face
+ *      count. Null for everything but a d4.
+ *   3. `roll`, the turn that leaves the presented face's CONTENT the right way
+ *      up — and this one only when asked for.
+ *
+ * The roll is the difference between the two poses, and it is deliberate. It
+ * exists because `facetBasis` makes each facet's local +y screen-down IN THE
+ * BODY FRAME, and the turn that swings the presented facet round to face the
+ * viewer carries that +y wherever the shortest path leaves it: measured without
+ * it, a d4 presenting face 1 was 122 degrees out and a d10 presenting face 2
+ * was 116 — an upside-down number. A die that has never rolled has to read like
+ * the flat 2D die this component replaces, so it gets the correction. A die the
+ * physics has just put down must NOT: a real die stops at whatever angle it
+ * stops at, and rotating the numeral upright afterwards is the one thing that
+ * would give the tumble away as a cartoon. Squaring the FACE towards the camera
+ * (1 and 2, which both poses get) and rotating the NUMBER upright (3) are
+ * different operations about different axes, and only the first is about
+ * legibility.
+ *
+ * Only the presented facet's content can be corrected, and only it should be:
+ * one roll is one degree of freedom, and the other facets keep the orientation
+ * their own geometry gives them, which is right — they are seen at an angle
+ * anyway.
+ */
+function readingPose(
+  directions: readonly Vec3[],
+  presented: number,
+  options: { uprightContent: boolean },
+): readonly Turn[] {
+  const limit = presentedTiltLimit(directions, presented);
+  const tilt = Math.min(RESTING_TILT_DEGREES, limit);
+  const base = minimalTurn(directions[presented], restingView(tilt));
+  let companion: Vec3 | null = null;
+  for (let index = 0; index < directions.length; index++) {
+    if (index === presented) continue;
+    const direction = applyTurn(directions[index], base);
     if (companion === null || direction[2] > companion[2]) companion = direction;
   }
-  const tilt = companion === null ? null : companionTilt(companion);
+  const lean = companion === null ? null : companionTilt(companion, limit - tilt);
   // Read the presented facet's local +y from the SAME routine that orients its
   // content, so the correction stays tied to what is actually drawn rather
   // than to a second copy of the rule.
-  const roll = uprightRoll(applyTurn(applyTurn(facetBasis(presentedNormal).v, base), tilt));
-  const turns = [roll, tilt, base].filter((turn): turn is Turn => turn !== null);
+  const roll = options.uprightContent
+    ? uprightRoll(applyTurn(applyTurn(facetBasis(directions[presented]).v, base), lean))
+    : null;
+  return [roll, lean, base].filter((turn): turn is Turn => turn !== null);
+}
+
+/** The pose of a die that has never been thrown, as a CSS transform list. */
+function presentationTransform(geometry: DieGeometry, presented: number): string {
+  const turns = readingPose(
+    surfaceDirections(geometry), presented, { uprightContent: true });
   return turns.length ? turns.map(rotate3d).join(' ') : 'none';
 }
 
@@ -719,22 +834,24 @@ function dieSolid(faceCount: number): DieSolid | null {
  * — and the die comes to rest on the tray's floor, about three quarters of a box
  * below the middle of the box it is laid out in, and wherever it drifted to.
  *
- * Three constant turns/translations fix that, composed in front of every
- * keyframe as ONE literal prefix (see `sceneTransform`):
+ * Two constant turns/translations fix that, composed in front of every keyframe
+ * as ONE literal prefix (see `sceneTransform`):
  *
- *   1. a LANDING SQUARE-UP, the minimal turn putting the read face exactly
- *      along the world's reading axis. Almost always the identity — dice settle
- *      flat — but it is what makes a COCKED roll (`RollTrajectory.cocked`, a die
- *      the simulator could not settle in eight throws) land readable instead of
- *      leaning. There is no floor drawn, so rotating the whole world by a couple
- *      of degrees costs nothing visually and the value is never displayed on a
- *      face that is not really up.
- *   2. the CAMERA, a fixed elevation above the tray, so the reading face faces
- *      the player.
- *   3. a RECENTRING translation, so the die comes to rest at the centre of its
+ *   1. WHERE THE CAMERA STANDS, which is `readingPose` — the same routine, and
+ *      therefore the same framing, the die is shown in before it has ever
+ *      rolled. It is handed the facet normals AS THE THROW LEFT THEM, so it
+ *      aims at the face this particular throw landed rather than at a fixed
+ *      elevation above the tray, and it subsumes the landing square-up that
+ *      used to be a step of its own: the read face is put exactly on the
+ *      reading direction whether the throw settled flat (nearly all of them)
+ *      or COCKED (`RollTrajectory.cocked`, a die the simulator could not settle
+ *      in eight throws). There is no floor drawn, so rotating the whole world
+ *      by a couple of degrees to straighten a cocked die costs nothing, and the
+ *      value is never displayed on a face that is not really up.
+ *   2. a RECENTRING translation, so the die comes to rest at the centre of its
  *      own box whatever spot on the floor it landed on.
  *
- * All three are the same for every keyframe of one roll, so composing them here
+ * Both are the same for every keyframe of one roll, so composing them here
  * rather than in `dice-bake.ts` costs one string concatenation per keyframe and
  * keeps the bake a pure function of the physics.
  */
@@ -749,27 +866,11 @@ function dieSolid(faceCount: number): DieSolid | null {
  * roomier tray (`dice-sim.ts` recommends 4 for three dice) settles more
  * reliably, but that recommendation is about dice knocking EACH OTHER cocked; a
  * lone die measured over 300 seeds per solid landed cocked once, for a d7, and
- * the landing square-up above covers even that.
+ * the pose's aim at the landed face covers even that.
  *
  * `dice-sim.ts` rejects anything under 1.5 (its spawn needs the clearance).
  */
 const TRAY_BOUNDS = Object.freeze({ x: 1.6, y: 2.0, z: 1.6 });
-
-/**
- * How far above the tray floor the camera sits, in degrees.
- *
- * Not a taste knob: at 0 the reading face is exactly edge-on and the die is
- * unreadable; at 90 the tray is seen straight down, the die's fall projects
- * entirely into depth and reads as a die that grows rather than one that drops.
- * 55 leaves the reading face 35 degrees off the camera axis — foreshortened to
- * 82%, comfortably legible — while the fall still carries more than half its
- * length down the screen. It is close to the 23.6-degree tilt `RESTING_VIEW`
- * uses for the pre-roll pose, seen from the other side.
- */
-const CAMERA_ELEVATION_DEGREES = 55;
-
-/** The camera, as a turn of the whole scene about the screen's x axis. */
-const CAMERA_TURN: Turn = { axis: vec3(1, 0, 0), degrees: -CAMERA_ELEVATION_DEGREES };
 
 /**
  * One 60Hz frame, in ms: the grid the baked curve is sampled on.
@@ -858,7 +959,7 @@ function quatAngleDegrees(a: Quat, b: Quat): number {
  *
  * The returned trajectory's `restingOrientation` is its own final sample's, so
  * `restingTransform` and `trajectoryCurve(...)(1)` stay byte-identical and the
- * landing square-up is computed from the pose actually rendered last.
+ * scene's reading pose is aimed at the pose actually rendered last.
  */
 export function settledTrajectory(die: DieTrajectory): DieTrajectory {
   const samples = die.samples;
@@ -886,14 +987,22 @@ function rotateByQuat(q: Quat, v: Vec3): Vec3 {
 
 /**
  * The constant prefix that turns one simulated world into one rendered scene:
- * `translate3d(recentre) rotate3d(camera) rotate3d(square-up)`, applied in front
- * of every baked `matrix3d`.
+ * `translate3d(recentre) <the reading pose>`, applied in front of every baked
+ * `matrix3d`.
+ *
+ * The pose is `readingPose` handed the facet normals AS THE THROW LEFT THEM, so
+ * a rolled die is framed exactly the way a die that has never rolled is framed —
+ * see `readingPose` for why that has to be one routine and not two. Note what it
+ * is NOT allowed to do: `minimalTurn` carries the landed face round to the
+ * reading direction about an axis perpendicular to that face's own normal, so
+ * the pose aims the camera and cannot twist the die about the face being read.
+ * Whatever roll the simulation stopped at survives, which is what a real die
+ * does.
  *
  * CSS applies a transform list left to right, so the list reads outermost
- * first: a point is squared up, then swung under the camera, then moved so that
- * the RESTING pose lands on the origin. The recentring offset is therefore
- * `-(camera . square)(restingPosition)` and has to be computed after the two
- * turns, not before.
+ * first: a point is posed, then moved so that the RESTING pose lands on the
+ * origin. The recentring offset is therefore minus the POSED resting position
+ * and has to be computed after the turns, not before.
  *
  * Every number here is a literal: a `var()` or `calc()` anywhere in a transform
  * keyframe forfeits compositing and drops a multi-second tumble onto the main
@@ -905,25 +1014,20 @@ function sceneTransform(
   presented: number,
   radiusPx: number,
 ): string {
-  // The reading face's normal where the die came to rest, in CSS space. For a
-  // d4 and an odd barrel the face that is READ is the one the die rests ON, so
-  // it is squared onto screen-DOWN; for everything else, onto screen-up.
-  const landed = normalize(toScreen(
-    rotateByQuat(die.restingOrientation, geometry.faces[presented].normal)));
-  const readingAxis = resolveReadingRule(geometry) === 'up-face'
-    ? SCREEN_UP
-    : scaleVec(SCREEN_UP, -1);
-  const square = minimalTurn(landed, readingAxis);
+  // A turn `minimalTurn` reports as a fraction of a millidegree rather than as
+  // `null` would put a dead `rotate3d(..., 0deg)` in every one of up to 256
+  // keyframes. Dropped BEFORE the recentring below is computed, so the offset
+  // is minus the position the emitted list actually poses the die at.
+  const turns = readingPose(
+    surfaceDirections(geometry, die.restingOrientation), presented,
+    { uprightContent: false },
+  ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
   const rest = die.samples[die.samples.length - 1].position;
-  const posed = applyTurn(applyTurn(scaleVec(toScreen(rest), radiusPx), square), CAMERA_TURN);
-  // A die that settled flat -- almost all of them -- squares up by an angle
-  // `minimalTurn` reports as a fraction of a millidegree rather than as `null`,
-  // and writing that out would put a dead `rotate3d(..., 0deg)` in every one of
-  // up to 256 keyframes.
-  const turns = [CAMERA_TURN, square].filter(
-    (turn): turn is Turn => turn !== null && Math.abs(turn.degrees) > 1e-4);
-  return `translate3d(${num(-posed[0])}px,${num(-posed[1])}px,${num(-posed[2])}px) `
-    + turns.map(rotate3d).join(' ');
+  // reduceRight: the list is outermost first, so it is applied last first.
+  const posed = turns.reduceRight(
+    (point, turn) => applyTurn(point, turn), scaleVec(toScreen(rest), radiusPx));
+  const recentre = `translate3d(${num(-posed[0])}px,${num(-posed[1])}px,${num(-posed[2])}px)`;
+  return turns.length ? `${recentre} ${turns.map(rotate3d).join(' ')}` : recentre;
 }
 
 /**

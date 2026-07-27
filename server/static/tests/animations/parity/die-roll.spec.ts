@@ -499,11 +499,11 @@ test.describe('boardgame-die physics roll', () => {
   // flat in eight throws, and the renderer must not then quietly print the value
   // on a face that is not really up.
   //
-  // The answer is to make it up: the scene squares the landed face onto the
-  // reading axis, always, so the face carrying the value is exactly level
-  // whether the throw settled at 0.0 degrees (nearly all of them) or at 2.4
-  // (measured worst for a d12 over 40 throws) or at the 3-plus that counts as
-  // cocked. There is no floor drawn, so a couple of degrees of world tilt is
+  // The answer is to make it up: the scene's reading pose AIMS at the face the
+  // throw landed, so the face carrying the value ends up exactly where the pose
+  // puts it whether the throw settled at 0.0 degrees (nearly all of them) or at
+  // 2.4 (measured worst for a d12 over 40 throws) or at the 3-plus that counts
+  // as cocked. There is no floor drawn, so a couple of degrees of world tilt is
   // invisible, and the alternative -- refusing to animate a rare roll -- trades
   // an unreadable die for a die that sometimes does not move.
   //
@@ -511,6 +511,20 @@ test.describe('boardgame-die physics roll', () => {
   // first state version that produces one.
   test('lands the reading face exactly square, even when the throw did not', async ({ page }) => {
     await mountDie(page, { faceCount: 12, selectedFace: 0, stateVersion: 1, dieSize: '160px' });
+    // Where this die's own resting pose puts the face it presents, read off a
+    // d12 that has not been thrown. The cocked throw below has to land there
+    // too -- exactly there, not near it -- and reading it rather than writing a
+    // number down is what keeps this test pinned to the pose the player sees
+    // instead of to a constant that has to be edited whenever the pose moves.
+    const restingTowardsCamera = await page.evaluate(() => {
+      const die = document.getElementById('fixture-die') as any;
+      const root = die.shadowRoot as ShadowRoot;
+      const facet = root.querySelector('.facet[data-face-index="0"]') as HTMLElement;
+      const orient = root.querySelector('#orient') as HTMLElement;
+      const m = new DOMMatrix(getComputedStyle(orient).transform)
+        .multiply(new DOMMatrix(getComputedStyle(facet).transform));
+      return m.m33;
+    });
     const tilted = await page.evaluate(async () => {
       const dieModule: any = await import('/src/components/boardgame-die.ts');
       const geometryModule: any = await import('/src/motion/die-geometry.ts');
@@ -553,17 +567,18 @@ test.describe('boardgame-die physics roll', () => {
       await Promise.all(inner.getAnimations().map((a) => a.finished.catch(() => undefined)));
     });
     const read = await restingRead(page);
-    // Read the LANDED facet by index, not the most camera-facing one: a d12's
-    // neighbouring faces are only 63 degrees apart, so at this camera elevation
-    // one of them is nearer face-on than the top face is. (A d6's are 90 apart,
-    // which is why the tests above can use the front-most facet.)
     const landed = read.byIndex[roll.expected.presented];
     expect(landed.value).toBe(String(roll.serverValue));
-    // Squared up: the reading face sits at exactly the camera's own elevation
-    // off the view axis, cos(35 degrees), and NOT at cos(35 +/- the throw's own
-    // tilt). The throw above is off by `tilted.degrees`, which without the
-    // square-up moves this by ~0.01 -- hundreds of times the tolerance.
-    expect(landed.towardsCamera).toBeCloseTo(Math.cos((35 * Math.PI) / 180), 4);
+    // Squared up: the reading face sits at exactly the tilt the resting pose
+    // gives it, and NOT at that tilt plus or minus the throw's own lean. The
+    // throw above is off by `tilted.degrees`, which without the pose aiming at
+    // the LANDED face moves this by ~0.01 -- hundreds of times the tolerance.
+    expect(landed.towardsCamera).toBeCloseTo(restingTowardsCamera, 4);
+    // ...and, since the pose aims at that face, it is now genuinely the most
+    // square-on facet on the die. It was not: a d12's neighbours are 63 degrees
+    // apart, and at the old fixed camera elevation one of them was nearer
+    // face-on than the face carrying the value.
+    expect(read.front.faceIndex).toBe(roll.expected.presented);
   });
 
   test('is deterministic in (component id, roll count), and only in those', async ({ page }) => {
@@ -1016,6 +1031,246 @@ test.describe('boardgame-die physics roll, in the app', () => {
         delete (window as any).__watchdogDie;
       });
     });
+});
+
+// ---------------------------------------------------------------------------
+// POST-ROLL READABILITY.
+//
+// A die exists to be read. Every test above pins that the LANDED FACET carries
+// the server's value -- a DOM fact -- and `die-shape.spec.ts` pins the pre-roll
+// pose, but neither one asks the question a player asks: once the tumble stops,
+// is the face carrying the value the one that reads?
+//
+// It was not. The pre-roll pose and the post-roll scene were two independent
+// producers of a resting pose and they disagreed by 51.7 degrees: the pre-roll
+// pose leaves the presented facet 22.4 degrees off the camera axis, the scene
+// left it at exactly 35 and tilted the other way. On a d20, whose facets are
+// only 41.8 degrees apart in normal angle, a NEIGHBOUR is then up to 27.5
+// degrees more square-on than the face the player is meant to read -- measured
+// over 25 seeded rolls, 24 of 25 for a d20 and 12 of 25 for a d10. Rendered at
+// 300px showing 17, the "17" was small and edge-on at the top of the die while
+// "18" was big and central. `aria-label` was right the whole time, which is why
+// nothing caught it.
+//
+// So this measures the thing itself, from the render:
+//
+//   1. the presented facet is the MOST square-on facet on the die, by a real
+//      margin, over many seeds and three shapes with very different facet
+//      spacings;
+//   2. the post-roll framing is the SAME framing as the pre-roll one -- a die
+//      must not jump between two views of itself when a roll starts;
+//   3. and the die still stops at a PHYSICAL angle: squaring the face towards
+//      the camera is a re-aim of the whole scene about an axis perpendicular to
+//      that face's normal, so it cannot spin the numeral upright, and the roll
+//      the die comes to rest at stays whatever the simulation says.
+//
+// Everything is read through `getComputedStyle` after the tumble has been
+// finished, so what is measured is what Chromium actually renders once the
+// animation is gone (`fill: 'none'`) -- not a string the component emitted.
+
+/**
+ * Every facet's outward normal on screen after `rolls` seeded rolls, plus the
+ * presented facet's content roll, measured from the composed render.
+ *
+ * `settle: 'roll'` throws the die and finishes the tumble; `settle: 'rest'`
+ * mounts it without one, which is the pre-roll pose.
+ */
+async function facetAngles(
+  page: import('@playwright/test').Page,
+  options: { faceCount: number; rolls: number; settle: 'roll' | 'rest' },
+) {
+  return await page.evaluate(async (opts) => {
+    await import('/src/components/boardgame-die.ts');
+    document.querySelectorAll('boardgame-die').forEach((el) => el.remove());
+    const die = document.createElement('boardgame-die') as any;
+    die.id = 'readability-die';
+    die.style.cssText = 'position:fixed;top:200px;left:200px;z-index:9999;';
+    // 300px: the size the failure was rendered at, and big enough that a
+    // facet's projected size is a real number of pixels.
+    die.style.setProperty('--die-size', '300px');
+    const faces = Array.from({ length: opts.faceCount }, (_, i) => (i + 1) * 10);
+    die.item = {
+      ID: 'readability-component',
+      Values: { Faces: faces },
+      DynamicValues: { SelectedFace: 0, Value: faces[0], RollCount: 0 },
+    };
+    document.body.appendChild(die);
+    await die.updateComplete;
+    await die.updateComplete;
+
+    const root = die.shadowRoot as ShadowRoot;
+    const stage = root.querySelector('#stage') as HTMLElement;
+    // The composed transform from #stage down, exactly as the browser resolved
+    // it: #inner (the tumble, or the trajectory's resting transform once the
+    // tumble is gone), #orient (the pre-roll pose), and the facet's own place
+    // on the solid.
+    const composed = (element: HTMLElement) => {
+      const chain: HTMLElement[] = [];
+      for (let n: HTMLElement | null = element; n && n !== stage; n = n.parentElement) chain.unshift(n);
+      let matrix = new DOMMatrix();
+      for (const node of chain) {
+        const value = getComputedStyle(node).transform;
+        if (value && value !== 'none') matrix = matrix.multiply(new DOMMatrix(value));
+      }
+      return matrix;
+    };
+    const readPose = (presented: number) => {
+      const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
+      const rows = facets.map((el) => {
+        const m = composed(el);
+        const length = Math.hypot(m.m31, m.m32, m.m33) || 1;
+        return {
+          faceIndex: el.dataset.faceIndex === undefined ? -1 : Number(el.dataset.faceIndex),
+          value: el.dataset.faceValue ?? null,
+          // The facet's outward normal after the whole chain; its angle off the
+          // camera axis (+Z) is how square-on it is.
+          offAxis: (Math.acos(Math.min(1, Math.max(-1, m.m33 / length))) * 180) / Math.PI,
+          // The facet's local +y on screen: how far the CONTENT is from upright.
+          contentRoll: (Math.atan2(m.m21, m.m22) * 180) / Math.PI,
+        };
+      });
+      const shown = rows.find((row) => row.faceIndex === presented)!;
+      const rivals = rows.filter((row) => row !== shown);
+      const best = rivals.reduce((a, b) => (b.offAxis < a.offAxis ? b : a));
+      return {
+        presentedOffAxis: shown.offAxis,
+        presentedValue: shown.value,
+        presentedContentRoll: shown.contentRoll,
+        bestRivalOffAxis: best.offAxis,
+        bestRivalFace: best.faceIndex,
+        margin: best.offAxis - shown.offAxis,
+      };
+    };
+
+    if (opts.settle === 'rest') {
+      const poses: any[] = [];
+      for (let face = 0; face < opts.faceCount; face++) {
+        die.item = {
+          ID: 'readability-component',
+          Values: { Faces: faces },
+          // The roll count never moves, so no throw: this is a die being SHOWN
+          // a face, which is the pose `presentationTransform` owns.
+          DynamicValues: { SelectedFace: face, Value: faces[face], RollCount: 0 },
+        };
+        for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+        poses.push({ face, ...readPose(face) });
+      }
+      die.remove();
+      return poses;
+    }
+
+    const poses: any[] = [];
+    for (let seed = 1; seed <= opts.rolls; seed++) {
+      const selected = seed % opts.faceCount;
+      die.item = {
+        ID: 'readability-component',
+        Values: { Faces: faces },
+        DynamicValues: { SelectedFace: selected, Value: faces[selected], RollCount: seed },
+      };
+      for (let pass = 0; pass < 5; pass++) await die.updateComplete;
+      const inner = root.querySelector('#inner') as HTMLElement;
+      // Finish rather than wait: `fill: 'none'` means a finished tumble renders
+      // the resting style, which is the pose under test, and 25 multi-second
+      // throws per shape is not a test anyone runs.
+      inner.getAnimations().forEach((animation) => animation.finish());
+      await die.updateComplete;
+      poses.push({
+        seed,
+        serverValue: faces[selected],
+        ...readPose(die._roll ? die._roll.presented : -1),
+      });
+    }
+    die.remove();
+    return poses;
+  }, options);
+}
+
+test.describe('boardgame-die post-roll readability', () => {
+  // Three shapes chosen for how far apart their facet normals are: a d6's are
+  // 90 degrees apart (which is why pig, the only shipping game with dice, never
+  // showed this), a d10's 51.7 and a d20's 41.8. The tighter the spacing, the
+  // less tilt a pose may spend before a neighbour wins.
+  for (const faceCount of [6, 10, 20]) {
+    test(`a d${faceCount} settles with the landed face the most square-on facet`, async ({ page }) => {
+      test.setTimeout(120000);
+      await page.goto('/');
+      const rolls = await facetAngles(page, { faceCount, rolls: 25, settle: 'roll' });
+      expect(rolls.length).toBe(25);
+
+      const failures = rolls.filter((roll: any) => roll.margin <= 1);
+      const worst = rolls.reduce((a: any, b: any) => (b.margin < a.margin ? b : a));
+      const detail = (roll: any) =>
+        `seed ${roll.seed}: presented facet ${roll.presentedOffAxis.toFixed(1)} deg off the`
+        + ` camera axis, facet ${roll.bestRivalFace} only ${roll.bestRivalOffAxis.toFixed(1)}`;
+      expect(failures.map(detail),
+        `${failures.length}/${rolls.length} rolls left a rival facet more square-on than the`
+        + ` face carrying the value; worst margin ${worst.margin.toFixed(1)} deg`)
+        .toEqual([]);
+      // ...and the value really was on it, so this cannot pass by presenting
+      // the wrong facet very well.
+      for (const roll of rolls) {
+        expect(roll.presentedValue, `seed ${roll.seed} presented value`)
+          .toBe(String(roll.serverValue));
+      }
+    });
+
+    // One object, one framing. The two poses are produced by the same routine;
+    // this is the measurement that says so, and it is what a player sees as
+    // "the die did not jump when I clicked Roll".
+    test(`a d${faceCount} lands in the same framing it rests in`, async ({ page }) => {
+      test.setTimeout(120000);
+      await page.goto('/');
+      const rested = await facetAngles(page, { faceCount, rolls: 0, settle: 'rest' });
+      const rolled = await facetAngles(page, { faceCount, rolls: 8, settle: 'roll' });
+      const restingAngle = rested[0].presentedOffAxis;
+      // Every face rests at the same angle off the camera axis: the pose is a
+      // property of the SOLID, not of which face is up.
+      for (const pose of rested) {
+        expect(pose.presentedOffAxis, `d${faceCount} face ${pose.face} resting tilt`)
+          // Two decimals, not more: Chromium serializes a computed matrix to
+          // about six significant figures, which is worth 5e-4 degrees here.
+          // The disagreement this exists to catch was 12.6.
+          .toBeCloseTo(restingAngle, 2);
+      }
+      for (const roll of rolled) {
+        expect(roll.presentedOffAxis,
+          `d${faceCount} seed ${roll.seed} lands at a different tilt than it rests at`)
+          // Two decimals, not more: Chromium serializes a computed matrix to
+          // about six significant figures, which is worth 5e-4 degrees here.
+          // The disagreement this exists to catch was 12.6.
+          .toBeCloseTo(restingAngle, 2);
+      }
+    });
+  }
+
+  // The other half of the constraint. A real die stops at a random angle, and
+  // squaring the landed face towards the camera must not quietly turn that into
+  // a die that always stops with its numeral upright: the re-aim rotates about
+  // an axis perpendicular to the presented normal, so it carries no twist about
+  // that normal at all. The pre-roll pose DOES normalize the content roll -- it
+  // has to read like the flat 2D die it replaces -- so the two are asserted
+  // together, in opposite directions.
+  test('the landed face keeps the roll the physics left it at', async ({ page }) => {
+    test.setTimeout(120000);
+    await page.goto('/');
+    const rested = await facetAngles(page, { faceCount: 20, rolls: 0, settle: 'rest' });
+    const rolled = await facetAngles(page, { faceCount: 20, rolls: 25, settle: 'roll' });
+    // Pre-roll: upright, every face. (die-shape.spec.ts pins this too; repeated
+    // here because it is the contrast the assertion below depends on.)
+    for (const pose of rested) {
+      expect(Math.abs(pose.presentedContentRoll), `resting face ${pose.face} content roll`)
+        .toBeLessThan(0.5);
+    }
+    // Post-roll: not upright, and not clustered near upright either.
+    const rolls = rolled.map((roll: any) => Math.abs(roll.presentedContentRoll));
+    const upright = rolls.filter((value: number) => value < 15).length;
+    expect(Math.max(...rolls),
+      `post-roll content rolls: ${rolls.map((v: number) => v.toFixed(0)).join(', ')}`)
+      .toBeGreaterThan(60);
+    expect(upright,
+      `${upright}/25 rolls stopped within 15 degrees of upright, which is not what a die does`)
+      .toBeLessThan(8);
+  });
 });
 
 /**

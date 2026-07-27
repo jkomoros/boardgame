@@ -277,11 +277,18 @@ pipeline is five pure modules and one component, each testable without a DOM:
    `components/dice` falls back to the face change and the state version.
 
    The bake describes the simulator's world, not the player's, so the component
-   composes a constant scene prefix in front of every keyframe: a landing
-   square-up (the minimal turn putting the read face exactly on the reading
-   axis, so a cocked throw still lands readable), a fixed camera elevation
-   above the tray, and a recentring translation back to the middle of the die's
-   own box. The simulator's trailing rest-hold is trimmed before playback —
+   composes a constant scene prefix in front of every keyframe: the READING
+   POSE, aimed at the facet normals as the throw left them, plus a recentring
+   translation back to the middle of the die's own box. The reading pose is one
+   routine (`readingPose`) shared with the die that has never rolled, so a roll
+   does not change the framing — and because it points the landed face exactly
+   at the reading direction, it also squares up a cocked throw. It leans the
+   presented facet at most half the smallest angle between any two of the
+   solid's facet normals, which is what guarantees that the face carrying the
+   value is the most square-on facet on the die rather than a neighbour of it.
+   Aiming cannot rotate the numeral upright (the turn is about an axis
+   perpendicular to the face's normal), so the die still stops at whatever roll
+   the physics left it. The simulator's trailing rest-hold is trimmed before playback —
    it is ~300ms of a ~1s roll spent holding the whole game's animation gate
    open on a die that has already stopped.
 
