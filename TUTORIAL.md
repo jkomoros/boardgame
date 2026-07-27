@@ -2015,15 +2015,31 @@ boardgame-die {
 ```
 
 The trap worth spelling out: `--die-size` is the diameter of the sphere the
-solid is **inscribed in**, not the width of a face. It is also the side of the
-square box the die is laid out in, which is what lets the die tumble without
-escaping its slot in your layout — but it means a cube's face spans only
-`1/sqrt(3)`, about 58%, of the number you set. A d20's triangle spans less than
+solid is **sized against**, not the width of a face. A cube's face spans only
+`1/sqrt(3)`, about 58%, of the number you set; a d20's triangle spans less than
 that; a barrel's side face less again. If you size a die by eye against a flat
 sprite you will get something roughly half the size you meant. When a shape's
 marks do come out too small to read, the component says so once in the console
 with the measured pixel size rather than silently drawing a smudge, but it
 cannot fix it for you: give the die a larger `--die-size`.
+
+**`--die-size` is not always the die's footprint.** For every face count with a
+closed form — 4, 6, 8, 10, 12, 20 — the sphere the die is sized against *is* its
+bounding sphere, so it fits a `--die-size` box in every orientation and the two
+numbers are the same. Every other face count (3, 5, 7, 9, 16, …) is drawn as a
+**barrel**: a band of side faces capped by two cones, 1.4 to 2.6 times longer
+than it is wide. A barrel is sized by its **width**, because its readable faces
+are the side faces and their content is bounded by that width — sizing it by its
+long diagonal instead put a d7's numerals at 4.3px on a default die, which is
+not a number, it is a smudge.
+
+So a barrel is longer than `--die-size` along its axis, and a tumble points that
+axis in every direction. The component **reserves that room itself** rather than
+overlapping its neighbours: a `d7` at `--die-size: 100px` lays out in a 242px
+box. You do not have to compensate for this, and you should not try to — but if
+you are budgeting space by hand, budget it for the shapes you actually deal, not
+for the number you set. What is guaranteed is the part that matters: whatever
+its face count, the die never draws outside the box it reserves.
 
 (`--die-scale`, a plain float defaulting to `1.0`, scales the die and the space
 it occupies together, in the same spirit as `--component-scale` on a card.)

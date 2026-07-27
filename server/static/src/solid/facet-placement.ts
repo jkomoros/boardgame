@@ -338,8 +338,11 @@ export interface SolidFacetOptions {
  * Normalizes the surface to a NOMINAL sphere exactly `1em` across, which is
  * what lets a caller size the solid with one custom property and lets a solid
  * of any face count draw at a common size. A surface whose `nominalRadius` is
- * its farthest vertex — every closed-form die — therefore also fits its box in
- * every orientation; a barrel deliberately does not (see `SolidSurface`).
+ * its farthest vertex — every closed-form die — therefore also fits a `1em` box
+ * in every orientation; a barrel deliberately does not (see `SolidSurface`), and
+ * a caller that lays the solid out has to reserve `boundingRadius /
+ * nominalRadius` times as much room. `boardgame-die.ts`'s `solidExtent` is the
+ * one that does.
  */
 export function solidFacets(
   surface: SolidSurface,

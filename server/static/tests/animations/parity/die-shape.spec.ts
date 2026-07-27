@@ -1696,7 +1696,11 @@ test.describe('boardgame-die prominence', () => {
     // the thing an author has actually got wrong.
     expect(result.afterSmall[0]).toContain('d7');
     expect(result.afterSmall[0]).toMatch(/\d+(\.\d+)?px, which is too small to read/);
-    expect(result.afterSmall[0]).toContain('BOUNDING SPHERE');
+    // The trap the message exists to name: --die-size is the die's own sphere,
+    // NOT a face's width. It deliberately no longer says "bounding sphere",
+    // because for a barrel -- the shape this warning fires on most -- the sphere
+    // it is sized against is its WIDTH and its bounding sphere is 2.4x larger.
+    expect(result.afterSmall[0]).toContain('SPHERE THE SOLID IS SIZED AGAINST');
     expect(result.afterRepeat, 'and does not repeat itself for the same shape').toBe(1);
     expect(result.afterLegibleCube, 'a legible shape says nothing').toBe(1);
   });
@@ -1983,4 +1987,110 @@ test.describe('the solid stays closed while it tumbles', () => {
       `background showed through the solid on ${holes.length} of ${framesWithADie} frames`)
       .toEqual([]);
   });
+});
+
+test.describe('the die stays inside the room it reserves', () => {
+  // --die-size sizes the solid's NOMINAL sphere, which for every closed-form
+  // die is also its bounding sphere and for a barrel is its WIDTH -- a d7 is
+  // 2.37x longer than it is wide. So the component reserves --die-size *
+  // --solid-extent (see solidExtent), and THIS is the contract a layout can
+  // rely on: whatever shape it is, the die draws inside the box it asks for.
+  //
+  // Measured before #scaler reserved that room: a d7 at --die-size 100px drew
+  // 243px wide inside a 100px box, i.e. 78px past its left edge and 76px past
+  // its right, silently overlapping whatever was beside it in a flex row.
+  for (const faceCount of [3, 4, 6, 7, 9, 10, 12, 16, 20]) {
+    test(`a d${faceCount} draws inside its own box`, async ({ page }) => {
+      test.setTimeout(120000);
+      const sizePx = 100;
+      await mountForPixels(page, { faceCount, sizePx });
+      const half = 400;
+      const crop = { x: PIXEL_CX - half, y: PIXEL_CY - half, width: half * 2, height: half * 2 };
+      // Five resting poses, not one: a barrel's landed orientation varies per
+      // throw, and the box has to hold the widest of them. (Five rather than
+      // more because each costs a full tumble in real time, and the sabotage
+      // this is proof against -- #scaler not reserving the room -- already
+      // fails on the very first pose.)
+      const overflows: string[] = [];
+      let posesMeasured = 0;
+      let widest = 0;
+      for (let seed = 0; seed <= 4; seed++) {
+        if (seed > 0) await throwDie(page, { seed, faceCount });
+        // Wait for the tumble to finish rather than guessing at its length, so
+        // this measures where the die COMES TO REST and cannot flake when a
+        // physics change makes some throw longer.
+        await page.waitForFunction(() => {
+          const die = document.getElementById('fixture-die') as any;
+          const inner = die?.shadowRoot?.querySelector('#inner') as HTMLElement | null;
+          return !!inner && inner.getAnimations().length === 0;
+        }, undefined, { timeout: 15000 });
+        // One more frame, so the resting transform the kernel writes has painted.
+        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(
+          () => requestAnimationFrame(resolve))));
+        const reserved = await page.evaluate(() => {
+          const die = document.getElementById('fixture-die') as any;
+          const scaler = die.shadowRoot.querySelector('#scaler') as HTMLElement;
+          const rect = scaler.getBoundingClientRect();
+          return {
+            left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+            width: rect.width, height: rect.height,
+            running: (die.shadowRoot.querySelector('#inner') as HTMLElement)
+              .getAnimations().length,
+          };
+        });
+        expect(reserved.running, `d${faceCount} seed ${seed} must have settled`).toBe(0);
+        const base64 = (await page.screenshot({ clip: crop })).toString('base64');
+        const painted = await page.evaluate(async ({ base64, bg }) => {
+          const image = new Image();
+          image.src = 'data:image/png;base64,' + base64;
+          await image.decode();
+          const canvas = document.createElement('canvas');
+          canvas.width = image.width;
+          canvas.height = image.height;
+          const context = canvas.getContext('2d')!;
+          context.drawImage(image, 0, 0);
+          const W = canvas.width;
+          const H = canvas.height;
+          const data = context.getImageData(0, 0, W, H).data;
+          let x0 = W; let y0 = H; let x1 = -1; let y1 = -1;
+          let count = 0;
+          for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+              const i = (y * W + x) * 4;
+              if (Math.abs(data[i] - bg.r) < 20 && Math.abs(data[i + 1] - bg.g) < 20
+                && Math.abs(data[i + 2] - bg.b) < 20) continue;
+              count++;
+              if (x < x0) x0 = x;
+              if (x > x1) x1 = x;
+              if (y < y0) y0 = y;
+              if (y > y1) y1 = y;
+            }
+          }
+          return { x0, y0, x1, y1, count };
+        }, { base64, bg: PIXEL_BG });
+        // The premise: something was actually drawn. A blank frame would sit
+        // inside any box at all.
+        expect(painted.count,
+          `d${faceCount} seed ${seed} has to draw a die to measure`).toBeGreaterThan(600);
+        posesMeasured++;
+        widest = Math.max(widest, painted.x1 - painted.x0 + 1, painted.y1 - painted.y0 + 1);
+        // One pixel of slack for the silhouette's own antialiasing.
+        const outside = {
+          left: (reserved.left - crop.x) - painted.x0 - 1,
+          top: (reserved.top - crop.y) - painted.y0 - 1,
+          right: painted.x1 - (reserved.right - crop.x) - 1,
+          bottom: painted.y1 - (reserved.bottom - crop.y) - 1,
+        };
+        for (const [side, over] of Object.entries(outside)) {
+          if (over > 0) {
+            overflows.push(`seed ${seed}: ${over.toFixed(0)}px past ${side} `
+              + `(reserved ${reserved.width.toFixed(1)}x${reserved.height.toFixed(1)})`);
+          }
+        }
+      }
+      expect(posesMeasured, 'every pose has to be measured').toBe(5);
+      expect(overflows,
+        `d${faceCount} drew outside the box it reserves; widest drawn ${widest}px`).toEqual([]);
+    });
+  }
 });

@@ -121,6 +121,11 @@ pose — must assert its own curve survived.
   stepping keyframes, and measures the convex-hull deficit: every solid here is
   convex, so any background pixel strictly inside the silhouette's convex hull is
   a hole, and no golden is needed to say so.
+- **`--solid-extent` dropped from `#scaler`** → `die-shape.spec.ts`'s *a dN draws
+  inside its own box* fails for exactly the four BARREL shapes (d3, d7, d9, d16:
+  `12px past left`, `16px past right`, and so on) and passes for the five
+  closed-form ones, which is the right split — a d6's nominal sphere is its
+  bounding sphere, so its box never changed.
 
 ## Accepted residual blind spots (harness-critic ledger)
 

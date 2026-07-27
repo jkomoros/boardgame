@@ -138,6 +138,34 @@ interface DieSolid {
   readonly cornerPrinted: boolean;
 }
 
+/**
+ * How much room the drawn solid needs, as a multiple of `--die-size`.
+ *
+ * `--die-size` sizes the solid's NOMINAL sphere (see `DieGeometry.nominalRadius`),
+ * and for every closed-form die that is also its bounding sphere, so this is
+ * 1.00 and the die's box is `--die-size`. A barrel is normalized by its SHORT
+ * axis instead — which is what makes a d7's numerals legible rather than a 4.3px
+ * smudge — so its bounding sphere is `boundingRadius / nominalRadius` times
+ * larger: 1.37x for a d3, 2.37x for a d7, up to 2.63x. A tumble points that long
+ * axis in every direction, so the room to reserve is the BOUNDING SPHERE's box,
+ * not the resting silhouette's.
+ *
+ * The `d / sqrt(d^2 - r^2)` term is the camera: `#inner` projects the solid from
+ * `PERSPECTIVE_DEPTH_DIE_SIZES` die-sizes away, which magnifies whatever is
+ * nearest. `r` is the bounding radius in die-sizes, and the factor is the widest
+ * a sphere of that radius can project to — 1.0035 for a closed-form solid (a
+ * third of a percent, and the reason a d6's box is not exactly `--die-size` to
+ * the last decimal), 1.020 for a d7. Without it a d7 at 100px reserves 237px and
+ * draws 243, which is a 6px overlap that no test would ever explain.
+ *
+ * Returns the box's SIDE, not its half-width.
+ */
+export function solidExtent(geometry: DieGeometry): number {
+  const radius = 0.5 * (geometry.boundingRadius / geometry.nominalRadius);
+  const depth = PERSPECTIVE_DEPTH_DIE_SIZES;
+  return (2 * radius * depth) / Math.sqrt(depth * depth - radius * radius);
+}
+
 // Building a solid runs a convex hull for the closed-form shapes, so it is
 // cached per face count. `null` records a face count that has no solid, so a
 // malformed die does not retry the failure on every render pass.
@@ -300,12 +328,28 @@ class BoardgameDie extends BoardgameAnimatableItem {
       :host {
         --effective-die-scale: var(--die-scale, 1.0);
         /*
-         * --die-size IS THE DIAMETER OF THE SPHERE THE SOLID IS INSCRIBED IN,
+         * --die-size IS THE DIAMETER OF THE SPHERE THE SOLID IS SIZED AGAINST,
          * and is the property a caller sets: any CSS length ('120px', '6rem',
-         * '10vmin'). It is also the side of the square box the die is laid out
-         * in, so a die of any face count fits its box in every orientation --
-         * which is what lets the tumble run without the die escaping the
-         * layout.
+         * '10vmin').
+         *
+         * IT IS NOT ALWAYS THE DIE'S FOOTPRINT, and that is the one thing about
+         * it worth reading twice. For every solid with a closed form -- a d6, a
+         * d20, a d12 -- the sphere it is sized against IS its bounding sphere,
+         * so the die fits a --die-size box in every orientation and the two
+         * numbers are the same. A BARREL (a d3, d5, d7, d9, d16, ... -- every
+         * face count with no closed form) is 1.37 to 2.63 times longer than it
+         * is wide, and it is deliberately sized by its WIDTH, because its
+         * readable faces are its side faces and their content is bounded by the
+         * width: sizing a d7 by its long diagonal instead put its numerals at
+         * 4.3px on a default die, which cannot be read at all.
+         *
+         * So a barrel is LARGER than --die-size along its axis, and the
+         * component reserves the room for it rather than overlapping whatever
+         * is beside it: #scaler's box is --die-size * --solid-extent, which the
+         * render pass computes per shape (see solidExtent). What a caller can
+         * still rely on is that the die never draws outside the box it reserves
+         * -- die-shape.spec.ts pins exactly that, for every shape -- and that
+         * --die-size is the number every mark on the die is scaled from.
          *
          * A SPHERE, NOT A FACE. This is the one thing about the property worth
          * saying twice, because it changed meaning when the flat die became a
@@ -333,9 +377,31 @@ class BoardgameDie extends BoardgameAnimatableItem {
         --reel-step: var(--effective-die-size);
       }
 
+      /*
+       * THE SPACE THE DIE RESERVES, which is not always --die-size.
+       *
+       * --solid-extent is how wide the drawn solid's own bounding box is, as a
+       * multiple of --die-size, and the component sets it per shape (see
+       * solidExtent). For every solid whose nominal sphere IS its bounding
+       * sphere -- a d6, a d20, every closed form -- it is 1.00, and this box is
+       * --die-size exactly, as it always was. For a BARREL it is not: a d7 is
+       * 2.37 times longer than it is wide, and since the barrel is deliberately
+       * sized by its WIDTH so its numerals are legible, the solid is larger than
+       * --die-size along its axis and can point that axis anywhere.
+       *
+       * So the barrel's box is the box its bounding SPHERE needs, and the die
+       * takes that much room in a layout. That is the whole point: before this,
+       * a d7 at --die-size 100px drew 243px wide inside a 100px box and simply
+       * overlapped whatever was beside it, silently. #main -- the hit target,
+       * the contact shadow's anchor and the 3D scene's positioning context --
+       * stays --die-size and stays centred here, so nothing about how the die
+       * LOOKS changes; only how much room it asks for.
+       */
       #scaler {
-        height: calc(var(--effective-die-size) * var(--effective-die-scale));
-        width: calc(var(--effective-die-size) * var(--effective-die-scale));
+        height: calc(var(--effective-die-size) * var(--effective-die-scale)
+                     * var(--solid-extent, 1));
+        width: calc(var(--effective-die-size) * var(--effective-die-scale)
+                    * var(--solid-extent, 1));
         position: relative;
         display: flex;
         flex-direction: column;
@@ -1451,9 +1517,9 @@ class BoardgameDie extends BoardgameAnimatableItem {
     const { what, px } = worst as { what: string; px: number };
     console.warn(
       `boardgame-die: a d${faceCount} at --die-size ${Math.round(sizePx)}px draws ${what} at `
-      + `${px.toFixed(1)}px, which is too small to read. --die-size is the BOUNDING SPHERE's `
-      + `diameter, not a face's width, so a shape with small or elongated faces needs a larger `
-      + `one than its face size suggests.`);
+      + `${px.toFixed(1)}px, which is too small to read. --die-size is the diameter of the `
+      + `SPHERE THE SOLID IS SIZED AGAINST, not a face's width, so a shape with small or `
+      + `elongated faces needs a larger one than its face size suggests.`);
   }
 
   private _classes(disabled: boolean, solid: boolean): string {
@@ -1744,7 +1810,8 @@ class BoardgameDie extends BoardgameAnimatableItem {
     const shown = status.loud ? status.text : null;
     const solid = this._solid();
     return html`
-      <div id="scaler">
+      <div id="scaler"
+        style=${solid ? `--solid-extent:${num(solidExtent(solid.geometry))}` : nothing}>
         <button
           id="main"
           type="button"

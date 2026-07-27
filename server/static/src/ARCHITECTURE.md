@@ -234,8 +234,11 @@ pipeline is five pure modules and one component, each testable without a DOM:
    so that the die box is the barrel's width — what its marks are bounded by —
    rather than its length, which nothing is printed along. The simulator
    normalizes by `boundingRadius` (its tray is measured in them); the renderer
-   sizes by `nominalRadius`. `finishSolid` rejects an open or non-manifold
-   surface rather than returning a silently wrong inertia tensor.
+   sizes by `nominalRadius`. The renderer also LAYS OUT by the ratio between
+   them (`boardgame-die.ts`'s `solidExtent`): a barrel is drawn larger than
+   `--die-size` along its axis, so the component reserves a box that wide rather
+   than overlapping whatever is beside it. `finishSolid` rejects an open or
+   non-manifold surface rather than returning a silently wrong inertia tensor.
 2. **Relabeling** (`motion/die-faces.ts`). The outcome is the SERVER's and is
    known before any pixel moves, so the simulation is never asked to produce
    it. `presentedFaceIndex(geometry, orientation)` reads which face a resting

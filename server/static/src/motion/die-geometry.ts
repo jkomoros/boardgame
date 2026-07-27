@@ -534,12 +534,17 @@ function barrelCapHeight(sideCount: number): number {
  * numeral is 10.3px on a 50px die and its corner marks 7.7px, i.e. ahead of the
  * d20 rather than half of it.
  *
- * What the overflow costs: the solid is drawn outside the box a layout gave it,
- * so a row of barrels is drawn closer together than it is spaced. That is
- * visible and it is the trade — a die that overlaps its neighbour by a little
- * is legible, and a die that fits perfectly and cannot be read is not. Nothing
- * downstream clips it (`boardgame-die.ts` keeps `overflow: visible` all the way
- * down, because any clip would collapse the 3D context anyway).
+ * What the overflow costs, and who pays it: the solid is drawn outside its `1em`
+ * box, so the RENDERER has to ask a layout for more room than `--die-size` —
+ * `boardgame-die.ts`'s `solidExtent` turns this ratio into the box `#scaler`
+ * reserves, and `die-shape.spec.ts` pins that the drawn solid stays inside it
+ * for every shape. It is not paid by the layout: a d7 that overlapped its
+ * neighbour by 78px, which is what happened before that box existed, is not a
+ * trade anybody agreed to. What IS the trade is that a barrel asks for a box
+ * 1.37x to 2.63x wider than a cube at the same `--die-size`; a die that takes
+ * more room and can be read is worth more than one that fits and cannot.
+ * Nothing downstream clips it (`boardgame-die.ts` keeps `overflow: visible` all
+ * the way down, because any clip would collapse the 3D context anyway).
  *
  * What it does NOT change is the physics: `dice-sim.ts` normalizes by
  * `boundingRadius`, so the simulated barrel is the same size in the same tray
