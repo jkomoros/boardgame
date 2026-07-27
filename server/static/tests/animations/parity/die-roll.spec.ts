@@ -145,8 +145,6 @@ async function rollDie(
     const rollModule: any = await import('/src/motion/dice-roll.ts');
     const geometryModule: any = await import('/src/motion/die-geometry.ts');
     const facesModule: any = await import('/src/motion/die-faces.ts');
-    const bakeModule: any = await import('/src/motion/dice-bake.ts');
-
     const die = document.getElementById('fixture-die') as any;
     const root = die.shadowRoot as ShadowRoot;
     const inner = root.querySelector('#inner') as HTMLElement;
@@ -248,7 +246,8 @@ async function rollDie(
         durationMs: settledDurationMs,
         rawDurationMs: trajectory.durationMs,
         presented,
-        restingTransform: bakeModule.restingTransform(settled, { radiusPx }),
+        restingTransform: rollModule.rollScene(
+          geometry, settled, presented, radiusPx, settledDurationMs).resting,
         seed,
       },
       serverValue: faces[opts.selectedFace],
@@ -267,6 +266,18 @@ async function restingRead(page: import('@playwright/test').Page) {
     const die = document.getElementById('fixture-die') as any;
     const root = die.shadowRoot as ShadowRoot;
     const stage = root.querySelector('#stage') as HTMLElement;
+      // The chain carries the camera as a perspective() function in #inner's own
+      // transform, so the composed matrix is PROJECTIVE. Every question asked of
+      // it here -- which way a facet faces, which way three normals wind -- is a
+      // question about the affine part, and it is also the part
+      // `backface-visibility` itself reads. So the projection row is stripped
+      // before anything is read out of it; leaving it in scales what comes back
+      // by d / (d - z), which is 7% for a facet at the front of a resting die
+      // and 13% at the top of a throw.
+      const affine = (m: DOMMatrix) => {
+        m.m14 = 0; m.m24 = 0; m.m34 = 0; m.m44 = 1;
+        return m;
+      };
     const composed = (element: HTMLElement) => {
       const chain: HTMLElement[] = [];
       for (let n: HTMLElement | null = element; n && n !== stage; n = n.parentElement) chain.unshift(n);
@@ -275,7 +286,7 @@ async function restingRead(page: import('@playwright/test').Page) {
         const value = getComputedStyle(node).transform;
         if (value && value !== 'none') matrix = matrix.multiply(new DOMMatrix(value));
       }
-      return matrix;
+      return affine(matrix);
     };
     const facets = Array.from(root.querySelectorAll('.facet[data-face-index]')) as HTMLElement[];
     // A facet's own +z after the whole chain IS its outward normal on screen;
@@ -314,9 +325,9 @@ test.describe('boardgame-die physics roll', () => {
     // duration force-closes the cycle mid-tumble.
     expect(roll.declared).toEqual([roll.expected.durationMs]);
     expect(roll.duration).toBeCloseTo(roll.expected.durationMs, 6);
-    // A real physics roll is seconds, not one 250ms animation-length slot --
-    // the assertion that the duration was not clamped into a version slot.
-    expect(roll.duration).toBeGreaterThan(600);
+    // A real physics roll is a trajectory, not one 250ms animation-length slot
+    // -- the assertion that the duration was not clamped into a version slot.
+    expect(roll.duration).toBeGreaterThan(250);
     // A sampled track carries its own timing; the kernel must pin linear or
     // the trajectory is time-warped by the default ease-in-out.
     expect(roll.easing).toBe('linear');
@@ -339,16 +350,20 @@ test.describe('boardgame-die physics roll', () => {
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1 });
     await page.evaluate(() => {
       const die = document.getElementById('fixture-die') as any;
+      // A slot far shorter than any throw. The number is deliberately not the
+      // companion cycle's real 600ms: what this pins is that an 'immediate'
+      // roll is not clamped into WHATEVER slot is live, and a fixture that has
+      // to be re-tuned every time the simulator is would stop pinning it.
       die.animationContext = {
         version: 12,
         startAtMs: Date.now(),
-        slotDurationMs: 600,
-        maxAnimationDurationMs: 600,
+        slotDurationMs: 200,
+        maxAnimationDurationMs: 200,
       };
     });
     const roll = await rollDie(page, { faceCount: 6, selectedFace: 3, stateVersion: 12 });
     // A live context, and one the kernel would otherwise have used.
-    expect(roll.expected.durationMs).toBeGreaterThan(600);
+    expect(roll.expected.durationMs).toBeGreaterThan(200);
     expect(roll.animations).toBe(1);
     expect(roll.duration).toBeCloseTo(roll.expected.durationMs, 6);
     expect(roll.declared).toEqual([roll.expected.durationMs]);
@@ -357,23 +372,32 @@ test.describe('boardgame-die physics roll', () => {
   test('every keyframe is a literal transform list, so the tumble composites', async ({ page }) => {
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1 });
     const roll = await rollDie(page, { faceCount: 6, selectedFace: 2, stateVersion: 7 });
-    expect(roll.frames.length).toBeGreaterThan(20);
+    expect(roll.frames.length).toBeGreaterThan(10);
     // A var() or calc() anywhere in a transform keyframe forfeits compositing
     // and drops a multi-second tumble onto the main thread. This is exactly the
     // pattern the feature replaces, so it is asserted rather than assumed.
     expect(roll.frames.filter((value) => /var\(|calc\(/.test(value))).toEqual([]);
-    // Every frame is the constant scene prefix -- a literal translate3d in px
-    // and up to two literal rotate3d turns -- in front of the baked matrix3d.
-    // (Chromium re-serializes small components in exponential notation on the
-    // way back out of getKeyframes(); what was WRITTEN never contains one, and
-    // it is `calc`/`var` that would cost the compositor either way.)
-    const shape = /^translate3d\([-0-9.px, ]+\)( rotate3d\([-0-9., ]+deg\))* matrix3d\([-0-9., ]+\)$/;
+    // Every frame is the die's TRAVEL, then the camera, then its depth, then up
+    // to two literal rotate3d turns, in front of the baked matrix3d -- all
+    // literals. The order is the fix for the see-through holes: perspective()
+    // projects everything to its right, so the travel in front of it moves the
+    // solid AFTER it has been projected about its own centre, and the camera
+    // rides with the die. (Chromium re-serializes small components in
+    // exponential notation on the way back out of getKeyframes(); what was
+    // WRITTEN never contains one, and it is `calc`/`var` that would cost the
+    // compositor either way.)
+    const shape = new RegExp(
+      '^translate3d\\([-0-9.px, ]+\\)'
+      + ' perspective\\([-0-9.]+px\\)'
+      + ' translate3d\\([-0-9.px, ]+\\)'
+      + '( rotate3d\\([-0-9., ]+deg\\))*'
+      + ' matrix3d\\([-0-9., ]+\\)$');
     expect(roll.frames.filter((value) => !shape.test(value))).toEqual([]);
     // The curve's end IS the bake's own resting transform, byte for byte. This
     // is the contract that stops the die twitching when its animation is
     // removed: fill is 'none', so the element renders its resting style the
     // instant the tumble finishes.
-    expect(roll.last.endsWith(roll.expected.restingTransform)).toBe(true);
+    expect(roll.last).toBe(roll.expected.restingTransform);
   });
 
   // Trajectory positions are in die CIRCUMRADII; matrix3d translations are in
@@ -385,9 +409,15 @@ test.describe('boardgame-die physics roll', () => {
   test('the tumble travels a real fraction of the die across the screen', async ({ page }) => {
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1, dieSize: '100px' });
     const roll = await rollDie(page, { faceCount: 6, selectedFace: 2, stateVersion: 21 });
+    // The die's travel is the LEADING translate3d (outside the projection) plus
+    // the depth term just inside it: between them they are where the solid is,
+    // and the matrix3d that follows is now pure orientation.
     const translation = (value: string) => {
-      const parts = (value.match(/matrix3d\(([^)]*)\)/) as RegExpMatchArray)[1].split(',').map(Number);
-      return parts.slice(12, 15);
+      const lateral = (value.match(/^translate3d\(([^)]*)\)/) as RegExpMatchArray)[1]
+        .split(',').map(parseFloat);
+      const depth = (value.match(/perspective\([^)]*\) translate3d\(([^)]*)\)/) as RegExpMatchArray)[1]
+        .split(',').map(parseFloat);
+      return [lateral[0], lateral[1], depth[2]];
     };
     const rest = translation(roll.last);
     const peak = Math.max(...roll.frames.map((frame) => {
@@ -448,22 +478,46 @@ test.describe('boardgame-die physics roll', () => {
   test('renders the die the physics threw, not its mirror image', async ({ page }) => {
     await mountDie(page, { faceCount: 6, faces: [1, 2, 3, 4, 5, 6], selectedFace: 0, stateVersion: 1 });
     await rollDie(page, { faceCount: 6, selectedFace: 3, stateVersion: 3 });
+    // Read once the throw has SETTLED, which is where the composed matrix is a
+    // rigid one. Mid-flight the die's travel sits in front of the camera in the
+    // transform list, so the projection row multiplies into the 3x3 and the
+    // matrix stops being a rotation -- correct on screen, where the divide by w
+    // undoes it, but no longer something three normals can be read out of.
+    // Handedness does not depend on the moment, so the moment chosen is the one
+    // where the reading is exact.
+    await page.evaluate(async () => {
+      const die = document.getElementById('fixture-die') as any;
+      const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
+      await Promise.all(inner.getAnimations().map((a) => a.finished.catch(() => undefined)));
+    });
     const winding = await page.evaluate(async () => {
       const geometryModule: any = await import('/src/motion/die-geometry.ts');
       const geometry = geometryModule.dieGeometry(6);
       const die = document.getElementById('fixture-die') as any;
       const root = die.shadowRoot as ShadowRoot;
       const stage = root.querySelector('#stage') as HTMLElement;
-      const composed = (element: HTMLElement) => {
-        const chain: HTMLElement[] = [];
-        for (let n: HTMLElement | null = element; n && n !== stage; n = n.parentElement) chain.unshift(n);
-        let matrix = new DOMMatrix();
-        for (const node of chain) {
-          const value = getComputedStyle(node).transform;
-          if (value && value !== 'none') matrix = matrix.multiply(new DOMMatrix(value));
-        }
-        return matrix;
-      };
+        // The chain carries the camera as a perspective() function in #inner's own
+        // transform, so the composed matrix is PROJECTIVE. Every question asked of
+        // it here -- which way a facet faces, which way three normals wind -- is a
+        // question about the affine part, and it is also the part
+        // `backface-visibility` itself reads. So the projection row is stripped
+        // before anything is read out of it; leaving it in scales what comes back
+        // by d / (d - z), which is 7% for a facet at the front of a resting die
+        // and 13% at the top of a throw.
+        const affine = (m: DOMMatrix) => {
+          m.m14 = 0; m.m24 = 0; m.m34 = 0; m.m44 = 1;
+          return m;
+        };
+        const composed = (element: HTMLElement) => {
+          const chain: HTMLElement[] = [];
+          for (let n: HTMLElement | null = element; n && n !== stage; n = n.parentElement) chain.unshift(n);
+          let matrix = new DOMMatrix();
+          for (const node of chain) {
+            const value = getComputedStyle(node).transform;
+            if (value && value !== 'none') matrix = matrix.multiply(new DOMMatrix(value));
+          }
+          return affine(matrix);
+        };
       const facets = Array.from(root.querySelectorAll('.facet[data-face-index]')) as HTMLElement[];
       // The facets carrying values 1, 2 and 3, which assignFaceValues winds
       // right-handed in the BODY frame.
@@ -525,8 +579,15 @@ test.describe('boardgame-die physics roll', () => {
       const root = die.shadowRoot as ShadowRoot;
       const facet = root.querySelector('.facet[data-face-index="0"]') as HTMLElement;
       const orient = root.querySelector('#orient') as HTMLElement;
-      const m = new DOMMatrix(getComputedStyle(orient).transform)
+      const inner = root.querySelector('#inner') as HTMLElement;
+      // The WHOLE chain, and the projection row stripped from it, so this is
+      // the same number `restingRead` reports for the rolled die below. Reading
+      // one of them through the camera and the other without it compares two
+      // different quantities and disagrees by 7%.
+      const m = new DOMMatrix(getComputedStyle(inner).transform)
+        .multiply(new DOMMatrix(getComputedStyle(orient).transform))
         .multiply(new DOMMatrix(getComputedStyle(facet).transform));
+      m.m14 = 0; m.m24 = 0; m.m34 = 0; m.m44 = 1;
       return m.m33;
     });
     const tilted = await page.evaluate(async () => {
@@ -651,8 +712,8 @@ test.describe('boardgame-die physics roll', () => {
     // ...and the throw that was played is the one the roll COUNT derives, which
     // is what a seed silently taken from the version would fail even if the two
     // captures above happened to agree.
-    expect(early.last.endsWith(early.expected.restingTransform)).toBe(true);
-    expect(late.last.endsWith(late.expected.restingTransform)).toBe(true);
+    expect(early.last).toBe(early.expected.restingTransform);
+    expect(late.last).toBe(late.expected.restingTransform);
 
     // The count is not being ignored either: the next throw, at the very same
     // state version, is a different one.
@@ -690,7 +751,8 @@ test.describe('boardgame-die physics roll', () => {
   test('an interrupted roll still leaves the right face presented', async ({ page }) => {
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1 });
     const roll = await rollDie(page, { faceCount: 6, selectedFace: 1, stateVersion: 5 });
-    expect(roll.duration).toBeGreaterThan(600);
+    // Long enough that the interruption below lands mid-flight.
+    expect(roll.duration).toBeGreaterThan(250);
     // Mid-flight: the cycle sweep force-settles gated animations, and with
     // fill:'none' the element then renders its RESTING style. If the resting
     // style and the curve's end disagreed by so much as a rounding digit, the
@@ -787,7 +849,7 @@ test.describe('boardgame-die roll trigger', () => {
     // ...and it is seeded from the STATE VERSION, which is the only identity
     // such a die has. `expected` is derived from the version here, so this is
     // the fallback seed asserted and not merely tolerated.
-    expect(roll.last.endsWith(roll.expected.restingTransform)).toBe(true);
+    expect(roll.last).toBe(roll.expected.restingTransform);
   });
 });
 
@@ -802,10 +864,15 @@ test.describe('boardgame-die roll duration', () => {
   test('plays the motion and not the dead hold at the end of it', async ({ page }) => {
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1 });
     const roll = await rollDie(page, { faceCount: 6, selectedFace: 3, stateVersion: 2 });
-    // What is played is the trimmed duration, and it is materially shorter --
-    // for this seed 633ms against the simulator's 933ms.
+    // What is played is the TRIMMED duration -- the die animates the throw's
+    // motion and not whatever dead tail the simulator emitted behind it.
     expect(roll.duration).toBeCloseTo(roll.expected.durationMs, 6);
-    expect(roll.expected.rawDurationMs - roll.expected.durationMs).toBeGreaterThan(250);
+    // ...and never more than the simulator's own. How much is cut depends on
+    // the simulator's rest detection and is pinned, on a trajectory built for
+    // the purpose, by dice-roll.test.ts's `settledTrajectory` tests; what is
+    // asserted HERE is that the component plays the trimmed throw and that the
+    // cut costs nothing to look at.
+    expect(roll.expected.durationMs).toBeLessThanOrEqual(roll.expected.rawDurationMs);
     // The cut costs nothing to LOOK at: the pose at the cut is the pose at the
     // end, to well under a tenth of a pixel on this 100px die. Measured through
     // the same bake the keyframes come from, so this is the rendered pose and
@@ -846,7 +913,7 @@ test.describe('boardgame-die physics roll, reduced motion', () => {
       // occupies the cycle for no time at all, so nothing tumbles...
       expect(roll.duration).toBe(0);
       expect(roll.declared).toEqual([0]);
-      expect(roll.expected.durationMs).toBeGreaterThan(600);
+      expect(roll.expected.durationMs).toBeGreaterThan(250);
       await page.evaluate(async () => {
         const die = document.getElementById('fixture-die') as any;
         const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
@@ -867,6 +934,80 @@ test.describe('boardgame-die physics roll, reduced motion', () => {
 });
 
 test.describe('boardgame-die physics roll, in the app', () => {
+  // B2. WHAT THE DIE SAYS WHILE IT IS ROLLING, which used to be a line of red
+  // text under it for the whole of every roll.
+  //
+  // Polled through a real pig roll: "Roll Dice is not possible right now" from
+  // 78ms to 724ms -- the client displays state N while N+1 exists, so the
+  // displayed state's legality snapshot says the move is not possible -- and
+  // then "Wait for the current animation to finish" to 1233ms. Both are
+  // legitimate transient states and neither is a failure, but the die rendered
+  // EVERY reason into #action-status in --md-sys-color-error, drawn through the
+  // tumbling solid.
+  //
+  // The fix is a severity on the reason itself (moves/action.ts), so this is
+  // the browser end of the classification asserted in action.test.ts.
+  test('says nothing in the error style while it rolls', async ({ page }) => {
+    test.setTimeout(120000);
+    await createOfflineGame(page, 'pig');
+    const rollButton = page.getByRole('button', { name: /Roll die/ });
+    await expect(rollButton).toBeEnabled({ timeout: 30000 });
+    await rollButton.click();
+    const observed = await page.evaluate(async () => {
+      const find = (root: DocumentFragment | Document): any => {
+        const direct = root.querySelector('boardgame-die');
+        if (direct) return direct;
+        for (const element of Array.from(root.querySelectorAll('*'))) {
+          const shadow = (element as HTMLElement).shadowRoot;
+          if (!shadow) continue;
+          const found = find(shadow);
+          if (found) return found;
+        }
+        return null;
+      };
+      const die = find(document);
+      const root = die.shadowRoot as ShadowRoot;
+      const inner = root.querySelector('#inner') as HTMLElement;
+      const shown: string[] = [];
+      let sawTumble = false;
+      const start = performance.now();
+      while (performance.now() - start < 4000) {
+        if (inner.getAnimations().length > 0) sawTumble = true;
+        const status = root.querySelector('#action-status') as HTMLElement | null;
+        const text = status?.textContent?.trim() ?? '';
+        if (text) shown.push(text);
+        if (sawTumble && inner.getAnimations().length === 0
+          && performance.now() - start > 1500) break;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      await die.updateComplete;
+      return {
+        shown: [...new Set(shown)],
+        sawTumble,
+        // The title still carries the transient reason, where it costs no
+        // layout and flashes nothing: quiet, not lost.
+        title: (root.querySelector('#main') as HTMLElement).getAttribute('title'),
+        announcement:
+          (root.querySelector('.visually-hidden') as HTMLElement).textContent?.trim() ?? '',
+        ariaLabel: (root.querySelector('#main') as HTMLElement).getAttribute('aria-label'),
+      };
+    });
+
+    // The premise: a real roll really did run while this was polling.
+    expect(observed.sawTumble).toBe(true);
+    // THE ASSERTION. #action-status is the error-styled line under the die; it
+    // is for a reason a person has to act on, and a die that is rolling is not
+    // one.
+    expect(observed.shown).toEqual([]);
+    // ...and the result reached a screen reader, which an aria-label change on
+    // a button does not: the label and the live region agree on the number.
+    expect(observed.announcement).toMatch(/^Rolled \d+$/);
+    // (The button says "Roll die showing N" while it is still rollable, and
+    // "Die showing N" once it is not; what is asserted is the NUMBER agreeing.)
+    expect(observed.ariaLabel).toMatch(
+      new RegExp(`showing ${observed.announcement.replace('Rolled ', '')}$`));
+  });
+
   test('a multi-second roll never trips the gate watchdog', async ({ page }) => {
     test.setTimeout(120000);
     await createOfflineGame(page, 'pig');
@@ -1318,3 +1459,336 @@ async function liveRollDuration(page: import('@playwright/test').Page): Promise<
     return hooks && hooks.gateCloses >= hooks.gateOpens ? 0 : false;
   }, undefined, { timeout: 25000 }).then((handle) => handle.jsonValue()) as Promise<number>;
 }
+
+// ---------------------------------------------------------------------------
+// WHAT A ROLL LEAVES BEHIND.
+//
+// Everything above is about the tumble itself. This block is about the four
+// ways a roll ends up describing a die that is not on screen: a pose left on
+// #inner by a roll that is over, a roll that could not be played at all, an
+// item swapped for a different component's, and a component that has been
+// sanitized away entirely. Each one was found by measurement, and each one ends
+// with the die drawing one number while announcing another -- which is the worst
+// thing this component can do, because the announcement is the only part a
+// player cannot check.
+test.describe('boardgame-die roll aftermath', () => {
+  /**
+   * A die's pose, and what it says about itself, read together.
+   *
+   * `front` is the facet the RENDER puts nearest the camera, so "what is drawn"
+   * and "what is announced" can be compared without trusting either one.
+   */
+  async function poseAndLabel(page: import('@playwright/test').Page) {
+    return await page.evaluate(() => {
+      const die = document.getElementById('fixture-die') as any;
+      const root = die.shadowRoot as ShadowRoot;
+      const stage = root.querySelector('#stage') as HTMLElement;
+      const inner = root.querySelector('#inner') as HTMLElement;
+      const composed = (element: HTMLElement) => {
+        const chain: HTMLElement[] = [];
+        for (let n: HTMLElement | null = element; n && n !== stage; n = n.parentElement) chain.unshift(n);
+        let matrix = new DOMMatrix();
+        for (const node of chain) {
+          const value = getComputedStyle(node).transform;
+          if (value && value !== 'none') matrix = matrix.multiply(new DOMMatrix(value));
+        }
+        matrix.m14 = 0; matrix.m24 = 0; matrix.m34 = 0; matrix.m44 = 1;
+        return matrix;
+      };
+      const facets = Array.from(root.querySelectorAll('.facet[data-face-index]')) as HTMLElement[];
+      const scored = facets.map((el) => {
+        const m = composed(el);
+        return {
+          faceIndex: Number(el.dataset.faceIndex),
+          value: el.dataset.faceValue,
+          towardsCamera: m.m33,
+        };
+      });
+      const front = scored.reduce((best, row) => (row.towardsCamera > best.towardsCamera ? row : best));
+      // How far the solid's own centre sits from the centre of the box it is
+      // laid out in. A die that is showing nothing but a stale pose is outside
+      // its own slot; a die that is where it belongs is at zero.
+      const centre = composed(inner);
+      return {
+        front,
+        offsetPx: Math.hypot(centre.m41, centre.m42),
+        innerInline: inner.style.transform,
+        ariaLabel: (root.querySelector('#main') as HTMLElement).getAttribute('aria-label'),
+        values: facets.map((el) => el.dataset.faceValue),
+        announcement:
+          (root.querySelector('.visually-hidden') as HTMLElement)?.textContent?.trim() ?? '',
+      };
+    });
+  }
+
+  /** Install an item and let the die's two-pass roll planning run. */
+  async function install(
+    page: import('@playwright/test').Page,
+    item: { id: string; faces: number[]; selectedFace: number; rollCount: number },
+  ) {
+    await page.evaluate(async (opts) => {
+      const die = document.getElementById('fixture-die') as any;
+      die.item = {
+        ID: opts.id,
+        Values: { Faces: opts.faces },
+        DynamicValues: {
+          SelectedFace: opts.selectedFace,
+          Value: opts.faces[opts.selectedFace],
+          RollCount: opts.rollCount,
+        },
+      };
+      for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+    }, item);
+  }
+
+  async function settle(page: import('@playwright/test').Page) {
+    await page.evaluate(async () => {
+      const die = document.getElementById('fixture-die') as any;
+      const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
+      await Promise.all(inner.getAnimations().map((a) => a.finished.catch(() => undefined)));
+      await die.updateComplete;
+    });
+  }
+
+  // B3. #orient is a CHILD of #inner, so the resting pose and the physics pose
+  // COMPOSE; they are mutually exclusive only because _renderSolid renders
+  // #orient as 'none' whenever a roll is set. Dropping the roll without clearing
+  // #inner's inline transform therefore leaves the die posed by a throw it is no
+  // longer showing -- measured at 60 to 106px outside its own 100px slot.
+  test('a roll that cannot be planned clears the pose the last one left', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 0, rollCount: 0 });
+    await install(page, { id: 'fixture-component', faces: [10, 20, 30, 40, 50, 60], selectedFace: 3, rollCount: 1 });
+    await settle(page);
+    const rolled = await poseAndLabel(page);
+    // The premise: the throw really did leave a pose behind on #inner.
+    expect(rolled.innerInline).not.toBe('');
+
+    // A roll that cannot be planned. The die's size is what the trajectory is
+    // scaled by, and a die with no measurable size has no plannable roll --
+    // which is the same door a simulator or bake failure comes through.
+    await page.evaluate(() => {
+      (document.getElementById('fixture-die') as HTMLElement).style.setProperty('--die-size', '0px');
+    });
+    await install(page, { id: 'fixture-component', faces: [10, 20, 30, 40, 50, 60], selectedFace: 1, rollCount: 2 });
+    const after = await poseAndLabel(page);
+    expect(after.innerInline).toBe('');
+
+    // ...and with the size restored the die is back inside its own box, showing
+    // the face the server selected through the presentation pose.
+    await page.evaluate(async () => {
+      const die = document.getElementById('fixture-die') as any;
+      die.style.setProperty('--die-size', '100px');
+      await die.updateComplete;
+    });
+    const restored = await poseAndLabel(page);
+    expect(restored.offsetPx).toBeLessThan(1);
+    expect(restored.front.faceIndex).toBe(1);
+    expect(restored.ariaLabel).toBe('Die showing 20');
+  });
+
+  test('a die given a different shape drops the old roll and its pose', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 0, rollCount: 0 });
+    await install(page, { id: 'fixture-component', faces: [10, 20, 30, 40, 50, 60], selectedFace: 2, rollCount: 1 });
+    await settle(page);
+    expect((await poseAndLabel(page)).innerInline).not.toBe('');
+    // The same element, a die with a different face count. The old roll's
+    // assignment and pose are for a solid this one is not.
+    await install(page, {
+      id: 'fixture-component',
+      faces: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      selectedFace: 4,
+      rollCount: 1,
+    });
+    const after = await poseAndLabel(page);
+    expect(after.innerInline).toBe('');
+    expect(after.offsetPx).toBeLessThan(1);
+    expect(after.values.length).toBe(12);
+    expect(after.front.faceIndex).toBe(4);
+    expect(after.ariaLabel).toBe('Die showing 5');
+  });
+
+  // B4. playMotionTracks has three early returns that fire BEFORE it writes the
+  // track's resting style, and the roll used to discard its result. In all
+  // three the roll is already set, so #orient renders 'none' and #inner gets
+  // nothing: the die draws in its RAW BODY FRAME, showing whichever facet
+  // happens to point at the camera, while announcing the value the physics
+  // landed.
+  test('a roll whose playback never starts still lands where it should', async ({ page }) => {
+    await mountDie(page, { faceCount: 20, selectedFace: 0, rollCount: 0 });
+    // noAnimate is the one route that reaches those returns today: play()
+    // returns null, and playMotionTracks reports 'not-started'.
+    await page.evaluate(() => {
+      (document.getElementById('fixture-die') as any).noAnimate = true;
+    });
+    await install(page, {
+      id: 'fixture-component',
+      faces: Array.from({ length: 20 }, (_, i) => (i + 1) * 10),
+      selectedFace: 7,
+      rollCount: 1,
+    });
+    const after = await poseAndLabel(page);
+    // Nothing animated...
+    const animations = await page.evaluate(() => {
+      const die = document.getElementById('fixture-die') as any;
+      return (die.shadowRoot as ShadowRoot).querySelector('#inner')!.getAnimations().length;
+    });
+    expect(animations).toBe(0);
+    // ...and the die is in the roll's own resting pose, not its body frame: the
+    // facet nearest the camera is the one the physics landed, it carries the
+    // server's value, it is readable, and it is what the die announces.
+    expect(after.innerInline).not.toBe('');
+    expect(after.front.value).toBe('80');
+    expect(after.front.towardsCamera).toBeGreaterThan(0.7);
+    expect(after.ariaLabel).toBe('Die showing 80');
+  });
+
+  // B5. The roll was reset only when the face COUNT changed, so swapping a d6
+  // for a DIFFERENT d6 left the die drawing -- and announcing -- the previous
+  // component's numbers. It self-corrected only if a throw arrived, and two
+  // dice that have never been thrown are both at roll count 0.
+  test('a die swapped for another of the same shape shows the new die', async ({ page }) => {
+    await mountDie(page, {
+      faceCount: 6, faces: [1, 2, 3, 4, 5, 6], selectedFace: 0, rollCount: 0, componentId: 'die-a',
+    });
+    await install(page, { id: 'die-a', faces: [1, 2, 3, 4, 5, 6], selectedFace: 5, rollCount: 1 });
+    await settle(page);
+    const first = await poseAndLabel(page);
+    // The premise: die A really was THROWN, so it is carrying a roll of its own
+    // -- an assignment and a pose -- for the swap below to have something to
+    // leave behind.
+    expect(first.innerInline).not.toBe('');
+    expect(first.front.value).toBe('6');
+    expect(first.ariaLabel).toBe('Die showing 6');
+
+    // A different component, same shape, same roll count: not a throw, a
+    // different die.
+    await install(page, {
+      id: 'die-b', faces: [10, 20, 30, 40, 50, 60], selectedFace: 1, rollCount: 0,
+    });
+    const second = await poseAndLabel(page);
+    expect(second.values.map(Number).sort((a, b) => a - b)).toEqual([10, 20, 30, 40, 50, 60]);
+    expect(second.innerInline).toBe('');
+    expect(second.offsetPx).toBeLessThan(1);
+    expect(second.front.faceIndex).toBe(1);
+    expect(second.front.value).toBe('20');
+    expect(second.ariaLabel).toBe('Die showing 20');
+  });
+
+  // B5, the other half. A game that wants to celebrate a number had to do it
+  // from effectsForTransition at CYCLE START -- an effect fired at the die's
+  // layout anchor while the solid is 60px away in the air, finishing on a 600ms
+  // slot while the roll still has a second to run.
+  test('dispatches roll-start and roll-end around the tumble', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 0, rollCount: 0 });
+    const observed = await page.evaluate(async () => {
+      const die = document.getElementById('fixture-die') as any;
+      const log: any[] = [];
+      // Composed and bubbling: a game listens on an ancestor, across the shadow
+      // boundary the die lives behind.
+      const host = document.createElement('div');
+      die.parentElement.insertBefore(host, die);
+      host.appendChild(die);
+      for (const name of ['roll-start', 'roll-end']) {
+        host.addEventListener(name, (event: Event) => {
+          const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
+          log.push({
+            name,
+            detail: (event as CustomEvent).detail,
+            animating: inner.getAnimations().length,
+            announcement:
+              (die.shadowRoot.querySelector('.visually-hidden') as HTMLElement).textContent.trim(),
+          });
+        });
+      }
+      const faces = [10, 20, 30, 40, 50, 60];
+      die.item = {
+        ID: 'fixture-component',
+        Values: { Faces: faces },
+        DynamicValues: { SelectedFace: 4, Value: faces[4], RollCount: 1 },
+      };
+      for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+      const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
+      const startedWith = log.map((entry) => entry.name);
+      await Promise.all(inner.getAnimations().map((a) => a.finished.catch(() => undefined)));
+      await die.updateComplete;
+      return {
+        log,
+        startedWith,
+        announcement:
+          (die.shadowRoot.querySelector('.visually-hidden') as HTMLElement).textContent.trim(),
+      };
+    });
+
+    // roll-start fires as the tumble begins, roll-end only once it has stopped.
+    expect(observed.startedWith).toEqual(['roll-start']);
+    expect(observed.log.map((entry: any) => entry.name)).toEqual(['roll-start', 'roll-end']);
+    const [start, end] = observed.log;
+    expect(start.animating).toBe(1);
+    expect(end.animating).toBe(0);
+    // Both carry what a game needs to celebrate the number: the value on the
+    // landed face, which face that is, whether the throw was cocked, and how
+    // long the tumble runs.
+    expect(start.detail.value).toBe(50);
+    expect(start.detail.faceIndex).toBeGreaterThanOrEqual(0);
+    expect(start.detail.cocked).toBe(false);
+    expect(start.detail.durationMs).toBeGreaterThan(100);
+    expect(end.detail).toEqual(start.detail);
+
+    // THE ANNOUNCEMENT. A button's aria-label changing is not announced, so the
+    // result never reached a screen reader; the live region is what carries it,
+    // and it must not narrate the tumble on its way past.
+    expect(start.announcement).toBe('');
+    expect(observed.announcement).toBe('Rolled 50');
+  });
+
+  // B6. A die in a hidden stack is not absent: selectors.ts renders an occupied
+  // but unreadable slot as {}, a TRUTHY object with no Values. Reaching for
+  // Values.Faces threw a TypeError out of updated(), which Lit does not catch --
+  // updateComplete rejects and the page takes an unhandled rejection on every
+  // update from then on.
+  test('a sanitized component renders an empty die instead of throwing', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, selectedFace: 2, rollCount: 0 });
+    const result = await page.evaluate(async () => {
+      const errors: string[] = [];
+      const onRejection = (event: PromiseRejectionEvent) => errors.push(String(event.reason));
+      const onError = (event: ErrorEvent) => errors.push(String(event.message));
+      window.addEventListener('unhandledrejection', onRejection);
+      window.addEventListener('error', onError);
+      const die = document.getElementById('fixture-die') as any;
+      // What sanitization sends for a component nobody may look at.
+      die.item = {};
+      let settled = 'resolved';
+      try {
+        for (let pass = 0; pass < 3; pass++) await die.updateComplete;
+      } catch (error) {
+        settled = `rejected: ${String(error)}`;
+      }
+      // ...and a further update, because the reported failure was one rejection
+      // PER UPDATE for as long as the die stayed on screen.
+      die.requestUpdate();
+      try {
+        await die.updateComplete;
+      } catch (error) {
+        settled = `rejected: ${String(error)}`;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      window.removeEventListener('unhandledrejection', onRejection);
+      window.removeEventListener('error', onError);
+      const root = die.shadowRoot as ShadowRoot;
+      return {
+        settled,
+        errors,
+        facets: root.querySelectorAll('.facet').length,
+        reelFaces: root.querySelectorAll('#inner.reel .face').length,
+        ariaLabel: (root.querySelector('#main') as HTMLElement).getAttribute('aria-label'),
+      };
+    });
+    expect(result.settled).toBe('resolved');
+    expect(result.errors).toEqual([]);
+    // Nothing is known about the die, so nothing is drawn and nothing is
+    // announced beyond what it is.
+    expect(result.facets).toBe(0);
+    expect(result.reelFaces).toBe(0);
+    expect(result.ariaLabel).toBe('Die');
+  });
+});

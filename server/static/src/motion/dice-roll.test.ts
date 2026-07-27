@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { QUAT_IDENTITY, dieGeometry, vec3, type Quat, type Vec3 } from './die-geometry.ts';
 import type { DieTrajectory } from './dice-sim.ts';
-import { FRAME_MS, TRAY_BOUNDS, dieRollSeed, sceneTransform, settledTrajectory } from './dice-roll.ts';
+import {
+  FRAME_MS,
+  PERSPECTIVE_DEPTH_DIE_SIZES,
+  TRAY_BOUNDS,
+  dieRollSeed,
+  rollScene,
+  settledTrajectory,
+} from './dice-roll.ts';
 import { readingPose, surfaceDirections } from '../solid/reading-pose.ts';
 
 /**
@@ -131,45 +138,114 @@ test('settledTrajectory measures rotation as well as travel', () => {
  * easy to get backwards, and getting it backwards leaves the die resting
  * somewhere off its own square.
  */
-test('sceneTransform recentres the landed die on the origin', () => {
+test('a roll comes to rest on the origin of its own box', () => {
   const geometry = dieGeometry(6);
   const die = trajectory([
     { t: 0, position: vec3(0.4, 2.5, -0.3) },
     { t: 500, position: vec3(1.2, 0.5, -0.9) },
   ]);
   const radiusPx = 40;
-  const scene = sceneTransform(geometry, die, 0, radiusPx);
-  const translate = /^translate3d\(([-\d.]+)px,([-\d.]+)px,([-\d.]+)px\)/.exec(scene);
-  assert.ok(translate, `scene must begin with a recentring translate3d: ${scene}`);
-  const offset = vec3(Number(translate[1]), Number(translate[2]), Number(translate[3]));
+  const scene = rollScene(geometry, die, 0, radiusPx, 500);
+  // Composing the pose and then subtracting the POSED resting position (not the
+  // raw one) is the part that is easy to get backwards, and getting it backwards
+  // leaves the die resting somewhere off its own square.
+  assert.ok(scene.resting.startsWith('translate3d(0px,0px,0px)'), scene.resting);
+  assert.ok(scene.resting.includes('translate3d(0px,0px,0px)') , scene.resting);
 
-  // Apply the emitted rotations to the resting position ourselves, the way the
-  // browser will: the list reads outermost first, so the last entry acts first.
+  // ...and it got there from somewhere. The travel at the start of the throw is
+  // minus the posed resting position, applied the way the browser will: the list
+  // reads outermost first, so the last entry acts first.
+  const first = scene.transform(0);
+  const travel = /^translate3d\(([-\d.]+)px,([-\d.]+)px,0px\) perspective\(([\d.]+)px\) translate3d\(0px,0px,([-\d.]+)px\)/
+    .exec(first);
+  assert.ok(travel, `a frame must lead with its travel and then the camera: ${first}`);
+  const offset = vec3(Number(travel[1]), Number(travel[2]), Number(travel[4]));
   const turns = readingPose(
     surfaceDirections(geometry, die.restingOrientation), 0, { uprightContent: false },
   ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
-  const posed = turns.reduceRight(
-    (point, turn) => rotate(point, turn.axis, turn.degrees),
-    vec3(1.2 * radiusPx, -0.5 * radiusPx, -0.9 * radiusPx), // toScreen, then to px
-  );
+  const posedAt = (point: Vec3) => turns.reduceRight(
+    (value, turn) => rotate(value, turn.axis, turn.degrees), point);
+  // toScreen (CSS y points down), then to px.
+  const start = posedAt(vec3(0.4 * radiusPx, -2.5 * radiusPx, -0.3 * radiusPx));
+  const rest = posedAt(vec3(1.2 * radiusPx, -0.5 * radiusPx, -0.9 * radiusPx));
   for (let axis = 0; axis < 3; axis++) {
-    assert.ok(Math.abs(offset[axis] + posed[axis]) < 1e-3,
-      `axis ${axis}: offset ${offset[axis]} does not cancel posed ${posed[axis]}`);
+    assert.ok(Math.abs(offset[axis] - (start[axis] - rest[axis])) < 1e-3,
+      `axis ${axis}: travel ${offset[axis]} is not ${start[axis] - rest[axis]}`);
   }
-  // Literals only: a var() or calc() in a keyframe forfeits compositing and
-  // drops a multi-second tumble onto the main thread.
-  assert.ok(!scene.includes('var(') && !scene.includes('calc('));
-  assert.ok(!/\d[eE][-+]?\d/.test(scene), `no exponential notation: ${scene}`);
 });
 
-test('sceneTransform still emits a translation when the die landed on the origin', () => {
+/**
+ * THE HOLE FIX, stated as the shape of the emitted list.
+ *
+ * `backface-visibility` culls a facet on the sign of its accumulated m33 and
+ * never asks where the camera is, so the two only agree while the solid sits on
+ * the camera's axis. `perspective()` projects everything to its RIGHT, so the
+ * die's travel has to come BEFORE it -- the solid is projected about its own
+ * centre and only then moved -- and its depth AFTER it, where it is on the axis
+ * and changes nothing but the die's size.
+ */
+test('a roll travels outside its camera and falls toward it inside', () => {
+  const geometry = dieGeometry(20);
+  const die = trajectory([
+    { t: 0, position: vec3(1.4, 1.9, 0.8) },
+    { t: 300, position: vec3(0.2, 0.9, 0.1) },
+    { t: 600, position: vec3(0, 0, 0) },
+  ]);
+  const radiusPx = 50;
+  const frame = rollScene(geometry, die, 3, radiusPx, 600).transform(0);
+  const order = /^translate3d\([^)]*\) perspective\([^)]*\) translate3d\([^)]*\)/.test(frame);
+  assert.ok(order, `travel, then camera, then depth: ${frame}`);
+  // The camera stands PERSPECTIVE_DEPTH_DIE_SIZES die sizes in front of the
+  // solid, which is one die size across, i.e. two circumradii. The same constant
+  // frames the die that has never rolled (boardgame-die.ts's #inner.solid), and
+  // a roll framed at a different depth would resize the solid the moment its
+  // animation was removed.
+  const camera = /perspective\(([\d.]+)px\)/.exec(frame);
+  assert.ok(camera, frame);
+  assert.equal(Number(camera[1]), PERSPECTIVE_DEPTH_DIE_SIZES * 2 * radiusPx);
+  // The lateral travel is outside the projection and the depth inside it: the
+  // die really did start off-centre AND off the screen plane, so neither term
+  // is vacuously zero here.
+  const outside = /^translate3d\(([-\d.]+)px,([-\d.]+)px,([-\d.]+)px\)/.exec(frame)!;
+  assert.equal(Number(outside[3]), 0, 'depth never rides outside the projection');
+  assert.ok(Math.abs(Number(outside[1])) + Math.abs(Number(outside[2])) > 10, frame);
+  const inside = /perspective\([^)]*\) translate3d\(0px,0px,([-\d.]+)px\)/.exec(frame)!;
+  assert.ok(Math.abs(Number(inside[1])) > 1, `the depth term is doing work: ${frame}`);
+});
+
+/**
+ * `fill: 'none'`, so the element renders its RESTING style the instant the
+ * animation finishes -- or is finished early by the cycle sweep. A single
+ * rounding digit of disagreement is the die twitching as it settles.
+ */
+test('the resting transform is the curve\'s own last frame, byte for byte', () => {
+  const geometry = dieGeometry(12);
+  const die = trajectory([
+    { t: 0, position: vec3(1.1, 2.2, -0.4) },
+    { t: 250, position: vec3(0.6, 0.9, -0.2) },
+    { t: 700, position: vec3(-0.3, 0.5, 0.7) },
+  ]);
+  const scene = rollScene(geometry, die, 5, 37, 700);
+  assert.equal(scene.resting, scene.transform(1));
+  // ...and progress past the ends clamps rather than extrapolating.
+  assert.equal(scene.transform(1.4), scene.resting);
+  assert.equal(scene.transform(-2), scene.transform(0));
+  // Literals only: a var() or calc() in a keyframe forfeits compositing and
+  // drops a multi-second tumble onto the main thread.
+  for (const value of [scene.transform(0), scene.transform(0.5), scene.resting]) {
+    assert.ok(!value.includes('var(') && !value.includes('calc('), value);
+    assert.ok(!/\d[eE][-+]?\d/.test(value), `no exponential notation: ${value}`);
+  }
+});
+
+test('a roll that landed on the origin still emits its travel and its camera', () => {
   const geometry = dieGeometry(8);
   const die = trajectory([
     { t: 0, position: vec3(0, 2, 0) },
     { t: 400, position: vec3(0, 0, 0) },
   ]);
-  const scene = sceneTransform(geometry, die, 2, 25);
-  assert.ok(scene.startsWith('translate3d(0px,0px,0px)'), scene);
+  const scene = rollScene(geometry, die, 2, 25, 400);
+  assert.ok(scene.resting.startsWith('translate3d(0px,0px,0px) perspective('), scene.resting);
 });
 
 /** Rodrigues, restated here so the test does not lean on the code it checks. */

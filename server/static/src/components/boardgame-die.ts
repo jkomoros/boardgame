@@ -1,20 +1,28 @@
-import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
+import {
+  BoardgameAnimatableItem,
+  type MotionTrackPlayResult,
+} from './boardgame-animatable-item.js';
 import { html, css, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
 import { query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
-import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
+import {
+  isBoundMoveAction,
+  moveActionReasonSeverity,
+  type BoundMoveAction,
+} from '../moves/action.js';
 import { componentMotionTracks } from '../motion/component-track.js';
 import type { ComponentMotionTarget } from '../motion/component-track.js';
 import { dieGeometry, dot, type DieGeometry, type Vec3 } from '../motion/die-geometry.js';
 import { assignFaceValues, presentedFaceIndex, resolveReadingRule } from '../motion/die-faces.js';
-import { restingTransform, trajectoryCurve } from '../motion/dice-bake.js';
 import {
   FRAME_MS,
+  PERSPECTIVE_DEPTH_DIE_SIZES,
   dieRollTrajectory,
-  sceneTransform,
+  rollScene,
   settledTrajectory,
 } from '../motion/dice-roll.js';
+import type { Component } from '../types/boardgame-types.js';
 import { cssNumber as num } from '../solid/screen-frame.js';
 import { solidFacets, type SolidFacet } from '../solid/facet-placement.js';
 import { readingPoseTransform } from '../solid/reading-pose.js';
@@ -54,6 +62,38 @@ import {
  * only reason a caller can set `--die-size` to anything (`120px`, `6rem`,
  * `10vmin`) and have the solid follow.
  */
+
+/** The face VALUES a die's deck publishes. */
+interface DieValues {
+  readonly Faces: readonly number[];
+}
+
+/**
+ * What the server says about THIS die right now.
+ *
+ * `SelectedFace` is an INDEX into `Values.Faces`; `Value` is the face VALUE it
+ * selects, and `RollCount` is `components/dice`'s throw counter. All three are
+ * optional here because a game is free to define its own die deck with fewer of
+ * them: everything downstream treats a missing one as "not reported" rather
+ * than as zero.
+ */
+interface DieDynamicValues {
+  readonly SelectedFace?: number;
+  readonly Value?: number;
+  readonly RollCount?: number;
+}
+
+/**
+ * A die's component, INCLUDING the sanitized form.
+ *
+ * A die in a hidden stack arrives as `{}` — a truthy object with no `Values` —
+ * so every read of the item has to go through `isVisibleComponent` first. That
+ * is what `Component` (as opposed to `VisibleComponent`) says in the type
+ * system, and it is why this property is not `any`: bound to a card, or to a
+ * component whose deck has no faces, this now fails to compile instead of
+ * throwing out of the render pass.
+ */
+export type DieComponent = Component<DieValues, DieDynamicValues>;
 
 /** What one face draws, and what it announces: see `_resolveFace`. */
 interface ResolvedFace {
@@ -139,20 +179,63 @@ function dieSolid(faceCount: number): DieSolid | null {
   return solid;
 }
 
+/** Everything the die reads off an item, validated, or null for "not a die". */
+interface DieItem {
+  readonly id: string;
+  readonly faces: readonly number[];
+  readonly selectedFace: number;
+  /**
+   * How many times the server says this die has been thrown, or `null` when it
+   * does not say.
+   *
+   * `components/dice`'s `DynamicValue.RollCount` is incremented by `Roll()` and
+   * by nothing else, so a change in it means exactly "this die was thrown" — the
+   * one fact `SelectedFace` and `Value` cannot express, because a throw landing
+   * on the face already showing leaves both of them alone. A die whose game does
+   * not use that component reports nothing here, and falls back to the face
+   * change; see `_itemChanged`.
+   */
+  readonly rollCount: number | null;
+}
+
 /**
- * How many times the server says this die has been thrown, or `null` when it
- * does not say.
+ * Read an item, defensively, in ONE place.
  *
- * `components/dice`'s `DynamicValue.RollCount` is incremented by `Roll()` and
- * by nothing else, so a change in it means exactly "this die was thrown" — the
- * one fact `SelectedFace` and `Value` cannot express, because a throw landing
- * on the face already showing leaves both of them alone. A die whose game does
- * not use that component reports nothing here, and falls back to the face
- * change; see `_itemChanged`.
+ * THE CASE THIS EXISTS FOR is the sanitized component. A die in a hidden stack
+ * is not absent — `selectors.ts` renders an occupied but unreadable slot as
+ * `{}`, a TRUTHY object with no `Values` — so reaching for `Values.Faces`
+ * threw a TypeError straight out of `updated()`, where Lit does not catch it:
+ * `updateComplete` rejects and the page gets an unhandled rejection on every
+ * update, forever.
+ *
+ * Deliberately NOT `isVisibleComponent`, which is the framework's stricter test
+ * of the same family. That one also demands `Index`, `Deck` and `GameName`,
+ * three fields this component never reads, and requiring them would reject a
+ * die driven by a hand-built item — which is how the renderer fixtures and any
+ * game prototyping a die drive one. It is also not SUFFICIENT: a card passes it
+ * and has no faces at all, so the face list has to be checked here regardless.
+ * What a die needs from an item is a list of face values, and that is what this
+ * asks for.
  */
-function itemRollCount(item: any): number | null {
-  const raw = item?.DynamicValues?.RollCount;
-  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+function readDieItem(item: DieComponent | null | undefined): DieItem | null {
+  if (!item || typeof item !== 'object') return null;
+  const candidate = item as {
+    ID?: unknown;
+    Values?: { Faces?: unknown };
+    DynamicValues?: { SelectedFace?: unknown; RollCount?: unknown };
+  };
+  const faces = candidate.Values?.Faces;
+  if (!Array.isArray(faces) || !faces.every((face) => typeof face === 'number')) return null;
+  const selected = candidate.DynamicValues?.SelectedFace;
+  const rollCount = candidate.DynamicValues?.RollCount;
+  return {
+    id: typeof candidate.ID === 'string' ? candidate.ID : '',
+    faces: faces as readonly number[],
+    selectedFace:
+      typeof selected === 'number' && Number.isFinite(selected) ? Math.trunc(selected) : 0,
+    rollCount:
+      typeof rollCount === 'number' && Number.isFinite(rollCount) ? rollCount : null,
+  };
 }
 
 /** One planned roll: what to draw, and what to play. */
@@ -250,7 +333,14 @@ class BoardgameDie extends BoardgameAnimatableItem {
         box-shadow: none;
       }
 
-      #action-status {
+      /*
+       * The same status line <boardgame-game-board> renders, down to the class
+       * name, the role and the :empty rule: one status element per interactive
+       * surface, polite, and gone entirely when it has nothing to say. What is
+       * PUT in it is the difference -- see _statusMessage: only a reason a
+       * person has to act on, never a die that is merely busy rolling.
+       */
+      .interaction-status {
         position: absolute;
         top: 100%;
         width: max-content;
@@ -260,11 +350,34 @@ class BoardgameDie extends BoardgameAnimatableItem {
         font-size: 0.75rem;
       }
 
+      .interaction-status:empty {
+        display: none;
+      }
+
       /*
-       * The solid: a perspective wrapper (#stage), the preserve-3d carrier
-       * (#inner -- the element motionTrackTarget('visual') returns, so a later
-       * task animates the tumble on it), a resting-pose carrier (#orient) and
-       * one element per surface polygon.
+       * The die's result, for a screen reader only. A button's aria-label
+       * changing is NOT announced, so the settled value never reached one; a
+       * live region is the only thing that carries it. Visually hidden rather
+       * than display:none, which would take it out of the accessibility tree
+       * along with the rest.
+       */
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /*
+       * The solid: a sizing wrapper (#stage), the preserve-3d carrier that also
+       * carries the projection (#inner -- the element motionTrackTarget('visual')
+       * returns, so the tumble animates on it), a resting-pose carrier (#orient)
+       * and one element per surface polygon.
        *
        * #orient exists because #inner's transform belongs to the animation
        * kernel: a resting pose written onto #inner would be replaced outright
@@ -287,8 +400,6 @@ class BoardgameDie extends BoardgameAnimatableItem {
          * --die-size with no JavaScript remeasurement.
          */
         font-size: var(--effective-die-size);
-        perspective: 6em;
-        perspective-origin: 50% 50%;
       }
 
       #inner {
@@ -301,6 +412,27 @@ class BoardgameDie extends BoardgameAnimatableItem {
         position: absolute;
         inset: 0;
         transform-style: preserve-3d;
+        /*
+         * THE CAMERA, and it is on #inner rather than on #stage deliberately.
+         *
+         * A perspective() function projects everything to its RIGHT in the
+         * transform list, so putting it here lets a roll write
+         * "translate3d(travel) perspective(D) <the pose>" and have the die
+         * projected about its OWN centre before it is moved -- the camera rides
+         * with the solid. It has to, because backface-visibility culls a facet
+         * by the sign of its accumulated m33 and never asks where the camera is:
+         * with
+         * the camera pinned to the middle of the box, a die 90px away had
+         * facets the camera could see culled out of it, and a d20 spent 22% of
+         * its frames with a see-through hole in it. See dice-roll.ts's
+         * rollScene for the measurement and the arithmetic.
+         *
+         * A die that has never rolled has no inline transform, so this rule is
+         * also what frames the resting solid; the depth is the same constant
+         * either way (PERSPECTIVE_DEPTH_DIE_SIZES), in em so it follows
+         * --die-size with no JavaScript.
+         */
+        transform: perspective(${PERSPECTIVE_DEPTH_DIE_SIZES}em);
         /*
          * There is no reel to scroll, so the reel step is zero. The #inner
          * rule above and the WAAPI spin keyframes (_innerTransformForFace)
@@ -427,14 +559,28 @@ class BoardgameDie extends BoardgameAnimatableItem {
   ];
 
   @property({ type: Object })
-  item: any = null;
+  item: DieComponent | null = null;
 
-  @property({ type: Number })
-  value = 0;
-
+  /**
+   * The face VALUES this die carries, in face-index order — `[10, 20, 30]`, not
+   * `[0, 1, 2]`.
+   *
+   * Set from `item.Values.Faces` when there is an item, and settable directly to
+   * drive a die by hand. A value is what the face DRAWS and what the die
+   * announces for it; nothing here reads a value as an index.
+   */
   @property({ type: Array })
   faces: number[] = [];
 
+  /**
+   * Which face is presented, as an INDEX into `faces` — not a face value.
+   *
+   * `2` on a die with faces `[10, 20, 30]` presents the face showing 30. This is
+   * the server's own convention (`DynamicValues.SelectedFace` is an index
+   * alongside a separate `Values.Faces` list) and reading it as a value is the
+   * silent bug this component invites: it is in range, it selects a face, and
+   * the die shows the wrong number.
+   */
   @property({ type: Number })
   selectedFace = 0;
 
@@ -514,6 +660,22 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
   /** The component ID the current item carries; half of a roll's seed. */
   private _componentId = '';
+
+  /**
+   * What the live region announces: the result of the roll that has just
+   * settled, or '' before the die has finished one.
+   *
+   * Written when a roll ENDS, never during one — an aria-live region announces
+   * every change it sees, and a die that narrated its own tumble would be worse
+   * than one that said nothing.
+   */
+  private _announcement = '';
+
+  /**
+   * Which roll is current. A roll that finishes after a LATER one has started
+   * must not report itself as the die's result; see `_playRoll`.
+   */
+  private _rollGeneration = 0;
 
   private _boundHandleClick?: (e: Event) => void;
   private _unsubscribeAction: (() => void) | null = null;
@@ -624,27 +786,50 @@ class BoardgameDie extends BoardgameAnimatableItem {
     }]));
   }
 
-  private _itemChanged(newValue: any) {
-    if (!newValue) {
+  /**
+   * Install a new item, which is where a roll is noticed.
+   *
+   * SANITIZED ITEMS ARRIVE HERE, and are drawn as a die with no faces rather
+   * than crashing the render pass; see `readDieItem`, which is the only place
+   * this component reads the wire shape.
+   */
+  private _itemChanged(newValue: DieComponent | null | undefined) {
+    const item = readDieItem(newValue);
+    if (!item) {
+      // A sanitized die is still a die, and a die with no item at all is not
+      // one: both are drawn with no faces, and neither carries a roll.
       this.faces = [];
       this.selectedFace = 0;
-      this.value = 0;
-      this._roll = null;
+      this._clearRoll();
       this._componentId = '';
       this._itemInstalls = 0;
       this._rollCount = null;
+      this._announcement = '';
       return;
     }
-    this.faces = newValue.Values.Faces;
-    this.selectedFace = newValue.DynamicValues.SelectedFace;
-    this.value = newValue.DynamicValues.Value;
-    this._componentId = typeof newValue.ID === 'string' ? newValue.ID : '';
-    // A different die entirely: the old roll's assignment and resting pose are
-    // for a solid this one no longer is.
-    const faceCount = Array.isArray(this.faces) ? this.faces.length : 0;
-    if (this._roll && this._roll.faces.length !== faceCount) this._roll = null;
+    this.faces = [...item.faces];
+    this.selectedFace = item.selectedFace;
+    const componentId = item.id;
+    // A DIFFERENT DIE on the same element, which is what a stack re-using a slot
+    // does. The old roll's face assignment and resting pose belong to a
+    // component that is no longer here, and keying that on the face COUNT alone
+    // missed the case the framework actually produces: swap a d6 for another d6
+    // and the die went on drawing -- and announcing -- the first one's numbers,
+    // self-correcting only if a throw happened to arrive.
+    const faceCount = this.faces.length;
+    if (this._roll && (this._roll.faces.length !== faceCount || componentId !== this._componentId)) {
+      this._clearRoll();
+    }
+    if (componentId !== this._componentId) {
+      // A different component's install is a FIRST install: whether the die it
+      // replaced had ever rolled says nothing about this one.
+      this._itemInstalls = 0;
+      this._rollCount = null;
+      this._announcement = '';
+    }
+    this._componentId = componentId;
     const previousCount = this._rollCount;
-    this._rollCount = itemRollCount(newValue);
+    this._rollCount = item.rollCount;
     // The FIRST install is never a roll, whatever the counter says: the die is
     // being shown a state it was already in when it mounted, and a die that
     // tumbled because a page loaded would be lying about what had just
@@ -740,15 +925,60 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * the die stop moving, which is the one moment they are certainly reading it.
    *
    * A roll that cannot be planned (no solid, no measurable size, a trajectory
-   * the bake refuses) leaves `_roll` null, and the die falls back to the
-   * deterministic presentation pose rather than half-rendering a physics one.
+   * the bake refuses) leaves `_roll` null and CLEARS the pose the last roll
+   * left behind, so the die falls back to the deterministic presentation pose
+   * rather than half-rendering a physics one; see `_clearRoll`.
    */
   private _startRoll(): void {
     const roll = this._planRoll();
+    if (!roll) {
+      this._clearRoll();
+      this.requestUpdate();
+      return;
+    }
+    this._rollGeneration++;
     this._roll = roll;
     this._pendingRoll = roll;
+    // `roll-start` is dispatched by `_playRoll`, not here: this pass has only
+    // PLANNED the throw, and the render carrying its face values has not run
+    // yet. A listener that fired now would read the die's previous numbers off
+    // the DOM.
     // _roll is not a reactive property: nothing re-renders without this.
     this.requestUpdate();
+  }
+
+  /**
+   * Give up the current roll, INCLUDING the pose it left on the element.
+   *
+   * `#inner` carries the physics pose and `#orient` the resting one, and they
+   * are mutually exclusive only because `_renderSolid` renders `#orient` as
+   * `none` whenever `_roll` is set. That invariant is one-way: `#orient` is a
+   * CHILD of `#inner`, so the two compose, and Lit re-uses the same static
+   * `#inner` node across renders with whatever inline transform was last written
+   * to it. Dropping `_roll` without this leaves the die posed by a throw it is
+   * no longer showing -- measured over 900 seeded rolls, 60 to 106px outside its
+   * own 100px slot, permanently, until some later roll happens to overwrite it.
+   *
+   * Both paths that reach it are real: a die whose item is replaced by a
+   * different component, and a roll that cannot be planned (an unmeasurable
+   * size, or a throw the simulator or the bake refuses).
+   */
+  private _clearRoll(): void {
+    this._roll = null;
+    this._pendingRoll = null;
+    // The element only exists once the solid has rendered; a die that has never
+    // had one has nothing to clear either.
+    if (this._innerElement) this._innerElement.style.transform = '';
+  }
+
+  /** What a `roll-start`/`roll-end` event carries. */
+  private _rollDetail(roll: DieRoll) {
+    return {
+      value: roll.faces[roll.presented],
+      faceIndex: roll.presented,
+      cocked: roll.cocked,
+      durationMs: roll.durationMs,
+    };
   }
 
   private _planRoll(): DieRoll | null {
@@ -774,20 +1004,21 @@ class BoardgameDie extends BoardgameAnimatableItem {
       const die = settledTrajectory(trajectory.dice[0]);
       const durationMs = die.samples[die.samples.length - 1].t;
       const presented = presentedFaceIndex(geometry, die.restingOrientation);
-      const scene = sceneTransform(geometry, die, presented, radiusPx);
-      const curve = trajectoryCurve(die, durationMs, { radiusPx });
+      // The scene owns the whole transform, projection included: see
+      // `rollScene` for why the camera has to travel with the die.
+      const scene = rollScene(geometry, die, presented, radiusPx, durationMs);
       return {
         faces: assignFaceValues(geometry, faces, presented, desired),
         presented,
         cocked: trajectory.cocked,
         durationMs,
-        curve: (progress: number) => `${scene} ${curve(progress)}`,
-        // The same prefix in front of the same formatter's output as curve(1),
-        // so the two agree BYTE FOR BYTE. Animations run with fill:'none', so
-        // the element renders this the instant the tumble finishes -- or is
-        // finished early by the cycle sweep -- and a single rounding digit of
-        // disagreement would show up as the die twitching as it settles.
-        resting: `${scene} ${restingTransform(die, { radiusPx })}`,
+        curve: scene.transform,
+        // scene.transform(1) itself, so the two agree BYTE FOR BYTE. Animations
+        // run with fill:'none', so the element renders this the instant the
+        // tumble finishes -- or is finished early by the cycle sweep -- and a
+        // single rounding digit of disagreement would show up as the die
+        // twitching as it settles.
+        resting: scene.resting,
       };
     } catch (error) {
       // A geometry the simulator or the bake refuses. Nothing here may throw
@@ -798,24 +1029,94 @@ class BoardgameDie extends BoardgameAnimatableItem {
     }
   }
 
+  /**
+   * Play the planned tumble, and see that the die ends up in its landed pose
+   * WHETHER OR NOT it does.
+   *
+   * `playMotionTracks` has three early returns -- `missing-target`,
+   * `not-started`, `playback-error` -- that all fire BEFORE it writes the
+   * track's resting style. In every one of them `_roll` is already set, so
+   * `#orient` renders `none` and `#inner` has nothing: the die would draw in its
+   * raw body frame, showing whichever facet happens to have a +z normal, while
+   * `aria-label` announced the value the physics landed. Announcing one number
+   * and drawing another is the worst failure this component has, so the resting
+   * pose is written by hand here when playback does not start. (`noAnimate` is
+   * the only route that reaches it today; the kernel's own doc comment claims
+   * this hole is closed, and this is what closes it.)
+   */
   private _playRoll(roll: DieRoll): void {
-    this.playMotionTracks(
-      componentMotionTracks([{
-        target: 'visual',
-        property: 'transform',
-        curve: roll.curve,
-        resolution: Math.round(roll.durationMs / FRAME_MS),
-        resting: roll.resting,
-      }]),
-      { duration: roll.durationMs },
-      // REQUIRED. Under the default 'version' policy the kernel clamps the
-      // duration into the cycle's slot -- a three-second bake played in 600ms is
-      // geometrically faithful and physically absurd -- and can resolve to skip
-      // outright, which reports 'not-started' and takes sibling tracks down with
-      // it. The context is null in solo play, so both failures would appear only
-      // in companion mode.
-      { timing: 'immediate' },
-    );
+    const generation = this._rollGeneration;
+    let result: MotionTrackPlayResult | undefined;
+    try {
+      result = this.playMotionTracks(
+        componentMotionTracks([{
+          target: 'visual',
+          property: 'transform',
+          curve: roll.curve,
+          resolution: Math.round(roll.durationMs / FRAME_MS),
+          resting: roll.resting,
+        }]),
+        { duration: roll.durationMs },
+        // REQUIRED. Under the default 'version' policy the kernel clamps the
+        // duration into the cycle's slot -- a three-second bake played in 600ms is
+        // geometrically faithful and physically absurd -- and can resolve to skip
+        // outright, which reports 'not-started' and takes sibling tracks down with
+        // it. The context is null in solo play, so both failures would appear only
+        // in companion mode.
+        { timing: 'immediate' },
+      );
+    } catch (error) {
+      // componentMotionTracks compiles the curve OUTSIDE playMotionTracks' own
+      // try, so a curve it refuses would escape into Lit's update pass and
+      // reject updateComplete. Same treatment as a playback error: the die still
+      // has to land.
+      console.error('[boardgame-die] could not compile the roll:', error);
+      result = undefined;
+    }
+    // Announced once the tumble is on screen -- or, below, once the die has
+    // been put where the tumble would have left it.
+    this._announcement = '';
+    this.dispatchEvent(new CustomEvent('roll-start', {
+      bubbles: true,
+      composed: true,
+      detail: this._rollDetail(roll),
+    }));
+    if (result?.status !== 'started') {
+      if (this._innerElement) this._innerElement.style.transform = roll.resting;
+      this._finishRoll(roll, generation);
+      return;
+    }
+    // The animation's own settlement is the ground truth for "the die has
+    // stopped", and it resolves for a tumble finished early by the cycle sweep
+    // exactly as for one that ran to its end. A cancelled animation rejects; the
+    // die is then no longer showing this roll and must not report it.
+    void Promise.all(result.playbacks.map((playback) => playback.animation.finished))
+      .then(() => this._finishRoll(roll, generation), () => undefined);
+  }
+
+  /**
+   * The die has stopped: announce the result and say so.
+   *
+   * `roll-end` is what a game listens to in order to celebrate a number -- and
+   * the reason it exists is that the alternative is celebrating at CYCLE start,
+   * which fires an effect at the die's layout anchor while the solid is 60px
+   * away in the air and finishes it while the roll still has a second to run.
+   */
+  private _finishRoll(roll: DieRoll, generation: number): void {
+    // A roll superseded by a later one is not this die's result any more.
+    if (generation !== this._rollGeneration || this._roll !== roll) return;
+    const detail = this._rollDetail(roll);
+    const values = this._faceValues();
+    const label = values.length
+      ? this._resolveFace(values[roll.presented], this._usesPips(this._solid())).label
+      : String(detail.value);
+    this._announcement = `Rolled ${label}`;
+    this.requestUpdate();
+    this.dispatchEvent(new CustomEvent('roll-end', {
+      bubbles: true,
+      composed: true,
+      detail,
+    }));
   }
 
   private _classes(disabled: boolean, solid: boolean): string {
@@ -1054,17 +1355,45 @@ class BoardgameDie extends BoardgameAnimatableItem {
     return `${base} showing ${this._resolveFace(values[shown], this._usesPips(solid)).label}`;
   }
 
+  /**
+   * Why the die cannot be rolled, split into what is worth SHOWING and what is
+   * only worth having.
+   *
+   * Every reason used to be drawn under the die in the error colour, which meant
+   * that every roll in pig put red text under a tumbling die for a second and a
+   * quarter: the client displays state N while N+1 exists, so the displayed
+   * state's legality says the move is not possible (`move-not-possible`), and
+   * the gate says an animation is running (`animation-running`). Neither is a
+   * failure. `moveActionReasonSeverity` is where that judgement lives now, so
+   * every control gets it and not just this one.
+   *
+   * A quiet reason is still worth having: it stays on the button's `title`,
+   * where it is available on hover and to the accessibility tree, and where it
+   * cannot flash a line of text on and off under a die that is mid-roll.
+   */
+  private _statusMessage(): { readonly text: string | null; readonly loud: boolean } {
+    const action = this.action;
+    if (!isBoundMoveAction(action)) {
+      // Not a bound action at all: an authoring mistake, which is exactly the
+      // kind of thing an error style is for.
+      return { text: action ? 'Bind required move input with .with(...)' : null, loud: true };
+    }
+    const reason = action.reason;
+    if (!reason) return { text: null, loud: false };
+    const retryable = action.preview.kind === 'failed' && action.preview.retryable;
+    const text = retryable
+      ? `${reason.message ?? 'Move legality check failed'}. Activate to retry.`
+      : reason.message;
+    return { text, loud: moveActionReasonSeverity(reason) === 'error' };
+  }
+
   override render() {
     const action = this.action;
     const bound = isBoundMoveAction(action);
     const interactive = bound;
     const effectiveDisabled = this.disabled || !interactive || (bound && !action.canActivate);
-    const baseReason = bound
-      ? action.reason?.message
-      : action ? 'Bind required move input with .with(...)' : null;
-    const reason = bound && action.preview.kind === 'failed' && action.preview.retryable
-      ? `${baseReason ?? 'Move legality check failed'}. Activate to retry.`
-      : baseReason;
+    const status = this._statusMessage();
+    const shown = status.loud ? status.text : null;
     const solid = this._solid();
     return html`
       <div id="scaler">
@@ -1072,7 +1401,8 @@ class BoardgameDie extends BoardgameAnimatableItem {
           id="main"
           type="button"
           aria-label=${this._ariaLabel(interactive, solid)}
-          aria-describedby=${reason ? 'action-status' : ''}
+          aria-describedby=${shown ? 'action-status' : nothing}
+          title=${!status.loud && status.text ? status.text : nothing}
           aria-busy=${String(bound && action.submission.kind === 'pending')}
           ?disabled=${effectiveDisabled}
           data-cocked=${this._roll?.cocked ? 'true' : nothing}
@@ -1080,7 +1410,9 @@ class BoardgameDie extends BoardgameAnimatableItem {
           class="${this._classes(effectiveDisabled, solid !== null)}">
           ${solid ? this._renderSolid(solid) : this._renderReel()}
         </button>
-        ${reason ? html`<span id="action-status" role="status">${reason}</span>` : ''}
+        ${shown ? html`<span id="action-status" class="interaction-status"
+          role="status" aria-live="polite">${shown}</span>` : nothing}
+        <span class="visually-hidden" role="status" aria-live="polite">${this._announcement}</span>
       </div>
     `;
   }

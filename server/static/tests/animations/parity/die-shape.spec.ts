@@ -69,6 +69,10 @@ async function mountDie(
     if (opts.faceNames) die.faceNames = opts.faceNames;
     if (opts.symbols) die.symbols = opts.symbols;
     die.item = {
+      // The same component ID every install in this file uses: a die whose
+      // component ID CHANGES is a different die, and the component treats that
+      // install as a first install rather than as a throw.
+      ID: 'fixture-component',
       Values: { Faces: faces },
       DynamicValues: { SelectedFace: opts.selectedFace ?? 0, Value: faces[opts.selectedFace ?? 0] },
     };
@@ -466,22 +470,34 @@ test.describe('boardgame-die solid', () => {
         box.top + box.height / 2,
       ) as Element | null;
       const facet = hit?.closest?.('.facet') as HTMLElement | null;
+      // The resting solid's transform must BE the projection, not 'none': if it
+      // were, switching it off below would prove nothing.
+      const expect3d = (value: string) => {
+        if (!value.startsWith('matrix3d')) {
+          throw new Error(`#inner carries no 3D transform, only "${value}"`);
+        }
+      };
 
       // Second, occlusion-independent probe that the 3D context is LIVE all
-      // the way from the perspective wrapper down to the facets: switch the
-      // perspective off and the projection must change. It cannot, if
-      // anything between #stage and a facet has flattened -- a flattened
-      // context ignores the perspective entirely. Concretely, on a cube
-      // without perspective the three pairs of opposite faces project to
-      // pairwise-IDENTICAL rectangles; with it, the nearer of each pair is
-      // measurably bigger.
-      const stage = root.querySelector('#stage') as HTMLElement;
+      // the way from the projection down to the facets: switch the perspective
+      // off and the projection must change. It cannot, if anything between
+      // #inner and a facet has flattened -- a flattened context ignores the
+      // perspective entirely. Concretely, on a cube without perspective the
+      // three pairs of opposite faces project to pairwise-IDENTICAL rectangles;
+      // with it, the nearer of each pair is measurably bigger.
+      //
+      // The camera is a perspective() FUNCTION in #inner's own transform, not
+      // the perspective property on #stage: a roll writes its travel in front
+      // of it so that the solid is projected about its own centre. So this is
+      // what has to be switched off, and a die that has never rolled carries
+      // exactly the same projection a rolling one does.
       const sizes = () => (Array.from(root.querySelectorAll('.facet')) as HTMLElement[])
         .map((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
       const projected = sizes();
-      stage.style.perspective = 'none';
+      expect3d(getComputedStyle(inner).transform);
+      inner.style.transform = 'none';
       const flattened = sizes();
-      stage.style.perspective = '';
+      inner.style.transform = '';
       const worstShift = Math.max(...projected.flatMap((pair, i) =>
         pair.map((value, j) => Math.abs(value - flattened[i][j]))));
 
@@ -568,18 +584,37 @@ test.describe('boardgame-die solid', () => {
       const held = new DOMMatrix(after);
       const jump = held.toFloat64Array().reduce(
         (worst, value, index) => Math.max(worst, Math.abs(value - ends.toFloat64Array()[index])), 0);
-      return { before, during, after, count: animations.length, duration, keyframes, jump };
+      // What a die that has never rolled carries: the projection alone. Read
+      // from a second, untouched die so that it cannot pick up anything this
+      // one's roll left behind.
+      const fresh = document.createElement('boardgame-die') as any;
+      fresh.item = {
+        ID: 'fresh-component',
+        Values: { Faces: die.faces },
+        DynamicValues: { SelectedFace: 0, Value: die.faces[0] },
+      };
+      document.body.appendChild(fresh);
+      for (let pass = 0; pass < 3; pass++) await fresh.updateComplete;
+      const resting = getComputedStyle(
+        (fresh.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement).transform;
+      fresh.remove();
+      return { before, during, after, count: animations.length, duration, keyframes, jump, resting };
     });
 
     // Still exactly one animation on #inner: one channel, one owner.
     expect(result.count).toBe(1);
-    // Seconds of physics, not one animation-length slot.
-    expect(result.duration).toBeGreaterThan(600);
+    // A physics trajectory, not one animation-length slot. Stated against the
+    // component's own default length rather than a constant, because the
+    // simulator is tuned from time to time and what this pins is that the roll
+    // is not being clamped to the framework's default.
+    expect(result.duration).toBeGreaterThan(250);
     // A sampled trajectory, not the two-endpoint reel scroll it replaces.
     expect(result.keyframes.length).toBeGreaterThan(20);
     expect(result.keyframes.filter((value: string) => value.includes('--reel-step'))).toEqual([]);
-    // The die was at rest, then moved, and the movement was not a no-op.
-    expect(result.before).toBe('matrix(1, 0, 0, 1, 0, 0)');
+    // The die was at rest -- carrying its projection and nothing else -- then
+    // moved, and the movement was not a no-op. (The resting transform is the
+    // perspective() the camera lives in; see boardgame-die.ts's #inner.solid.)
+    expect(result.before).toBe(result.resting);
     expect(result.during).not.toBe(result.before);
     expect(result.after).not.toBe(result.before);
     // ...and it settled exactly where the curve ends rather than snapping.

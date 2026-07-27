@@ -33,8 +33,7 @@
  * — and the die comes to rest on the tray's floor, about three quarters of a box
  * below the middle of the box it is laid out in, and wherever it drifted to.
  *
- * Two constant turns/translations fix that, composed in front of every keyframe
- * as ONE literal prefix (see `sceneTransform`):
+ * Two constant turns/translations fix that (see `rollScene`):
  *
  *   1. WHERE THE CAMERA STANDS, which is `readingPose` — the same routine, and
  *      therefore the same framing, the die is shown in before it has ever
@@ -50,21 +49,59 @@
  *   2. a RECENTRING translation, so the die comes to rest at the centre of its
  *      own box whatever spot on the floor it landed on.
  *
- * Both are the same for every keyframe of one roll, so composing them here
- * rather than in `dice-bake.ts` costs one string concatenation per keyframe and
- * keeps the bake a pure function of the physics.
+ * ## Why the camera travels with the die
+ *
+ * A solid is drawn as one box per face with `backface-visibility: hidden`, and
+ * that property does not ask where the camera is: it hides a facet whose
+ * accumulated matrix has `m33 <= 0`, i.e. whose outward normal leans away from
+ * `+Z`. That test is only the same question as "can the camera see it?" when the
+ * facet sits on the camera's axis.
+ *
+ * A tumble carries the solid across its own box — a median of 56px on a 100px
+ * die, up to 91px — so with a camera pinned to the middle of the box the two
+ * tests disagree for a facet up to ~17 degrees off axis. The disagreement is
+ * visible both ways: a facet the camera CAN see gets culled (a see-through hole
+ * in the solid, 10-25% of the silhouette, lasting several frames), and a facet
+ * it cannot see gets drawn over the front of the die. Measured over 20 seeded
+ * rolls per shape, a d20 spent 22% of its frames with a hole in it.
+ *
+ * So the die's travel is applied OUTSIDE the projection and its pose inside:
+ * every keyframe is
+ *
+ *     translate3d(travel) perspective(D) translate3d(0,0,depth) <turns> matrix3d(pose)
+ *
+ * CSS applies a `perspective()` function to everything to its right in the list,
+ * so the solid is projected about ITS OWN centre and only then moved into place.
+ * The camera therefore rides with the die, every facet stays within a
+ * circumradius of the axis (~6 degrees on a 100px die), and the orthographic
+ * test `backface-visibility` performs is the one the camera would give. The
+ * price is that lateral travel is no longer foreshortened, which is a few pixels
+ * on a throw and nothing a player can see.
+ *
+ * The depth term stays INSIDE the projection: it is on the axis, so it cannot
+ * reopen the disagreement, and it is what makes the die grow as it comes up off
+ * the tray toward the viewer.
  */
 
 import {
   magnitude,
   scale as scaleVec,
   subtract,
+  vec3,
   type DieGeometry,
   type Quat,
+  type Vec3,
 } from './die-geometry.ts';
-import { simulateRoll, type DieTrajectory, type RollTrajectory } from './dice-sim.ts';
+import { simulateRoll, type DieSample, type DieTrajectory, type RollTrajectory } from './dice-sim.ts';
+import { trajectoryCurve } from './dice-bake.ts';
 import { cssNumber, toScreen } from '../solid/screen-frame.ts';
-import { applyTurn, readingPose, rotate3d, surfaceDirections } from '../solid/reading-pose.ts';
+import {
+  applyTurn,
+  readingPose,
+  rotate3d,
+  surfaceDirections,
+  type Turn,
+} from '../solid/reading-pose.ts';
 
 /**
  * HALF-extents of the tray a die is thrown in, in die circumradii.
@@ -190,9 +227,78 @@ export function settledTrajectory(die: DieTrajectory): DieTrajectory {
 }
 
 /**
- * The constant prefix that turns one simulated world into one rendered scene:
- * `translate3d(recentre) <the reading pose>`, applied in front of every baked
- * `matrix3d`.
+ * How far in front of the solid the camera stands, in die sizes.
+ *
+ * The single definition: `boardgame-die.ts` interpolates it into the CSS that
+ * frames a die which has never rolled, and every keyframe of a roll writes it as
+ * a literal `perspective()` (see `rollScene`). A roll framed at a different
+ * depth from the resting die would change the solid's size the moment its
+ * animation was removed.
+ */
+export const PERSPECTIVE_DEPTH_DIE_SIZES = 6;
+
+/** The origin of the die's box, in the space the emitted transform poses. */
+const ORIGIN: Vec3 = vec3(0, 0, 0);
+
+/**
+ * Where the die's centre sits on screen at trajectory time `t`, in px, after
+ * the reading pose has been applied.
+ *
+ * The pose turns are applied with `reduceRight` because the emitted list is
+ * outermost first, so it is applied last first.
+ */
+function posedPosition(
+  samples: readonly DieSample[],
+  turns: readonly Turn[],
+  radiusPx: number,
+  t: number,
+): Vec3 {
+  return turns.reduceRight(
+    (point, turn) => applyTurn(point, turn),
+    scaleVec(toScreen(positionAt(samples, t)), radiusPx));
+}
+
+/**
+ * The simulated position at time `t`, linearly interpolated between samples and
+ * clamped to the trajectory's own ends.
+ *
+ * Deliberately the same shape of interpolation `dice-bake.ts` performs on the
+ * pose it bakes, evaluated at the same time for the same progress: the two halves
+ * of one keyframe would otherwise describe the die at two different instants.
+ */
+function positionAt(samples: readonly DieSample[], t: number): Vec3 {
+  const last = samples.length - 1;
+  if (t <= samples[0].t) return samples[0].position;
+  if (t >= samples[last].t) return samples[last].position;
+  let low = 0;
+  let high = last;
+  while (low < high) {
+    const middle = (low + high + 1) >> 1;
+    if (samples[middle].t <= t) low = middle;
+    else high = middle - 1;
+  }
+  const span = samples[low + 1].t - samples[low].t;
+  const u = span > 0 ? (t - samples[low].t) / span : 0;
+  const a = samples[low].position;
+  const b = samples[low + 1].position;
+  return vec3(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u);
+}
+
+/** One roll, as the transform `#inner` carries for the whole of it. */
+export interface RollScene {
+  /** The transform at animation progress `p`, clamped to [0, 1]. */
+  readonly transform: (progress: number) => string;
+  /**
+   * What the element must hold once the animation is gone. Byte-identical to
+   * `transform(1)` because it IS `transform(1)`: animations run with
+   * `fill: 'none'`, so a single rounding digit of disagreement shows up as the
+   * die twitching as it settles.
+   */
+  readonly resting: string;
+}
+
+/**
+ * One simulated throw, as the CSS `#inner` carries for every frame of it.
  *
  * The pose is `readingPose` handed the facet normals AS THE THROW LEFT THEM, so
  * a rolled die is framed exactly the way a die that has never rolled is framed —
@@ -203,33 +309,72 @@ export function settledTrajectory(die: DieTrajectory): DieTrajectory {
  * Whatever roll the simulation stopped at survives, which is what a real die
  * does.
  *
- * CSS applies a transform list left to right, so the list reads outermost
- * first: a point is posed, then moved so that the RESTING pose lands on the
- * origin. The recentring offset is therefore minus the POSED resting position
- * and has to be computed after the turns, not before.
+ * The emitted list is, outermost first:
  *
- * Every number here is a literal: a `var()` or `calc()` anywhere in a transform
- * keyframe forfeits compositing and drops a multi-second tumble onto the main
- * thread, which is exactly the behaviour this feature replaces.
+ *     translate3d(travel) perspective(D) translate3d(0,0,depth) <turns> matrix3d(pose)
+ *
+ * `perspective()` projects everything to its RIGHT, so the solid is projected
+ * about its own centre and only then moved into place — the camera rides with
+ * the die, which is what keeps `backface-visibility`'s orthographic culling
+ * honest. See the file docs for the measurement behind that.
+ *
+ * The travel is minus the POSED resting position, so it is zero at progress 1
+ * exactly and the die always comes to rest dead centre in its own box, whatever
+ * spot on the tray's floor it landed on.
+ *
+ * `matrix3d` comes from `dice-bake.ts` with the trajectory's positions removed:
+ * the bake owns the physics-to-CSS reflection and the slerp, and this module
+ * owns where the resulting solid is put. Every number is a literal — a `var()`
+ * or `calc()` anywhere in a transform keyframe forfeits compositing and drops a
+ * multi-second tumble onto the main thread, which is exactly the behaviour this
+ * feature replaces.
  */
-export function sceneTransform(
+export function rollScene(
   geometry: DieGeometry,
   die: DieTrajectory,
   presented: number,
   radiusPx: number,
-): string {
+  durationMs: number,
+): RollScene {
   // A turn `minimalTurn` reports as a fraction of a millidegree rather than as
   // `null` would put a dead `rotate3d(..., 0deg)` in every one of up to 256
-  // keyframes. Dropped BEFORE the recentring below is computed, so the offset
-  // is minus the position the emitted list actually poses the die at.
+  // keyframes. Dropped BEFORE the travel below is computed, so the offset is
+  // minus the position the emitted list actually poses the die at.
   const turns = readingPose(
     surfaceDirections(geometry, die.restingOrientation), presented,
     { uprightContent: false },
   ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
-  const rest = die.samples[die.samples.length - 1].position;
-  // reduceRight: the list is outermost first, so it is applied last first.
-  const posed = turns.reduceRight(
-    (point, turn) => applyTurn(point, turn), scaleVec(toScreen(rest), radiusPx));
-  const recentre = `translate3d(${cssNumber(-posed[0])}px,${cssNumber(-posed[1])}px,${cssNumber(-posed[2])}px)`;
-  return turns.length ? `${recentre} ${turns.map(rotate3d).join(' ')}` : recentre;
+  const samples = die.samples;
+  const first = samples[0].t;
+  const last = samples[samples.length - 1].t;
+  const rest = posedPosition(samples, turns, radiusPx, last);
+  // The same throw with its travel taken out: what is left is the die's
+  // ORIENTATION, which is the only part of the pose that belongs inside the
+  // projection. The bake's own resting/curve agreement carries over unchanged,
+  // because both are computed from this same stripped trajectory.
+  const spinning: DieTrajectory = {
+    samples: samples.map((sample) => ({
+      t: sample.t,
+      position: ORIGIN,
+      orientation: sample.orientation,
+    })),
+    restingOrientation: die.restingOrientation,
+  };
+  const spin = trajectoryCurve(spinning, durationMs, { radiusPx });
+  const depthPx = PERSPECTIVE_DEPTH_DIE_SIZES * 2 * radiusPx;
+  const pose = turns.length ? ` ${turns.map(rotate3d).join(' ')}` : '';
+  const transform = (progress: number): string => {
+    const clamped = progress <= 0 ? 0 : progress >= 1 ? 1 : progress;
+    const t = Math.min(last, Math.max(first, first + clamped * durationMs));
+    const travel = subtract(posedPosition(samples, turns, radiusPx, t), rest);
+    return `translate3d(${cssNumber(travel[0])}px,${cssNumber(travel[1])}px,0px)`
+      + ` perspective(${cssNumber(depthPx)}px)`
+      + ` translate3d(0px,0px,${cssNumber(travel[2])}px)`
+      + `${pose} ${spin(clamped)}`;
+  };
+  // The resting value is `transform(1)` itself, not the bake's `restingTransform`
+  // composed by hand with a prefix: the WHOLE list has to agree, not just its
+  // last function, and calling the emitter is the only way the two can be
+  // byte-identical by construction rather than by inspection.
+  return { transform, resting: transform(1) };
 }
