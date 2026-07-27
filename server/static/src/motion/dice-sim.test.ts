@@ -163,9 +163,11 @@ describe('simulateRoll determinism', () => {
    * these pairs hashed to the same uint32 and produced the SAME ROLL: a
    * fractional part was thrown away, anything at or above 2^32 wrapped, and
    * negatives wrapped onto the top of the range. The renderer derives its seed
-   * from `(component id, state version)`, so a hash wider than 32 bits or a
-   * ratio would have replayed one roll's animation for a different roll with
-   * nothing anywhere saying so.
+   * from `(component id, RollCount)`, so a hash wider than 32 bits or a ratio
+   * would have replayed one roll's animation for a different roll with nothing
+   * anywhere saying so. (Today's renderer hashes with FNV-1a and hands over a
+   * uint32, so it would trip none of these; the contract is on the parameter,
+   * which is a `number`, not on the one caller that exists.)
    *
    * Bitwise-identical trajectories are the assertion, not merely "different
    * resting faces": two rolls can land the same way by chance, but they cannot

@@ -3,7 +3,7 @@
  *
  * Pure arithmetic over `die-geometry.ts`: no DOM, no packages, no wall clock and
  * — critically — no `Math.random`. The renderer re-derives a roll from
- * `(component id, state version)` every time it mounts, so the same seed has to
+ * `(component id, RollCount)` every time it mounts, so the same seed has to
  * reproduce the same trajectory bit for bit, forever. Everything stochastic here
  * comes out of a mulberry32 stream seeded from `RollConfig.seed`, and the only
  * transcendental in the whole module is `Math.sqrt`, which IEEE-754 requires to
@@ -91,7 +91,7 @@ export interface RollConfig {
   /**
    * Any finite number, and every bit of it counts: `2**32 + 1`, `1.5` and `1`
    * are three different rolls. See `createRandom` for the exact contract — the
-   * caller that derives a seed from `(component id, state version)` needs it.
+   * caller that derives a seed from `(component id, RollCount)` needs it.
    */
   readonly seed: number;
   readonly geometry: DieGeometry;
@@ -364,9 +364,13 @@ const SEED_BITS = new DataView(new ArrayBuffer(8));
  * `Math.trunc(seed) ^ ...`, an implicit ToInt32, and the aliasing that produced
  * was structural rather than rare: `3` and `3.7` rolled identically, so did `1`
  * and `2**32 + 1`, and so did `-1` and `2**32 - 1`. The renderer derives its
- * seed from `(component id, state version)`, and a hash that overflows 32 bits
- * or lands on a fraction would have replayed one roll's animation for a
- * different roll with no signal anywhere. Distinct finite doubles now give
+ * seed from `(component id, RollCount)`, and a hash that overflows 32 bits or
+ * lands on a fraction would have replayed one roll's animation for a
+ * different roll with no signal anywhere. That renderer's own hash is FNV-1a
+ * and so hands over a uint32 today, which none of those families would trip;
+ * the guarantee below is about the parameter's type rather than about one
+ * caller's arithmetic, because the hash on the far side of a `number` is the
+ * caller's business and is free to change. Distinct finite doubles now give
  * distinct hash inputs; `-0` is folded onto `0` (`seed + 0`) because the two
  * are `===` and callers have no way to tell which one they produced.
  *
