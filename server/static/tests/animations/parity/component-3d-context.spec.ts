@@ -170,8 +170,11 @@ test.describe('component-owned 3D scenes', () => {
       const inner = el.renderRoot.querySelector('#inner') as HTMLElement;
       const outer = el.renderRoot.querySelector('#outer') as HTMLElement;
       // #inner already carries the card's own flip transform, so the probe
-      // supplies its own 3D context on a child of it rather than overwriting
-      // that: same arithmetic, one level down.
+      // supplies its own 3D context on a CHILD of it rather than overwriting
+      // that. That is not the same arithmetic as the token's probe, and the
+      // assertions below say what it is instead: the card's #outer carries
+      // `perspective: 1000px` for the flip, and while #inner really is
+      // preserve-3d that outer perspective COMPOUNDS with the probe's own.
       const scene = document.createElement('div');
       scene.style.cssText =
         'position:absolute;left:0;top:0;transform-style:preserve-3d;transform:perspective(200px)';
@@ -217,16 +220,31 @@ test.describe('component-owned 3D scenes', () => {
     expect(result.resting.outerFilter, 'the rotated elevation must now be on #outer')
       .toContain('drop-shadow');
     expect(result.resting.innerFilter, '#inner must carry no filter at rest').toBe('none');
+    // 25, NOT the token's 20, and the difference is real rather than noise.
+    // The 10px face at translateZ(100px) is magnified 2x by the probe's own
+    // `perspective(200px)` and then a further 1.25x by #outer's
+    // `perspective: 1000px`, which reaches it because #inner is preserve-3d.
+    // Measured directly: setting `#outer { perspective: none }` in place drops
+    // this same probe from 25 to exactly 20. `boardgame-token`'s #outer has no
+    // perspective, which is why the test above reads 20 and this one does not.
     expect(result.resting.width, 'a preserve-3d context under #inner must be honored')
-      .toBeCloseTo(20, 0);
+      .toBeCloseTo(25, 0);
 
     expect(result.withFilterOnInner.innerFilter, 'the reconstructed before state')
       .toContain('drop-shadow');
+    // 20, and this is the whole tooth: a filter on #inner takes #inner out of
+    // the card's own 3D rendering context, so the probe keeps its own 2x and
+    // loses the 1.25x that came from #outer's perspective. It is a smaller
+    // signal than the token's 20 -> 10, because the card's probe cannot mount
+    // ON #inner (the flip transform lives there) and so only the OUTER
+    // contribution is at stake -- but it is deterministic, it is 25%, and it is
+    // exactly the regression this test exists for: putting the rotated
+    // alt-shadow back on #inner reproduces this number.
     expect(
       result.withFilterOnInner.width,
-      'a filter on #inner forces transform-style: flat, collapsing the scene',
-    ).toBeCloseTo(10, 0);
-    expect(result.recovered, 'removing the filter restores the 3D context').toBeCloseTo(20, 0);
+      'a filter on #inner takes it out of the card\'s 3D context',
+    ).toBeCloseTo(20, 0);
+    expect(result.recovered, 'removing the filter restores the 3D context').toBeCloseTo(25, 0);
 
     expect(result.disabledOuterFilter, 'a disabled rotated card keeps its elevation')
       .toContain('drop-shadow');

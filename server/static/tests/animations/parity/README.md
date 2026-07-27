@@ -221,6 +221,21 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   invariants over the whole recorded golden corpus. Owner: whoever adds a
   second sampled-motion producer should reconsider, because at that point the
   set comparison starts being worth its cost.
+- **The CARD's 3D-context probe is weaker than the token's, by construction** —
+  `component-3d-context.spec.ts` proves a `filter` on `#inner` costs the
+  component its 3D context by mounting a `translateZ`'d face and measuring its
+  perspective magnification. On a token the probe mounts ON `#inner`, so
+  flattening it takes the magnification away entirely: 20px → 10px. On a card
+  it cannot — `#inner` already carries the flip transform — so the probe hangs
+  a scene of its own off a CHILD of `#inner`, keeps its own `perspective(200px)`
+  either way, and what is at stake is only the further 1.25× that `#outer`'s
+  `perspective: 1000px` contributes through `#inner`: 25px → 20px. Both
+  numbers were measured, and the smaller signal is still deterministic and
+  still fails if the rotated alt-shadow goes back on `#inner`. What is lost is
+  headroom: a future change that cost the card its outer perspective for some
+  OTHER reason would land on the same 20 and read as the filter regression.
+  Owner: whoever gives `boardgame-card` a real 3D mode should move the probe
+  onto `#inner` and recover the 2× tooth.
 - **0.08 tolerance** — validated against large-effect teeth (0.17–0.21
   midpoint deltas); a sub-tolerance easing tweak (<0.08 at every fraction)
   would pass. The midpoint sample carries most discriminative power.

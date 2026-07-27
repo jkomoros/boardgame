@@ -339,8 +339,9 @@ test.describe('boardgame-die physics roll', () => {
   // Trap 2, and the reason the roll asks for `timing: 'immediate'`.
   //
   // The kernel's DEFAULT policy is 'version', which clamps an animation into the
-  // companion cycle's slot -- 600ms, against a physics bake of two or three
-  // seconds. A clamped tumble is geometrically faithful and physically absurd
+  // companion cycle's slot -- 600ms, against a physics bake whose length is the
+  // physics's and nobody else's (a few hundred ms for a d6, up to 2.8s for the
+  // longest shapes). A clamped tumble is geometrically faithful and physically absurd
   // (a die falling at five times gravity), and the same policy can resolve to
   // SKIP outright, which makes playMotionTracks report 'not-started' and takes
   // its sibling tracks down with it. Neither is visible in solo play, because
@@ -424,9 +425,24 @@ test.describe('boardgame-die physics roll', () => {
       const at = translation(frame);
       return Math.hypot(at[0] - rest[0], at[1] - rest[1], at[2] - rest[2]);
     }));
-    // The die is 100px across. A throw that covers less than half of that is
+    // The die is 100px across. A throw that covers well under half of that is
     // not a throw; one that covers three times it has left the board.
-    expect(peak / 100).toBeGreaterThan(0.6);
+    //
+    // THE FLOOR MOVED, and it is worth saying why rather than quietly fitting
+    // it. It was 0.6, calibrated before the entry cap existed. `entrySimilarity`
+    // now rescales the whole path so a roll enters from at most
+    // MAX_ENTRY_OFFSET_DIE_WIDTHS of its own width out and from above, which
+    // deliberately shortens the flight -- the old behaviour was a die appearing
+    // ten frames' worth of travel away from where it lands. Measured over 60
+    // seeds on a 100px d6 the peak travel is 0.50 to 1.21 die widths, median
+    // 0.75; this seed is 0.54, near the low end, and the 0.6 bar had simply
+    // stopped describing the shipped throw.
+    //
+    // 0.4 is below the measured minimum with room to spare and still kills the
+    // sabotage this test exists for: leaving `radiusPx` at its default of 1
+    // gives a travel under 0.03 die widths, more than an order of magnitude
+    // under the bar.
+    expect(peak / 100).toBeGreaterThan(0.4);
     expect(peak / 100).toBeLessThan(3);
   });
 
