@@ -703,9 +703,11 @@ function dieSolid(faceCount: number): DieSolid | null {
  * different numbers after every roll, which is the price of a real tumble and
  * is invisible in practice — see `_startRoll` for when the swap happens.
  *
- * The seed comes from `(component ID, state version)` and nothing else, so a
+ * The seed comes from `(component ID, roll identity)` and nothing else, so a
  * remount mid-roll — a re-render, a tab returning to the foreground, a replay —
- * rebuilds the same throw bit for bit instead of re-throwing the die.
+ * rebuilds the same throw bit for bit instead of re-throwing the die. The roll
+ * identity is the die's own `DynamicValues.RollCount`, which counts THROWS; see
+ * `_rollIdentity` for why the state version cannot stand in for it.
  *
  * ## The scene: why the baked trajectory is not enough on its own
  *
@@ -781,14 +783,18 @@ const FRAME_MS = 16.7;
 /**
  * The seed for one roll, from the identity of the roll and nothing else.
  *
- * FNV-1a over `id#version`: the point is only that distinct rolls land on
+ * FNV-1a over `id#identity`: the point is only that distinct rolls land on
  * distinct uint32s without structure, which `dice-sim.ts`'s own splitmix
  * avalanche then spreads across its stream. Exported because it IS the roll's
  * identity — a test that wants to know which throw a die must be playing has to
  * derive it the same way, and so would a replay or a dice tray built later.
+ *
+ * `rollIdentity` is the die's own `DynamicValues.RollCount` wherever the server
+ * reports one, and the game's state version only as a fallback — see
+ * `_rollIdentity`, which is where the choice is made and argued.
  */
-export function dieRollSeed(componentId: string, stateVersion: number): number {
-  const text = `${componentId}#${stateVersion}`;
+export function dieRollSeed(componentId: string, rollIdentity: number): number {
+  const text = `${componentId}#${rollIdentity}`;
   let hash = 0x811c9dc5;
   for (let index = 0; index < text.length; index++) {
     hash ^= text.charCodeAt(index);
@@ -804,10 +810,10 @@ export function dieRollSeed(componentId: string, stateVersion: number): number {
 export function dieRollTrajectory(
   geometry: DieGeometry,
   componentId: string,
-  stateVersion: number,
+  rollIdentity: number,
 ): RollTrajectory {
   return simulateRoll({
-    seed: dieRollSeed(componentId, stateVersion),
+    seed: dieRollSeed(componentId, rollIdentity),
     geometry,
     dieCount: 1,
     bounds: TRAY_BOUNDS,
@@ -1245,12 +1251,16 @@ class BoardgameDie extends BoardgameAnimatableItem {
   /**
    * The version of the game state this die is showing.
    *
-   * One half of a roll's identity — the other is the component's own ID — and
-   * so the thing that makes two mounts of the same state replay the same throw
-   * while the next state throws a different one. Left unset, it is discovered
-   * from the nearest ancestor renderer's `gameVersion`, the same ambient climb
-   * `animationContext` uses, so no game has to wire it up; set it explicitly to
-   * drive a die that has no such ancestor.
+   * The FALLBACK half of a roll's identity — the other is the component's own
+   * ID — used only by a die whose item carries no `DynamicValues.RollCount`
+   * (one driven by hand, or served by an API binary built before the count
+   * existed). Where the count is reported it is the seed, because it is the one
+   * number that means "this die was thrown"; see `_rollIdentity`.
+   *
+   * Left unset, it is discovered from the nearest ancestor renderer's
+   * `gameVersion`, the same ambient climb `animationContext` uses, so no game
+   * has to wire it up; set it explicitly to drive a die that has no such
+   * ancestor.
    */
   @property({ type: Number })
   stateVersion: number | null = null;
@@ -1478,6 +1488,33 @@ class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   /**
+   * WHICH THROW this is: the other half of the seed, alongside the component ID.
+   *
+   * `DynamicValues.RollCount` when the server reports one, because it is the
+   * only number in the die's state that means "this die was thrown" — it is
+   * incremented by `Roll()` and by nothing else. That makes it the roll's real
+   * identity: it changes exactly once per throw, and it does not change for any
+   * other reason.
+   *
+   * NOT the state version, which was the seed before the count existed. The
+   * version moves for every move any player makes, and a game view mounting
+   * installs one die three times at three different versions with the die
+   * untouched — so a component that remounts DURING a roll would re-derive a
+   * DIFFERENT trajectory for the SAME throw, and the die would visibly change
+   * its path mid-air. The count cannot do that: the same throw carries the same
+   * count for as long as it is on screen.
+   *
+   * The version remains the fallback for a die whose game does not use
+   * `components/dice` — one driven by hand, or served by an API binary built
+   * before `RollCount` existed. That die is exactly as deterministic as it was
+   * before, and exactly as exposed to the remount hazard; there is no better
+   * signal available to it (see `_itemChanged`).
+   */
+  private _rollIdentity(): number {
+    return this._rollCount ?? this._resolvedStateVersion();
+  }
+
+  /**
    * Throw the die, and schedule the tumble for the pass after this one.
    *
    * WHEN THE FACE VALUES SWAP. The assignment is recomputed for every roll, so
@@ -1517,7 +1554,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
     if (!Number.isFinite(radiusPx) || radiusPx <= 0) return null;
     try {
       const trajectory = dieRollTrajectory(
-        geometry, this._componentId, this._resolvedStateVersion());
+        geometry, this._componentId, this._rollIdentity());
       // The tail of a throw is the simulator's rest-detection hold, i.e. a die
       // sitting perfectly still. Playing it would hold the gate open for ~300ms
       // of nothing; see `settledTrajectory`.

@@ -3,7 +3,7 @@ import { createOfflineGame, gateSnapshot, expectCleanGate } from '../helpers';
 
 // Task 10: <boardgame-die> stops pretending to roll and actually rolls.
 //
-// A face change now derives a seed from (component ID, state version), runs
+// A roll now derives a seed from (component ID, roll identity), runs
 // `dice-sim.ts` once, paints the server's value onto whichever face the
 // simulation landed (`die-faces.ts`), and plays the baked trajectory
 // (`dice-bake.ts`) as ONE sampled curve track on the visual channel.
@@ -20,8 +20,8 @@ import { createOfflineGame, gateSnapshot, expectCleanGate } from '../helpers';
 //      recomputed per roll, so "the die shows 4" is only true if the right
 //      facet carries it AND that facet is readable.
 //   3. Determinism. The renderer rebuilds the roll from scratch on every mount,
-//      so the same (id, version) has to reproduce the same tumble bit for bit,
-//      and a different version has to produce a different one.
+//      so the same (id, roll count) has to reproduce the same tumble bit for
+//      bit, and a different roll count has to produce a different one.
 //   4. Reduced motion: no tumble, right face.
 //   5. Interruption: `finishGatedAnimations()` mid-roll leaves the right face
 //      presented. This is the `fill: 'none'` resting-style contract.
@@ -182,12 +182,19 @@ async function rollDie(
 
     const faces = die.faces.slice();
     if (opts.stateVersion !== undefined) die.stateVersion = opts.stateVersion;
+    const version = opts.stateVersion ?? die.stateVersion ?? 0;
     const dynamic: any = {
       SelectedFace: opts.selectedFace, Value: faces[opts.selectedFace],
     };
-    // One more throw than the mount installed, which is what the server sends
-    // for a roll -- INCLUDING one that lands on the face already showing.
-    if (opts.rollCount !== null) dynamic.RollCount = opts.rollCount ?? 1;
+    // A throw the mount did not install, which is what the server sends for a
+    // roll -- INCLUDING one that lands on the face already showing.
+    //
+    // It defaults to the state version rather than to 1 because the ROLL COUNT
+    // is the seed (see `_rollIdentity`): a test that wants two scenarios to
+    // throw differently has to vary the count, and every test here expresses
+    // "a different situation" by varying the version. The mount installs count
+    // 0, so any version >= 1 is a change and therefore a throw.
+    if (opts.rollCount !== null) dynamic.RollCount = opts.rollCount ?? version;
     die.item = {
       ID: opts.componentId ?? 'fixture-component',
       Values: { Faces: faces },
@@ -201,10 +208,14 @@ async function rollDie(
     Element.prototype.animate = originalAnimate;
 
     const geometry = geometryModule.dieGeometry(opts.faceCount);
-    const version = opts.stateVersion ?? die.stateVersion ?? 0;
-    const seed = dieModule.dieRollSeed(opts.componentId ?? 'fixture-component', version);
+    // The die seeds from its ROLL COUNT where the item reports one, and from the
+    // state version only where it does not. Derived here the same way the
+    // component derives it, so a seed taken from the wrong number shows up as
+    // every frame mismatching rather than as a test quietly agreeing with a bug.
+    const identity = opts.rollCount === null ? version : (opts.rollCount ?? version);
+    const seed = dieModule.dieRollSeed(opts.componentId ?? 'fixture-component', identity);
     const trajectory = dieModule.dieRollTrajectory(
-      geometry, opts.componentId ?? 'fixture-component', version);
+      geometry, opts.componentId ?? 'fixture-component', identity);
     // What is PLAYED is the throw with its trailing dead hold cut off (see
     // settledTrajectory), so every expectation below is derived from that and
     // not from the raw trajectory -- including its duration, which is the
@@ -517,24 +528,24 @@ test.describe('boardgame-die physics roll', () => {
           v[2] + q[3] * t[2] + (q[0] * t[1] - q[1] * t[0]),
         ];
       };
-      for (let version = 2; version < 80; version++) {
-        const trajectory = dieModule.dieRollTrajectory(geometry, 'fixture-component', version);
+      for (let rollCount = 2; rollCount < 80; rollCount++) {
+        const trajectory = dieModule.dieRollTrajectory(geometry, 'fixture-component', rollCount);
         const die = trajectory.dice[0];
         const presented = facesModule.presentedFaceIndex(geometry, die.restingOrientation);
         const world = rotate(
           die.restingOrientation as number[], geometry.faces[presented].normal as number[]);
         const degrees = (Math.acos(Math.min(1, Math.max(-1, world[1]))) * 180) / Math.PI;
-        if (degrees > 0.5) return { version, degrees };
+        if (degrees > 0.5) return { rollCount, degrees };
       }
       return null;
     });
     // If this ever comes back null the fixture has stopped exercising the case
     // it exists for, which is a louder failure than a silently vacuous pass.
-    expect(tilted, 'no d12 throw in the first 78 versions landed off-square').not.toBeNull();
+    expect(tilted, 'no d12 throw in the first 78 roll counts landed off-square').not.toBeNull();
     expect(tilted!.degrees).toBeGreaterThan(0.5);
 
     const roll = await rollDie(page, {
-      faceCount: 12, selectedFace: 7, stateVersion: tilted!.version,
+      faceCount: 12, selectedFace: 7, stateVersion: 2, rollCount: tilted!.rollCount,
     });
     await page.evaluate(async () => {
       const die = document.getElementById('fixture-die') as any;
@@ -555,31 +566,80 @@ test.describe('boardgame-die physics roll', () => {
     expect(landed.towardsCamera).toBeCloseTo(Math.cos((35 * Math.PI) / 180), 4);
   });
 
-  test('is deterministic in (component id, state version), and only in those', async ({ page }) => {
+  test('is deterministic in (component id, roll count), and only in those', async ({ page }) => {
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1, componentId: 'die-a' });
     const first = await rollDie(page, {
-      faceCount: 6, selectedFace: 2, stateVersion: 9, componentId: 'die-a',
+      faceCount: 6, selectedFace: 2, stateVersion: 9, rollCount: 5, componentId: 'die-a',
     });
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1, componentId: 'die-a' });
     const again = await rollDie(page, {
-      faceCount: 6, selectedFace: 2, stateVersion: 9, componentId: 'die-a',
+      faceCount: 6, selectedFace: 2, stateVersion: 9, rollCount: 5, componentId: 'die-a',
     });
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1, componentId: 'die-a' });
     const later = await rollDie(page, {
-      faceCount: 6, selectedFace: 2, stateVersion: 10, componentId: 'die-a',
+      faceCount: 6, selectedFace: 2, stateVersion: 9, rollCount: 6, componentId: 'die-a',
     });
     await mountDie(page, { faceCount: 6, selectedFace: 0, stateVersion: 1, componentId: 'die-b' });
     const other = await rollDie(page, {
-      faceCount: 6, selectedFace: 2, stateVersion: 9, componentId: 'die-b',
+      faceCount: 6, selectedFace: 2, stateVersion: 9, rollCount: 5, componentId: 'die-b',
     });
 
     // Same identity, same roll -- the whole reason the simulation is seeded
     // rather than random: a remount mid-roll must not re-throw the die.
     expect([again.first, again.last, again.duration])
       .toEqual([first.first, first.last, first.duration]);
-    // A NEW state version is a new throw, and so is a different die.
+    // The NEXT throw is a different one, and so is another die's.
     expect(later.first).not.toBe(first.first);
     expect(other.first).not.toBe(first.first);
+  });
+
+  // THE SEED IS THE ROLL COUNT, NOT THE STATE VERSION.
+  //
+  // Both numbers are deterministic, so the test above passes either way. What
+  // separates them is that the state version moves while ONE throw is on
+  // screen: it advances for every move any player makes, and a game view
+  // mounting installs a die three times at three different versions with the
+  // die untouched. Seeded on the version, a component that re-planned its roll
+  // after any of those -- a remount, a tab returning to the foreground, a
+  // replay scrubbing -- would derive a DIFFERENT trajectory for the SAME throw
+  // and the die would change its path in mid-air.
+  //
+  // So: the same roll count at two unrelated state versions must produce the
+  // same throw, byte for byte, and the count must still be doing real work.
+  test('re-derives the same throw for one roll count at any state version', async ({ page }) => {
+    await mountDie(page, {
+      faceCount: 6, selectedFace: 0, stateVersion: 3, rollCount: 0, componentId: 'die-a',
+    });
+    const early = await rollDie(page, {
+      faceCount: 6, selectedFace: 2, stateVersion: 4, rollCount: 6, componentId: 'die-a',
+    });
+    await mountDie(page, {
+      faceCount: 6, selectedFace: 0, stateVersion: 30, rollCount: 0, componentId: 'die-a',
+    });
+    const late = await rollDie(page, {
+      faceCount: 6, selectedFace: 2, stateVersion: 77, rollCount: 6, componentId: 'die-a',
+    });
+
+    // Seeded on the version these are two different throws; seeded on the count
+    // they are the same throw seen twice. Every keyframe, not just the ends.
+    expect(late.frames).toEqual(early.frames);
+    expect(late.duration).toBe(early.duration);
+    expect(late.expected.presented).toBe(early.expected.presented);
+    // ...and the throw that was played is the one the roll COUNT derives, which
+    // is what a seed silently taken from the version would fail even if the two
+    // captures above happened to agree.
+    expect(early.last.endsWith(early.expected.restingTransform)).toBe(true);
+    expect(late.last.endsWith(late.expected.restingTransform)).toBe(true);
+
+    // The count is not being ignored either: the next throw, at the very same
+    // state version, is a different one.
+    await mountDie(page, {
+      faceCount: 6, selectedFace: 0, stateVersion: 30, rollCount: 0, componentId: 'die-a',
+    });
+    const next = await rollDie(page, {
+      faceCount: 6, selectedFace: 2, stateVersion: 77, rollCount: 7, componentId: 'die-a',
+    });
+    expect(next.first).not.toBe(late.first);
   });
 
   // WHEN the die's other faces take their new numbers.
@@ -701,6 +761,10 @@ test.describe('boardgame-die roll trigger', () => {
     });
     expect(roll.animations).toBe(1);
     expect(roll.duration).toBeCloseTo(roll.expected.durationMs, 6);
+    // ...and it is seeded from the STATE VERSION, which is the only identity
+    // such a die has. `expected` is derived from the version here, so this is
+    // the fallback seed asserted and not merely tolerated.
+    expect(roll.last.endsWith(roll.expected.restingTransform)).toBe(true);
   });
 });
 
@@ -831,9 +895,10 @@ test.describe('boardgame-die physics roll, in the app', () => {
       await createOfflineGame(page, 'pig');
       await expect(page.getByRole('button', { name: 'Roll die' })).toBeEnabled({ timeout: 30000 });
 
-      // A d48 whose throw runs to the simulator's own 5000ms cap.
+      // A d48 whose throw runs to the simulator's own 5000ms cap. The seed is
+      // (component ID, roll count), so the count is what selects it.
       const LONG_FACES = 48;
-      const LONG_VERSION = 118;
+      const LONG_ROLL_COUNT = 118;
       const LONG_ID = 'watchdog-die';
       // Mount it inside the live renderer, so it joins the real gate.
       // `<boardgame-die>` is already defined by the app; importing the module
@@ -852,13 +917,12 @@ test.describe('boardgame-die physics roll, in the app', () => {
         };
         const renderGame = find(document) as HTMLElement;
         const host = renderGame.shadowRoot as ShadowRoot;
-        // A wrapper that answers the ambient `gameVersion` climb, so the die's
-        // seed is this test's and not the live game's -- the roll has to be a
-        // KNOWN long one. `animatableRegistry` and `animationContext` are not on
-        // it, so those two climbs run past it to the real renderer above: the
-        // die is a genuine participant in the real gate.
+        // The die is mounted inside the real renderer so that its
+        // `animatableRegistry` and `animationContext` climbs reach it and it is
+        // a genuine participant in the real gate. Its THROW, though, is this
+        // test's own: the seed comes from the item's `RollCount`, which is set
+        // below to one that is known to run past the watchdog floor.
         const wrapper = document.createElement('div') as any;
-        wrapper.gameVersion = opts.version;
         wrapper.style.cssText = 'position:absolute;top:0;left:0;';
         const die = document.createElement('boardgame-die') as any;
         die.id = 'watchdog-die';
@@ -875,7 +939,7 @@ test.describe('boardgame-die physics roll, in the app', () => {
         (window as any).__watchdogDie = die;
         await die.updateComplete;
         await die.updateComplete;
-      }, { faces: LONG_FACES, id: LONG_ID, version: LONG_VERSION });
+      }, { faces: LONG_FACES, id: LONG_ID });
 
       const before = await gateSnapshot(page);
       // Throw the long die INSIDE the cycle pig's own roll opens: a declaration
@@ -898,7 +962,7 @@ test.describe('boardgame-die physics roll, in the app', () => {
         die.item = {
           ID: opts.id,
           Values: { Faces: faces },
-          DynamicValues: { SelectedFace: 0, Value: 1, RollCount: 1 },
+          DynamicValues: { SelectedFace: 0, Value: 1, RollCount: opts.rollCount },
         };
         for (let pass = 0; pass < 4; pass++) await die.updateComplete;
         const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
@@ -928,7 +992,7 @@ test.describe('boardgame-die physics roll, in the app', () => {
           playState: animation ? animation.playState : 'none',
           watchdogFirings: hooks.watchdogFirings,
         };
-      }, { faces: LONG_FACES, id: LONG_ID });
+      }, { faces: LONG_FACES, id: LONG_ID, rollCount: LONG_ROLL_COUNT });
 
       expect(observed.opened).toBe(true);
       // The die really did play a throw past the floor, and really did declare
