@@ -14,8 +14,14 @@
  * opposite, and nothing upstream converts between them: `dice-sim.ts` says so in
  * its header and leaves the job here on purpose.
  *
- * The conversion is the reflection `S = diag(1, -1, 1)`, applied in exactly one
- * place — `cssMatrixFromPose` — and applied to the WHOLE pose:
+ * The conversion is the reflection `S = diag(1, -1, 1)`. It is DEFINED IN ONE
+ * PLACE — `solid/screen-frame.ts`'s `CSS_AXIS_SIGN`, which is also what
+ * `facet-placement.ts` places every facet with — and this module is one of its
+ * two consumers. That sharing is not tidiness: a facet placed by one convention
+ * and rotated by a matrix built in the other renders as a MIRRORED solid, and
+ * the die then lands showing the face OPPOSITE the one the physics turned up.
+ * This module applies it in exactly one function, `cssMatrixFromPose`, and
+ * applies it to the WHOLE pose:
  *
  *   - a point maps to `S p`, so a die falling toward physics -Y translates
  *     toward CSS +Y, which is down the screen;
@@ -52,6 +58,7 @@
 
 import type { Quat, Vec3 } from './die-geometry.ts';
 import type { DieTrajectory } from './dice-sim.ts';
+import { CSS_AXIS_SIGN } from '../solid/screen-frame.ts';
 
 export interface BakeOptions {
   /**
@@ -70,12 +77,6 @@ export interface BakeOptions {
  * keeping 256 keyframes of matrix strings small.
  */
 const DECIMALS = 6;
-
-/**
- * The physics-to-CSS axis signs: `S = diag(1, -1, 1)`. See the file docs; this
- * is the single place the Y flip lives.
- */
-const CSS_AXIS_SIGN = [1, -1, 1] as const;
 
 /** Two quaternions closer than this in |dot| are treated as the same orientation. */
 const RESTING_TOLERANCE = 1e-6;
@@ -296,9 +297,10 @@ function formatNumber(value: number): string {
 /**
  * The scratch pose, as a CSS `matrix3d`.
  *
- * THE Y FLIP LIVES HERE, and nowhere else in this module. The physics frame is
- * +Y up and CSS's is +Y down, so the whole pose is conjugated by the reflection
- * `S = diag(1, -1, 1)`: `p -> S p` and `R -> S R S`, the latter written out as
+ * THE Y FLIP IS APPLIED HERE, and nowhere else in this module; it is DEFINED in
+ * `solid/screen-frame.ts`, which `facet-placement.ts` places facets with. The
+ * physics frame is +Y up and CSS's is +Y down, so the whole pose is conjugated
+ * by the reflection `S = diag(1, -1, 1)`: `p -> S p` and `R -> S R S`, written out as
  * `s_i s_j R_ij`. See the file docs for why both halves are required and why the
  * result is still a proper rotation.
  *
