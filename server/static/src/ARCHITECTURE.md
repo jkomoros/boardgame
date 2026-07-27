@@ -225,10 +225,17 @@ pipeline is five pure modules and one component, each testable without a DOM:
    solid: outward face normals, plane offsets, vertices, face polygons, an
    inertia tensor, and a `ReadingRule`. Platonic counts (4, 6, 8, 12, 20) are
    closed forms; 10 is a trapezohedron; everything else is a barrel (an N-sided
-   band with two cone caps). Solids are NOT size-normalized — circumradius runs
-   from 1.00 to 1.90 — so every consumer divides through by circumradius.
-   `finishSolid` rejects an open or non-manifold surface rather than returning
-   a silently wrong inertia tensor.
+   band with two cone caps). Solids are NOT size-normalized, so every consumer
+   divides through by a radius — and there are TWO, which is the thing to get
+   right. `boundingRadius` is the true circumsphere (1.00 to 1.90 across the
+   closed forms, and up to 2.63 for a barrel); `nominalRadius` is what a
+   consumer sizing the die by should use, and it is the same number except on a
+   barrel, where it is deliberately the SHORT axis (the ring radius, exactly 1)
+   so that the die box is the barrel's width — what its marks are bounded by —
+   rather than its length, which nothing is printed along. The simulator
+   normalizes by `boundingRadius` (its tray is measured in them); the renderer
+   sizes by `nominalRadius`. `finishSolid` rejects an open or non-manifold
+   surface rather than returning a silently wrong inertia tensor.
 2. **Relabeling** (`motion/die-faces.ts`). The outcome is the SERVER's and is
    known before any pixel moves, so the simulation is never asked to produce
    it. `presentedFaceIndex(geometry, orientation)` reads which face a resting
@@ -250,23 +257,33 @@ pipeline is five pure modules and one component, each testable without a DOM:
    throw the simulator could not settle flat.
 4. **Bake** (`motion/dice-bake.ts`). `trajectoryCurve(die, durationMs, opts)`
    returns the pure function of progress that the curve track wants, emitting
-   **literal `matrix3d(...)`** — never `var()`/`calc()`, which forces
-   main-thread animation — by slerping orientation and lerping position between
-   samples. `restingTransform(die, opts)` is byte-identical to `curve(1)`. The
+   **literal `matrix3d(...)`** — never `var()`/`calc()`, so that no keyframe
+   depends on a custom property a game could change under the tumble and
+   invalidate the composited animation in mid-air — by slerping orientation and
+   lerping position between samples. (A `calc()` over a STATIC custom property
+   does composite; that was measured, and the blanket claim this file used to
+   make was too strong. The guarantee was verified directly instead: with the
+   main thread hard-blocked for 800ms the tumble rendered ~45 of 48 frames,
+   against 1–2 for a non-compositable control.)
+   `restingTransform(die, opts)` is byte-identical to `curve(1)`. The
    physics world is +Y up and CSS screen-Y points DOWN, so the bake applies the
    reflection `S = diag(1, −1, 1)` to the WHOLE pose (`p → Sp`, `R → S R S`) in
    one place. It must be a reflection: the obvious-looking `(x, −y, −z)` is a
    proper rotation into CSS's left-handed frame and renders the solid's mirror
    image. `opts.radiusPx` converts trajectory positions, which are in die
-   circumradii, into pixels — a NUMBER read from the DOM, because interpolating
-   a CSS variable into the matrix would forfeit compositing.
+   BOUNDING radii, into pixels — a NUMBER read from the DOM, so the tumble does
+   not depend on a custom property that could move under it. `dice-roll.ts`
+   passes half the die's drawn box, i.e. `nominalRadius` worth of pixels, which
+   for a barrel is deliberately not the same thing.
 5. **The component** (`components/boardgame-die.ts`). It renders one element
    per face, placed by the face's own normal and centroid and cut to the face
    polygon with `clip-path`, on a `transform-style: preserve-3d` carrier.
    Face content is computed, not hard-coded: an author symbol map first, then
-   generated pips on a 3×3 lattice, then numerals past nine, all laid out
-   inside the largest square INSCRIBED in each facet's polygon (not its
-   bounding box, which is what smears content across a barrel's long faces).
+   generated pips on a 3×3 lattice, then numerals past SIX (`MAX_PIP_VALUE` —
+   the lattice would hold nine, but nobody counts seven dots at a glance and no
+   real d8 is pipped), all laid out inside the largest square INSCRIBED in each
+   facet's polygon (not its bounding box, which is what smears content across a
+   barrel's long faces).
 
    A roll is triggered by `DynamicValues.RollCount`, the server-side counter
    that `Roll()` increments and nothing else touches — a throw landing on the
@@ -286,11 +303,25 @@ pipeline is five pure modules and one component, each testable without a DOM:
    presented facet at most half the smallest angle between any two of the
    solid's facet normals, which is what guarantees that the face carrying the
    value is the most square-on facet on the die rather than a neighbour of it.
-   Aiming cannot rotate the numeral upright (the turn is about an axis
-   perpendicular to the face's normal), so the die still stops at whatever roll
-   the physics left it. The simulator's trailing rest-hold is trimmed before playback —
-   it is ~300ms of a ~1s roll spent holding the whole game's animation gate
-   open on a die that has already stopped.
+   Aiming cannot rotate the numeral upright — its turn is about an axis
+   perpendicular to the face's normal — so a second, separate turn does that:
+   `landedContentTurn` solves in closed form for the roll about the presented
+   facet's OWN normal that leaves its content the right way up, and the
+   component carries it on `#orient`, inside the scene's pose. About that axis
+   it fixes the presented normal and preserves every pairwise facet angle, so
+   it provably cannot cost the presented face its square-on lead. (Only the
+   presented facet's content is corrected; the rest keep whatever orientation
+   their geometry gives them.)
+
+   A roll is played for the simulator's own duration with no dead tail: the
+   simulator ends a trajectory at the last frame in which the die was still
+   turning faster than 120°/s, rather than running its rest-detection hold out
+   as samples — that hold used to be ~300ms of every roll spent holding the
+   whole game's animation gate open on a die that had already stopped.
+   `settledTrajectory` in `dice-roll.ts` is the renderer-side backstop for the
+   same thing and currently removes zero frames from zero rolls. Rolls are
+   short: a d6 runs a few hundred ms (median ~430ms over 60 seeds), and the
+   longest throw over 4,400 seeded throws across 11 shapes is 2761ms.
 
    The whole thing plays as ONE sampled curve track on the `visual` channel
    with `timing: 'immediate'`, so it is an ordinary gate participant: it

@@ -42,8 +42,11 @@ CURVE, a pure function of progress that the compiler samples on a uniform grid
 it owns. That is how motion which is not "interpolate A→B under one easing"
 enters the system. A sampled track claims its channel's TIMELINE: it is pinned
 to linear easing at the effect level and must be played with immediate rather
-than version timing, because a version slot would clamp a multi-second bake
-into its own length and play it uniformly fast. Curves are permitted only on
+than version timing, because a version slot would clamp a bake of the wrong
+length into its own and play the whole thing uniformly fast — a die's throw
+takes as long as the physics says it takes (a few hundred ms for a d6, up to
+2.8s for the longest shapes), which is not a number a 600ms slot can be told.
+Curves are permitted only on
 `visual`; a sampled host track would break the FLIP resting write, the
 two-point structural motion path, and trail-echo synchronization.
 
@@ -538,7 +541,12 @@ start is infrastructure-level scheduling, not a synchronization protocol.
   literal matrices and played as a single track. Its roll takes its own
   duration rather than a version slot — a clamped bake is a die falling at
   five times gravity — but stays queue-gated, declaring that duration so the
-  gate waits for it, without being misrepresented as structural travel.
+  gate waits for it, without being misrepresented as structural travel. Its
+  celebration is the worked example of an effect that CANNOT be planned in
+  `effectsForTransition`: that hook runs at cycle start, which for a die that
+  flies is the moment of the throw, not the moment of the result. Pig listens
+  for the die's own `roll-end` instead and plays a pulse (plus a reward burst
+  on a six) imperatively, at immediate timing, on the value the event carries.
 - Companion Table/Hand bases preserve their established local choreography
   with `animateBetween()` compatibility flights derived from adjacent sanitized
   snapshots. Hand arrivals launch together from their final pose; Table stub
