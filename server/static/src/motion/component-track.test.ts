@@ -236,6 +236,37 @@ describe('curve tracks', () => {
       { ...curved, target: 'host' as const },
     ]), /curves are not allowed on the host channel/);
 
+    // ...including a RESTING value, which is a claim to write the channel's
+    // inline style after the animation. On the host channel that would stomp
+    // boardgame-animatable-item's layoutTransform setter -- permanently, since
+    // the setter early-returns on a value it believes it already wrote -- so it
+    // is rejected at the door and not diagnosed three components later. Nothing
+    // in tree builds one; this is what keeps it that way.
+    assert.throws(() => componentMotionTracks([{
+      target: 'host' as const,
+      property: 'transform' as const,
+      timeline: 'eased' as const,
+      samples: [
+        sample(0, 'translateX(0px)'),
+        sample(1, 'translateX(1px)'),
+      ],
+      resting: 'translateX(1px)',
+    }]), /resting values are not allowed on the host channel/);
+    // The same track without the resting value is fine, so the throw above is
+    // about the resting value and not about anything else in the shape.
+    assert.equal(componentMotionTracks([{
+      target: 'host' as const,
+      property: 'transform' as const,
+      timeline: 'eased' as const,
+      samples: [
+        sample(0, 'translateX(0px)'),
+        sample(1, 'translateX(1px)'),
+      ],
+    }])[0].resting, undefined);
+    // And a resting value on the VISUAL channel still compiles: this rejects a
+    // channel, not a feature.
+    assert.equal(componentMotionTracks([{ ...curved, resting: 'none' }])[0].resting, 'none');
+
     // An eased track is a two-endpoint transition by definition; extra samples
     // would be silently reinterpreted by the kernel's effect-level easing.
     assert.throws(() => componentMotionTracks([{

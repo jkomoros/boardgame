@@ -136,6 +136,19 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
     if (input.timeline === 'sampled' && input.target !== 'visual') {
       throw new Error('component motion curves are not allowed on the host channel');
     }
+    // A resting value is a claim to write the channel's INLINE STYLE after the
+    // animation, and on the host channel that surface is not the track's to
+    // claim: `boardgame-animatable-item` owns the host element's transform
+    // through its `layoutTransform` setter, which early-returns when the value
+    // it is handed equals the one it last wrote. So an inline write from here
+    // would not merely race the setter -- it would win permanently, because the
+    // setter believes the element already carries the value it is displaying
+    // and never writes it again. Rejected for the same reason a sampled
+    // timeline is above: the host channel is structural, and only the framework
+    // may say where a component sits.
+    if (input.resting !== undefined && input.target !== 'visual') {
+      throw new Error('component motion resting values are not allowed on the host channel');
+    }
     const samples = input.samples.map(sample => {
       if (!Number.isFinite(sample?.offset) || sample.offset < 0 || sample.offset > 1) {
         throw new Error('component motion sample offsets must lie in [0,1]');
