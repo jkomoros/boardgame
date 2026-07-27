@@ -298,8 +298,35 @@ export interface RollDiagnostics {
  * hand straight back.
  */
 const PHYSICS_HZ = 1080;
-/** Samples land on 60 Hz frame boundaries, which is what the renderer wants. */
-const SAMPLE_HZ = 60;
+/**
+ * 180 Hz: three samples per 60 Hz display frame.
+ *
+ * This is not a rendering rate, it is the RESOLUTION at which a trajectory is
+ * handed over, and it has to resolve the motion the simulation produces. A
+ * rotation between two samples is interpolated the short way round, which is
+ * the right answer only while a sample-to-sample turn is well under half a
+ * revolution — and `dice-bake.test.ts` requires eightfold margin on exactly
+ * that, `angle < 2*pi/9`, i.e. 40 degrees per sample.
+ *
+ * At 60 Hz that ceiling was what capped the throw: the dice could not be spun
+ * fast enough to make two full turns without putting 96 degrees into one
+ * sample, so they turned about once and read as a topple rather than a tumble.
+ * Sampling three times as often divides the per-sample angle by three — the
+ * same motion now peaks at 32.3 degrees — and the launch spin was raised into
+ * the room that opened up. See `LAUNCH_SPIN_MIN`.
+ *
+ * What it costs is the size of a `RollTrajectory`: a median roll went from 35
+ * samples to 105. Measured over 210 rolls, `trajectoryCurve` takes 0.018 ms to
+ * build against 0.007 ms before, and 61 evaluations of the returned curve —
+ * one per frame of a second-long animation — cost 0.172 ms against 0.163 ms,
+ * because evaluating is a binary search and not a scan. Both are noise beside
+ * the ~8 ms the simulation itself takes. The bake compiler clamps to 256
+ * keyframes, which a 180 Hz roll reaches at 1.4 seconds rather than 4.3; the
+ * measured 99th percentile roll is under 2 seconds, so the longest rolls now
+ * compile slightly coarser than their samples, which is a resolution the
+ * compiler has always been free to choose.
+ */
+const SAMPLE_HZ = 180;
 const STEPS_PER_SAMPLE = PHYSICS_HZ / SAMPLE_HZ;
 const STEP_SECONDS = 1 / PHYSICS_HZ;
 
@@ -319,16 +346,16 @@ const DEFAULT_ENERGY = 1;
  * slide, and more rolling resistance stops the long slow topple at the end.
  * Median duration over 24 seeds per shape, before -> after:
  *
- *     d3   883 -> 400     d7  1417 ->  517     d12  1483 -> 683
- *     d4   800 -> 333     d10 1133 ->  550     d20  1317 -> 617
- *     d6   983 -> 433
+ *     d3   883 -> 461     d7  1417 ->  539     d12  1483 -> 606
+ *     d4   800 -> 350     d10 1133 ->  622     d20  1317 -> 600
+ *     d6   983 -> 428
  *
  * and the share of frames turning under a degree — dead frames, the last third
  * of a filmstrip in which nothing happens — went from a 33% worst median to
- * 16%. What did NOT move is the tumble: see `LAUNCH_SPIN_MIN` for why, and for
- * the constraint that stops it moving.
+ * 0-19%. The tumble moved with them, but only once the sample grid could carry
+ * it: see `SAMPLE_HZ` and `LAUNCH_SPIN_MIN`.
  */
-const DEFAULT_GRAVITY = 65;
+const DEFAULT_GRAVITY = 85;
 const DEFAULT_RESTITUTION = 0.32;
 const DEFAULT_FRICTION = 0.6;
 
@@ -344,10 +371,12 @@ const ANGULAR_DRAG = 0.3;
  * where this used to sit — a d12's 95th percentile was still 2.85 seconds.
  * Raising it trades tumble for brevity, so it is bounded on both sides: at 26
  * the die stops turning noticeably before it has finished settling, which shows
- * up as `restingDrift` climbing past 3 degrees, and below about 14 the median
- * d12 goes back over a second. 20 sits between the two.
+ * up as `restingDrift` climbing, and too low and the median d12 goes back over
+ * a second. 34 is where the two meet at the current launch spin — it went up
+ * with the spin, because a die thrown twice as hard has twice as much to shed
+ * before it can settle.
  */
-const CONTACT_ANGULAR_DRAG = 20;
+const CONTACT_ANGULAR_DRAG = 34;
 
 /** A vertex this close to a surface is a contact candidate even at rest. */
 const CONTACT_MARGIN = 0.02;
@@ -408,12 +437,18 @@ const MAX_DEPENETRATION_SPEED = 3.6;
 const PENETRATION_SLOP = 0.002;
 
 /**
- * What a frame has to do to count as motion rather than as tail. Degrees of
- * rotation and circumradii of travel, both per 60 Hz frame. See
+ * What one sample has to do to count as motion rather than as tail: degrees of
+ * rotation and circumradii of travel, per `SAMPLE_HZ` interval. See
  * `liveFrameCount`.
+ *
+ * These are RATES wearing per-sample clothing — 120 degrees a second and 0.72
+ * circumradii a second — so they moved with the sample grid when it went from
+ * 60 Hz to 180 and mean exactly what they meant before: at a 100px die, 1.7 px
+ * of surface swing and 0.2 px of drift per 60 Hz display frame. Anything
+ * slower than that is a die the player has already stopped watching.
  */
-const TAIL_ROTATION = 2;
-const TAIL_TRAVEL = 0.012;
+const TAIL_ROTATION = 0.667;
+const TAIL_TRAVEL = 0.004;
 
 /** Sustained speeds below these, in contact, count as at rest. */
 const REST_LINEAR = 0.05;
@@ -495,37 +530,30 @@ const SPAWN_CLEARANCE = 1.2;
 /**
  * Launch speeds at `energy: 1`. Scaled by `sqrt(energy)`, so KE is linear.
  *
- * ## The tumble, and the ceiling it is under
+ * The spin range is 60 to 102 rad/s, i.e. 9.5 to 16 turns per second, which
+ * over the quarter-second a die spends in the air is the two to three visible
+ * tumbles a thrown die makes. It was 20 to 44 and the dice turned about once in
+ * total — 387 to 431 degrees of median rotation across the shapes, a slow
+ * topple rather than a throw. They now turn 806 to 953 degrees, 2.2 to 2.6 full
+ * revolutions.
  *
- * The spin range is 30 to 40 rad/s, i.e. 4.8 to 6.4 turns per second. It was 20
- * to 44, and the narrowing is the point: the floor came up so that no throw
- * reads as a drop, and the ceiling came DOWN because there is a hard limit just
- * above it that is not about physics at all.
+ * ## The ceiling this sits under, which is not physical
  *
- * A roll is handed to the renderer as samples on the 60 Hz grid, and a rotation
- * is interpolated between two of them the short way round. That is only the
- * right answer while a sample-to-sample turn is well under half a revolution,
- * and `dice-bake.test.ts` insists on eightfold margin: it requires the long way
- * round a segment, `2*pi - angle`, to exceed the short way by 8x, which is
- * `angle < 2*pi/9`, i.e. 40 degrees per frame, i.e. 42 rad/s. An impact can
- * spin a die up past its launch, so 40 rad/s of launch already puts the
- * measured peak at 38.7 degrees a frame.
+ * A roll is handed over as samples, and a rotation between two of them is
+ * interpolated the short way round; `dice-bake.test.ts` requires eightfold
+ * margin on that, `angle < 2*pi/9`, i.e. 40 degrees per SAMPLE. An impact can
+ * spin a die up well past its launch, so this range peaks at 32.3 degrees a
+ * sample and the headroom is real but not large.
  *
- * That ceiling is what a die's TOTAL turn is really limited by. A roll now
- * lasts 400 to 700 ms of which perhaps 250 ms is free flight, so 42 rad/s buys
- * about 1.1 to 1.3 turns, and that is what the dice do: 394 to 488 degrees of
- * median total rotation across the shapes. Two to three full turns needs either
- * a longer roll — which is what the pace tuning above just bought back — or a
- * sample grid fine enough to resolve a faster one. At 60 Hz it is arithmetic,
- * not tuning: launch spin of 60 to 102 rad/s does deliver 746 degrees of median
- * turn in 683 ms, and it was measured, and it puts 96 degrees into a single
- * frame, which the bake refuses and is right to refuse. Raising `SAMPLE_HZ`
- * halves the per-frame angle for each doubling and is the way through, at the
- * cost of a contract every consumer of `DieSample` shares.
+ * That ceiling is per sample and not per second, which is the whole reason this
+ * number could be raised: at 60 Hz the same 60-102 rad/s put 96 degrees into
+ * one sample and the bake refused it, correctly. `SAMPLE_HZ` went to 180 first;
+ * this followed. Anyone reaching for more spin has to move them together, and
+ * `SAMPLE_HZ` is the one with the consequences — see its own note.
  */
 const LAUNCH_HORIZONTAL = 5.5;
-const LAUNCH_SPIN_MIN = 30;
-const LAUNCH_SPIN_RANGE = 10;
+const LAUNCH_SPIN_MIN = 60;
+const LAUNCH_SPIN_RANGE = 42;
 
 
 // ---------------------------------------------------------------------------
@@ -1378,7 +1406,7 @@ function quatDegrees(a: Quat, b: Quat): number {
  * under a degree, and the worst d20 spent 57% — the last third of a d20's
  * filmstrip was frame after identical frame. That is not free. The roll gates
  * the whole animation cycle, so every dead frame is a frame the game waits on a
- * die that has already told the player its answer.
+ * die that has already told the player its answer. It is now 0% to 19%.
  *
  * So the tail is cut at MOTION rather than at stillness. `TAIL_ROTATION` is a
  * fifth of the ~10 degrees per frame that reads as a tumble, and `TAIL_TRAVEL`

@@ -508,23 +508,29 @@ describe('simulateRoll settling', () => {
           diagnostics.restingDrift < MAX_RESTING_DRIFT_DEGREES,
           `${label}: the roll stopped ${diagnostics.restingDrift.toFixed(2)} degrees short of where the die settled`,
         );
-        let turned = 0;
-        let travelled = 0;
+        let spin = 0;
+        let speed = 0;
         for (const die of diagnostics.trajectory.dice) {
           const samples = die.samples;
           const n = samples.length;
-          turned = Math.max(
-            turned,
-            (quatAngle(samples[n - 2].orientation, samples[n - 1].orientation) * 180) / Math.PI,
+          const dt = (samples[n - 1].t - samples[n - 2].t) / 1000;
+          spin = Math.max(
+            spin,
+            (quatAngle(samples[n - 2].orientation, samples[n - 1].orientation) * 180) / Math.PI / dt,
           );
-          travelled = Math.max(travelled, mag(sub(samples[n - 1].position, samples[n - 2].position)));
+          speed = Math.max(speed, mag(sub(samples[n - 1].position, samples[n - 2].position)) / dt);
         }
         // Either kind of motion counts: the trim asks the same of rotation and
         // of travel, and a die that slides to a halt without turning is still
         // a die the player is watching.
+        //
+        // In RATES rather than per-frame amounts, because the module owns the
+        // sample grid and has changed it: 60 degrees a second is one degree per
+        // frame at 60 Hz and a third of one at 180 Hz, and it is the rate that
+        // is the fact about what a player can see.
         assert.ok(
-          turned > 1 || travelled > 0.006,
-          `${label}: the roll ends on a dead frame - ${turned.toFixed(2)} degrees and ${travelled.toExponential(2)} circumradii`,
+          spin > 60 || speed > 0.36,
+          `${label}: the roll ends on a dead frame - ${spin.toFixed(1)} deg/s and ${speed.toExponential(2)} circumradii/s`,
         );
       }
     }
@@ -1162,8 +1168,14 @@ describe('simulateRoll physical plausibility', () => {
         let still = 0;
         for (let i = 1; i < samples.length; i++) {
           const degrees = (quatAngle(samples[i - 1].orientation, samples[i].orientation) * 180) / Math.PI;
+          const dt = (samples[i].t - samples[i - 1].t) / 1000;
           turned += degrees;
-          if (degrees < 1) still++;
+          // A dead frame is one turning slower than 60 degrees a second, which
+          // is one degree per frame at 60 Hz. Stated as a rate so the number
+          // means the same thing whatever `SAMPLE_HZ` the module is on — it has
+          // already moved once, and counting "under a degree per sample" would
+          // have quietly become a three-times stricter test at 180 Hz.
+          if (degrees / dt < 60) still++;
         }
         turns.push(turned);
         dead.push(still / (samples.length - 1));
@@ -1174,12 +1186,20 @@ describe('simulateRoll physical plausibility', () => {
         median(durations) <= 800,
         `d${faceCount} takes a median ${median(durations).toFixed(0)}ms to say a number`,
       );
-      // And it has to be a throw rather than a topple. One full turn is the
-      // floor, not the goal: see `LAUNCH_SPIN_MIN` for the sampling ceiling
-      // that stops this being the two-to-three turns a real die makes.
+      // And it has to be a throw rather than a topple: two full turns, which is
+      // what a real thrown die makes. It used to manage about one (387 to 431
+      // degrees), and the thing standing in the way was the SAMPLE GRID rather
+      // than the launch — see `SAMPLE_HZ`. Both bounds below matter: the upper
+      // one because a die that never stops spinning is not readable either, and
+      // because it is what would catch a launch raised past the 40-degrees-a-
+      // sample ceiling `dice-bake.test.ts` polices.
       assert.ok(
-        median(turns) >= 360,
+        median(turns) >= 720,
         `d${faceCount} turns a median ${median(turns).toFixed(0)} degrees, which is not a tumble`,
+      );
+      assert.ok(
+        median(turns) <= 1080,
+        `d${faceCount} turns a median ${median(turns).toFixed(0)} degrees, which is more than a player can follow`,
       );
       // Frames in which the die turns under a degree are frames the player is
       // waiting through. Worst median before the trim and the pace tuning: 37%.
