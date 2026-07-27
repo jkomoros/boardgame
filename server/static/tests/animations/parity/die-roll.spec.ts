@@ -1045,13 +1045,25 @@ test.describe('boardgame-die physics roll, in the app', () => {
   // `expectedSettleMs`: a participant that declares a longer settle re-arms the
   // backstop at `declaration + 1500ms`.
   //
-  // Until now nothing in a browser had ever exercised that -- the parity
-  // README listed it as an accepted blind spot owned only by the gate's unit
-  // tests -- because no scenario ran long enough. A physics roll can: the
-  // simulator caps a throw at 5000ms, and a big barrel reaches the cap. The
-  // seed below is a d48 that is STILL TUMBLING when the cap cuts it off, so it
-  // declares 5000ms against a 4000ms floor, and a full second of it exists only
-  // because the declaration moved the deadline.
+  // Until now nothing in a browser had ever exercised that -- the parity README
+  // listed it as an accepted blind spot owned only by the gate's unit tests --
+  // because no scenario ran long enough.
+  //
+  // A PHYSICS ROLL USED TO BE LONG ENOUGH AND IS NOT ANY MORE. The witness that
+  // closed the blind spot was a d48 seed that ran to the simulator's own 5000ms
+  // cap; the physics retune that followed cut every throw so far that the
+  // longest roll over 4,400 seeded throws (11 shapes x 400 seeds, measured) is
+  // 2761ms -- a d30 -- against the 4000ms floor. NO SEED CAN REACH IT. The test
+  // did not fail when that landed, it just stopped testing anything: its own
+  // guard (`toBeGreaterThan(4000)`) was the only thing that noticed.
+  //
+  // So the length comes from a DECLARED HOLD instead of from the tumble, which
+  // is a real product path and not a test-only lever: `postAnimationDelay` is a
+  // property of every animatable item, `boardgame-component-stack.ts` parses it
+  // off an attribute so a game can set it, and `resolveMotionTiming` folds it
+  // into the same `expectedSettleMs` the gate reads. It is also strictly better
+  // suited to the job than a long roll was -- the occupancy is CHOSEN rather
+  // than sampled from a distribution that a physics change can move.
   //
   // The die is a fixture, but nothing else here is: it is mounted inside the
   // live renderer, so it registers with the real ambient registry, its
@@ -1063,8 +1075,14 @@ test.describe('boardgame-die physics roll, in the app', () => {
       await createOfflineGame(page, 'pig');
       await expect(page.getByRole('button', { name: 'Roll die' })).toBeEnabled({ timeout: 30000 });
 
-      // A d48 whose throw runs to the simulator's own 5000ms cap. The seed is
-      // (component ID, roll count), so the count is what selects it.
+      // The gate's own backstop floor. Not exported (`DEFAULT_FLOOR_MS` in
+      // `animation-gate.ts`), so it is restated here; every number below is
+      // derived from it rather than written out twice.
+      const WATCHDOG_FLOOR_MS = 4000;
+      // The hold the die declares after its tumble. Comfortably past the floor
+      // on its own, so the test does not depend on how long the throw happens
+      // to run -- which is precisely what stopped being dependable.
+      const HOLD_MS = 4500;
       const LONG_FACES = 48;
       const LONG_ROLL_COUNT = 118;
       const LONG_ID = 'watchdog-die';
@@ -1087,13 +1105,19 @@ test.describe('boardgame-die physics roll, in the app', () => {
         const host = renderGame.shadowRoot as ShadowRoot;
         // The die is mounted inside the real renderer so that its
         // `animatableRegistry` and `animationContext` climbs reach it and it is
-        // a genuine participant in the real gate. Its THROW, though, is this
-        // test's own: the seed comes from the item's `RollCount`, which is set
-        // below to one that is known to run past the watchdog floor.
+        // a genuine participant in the real gate. Its OCCUPANCY, though, is
+        // this test's own: the declared hold below is what carries the cycle
+        // past the floor.
         const wrapper = document.createElement('div') as any;
         wrapper.style.cssText = 'position:absolute;top:0;left:0;';
         const die = document.createElement('boardgame-die') as any;
         die.id = 'watchdog-die';
+        // The hold, declared the way a game declares one. It is folded into the
+        // effect as `endDelay` and into `expectedSettleMs` by
+        // `resolveMotionTiming`, so the animation genuinely stays live for it
+        // and the die genuinely holds the gate for it -- this is occupancy, not
+        // a number whispered to the watchdog.
+        die.postAnimationDelay = opts.holdMs;
         const faces = Array.from({ length: opts.faces }, (_, i) => i + 1);
         die.item = {
           ID: opts.id,
@@ -1107,7 +1131,7 @@ test.describe('boardgame-die physics roll, in the app', () => {
         (window as any).__watchdogDie = die;
         await die.updateComplete;
         await die.updateComplete;
-      }, { faces: LONG_FACES, id: LONG_ID });
+      }, { faces: LONG_FACES, id: LONG_ID, holdMs: HOLD_MS });
 
       const before = await gateSnapshot(page);
       // Throw the long die INSIDE the cycle pig's own roll opens: a declaration
@@ -1126,6 +1150,13 @@ test.describe('boardgame-die physics roll, in the app', () => {
         const declared: number[] = [];
         die.addEventListener('will-animate', (event: Event) =>
           declared.push((event as CustomEvent).detail.expectedSettleMs));
+        // When the die reports itself finished, relative to the gate opening.
+        // This is the PRODUCT consequence of the extension: without it the
+        // cycle is force-closed at the floor and the registry sweep finishes
+        // the die's animation early, so the hold it declared is cut short.
+        const gateOpenedAt = performance.now();
+        let settledAt = -1;
+        die.addEventListener('roll-end', () => { settledAt = performance.now() - gateOpenedAt; });
         const faces = Array.from({ length: opts.faces }, (_, i) => i + 1);
         die.item = {
           ID: opts.id,
@@ -1135,8 +1166,9 @@ test.describe('boardgame-die physics roll, in the app', () => {
         for (let pass = 0; pass < 4; pass++) await die.updateComplete;
         const inner = (die.shadowRoot as ShadowRoot).querySelector('#inner') as HTMLElement;
         const animation = inner.getAnimations()[0];
-        const duration = animation
-          ? Number((animation.effect as KeyframeEffect).getTiming().duration) : 0;
+        const timing = animation ? (animation.effect as KeyframeEffect).getTiming() : null;
+        const duration = timing ? Number(timing.duration) : 0;
+        const endDelay = timing ? Number(timing.endDelay ?? 0) : 0;
         // Wait for the cycle to finish one way or the other, then read how long
         // the gate actually stayed open and whether the tumble reached its end.
         const closesBefore = hooks.gateCloses;
@@ -1154,30 +1186,43 @@ test.describe('boardgame-die physics roll, in the app', () => {
           opened: true,
           declared,
           duration,
+          endDelay,
+          settledAt,
           gateOpenMs: closeAt - openAt,
-          animationProgress: animation
-            ? Number(animation.currentTime ?? 0) / Math.max(1, duration) : 0,
           playState: animation ? animation.playState : 'none',
           watchdogFirings: hooks.watchdogFirings,
         };
-      }, { faces: LONG_FACES, id: LONG_ID, rollCount: LONG_ROLL_COUNT });
+      }, {
+        faces: LONG_FACES, id: LONG_ID, rollCount: LONG_ROLL_COUNT, holdMs: HOLD_MS,
+      });
 
       expect(observed.opened).toBe(true);
-      // The die really did play a throw past the floor, and really did declare
-      // it. If the physics ever stops producing one this test would be vacuous,
-      // so the length is asserted rather than assumed.
-      expect(observed.duration,
-        'the fixture seed no longer produces a roll past the 4000ms watchdog floor')
-        .toBeGreaterThan(4000);
-      expect(observed.declared).toEqual([observed.duration]);
-      // THE ASSERTION. The gate stayed open for the tumble's own length, not
-      // for the 4000ms floor. Without the extension the backstop fires at the
-      // floor, the cycle is force-closed and the registry sweep force-settles
-      // the die a second short of its landing.
+      // THE PREMISE, asserted rather than assumed: the die really is occupying
+      // the cycle past the floor, and really did declare that. Without this the
+      // test would go quietly green the way the previous version did when the
+      // physics got faster -- the declaration is the only thing in the whole
+      // scenario that can carry it past 4000ms.
+      expect(observed.endDelay, 'the declared hold reached the effect').toBe(HOLD_MS);
+      expect(observed.duration, 'and the tumble is real, not a stand-in').toBeGreaterThan(100);
+      expect(observed.declared,
+        'the declaration is the tumble plus the hold, and there is exactly one of it')
+        .toEqual([observed.duration + HOLD_MS]);
+      expect(observed.declared[0],
+        'which has to be past the floor or the extension is never asked for')
+        .toBeGreaterThan(WATCHDOG_FLOOR_MS);
+      // THE ASSERTION. The gate stayed open for the die's own declared
+      // occupancy, not for the floor. Without the extension the backstop fires
+      // at the floor, the cycle is force-closed and the registry sweep
+      // force-settles the die.
       expect(observed.watchdogFirings).toBe(before.watchdogFirings);
-      expect(observed.gateOpenMs).toBeGreaterThan(4500);
-      // ...and the tumble was allowed to finish rather than being cut off.
-      expect(observed.animationProgress).toBeGreaterThan(0.98);
+      expect(observed.gateOpenMs).toBeGreaterThan(WATCHDOG_FLOOR_MS + 400);
+      // ...and the die was allowed to run its whole declared settle rather than
+      // being cut off at the floor. This is what a player would see: the result
+      // held for as long as the game said, instead of being swept away.
+      expect(observed.settledAt, 'the die reported itself settled').toBeGreaterThan(0);
+      expect(observed.settledAt,
+        'and it settled on its own schedule, not at the watchdog floor')
+        .toBeGreaterThan(WATCHDOG_FLOOR_MS + 200);
 
       await page.evaluate(() => {
         (window as any).__watchdogDie?.parentElement?.remove();
@@ -1212,10 +1257,17 @@ test.describe('boardgame-die physics roll, in the app', () => {
 //      spacings;
 //   2. the post-roll framing is the SAME framing as the pre-roll one -- a die
 //      must not jump between two views of itself when a roll starts;
-//   3. and the die still stops at a PHYSICAL angle: squaring the face towards
-//      the camera is a re-aim of the whole scene about an axis perpendicular to
-//      that face's normal, so it cannot spin the numeral upright, and the roll
-//      the die comes to rest at stays whatever the simulation says.
+//   3. and the number the die landed on is the RIGHT WAY UP.
+//
+// (3) used to assert the opposite, on the grounds that a real die stops at a
+// random angle. It was wrong, and looking at it is what settled it: across 8
+// landed d20s showing 13, ZERO were upright and one read as "ει". The
+// counter-argument is structural rather than a matter of taste -- the
+// correction is a rotation ABOUT THE PRESENTED FACE'S OWN NORMAL, so it fixes
+// that normal and preserves every pairwise angle between facets, which means
+// (1) and (2) above hold verbatim under it and cannot be traded away for it.
+// The app already normalized in its fresh-mount pose, so the old behaviour also
+// meant the die visibly jumped to a tidier angle across a page reload.
 //
 // Everything is read through `getComputedStyle` after the tumble has been
 // finished, so what is measured is what Chromium actually renders once the
@@ -1396,33 +1448,52 @@ test.describe('boardgame-die post-roll readability', () => {
     });
   }
 
-  // The other half of the constraint. A real die stops at a random angle, and
-  // squaring the landed face towards the camera must not quietly turn that into
-  // a die that always stops with its numeral upright: the re-aim rotates about
-  // an axis perpendicular to the presented normal, so it carries no twist about
-  // that normal at all. The pre-roll pose DOES normalize the content roll -- it
-  // has to read like the flat 2D die it replaces -- so the two are asserted
-  // together, in opposite directions.
-  test('the landed face keeps the roll the physics left it at', async ({ page }) => {
+  // THE LANDED NUMBER IS UPRIGHT, on every shape.
+  //
+  // The tolerance is deliberately tiny rather than generous, because the
+  // correction is EXACT and not approximate: `landedContentTurn` solves in
+  // closed form for the turn about the landed facet's own normal that puts its
+  // local +y on the screen's vertical, so anything left over is Chromium's own
+  // serialization of the composed matrix (about six significant figures, worth
+  // ~5e-4 degrees here) and nothing else. A tolerance of, say, 15 degrees would
+  // pass under a correction that was merely close, and "merely close" on a d20
+  // numeral is exactly the defect this replaces.
+  //
+  // Five shapes, not one: a d4 and a d12 present a face the naive derivation
+  // happens to get right for some seeds (measured: seed 1 on a d4 came out
+  // 0.005 degrees off under a wrong implementation), so a single shape or a
+  // single seed is not evidence. Every face count that has ever been screenshot
+  // in the critique is here, and 20 seeds each.
+  for (const faceCount of [4, 6, 10, 12, 20]) {
+    test(`a d${faceCount} lands with the presented face's content upright`, async ({ page }) => {
+      test.setTimeout(180000);
+      await page.goto('/');
+      const rolled = await facetAngles(page, { faceCount, rolls: 20, settle: 'roll' });
+      expect(rolled.length).toBe(20);
+      const rolls = rolled.map((roll: any) => Math.abs(roll.presentedContentRoll));
+      const detail = `d${faceCount} residual content roll per seed (deg): `
+        + rolls.map((v: number) => v.toFixed(4)).join(', ');
+      expect(Math.max(...rolls), detail).toBeLessThan(0.01);
+      // ...and the value really was on the facet that got straightened, so this
+      // cannot pass by measuring some other face very carefully.
+      for (const roll of rolled) {
+        expect(roll.presentedValue, `d${faceCount} seed ${roll.seed} presented value`)
+          .toBe(String(roll.serverValue));
+      }
+    });
+  }
+
+  // The contrast the correction has to preserve: the pre-roll pose was ALREADY
+  // upright, and a landed die must now agree with it rather than jump to a
+  // tidier angle when the page is reloaded.
+  test('a die that has never rolled was already upright, on every face', async ({ page }) => {
     test.setTimeout(120000);
     await page.goto('/');
     const rested = await facetAngles(page, { faceCount: 20, rolls: 0, settle: 'rest' });
-    const rolled = await facetAngles(page, { faceCount: 20, rolls: 25, settle: 'roll' });
-    // Pre-roll: upright, every face. (die-shape.spec.ts pins this too; repeated
-    // here because it is the contrast the assertion below depends on.)
     for (const pose of rested) {
       expect(Math.abs(pose.presentedContentRoll), `resting face ${pose.face} content roll`)
         .toBeLessThan(0.5);
     }
-    // Post-roll: not upright, and not clustered near upright either.
-    const rolls = rolled.map((roll: any) => Math.abs(roll.presentedContentRoll));
-    const upright = rolls.filter((value: number) => value < 15).length;
-    expect(Math.max(...rolls),
-      `post-roll content rolls: ${rolls.map((v: number) => v.toFixed(0)).join(', ')}`)
-      .toBeGreaterThan(60);
-    expect(upright,
-      `${upright}/25 rolls stopped within 15 degrees of upright, which is not what a die does`)
-      .toBeLessThan(8);
   });
 });
 
@@ -1739,6 +1810,116 @@ test.describe('boardgame-die roll aftermath', () => {
     // and it must not narrate the tumble on its way past.
     expect(start.announcement).toBe('');
     expect(observed.announcement).toBe('Rolled 50');
+  });
+
+  // THE LANDING BEAT.
+  //
+  // Nothing used to mark the result arriving. The tail of a throw decelerates,
+  // so there is no frame a player can point at as the one it stopped on -- the
+  // number simply becomes readable at some point, and a player who looked away
+  // for a second cannot tell whether it is still going. A short pop at the
+  // instant of settlement fixes that, and the critique rated it worth more than
+  // making the tumble itself bouncier.
+  //
+  // Three things are pinned, and the last two are the ones that make it safe:
+  // it happens WHEN THE ROLL ENDS (not at cycle start, where pig's own
+  // celebration used to fire while the die was still 60px away in the air), it
+  // is NOT a gate participant, and it is on #stage -- above the whole 3D scene,
+  // so it composes with neither the tumble (#inner) nor the pose (#orient).
+  test('marks the landing with a short accent that the gate never waits for',
+    async ({ page }) => {
+      await mountDie(page, { faceCount: 6, selectedFace: 0, rollCount: 0 });
+      const observed = await page.evaluate(async () => {
+        const die = document.getElementById('fixture-die') as any;
+        const root = die.shadowRoot as ShadowRoot;
+        const stage = root.querySelector('#stage') as HTMLElement;
+        const inner = root.querySelector('#inner') as HTMLElement;
+        const declared: number[] = [];
+        die.addEventListener('will-animate', (event: Event) =>
+          declared.push((event as CustomEvent).detail.expectedSettleMs));
+        const snap = (label: string) => {
+          const animation = stage.getAnimations()[0];
+          const effect = animation ? (animation.effect as KeyframeEffect) : null;
+          return {
+            label,
+            accents: stage.getAnimations().length,
+            declared: declared.length,
+            duration: effect ? Number(effect.getTiming().duration) : 0,
+            fill: effect ? effect.getTiming().fill : null,
+            frames: effect ? effect.getKeyframes().map((k: any) => k.transform) : [],
+          };
+        };
+        const log: any[] = [];
+        die.addEventListener('roll-start', () => log.push(snap('roll-start')));
+        die.addEventListener('roll-end', () => log.push(snap('roll-end')));
+        const faces = [10, 20, 30, 40, 50, 60];
+        die.item = {
+          ID: 'fixture-component',
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: 4, Value: faces[4], RollCount: 1 },
+        };
+        for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+        await Promise.all(inner.getAnimations().map((a) => a.finished.catch(() => undefined)));
+        await die.updateComplete;
+        // Once the accent is over, #stage must be back to carrying nothing:
+        // fill 'none', the same contract every other play in this component
+        // holds to.
+        const accent = stage.getAnimations()[0];
+        if (accent) await accent.finished.catch(() => undefined);
+        return { log, settled: getComputedStyle(stage).transform };
+      });
+
+      const start = observed.log.find((entry: any) => entry.label === 'roll-start');
+      const end = observed.log.find((entry: any) => entry.label === 'roll-end');
+      // WHEN. Nothing on #stage while the die is in the air; one thing the
+      // instant it stops.
+      expect(start.accents, 'nothing marks a roll that has only just started').toBe(0);
+      expect(end.accents, 'the landing is marked as the die stops').toBe(1);
+      // WHAT. A real pop -- a transform curve with an overshoot -- and not a
+      // zero-length placeholder.
+      expect(end.duration).toBeGreaterThan(100);
+      expect(end.duration).toBeLessThan(500);
+      expect(end.fill, 'the accent leaves #stage in its own resting style').toBe('none');
+      const scales = end.frames.map((value: string) => Number(/scale\(([\d.]+)\)/.exec(value)![1]));
+      expect(scales[0], 'starts where the die is').toBe(1);
+      expect(scales[scales.length - 1], 'and ends there').toBe(1);
+      expect(Math.max(...scales), 'with a visible overshoot in between').toBeGreaterThan(1.02);
+      // NOT A GATE PARTICIPANT. The roll it punctuates has already settled;
+      // holding the cycle open for a flourish would delay every other player's
+      // board. Exactly one declaration was made for this throw -- the tumble's
+      // -- and the accent added none.
+      expect(start.declared, 'the tumble declares itself').toBe(1);
+      expect(end.declared, 'and the accent declares nothing').toBe(1);
+      expect(observed.settled, '#stage carries no transform once it is over').toBe('none');
+    });
+
+  test('runs no landing accent under reduced motion', async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await context.newPage();
+    try {
+      await mountDie(page, { faceCount: 6, selectedFace: 0, rollCount: 0 });
+      const accents = await page.evaluate(async () => {
+        const die = document.getElementById('fixture-die') as any;
+        const root = die.shadowRoot as ShadowRoot;
+        const stage = root.querySelector('#stage') as HTMLElement;
+        let seen = -1;
+        die.addEventListener('roll-end', () => { seen = stage.getAnimations().length; });
+        const faces = [10, 20, 30, 40, 50, 60];
+        die.item = {
+          ID: 'fixture-component',
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: 4, Value: faces[4], RollCount: 1 },
+        };
+        for (let pass = 0; pass < 6; pass++) await die.updateComplete;
+        return seen;
+      });
+      // The roll really did end (a -1 would mean the event never fired and the
+      // assertion below would be vacuous), and nothing popped.
+      expect(accents, 'the roll ended').not.toBe(-1);
+      expect(accents, 'and reduced motion gets no flourish').toBe(0);
+    } finally {
+      await context.close();
+    }
   });
 
   // B6. A die in a hidden stack is not absent: selectors.ts renders an occupied

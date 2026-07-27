@@ -182,6 +182,18 @@ export interface SolidFacet {
   /** Index into `faces` (and so into any per-face content list), or -1 for a cap. */
   readonly faceIndex: number;
   readonly style: string;
+  /**
+   * The content square's side in `em` — the same number `style` publishes as
+   * `--content-size`, in a form a caller can do arithmetic on.
+   *
+   * Published because how big a mark comes out is a fact about the GEOMETRY,
+   * and the only place it can be checked before the browser has drawn anything.
+   * `boardgame-die.ts` multiplies it by the die's pixel size to decide whether
+   * the marks on this shape are big enough to read (see its legibility floor).
+   * Deriving that from here rather than from a constant is what keeps the check
+   * honest when a solid's proportions change.
+   */
+  readonly contentSize: number;
   /** Empty unless the caller asked for corner marks on this facet. */
   readonly corners: readonly SolidCornerMark[];
 }
@@ -214,7 +226,7 @@ export function facetPlacement(
   face: SolidFace,
   unitsToEm: number,
   cornerFaces: readonly number[] | null,
-): { style: string; corners: readonly SolidCornerMark[] } {
+): { style: string; contentSize: number; corners: readonly SolidCornerMark[] } {
   const w = normalize(toScreen(face.normal));
   const { u, v } = facetBasis(w);
   const centre = scaleVec(toScreen(face.centroid), unitsToEm);
@@ -293,7 +305,7 @@ export function facetPlacement(
     // child span instead.
     `--content-size:${cssNumber(contentSize)}em`,
   ].join(';');
-  return { style, corners };
+  return { style, contentSize, corners };
 }
 
 export interface SolidFacetOptions {
@@ -327,7 +339,7 @@ export function solidFacets(
     const cornerFaces = cornerOwner && readable
       ? face.polygon.map((vertex) => cornerOwner(vertex))
       : null;
-    const { style, corners } = facetPlacement(face, unitsToEm, cornerFaces);
-    return { key, faceIndex: readable ? key : -1, style, corners };
+    const { style, contentSize, corners } = facetPlacement(face, unitsToEm, cornerFaces);
+    return { key, faceIndex: readable ? key : -1, style, contentSize, corners };
   });
 }

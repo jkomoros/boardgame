@@ -16,6 +16,8 @@ import { CAMERA_AXIS, facetBasis, toScreen } from './screen-frame.ts';
 import {
   applyTurn,
   companionTilt,
+  landedContentTransform,
+  landedContentTurn,
   minimalTurn,
   presentedTiltLimit,
   readingPose,
@@ -240,6 +242,122 @@ test('the two poses differ by exactly one roll about the camera axis', () => {
       });
     }
   }
+});
+
+/**
+ * A landing orientation, from a seeded stream, uniform on the sphere of
+ * rotations (Shoemake). Deterministic so a failure is reproducible; there is
+ * nothing physical about these, and there must not be — `landedContentTurn` has
+ * to hold for whatever pose a throw stops at, not for the ones a tray produces.
+ */
+function landings(count: number): readonly Quat[] {
+  let state = 0x2f6e2b1;
+  const random = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+  return Array.from({ length: count }, () => {
+    const [u, v, w] = [random(), random(), random()];
+    const [a, b] = [Math.sqrt(1 - u), Math.sqrt(u)];
+    return [
+      a * Math.sin(2 * Math.PI * v), a * Math.cos(2 * Math.PI * v),
+      b * Math.sin(2 * Math.PI * w), b * Math.cos(2 * Math.PI * w),
+    ] as Quat;
+  });
+}
+
+/** The landing rotation as it acts on a CSS-frame vector: the similarity S R S. */
+function landedInCss(landed: Quat, v: Vec3): Vec3 {
+  return toScreen(rotateByQuat(landed, toScreen(v)));
+}
+
+/**
+ * THE LANDED NUMBER READS THE RIGHT WAY UP.
+ *
+ * This composes the whole chain the browser does — the facet's own box
+ * (`facetBasis` of its BODY normal, which is what `facet-placement.ts` emits),
+ * then `#orient`'s correction, then the landing pose, then the scene's aim —
+ * and asks where the content's "down" ends up. Anything less than the whole
+ * chain would not have caught the bug this replaces: reading the facet's local
+ * +y back out of `facetBasis(landedDirection)` instead of carrying the body one
+ * through the landing looks identical in a diagram and is wrong by up to 180
+ * degrees on screen, because `facetBasis` is defined against a FIXED direction
+ * and so is not equivariant under rotation.
+ */
+test('landedContentTurn leaves a landed facet content upright, whatever the landing', () => {
+  for (const faceCount of FACE_COUNTS) {
+    const geometry = dieGeometry(faceCount);
+    for (const landed of landings(12)) {
+      const directions = surfaceDirections(geometry, landed);
+      for (let presented = 0; presented < geometry.faces.length; presented++) {
+        const turns = readingPose(directions, presented, { uprightContent: false });
+        const correction = landedContentTurn(geometry, landed, presented);
+        // The facet's local +y as the DOM has it: body frame, CSS handedness.
+        const local = facetBasis(normalize(toScreen(geometry.faces[presented].normal))).v;
+        const down = pose(turns, landedInCss(landed, applyTurn(local, correction)));
+        const where = `d${faceCount} face ${presented}, landing ${landed.map((n) => n.toFixed(3))}`;
+        assert.ok(Math.abs(down[0]) < 1e-9, `${where}: content is ${down[0]} off vertical`);
+        assert.ok(down[1] > 0, `${where}: content is upside down`);
+      }
+    }
+  }
+});
+
+/**
+ * ...and it buys that WITHOUT spending any of the aim.
+ *
+ * The correction turns about the presented facet's own normal, so that normal
+ * is fixed and every pairwise angle between facets is preserved. Which means
+ * `presentedTiltLimit`'s guarantee — the presented facet is the most square-on
+ * one, by at least `READING_MARGIN` — survives it verbatim rather than being
+ * traded against it. That is the entire argument for doing this at all, so it
+ * is measured rather than asserted in prose.
+ */
+test('landedContentTurn moves no facet towards or away from the camera', () => {
+  for (const faceCount of FACE_COUNTS) {
+    const geometry = dieGeometry(faceCount);
+    for (const landed of landings(6)) {
+      const directions = surfaceDirections(geometry, landed);
+      for (let presented = 0; presented < geometry.faces.length; presented++) {
+        const correction = landedContentTurn(geometry, landed, presented);
+        const turns = readingPose(directions, presented, { uprightContent: false });
+        const surface = [...geometry.faces, ...geometry.capFaces];
+        const before = directions.map((direction) => pose(turns, direction));
+        const after = surface.map((face) => pose(turns, landedInCss(
+          landed, applyTurn(normalize(toScreen(face.normal)), correction))));
+        const where = `d${faceCount} face ${presented}`;
+        // The presented facet does not move AT ALL: it is the axis.
+        assert.ok(magnitude(subtract(after[presented], before[presented])) < 1e-9,
+          `${where}: the presented facet moved`);
+        // Every facet keeps its angle to the presented one, so the triangle
+        // inequality `presentedTiltLimit` relies on is untouched.
+        for (let index = 0; index < after.length; index++) {
+          assert.ok(
+            Math.abs(dot(after[index], after[presented]) - dot(before[index], before[presented]))
+              < 1e-9,
+            `${where}: facet ${index} changed its angle to the presented facet`);
+        }
+        // And the presented facet is still the most square-on one afterwards.
+        const worst = after.reduce((best, direction, index) =>
+          index === presented ? best : Math.min(best, degreesBetween(CAMERA_AXIS, direction)), 180);
+        assert.ok(worst - degreesBetween(CAMERA_AXIS, after[presented]) >= READING_MARGIN - 1e-9,
+          `${where}: rival at ${worst.toFixed(2)} degrees off axis`);
+      }
+    }
+  }
+});
+
+test('landedContentTransform emits the turn as CSS, and nothing when there is none', () => {
+  const geometry = dieGeometry(6);
+  const landed = landings(1)[0];
+  const turn = landedContentTurn(geometry, landed, 0);
+  assert.ok(turn, 'a general landing needs a correction');
+  assert.equal(landedContentTransform(geometry, landed, 0), rotate3d(turn));
+  // The axis is the facet's own normal, which is what makes it safe to apply
+  // INSIDE the scene's pose (on `#orient`) rather than outside it.
+  assert.ok(magnitude(cross(turn.axis, normalize(toScreen(geometry.faces[0].normal)))) < 1e-9);
+  // An out-of-range face is a caller bug, not a crash mid-render.
+  assert.equal(landedContentTransform(geometry, landed, 99), 'none');
 });
 
 /** A pose that mirrored the solid would show the face opposite the read one. */

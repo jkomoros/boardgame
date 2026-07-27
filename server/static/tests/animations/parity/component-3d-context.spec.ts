@@ -137,4 +137,99 @@ test.describe('component-owned 3D scenes', () => {
 
     expect(result.recovered, 'removing the filter restores the 3D context').toBeCloseTo(20, 0);
   });
+
+  // The same trap, in the other component that owns #inner's transform.
+  //
+  // boardgame-card's ROTATED alt-shadow pair pointed the same drop-shadow stack
+  // at #inner. Nothing sets `altShadow` on a card -- not in this repo, not in
+  // ../games -- so it was unreachable rather than live, which is precisely the
+  // argument for moving it while it still costs nothing: a 3D card has to mount
+  // its scene on #inner, and #inner is where the flip's own transform already
+  // lives.
+  //
+  // The probe is the same geometric one, and the properties are driven the way
+  // a game would drive them (`altShadow` and `rotated`), not by writing CSS
+  // classes by hand.
+  test('a preserve-3d context on #inner survives a rotated card\'s alt-shadow', async ({ page }) => {
+    await page.goto('/');
+
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-card.ts');
+      const el = document.createElement('boardgame-card') as any;
+      el.style.cssText = 'position:fixed;top:200px;left:200px;';
+      document.body.appendChild(el);
+      await el.updateComplete;
+      // The combination the rules key off, and the one no game currently
+      // produces: a rotated card asking for the filter-based elevation.
+      el.altShadow = true;
+      el.rotated = true;
+      await el.updateComplete;
+      const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+      await frame();
+
+      const inner = el.renderRoot.querySelector('#inner') as HTMLElement;
+      const outer = el.renderRoot.querySelector('#outer') as HTMLElement;
+      // #inner already carries the card's own flip transform, so the probe
+      // supplies its own 3D context on a child of it rather than overwriting
+      // that: same arithmetic, one level down.
+      const scene = document.createElement('div');
+      scene.style.cssText =
+        'position:absolute;left:0;top:0;transform-style:preserve-3d;transform:perspective(200px)';
+      const face = document.createElement('div');
+      face.style.cssText =
+        'position:absolute;left:0;top:0;width:10px;height:10px;transform:translateZ(100px)';
+      scene.appendChild(face);
+      inner.appendChild(scene);
+      await frame();
+      const measure = () => face.getBoundingClientRect().width;
+
+      const resting = {
+        innerFilter: getComputedStyle(inner).filter,
+        outerFilter: getComputedStyle(outer).filter,
+        width: measure(),
+      };
+
+      // The BEFORE state, reconstructed in place: the same rotated elevation
+      // back on #inner, where `#outer.alt-shadow.rotated #inner` used to put it.
+      const elevation = getComputedStyle(inner)
+        .getPropertyValue('--alt-shadow-elevation-normal-rotated').trim();
+      inner.style.filter = elevation;
+      await frame();
+      const withFilterOnInner = { innerFilter: getComputedStyle(inner).filter, width: measure() };
+      inner.style.filter = '';
+      await frame();
+      const recovered = measure();
+
+      // A disabled rotated card must still look disabled: the elevation and
+      // the saturate share one filter slot on #outer now, so the composition
+      // has to be spelled out or one silently replaces the other.
+      el.disabled = true;
+      await el.updateComplete;
+      await frame();
+      const disabledOuterFilter = getComputedStyle(outer).filter;
+
+      el.remove();
+      return { elevation, resting, withFilterOnInner, recovered, disabledOuterFilter };
+    });
+
+    expect(result.elevation, 'the rotated alt-shadow elevation must still exist')
+      .toContain('drop-shadow');
+    expect(result.resting.outerFilter, 'the rotated elevation must now be on #outer')
+      .toContain('drop-shadow');
+    expect(result.resting.innerFilter, '#inner must carry no filter at rest').toBe('none');
+    expect(result.resting.width, 'a preserve-3d context under #inner must be honored')
+      .toBeCloseTo(20, 0);
+
+    expect(result.withFilterOnInner.innerFilter, 'the reconstructed before state')
+      .toContain('drop-shadow');
+    expect(
+      result.withFilterOnInner.width,
+      'a filter on #inner forces transform-style: flat, collapsing the scene',
+    ).toBeCloseTo(10, 0);
+    expect(result.recovered, 'removing the filter restores the 3D context').toBeCloseTo(20, 0);
+
+    expect(result.disabledOuterFilter, 'a disabled rotated card keeps its elevation')
+      .toContain('drop-shadow');
+    expect(result.disabledOuterFilter, 'and still looks disabled').toContain('saturate');
+  });
 });

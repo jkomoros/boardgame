@@ -25,10 +25,12 @@ import {
 import type { Component } from '../types/boardgame-types.js';
 import { cssNumber as num } from '../solid/screen-frame.js';
 import { solidFacets, type SolidFacet } from '../solid/facet-placement.js';
-import { readingPoseTransform } from '../solid/reading-pose.js';
+import { landedContentTransform, readingPoseTransform } from '../solid/reading-pose.js';
 import {
   CORNER_GLYPH_HEIGHT,
   GLYPH_HEIGHT,
+  MIN_LEGIBLE_GLYPH_PX,
+  MIN_LEGIBLE_PIP_PX,
   PIP_DIAMETER,
   glyphScale,
   isPipValue,
@@ -238,6 +240,38 @@ function readDieItem(item: DieComponent | null | undefined): DieItem | null {
   };
 }
 
+/**
+ * What `--die-size` resolves to when a caller sets nothing, in px.
+ *
+ * 100, which is pig's -- the only shipping game with dice, and the size every
+ * legibility number in this component and in `die-shape.spec.ts` is measured
+ * at. It was 50, inherited from the flat die, and that number stopped being
+ * right the moment `--die-size` became a bounding-SPHERE diameter rather than a
+ * face's width: at 50 a d6 draws a 29px cube in a 50px box, and a d7's corner
+ * numerals come out at 4.3px, which is a smudge. Both of the tutorial's
+ * `<boardgame-die>` snippets set nothing, so copied verbatim they used to
+ * produce exactly that.
+ *
+ * A default cannot be right for every board, and this one is deliberately at
+ * the large end: a die is a game's primary button, an author who wants a
+ * smaller one will say so, and an author who says nothing is far better served
+ * by a die that is too big to miss than by one that is too small to read.
+ */
+const DEFAULT_DIE_SIZE_PX = 100;
+
+/**
+ * How long the landing beat runs, in ms. Long enough to be a beat and short
+ * enough that it is over before a player has finished reading the number.
+ */
+const SETTLE_ACCENT_MS = 260;
+
+/**
+ * Face counts already warned about for illegible marks; see `_checkLegibility`.
+ * Module-scoped, so a board full of the same shape produces one line and not
+ * one per die.
+ */
+const WARNED_ILLEGIBLE = new Set<number>();
+
 /** One planned roll: what to draw, and what to play. */
 interface DieRoll {
   /** Face VALUES by face index, with the server's value on the landed face. */
@@ -250,6 +284,13 @@ interface DieRoll {
   readonly curve: (progress: number) => string;
   /** Byte-identical to `curve(1)`: see `_playRoll`. */
   readonly resting: string;
+  /**
+   * What `#orient` carries for the whole of this roll: the turn, about the
+   * landed face's OWN normal, that leaves the number the player has to read the
+   * right way up. See `landedContentTurn` for why it is that axis and why it
+   * cannot disturb the scene the tumble is framed in.
+   */
+  readonly contentUpright: string;
 }
 
 class BoardgameDie extends BoardgameAnimatableItem {
@@ -259,17 +300,28 @@ class BoardgameDie extends BoardgameAnimatableItem {
       :host {
         --effective-die-scale: var(--die-scale, 1.0);
         /*
-         * --die-size is the die's overall size, and is the property a caller
-         * sets: any CSS length ('120px', '6rem', '10vmin'). It is the side of
-         * the square box the die is laid out in AND the diameter of the
-         * sphere the solid is inscribed in, so a die of any face count fits
-         * its box in every orientation -- which is what lets a later task
-         * tumble it without it escaping the layout.
+         * --die-size IS THE DIAMETER OF THE SPHERE THE SOLID IS INSCRIBED IN,
+         * and is the property a caller sets: any CSS length ('120px', '6rem',
+         * '10vmin'). It is also the side of the square box the die is laid out
+         * in, so a die of any face count fits its box in every orientation --
+         * which is what lets the tumble run without the die escaping the
+         * layout.
+         *
+         * A SPHERE, NOT A FACE. This is the one thing about the property worth
+         * saying twice, because it changed meaning when the flat die became a
+         * solid and nothing in the name says so: on the reel, --die-size was a
+         * face's own width. It is not any more. A cube's face spans 1/sqrt(3) =
+         * 57.7% of it, a d20's triangle less, a barrel's side face less again,
+         * so a die set to 50px draws a 29px cube inside a 50px box. Sizing a
+         * die by eye off the old number therefore produces something about
+         * half the size the author meant. The default below is what a caller
+         * who sets nothing gets, and it is chosen so that "nothing" is a
+         * reasonable answer rather than a smudge.
          *
          * --effective-die-size is the resolved value everything in here
          * measures against; it is not part of the component's API.
          */
-        --effective-die-size: var(--die-size, 50px);
+        --effective-die-size: var(--die-size, ${DEFAULT_DIE_SIZE_PX}px);
         /*
          * How far #inner scrolls per face of the REEL. One die-size, which is
          * a reel face's height -- except on a solid, which has no reel to
@@ -307,7 +359,8 @@ class BoardgameDie extends BoardgameAnimatableItem {
                     0 3px 1px -2px rgba(60, 40, 20, 0.2),
                     inset 0 1px 0 rgba(255, 255, 255, 0.4);
         transform: scale(var(--effective-die-scale));
-        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         border: 0;
         padding: 0;
       }
@@ -320,9 +373,11 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
       /*
        * In solid mode the die's body is the facets themselves, so #main is
-       * only the hit target and the 3D scene's positioning context. It must
-       * give up overflow:hidden (which would slice the solid, and which
-       * flattens any 3D context put on it) along with the flat card look.
+       * only the hit target, the 3D scene's positioning context, and the
+       * element the contact shadow hangs off. It must give up overflow:hidden
+       * (which would slice the solid, and which flattens any 3D context put on
+       * it) along with the flat card look -- INCLUDING the box-shadow, which
+       * would draw a rectangle around a solid that is not one.
        */
       #main.solid,
       #main.solid.interactive:hover {
@@ -331,6 +386,64 @@ class BoardgameDie extends BoardgameAnimatableItem {
         background: none;
         border-radius: 0;
         box-shadow: none;
+      }
+
+      /*
+       * THE CONTACT SHADOW, which is the thing that puts the die on the table.
+       *
+       * The flat die it replaces carried a full elevation box-shadow and a
+       * hover lift; the solid arrived with 'box-shadow: none' and nothing else,
+       * so against pig's cream board it read as low-contrast and FLOATING --
+       * for the game's primary button. The shadow cannot go on the solid: a
+       * 'filter: drop-shadow' forces 'transform-style: flat' and would collapse
+       * the whole 3D context (see #stage's comment), and a 'box-shadow' draws
+       * the wrong outline. So it is a soft ellipse under the die instead, which
+       * is also what a real die on a real table casts.
+       *
+       * z-index -1 keeps it behind the solid. #main carries a transform, so it
+       * is a stacking context, and the negative layer is inside it.
+       */
+      #main.solid::after {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        left: 50%;
+        bottom: 2%;
+        width: 62%;
+        height: 12%;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: radial-gradient(closest-side,
+                    rgba(60, 40, 20, 0.42) 0%,
+                    rgba(60, 40, 20, 0.26) 45%,
+                    rgba(60, 40, 20, 0) 100%);
+        transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                    height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                    bottom 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /*
+       * THE HOVER AFFORDANCE. The flat die lifted on a raised elevation
+       * shadow; the solid's only hover cue was a barely-perceptible facet
+       * brightening, which nobody reads as "this is a button". So the die
+       * lifts and its shadow spreads and softens underneath it, which is the
+       * same gesture the elevation shadow made and the one every other
+       * interactive component in the app makes.
+       *
+       * The lift is a translate on #main, ABOVE the 3D scene, so it composes
+       * with nothing the roll owns (#inner) and nothing the pose owns
+       * (#orient).
+       */
+      #main.solid.interactive:hover {
+        transform: scale(var(--effective-die-scale)) translateY(-4%);
+      }
+
+      #main.solid.interactive:hover::after {
+        width: 72%;
+        height: 9%;
+        bottom: -2%;
+        opacity: 0.72;
       }
 
       /*
@@ -472,7 +585,38 @@ class BoardgameDie extends BoardgameAnimatableItem {
       .face {
         font-family: var(--md-sys-typescale-body-large-font, 'Source Sans 3', sans-serif);
         font-weight: 500;
-        color: var(--md-sys-color-on-surface, #1C1810);
+        --die-ink: var(--md-sys-color-on-surface, #1C1810);
+        color: var(--die-ink);
+      }
+
+      /*
+       * THE FACET THE PLAYER IS MEANT TO READ, said in ink rather than only in
+       * geometry.
+       *
+       * The pose already guarantees the presented facet is the most square-on
+       * one, but on a d20 the margin it can afford is small -- 0.946 towards
+       * the camera against a runner-up at 0.891, which is about 2.8% of
+       * projected area and below what an eye resolves. At 520px a neighbouring
+       * numeral is just as readable, and the only thing distinguishing the
+       * right one is that it happens to be in the middle.
+       *
+       * So the presented facet gets darker ink and a faintly warmer, brighter
+       * face. Both are cheap, neither touches geometry, and -- this is the
+       * point -- neither can be mistaken for the pose failing, because the
+       * emphasis follows the face carrying the value even if the aim ever did
+       * drift. The ink is derived from whatever ink the theme supplies rather
+       * than hard-coded, so it stays a RELATIVE darkening in any palette.
+       */
+      .facet.presented {
+        color: color-mix(in srgb, var(--die-ink) 76%, #000 24%);
+        background:
+          linear-gradient(135deg, #FFFCF3 0%, #E8DFCF 100%);
+        box-shadow: inset 0 0 0 1px rgba(60, 40, 20, 0.26);
+      }
+
+      #main.solid.interactive:hover .facet.presented {
+        background:
+          linear-gradient(135deg, #FFFFFA 0%, #F1E9D9 100%);
       }
 
       /*
@@ -672,6 +816,12 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _announcement = '';
 
   /**
+   * The `faceCount@sizePx` the legibility floor was last evaluated for, so an
+   * unchanged die is not re-measured on every update pass.
+   */
+  private _legibilityCheckedFor: string | null = null;
+
+  /**
    * Which roll is current. A roll that finishes after a LATER one has started
    * must not report itself as the die's result; see `_playRoll`.
    */
@@ -724,6 +874,11 @@ class BoardgameDie extends BoardgameAnimatableItem {
     if (changedProperties.has('action')) {
       this._subscribeAction();
     }
+
+    // After the render, because it measures the rendered #stage; see there for
+    // why it costs nothing on the passes where nothing has moved.
+    const solid = this._solid();
+    if (solid) this._checkLegibility(solid);
   }
 
   private _handleClick(e: Event) {
@@ -1019,6 +1174,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
         // single rounding digit of disagreement would show up as the die
         // twitching as it settles.
         resting: scene.resting,
+        contentUpright: landedContentTransform(geometry, die.restingOrientation, presented),
       };
     } catch (error) {
       // A geometry the simulator or the bake refuses. Nothing here may throw
@@ -1111,12 +1267,124 @@ class BoardgameDie extends BoardgameAnimatableItem {
       ? this._resolveFace(values[roll.presented], this._usesPips(this._solid())).label
       : String(detail.value);
     this._announcement = `Rolled ${label}`;
+    this._playSettleAccent();
     this.requestUpdate();
     this.dispatchEvent(new CustomEvent('roll-end', {
       bubbles: true,
       composed: true,
       detail,
     }));
+  }
+
+  /**
+   * THE LANDING BEAT: a short pop the instant the result arrives.
+   *
+   * Nothing used to mark the moment the die finished, and because the tail of
+   * a throw decelerates there is no frame a player can point at as the one it
+   * stopped on — the number simply becomes readable at some point. A quarter of
+   * a second of overshoot-and-settle is enough to say "this is the answer", and
+   * it is worth more than making the tumble itself bouncier.
+   *
+   * ON #STAGE, and deliberately: #inner is the roll's, #orient is the pose's,
+   * and #main's transform is the hover lift's. #stage is above the whole 3D
+   * scene and owns no transform otherwise, so a scale here composes with
+   * nothing. It is also uniform, so it cannot change any of the ANGLES the
+   * readability tests measure.
+   *
+   * PLAYED DIRECTLY, not through `play()`. It is not a gate participant — the
+   * roll it punctuates has already settled, and holding the cycle open for a
+   * flourish would delay every other player's board. Going through the kernel
+   * would also declare a `will-animate` and record a `play` in the animation
+   * hooks the parity goldens count, for an animation that is decoration. So
+   * `noAnimate` and reduced motion are honoured here by hand instead.
+   */
+  private _playSettleAccent(): void {
+    if (this.noAnimate) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const stage = this._stageElement;
+    if (!stage) return;
+    stage.animate(
+      [
+        { transform: 'scale(1)', offset: 0 },
+        { transform: 'scale(1.06)', offset: 0.3 },
+        { transform: 'scale(0.99)', offset: 0.62 },
+        { transform: 'scale(1)', offset: 1 },
+      ],
+      {
+        duration: SETTLE_ACCENT_MS,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        // fill: 'none' for the same reason every other play in this component
+        // uses it: the element must be left in its own resting style, not
+        // pinned to a keyframe.
+        fill: 'none',
+        composite: 'replace',
+      },
+    );
+  }
+
+  /**
+   * Say so, ONCE, when this die's marks come out too small to read.
+   *
+   * Every other size assertion in the solid is an upper bound — stay inside the
+   * facet, do not overrun the inscribed square — and all of them are satisfied
+   * perfectly by drawing nothing at all. `die-shape.spec.ts` pins a floor for
+   * the shapes that ship; this is the same floor applied to the shapes nobody
+   * tested, at whatever size a game actually drew them. A game author who drops
+   * a `d7` in at the default should not get silent 3px marks and be left to
+   * guess why the die is a smudge.
+   *
+   * The size is DERIVED, from the facet's own content square times the die's
+   * measured pixel size, never from a table of face counts: a change to how a
+   * solid is proportioned moves the marks, and a hard-coded expectation here
+   * would go quietly stale exactly when it mattered.
+   *
+   * Warned once per face count, and only once it has actually failed — a d7
+   * drawn large somewhere else on the board records nothing, so the small one
+   * still gets its warning. Bounded by the number of DISTINCT dice the loaded
+   * games define, which is the same argument `SOLID_CACHE` makes.
+   */
+  private _checkLegibility(solid: DieSolid): void {
+    const faceCount = solid.geometry.faceCount;
+    if (WARNED_ILLEGIBLE.has(faceCount)) return;
+    const stage = this._stageElement;
+    if (!stage) return;
+    const sizePx = parseFloat(getComputedStyle(stage).fontSize);
+    if (!Number.isFinite(sizePx) || sizePx <= 0) return;
+    // Re-measuring an unchanged die on every update pass would be a render-loop
+    // cost for nothing; the answer only moves when the shape or the size does.
+    const key = `${faceCount}@${Math.round(sizePx)}`;
+    if (this._legibilityCheckedFor === key) return;
+    this._legibilityCheckedFor = key;
+    const values = this._faceValues();
+    const usePips = this._usesPips(solid);
+    let worst: { what: string; px: number } | null = null;
+    const note = (what: string, px: number) => {
+      if (!worst || px < worst.px) worst = { what, px };
+    };
+    for (const facet of solid.facets) {
+      if (facet.faceIndex < 0 || facet.faceIndex >= values.length) continue;
+      const content = this._resolveFace(values[facet.faceIndex], usePips);
+      if (content.kind === 'pips') {
+        const px = facet.contentSize * sizePx * PIP_DIAMETER;
+        if (px < MIN_LEGIBLE_PIP_PX) note(`a pip on face ${values[facet.faceIndex]}`, px);
+      } else {
+        const px = facet.contentSize * sizePx * glyphScale(content.text, GLYPH_HEIGHT);
+        if (px < MIN_LEGIBLE_GLYPH_PX) note(`"${content.text}" on face ${values[facet.faceIndex]}`, px);
+      }
+      for (const corner of facet.corners) {
+        const mark = this._resolveFace(values[corner.faceIndex], false);
+        const px = corner.size * sizePx * glyphScale(mark.text, CORNER_GLYPH_HEIGHT);
+        if (px < MIN_LEGIBLE_GLYPH_PX) note(`the corner "${mark.text}"`, px);
+      }
+    }
+    if (!worst) return;
+    WARNED_ILLEGIBLE.add(faceCount);
+    const { what, px } = worst as { what: string; px: number };
+    console.warn(
+      `boardgame-die: a d${faceCount} at --die-size ${Math.round(sizePx)}px draws ${what} at `
+      + `${px.toFixed(1)}px, which is too small to read. --die-size is the BOUNDING SPHERE's `
+      + `diameter, not a face's width, so a shape with small or elongated faces needs a larger `
+      + `one than its face size suggests.`);
   }
 
   private _classes(disabled: boolean, solid: boolean): string {
@@ -1313,14 +1581,25 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _renderSolid(solid: DieSolid) {
     const values = this._faceValues();
     const usePips = this._usesPips(solid);
-    // Once the die has rolled, its pose is the physics's ENTIRELY: #inner holds
-    // the tumble (and, once it finishes, the trajectory's own resting transform,
-    // written by the motion-track kernel), so #orient must contribute nothing or
-    // the two poses would compose into a third. The presentation pose is what a
-    // die that has never rolled is shown in, and only that.
+    // Once the die has rolled, its AIM is the physics's entirely: #inner holds
+    // the tumble (and, once it finishes, the trajectory's own resting
+    // transform, written by the motion-track kernel), so #orient must not carry
+    // a second presentation pose or the two would compose into a third.
+    //
+    // What it does carry is the one turn the scene structurally cannot: the
+    // roll about the LANDED FACE'S OWN NORMAL that leaves the number upright.
+    // That axis is why it belongs here rather than in the scene -- it is a
+    // rotation of the die about the face being read, so it survives being
+    // applied inside the tumble's pose, and it provably cannot change which
+    // facet is most square-on (see `landedContentTurn`). The presentation pose
+    // is what a die that has never rolled is shown in, and only that.
     const orient = this._roll
-      ? 'none'
+      ? this._roll.contentUpright
       : readingPoseTransform(solid.geometry, this._presentedFaceIndex(solid.geometry.faceCount));
+    // Which facet the player is meant to read: the one the physics landed once
+    // the die has rolled, the selected one before that. It is emphasised in
+    // ink; see `.facet.presented`.
+    const shown = this._shownFaceIndex(solid.geometry.faceCount);
     return html`
       <div id="stage">
         <div id="inner" class="solid">
@@ -1329,7 +1608,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
               if (facet.faceIndex < 0) return html`<div class="facet cap" style="${facet.style}"></div>`;
               const content = this._resolveFace(values[facet.faceIndex], usePips);
               return html`<div
-                    class="facet"
+                    class="facet${facet.faceIndex === shown ? ' presented' : ''}"
                     style="${facet.style}"
                     data-face-index="${facet.faceIndex}"
                     data-face-value="${values[facet.faceIndex]}"

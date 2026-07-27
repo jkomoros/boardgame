@@ -53,14 +53,16 @@ test('the canonical faces come out canonical', () => {
   // Six is the corners plus the SIDE midpoints, which is what a physical d6
   // draws, and not the top/bottom midpoints.
   assert.equal(sorted(6), '0,0 0,1 0,2 2,0 2,1 2,2');
-  assert.equal(sorted(7), '0,0 0,1 0,2 1,1 2,0 2,1 2,2');
-  assert.equal(sorted(8), '0,0 0,1 0,2 1,0 1,2 2,0 2,1 2,2');
-  assert.equal(sorted(9), '0,0 0,1 0,2 1,0 1,1 1,2 2,0 2,1 2,2');
+  // ...and there is no seven. Seven and eight dots on a d8's TRIANGLE measured
+  // 4.2px each on a 100px die, which is a smudge to be counted rather than a
+  // face to be read, so the cutoff is six -- the largest count a physical die
+  // is ever pipped with. `pipCells` cannot draw one: there is no fourth pair.
+  assert.equal(MAX_PIP_VALUE, 6);
 });
 
 test('isPipValue admits exactly the values with a lattice pattern', () => {
   for (let value = 0; value <= MAX_PIP_VALUE; value++) assert.ok(isPipValue(value), `${value}`);
-  assert.ok(!isPipValue(MAX_PIP_VALUE + 1), 'a tenth pip needs a fourth row');
+  assert.ok(!isPipValue(MAX_PIP_VALUE + 1), 'a seventh pip is counted, not read');
   assert.ok(!isPipValue(-1));
   assert.ok(!isPipValue(2.5));
   assert.ok(!isPipValue(Number.NaN));

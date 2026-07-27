@@ -290,12 +290,15 @@ export function presentedTiltLimit(directions: readonly Vec3[], presented: numbe
  * viewer carries that +y wherever the shortest path leaves it: measured without
  * it, a d4 presenting face 1 was 122 degrees out and a d10 presenting face 2
  * was 116 — an upside-down number. A solid that has never moved has to read like
- * the flat 2D sprite it replaces, so it gets the correction. A die the physics
- * has just put down must NOT: a real die stops at whatever angle it stops at,
- * and rotating the numeral upright afterwards is the one thing that would give
- * the tumble away as a cartoon. Squaring the FACE towards the camera (1 and 2,
- * which both poses get) and rotating the CONTENT upright (3) are different
- * operations about different axes, and only the first is about legibility.
+ * the flat 2D sprite it replaces, so it gets the correction here.
+ *
+ * A solid the PHYSICS has put down gets the same correction, but not from this
+ * routine: see `landedContentTurn`, which performs it about the presented
+ * facet's own normal rather than about the camera axis, because the landed
+ * facet's content orientation is not a function of its normal alone. Squaring
+ * the FACE towards the camera (1 and 2, which both poses get) and rotating the
+ * CONTENT upright are different operations about different axes, and only the
+ * first can move a facet towards or away from the viewer.
  *
  * Only the presented facet's content can be corrected, and only it should be:
  * one roll is one degree of freedom, and the other facets keep the orientation
@@ -331,10 +334,95 @@ export function readingPose(
  * when it needs no turning at all.
  *
  * Content is rolled upright, because a solid nothing has happened to has to read
- * like the flat sprite it replaces. A solid the physics has moved wants
- * `readingPose(..., { uprightContent: false })` instead; see `dice-roll.ts`.
+ * like the flat sprite it replaces. A solid the physics has moved is posed by
+ * `dice-roll.ts`'s `rollScene` and uprighted by `landedContentTransform` below.
  */
 export function readingPoseTransform(surface: SolidSurface, presented: number): string {
   const turns = readingPose(surfaceDirections(surface), presented, { uprightContent: true });
   return turns.length ? turns.map(rotate3d).join(' ') : 'none';
+}
+
+/**
+ * ROLLING A LANDED SOLID'S CONTENT UPRIGHT, about the presented facet's own
+ * normal.
+ *
+ * ## Why the landed pose cannot just ask `readingPose` for it
+ *
+ * `readingPose`'s own roll reads the presented facet's local +y back out of
+ * `facetBasis(normal)`, which is legitimate for a solid that has never moved:
+ * `facet-placement.ts` derives every facet's box from `facetBasis` of that same
+ * normal, so the two agree by construction. They do NOT agree once the physics
+ * has turned the solid. `facetBasis` is defined against a FIXED direction
+ * (`SCREEN_UP`), so it is not equivariant — `facetBasis(R·n).v` is not
+ * `R·facetBasis(n).v` — while the facet element's actual local +y is the body
+ * one carried through the landing rotation. Uprighting the first vector leaves
+ * the second at whatever angle it likes, which is the "ει" a landed d20 used to
+ * read as.
+ *
+ * ## Why about the facet's own normal, and why that is safe
+ *
+ * The turn is `rotate3d` about the presented facet's normal IN THE BODY FRAME,
+ * so it is emitted onto the resting-pose carrier (`#orient`) INSIDE the scene's
+ * own pose, and the scene — the travel, the projection, the aim — is untouched.
+ * Because a rotation about the presented normal fixes that normal and preserves
+ * every pairwise angle between facets, `presentedTiltLimit`'s guarantee survives
+ * it verbatim: the presented facet stays exactly as square-on as it was, and
+ * every rival is still at least `nearest - 2 * tilt` off the camera axis. It
+ * cannot make some other face win.
+ *
+ * ## What it solves for
+ *
+ * With `a` the presented facet's posed local +y and `b = d x a` (`d` its posed
+ * normal), a turn of `phi` about `d` sends it to `a cos(phi) + b sin(phi)`.
+ * Upright means that vector has no screen-x component and points screen-DOWN
+ * (CSS +y), so `phi = atan2(-a.x, b.x)`, plus a half turn when that root lands
+ * the content upside down. Exact, not iterative.
+ */
+export function landedContentTurn(
+  surface: SolidSurface,
+  landed: Quat,
+  presented: number,
+): Turn | null {
+  const face = surface.faces[presented] ?? surface.capFaces[presented - surface.faces.length];
+  if (!face) return null;
+  // The facet's own axes as `facet-placement.ts` built them: body frame, CSS
+  // handedness. `axis` is what the emitted rotate3d turns about, because
+  // `#orient` sits in exactly this frame.
+  const axis = normalize(toScreen(face.normal));
+  const contentDown = facetBasis(axis).v;
+  // ...carried into screen space. The landing rotation acts on a CSS-frame
+  // vector as `S R S` (see `screen-frame.ts`), and `toScreen` is its own
+  // inverse, so this is that similarity written out.
+  const landedDown = toScreen(rotateByQuat(landed, toScreen(contentDown)));
+  const directions = surfaceDirections(surface, landed);
+  // The same turns `rollScene` emits, and they must be: this correction is
+  // solved for AFTER them. The list is outermost first, so it is applied to a
+  // vector innermost first — the same `reduceRight` `dice-roll.ts` uses.
+  const turns = readingPose(directions, presented, { uprightContent: false });
+  const posed = (v: Vec3) => turns.reduceRight((point, turn) => applyTurn(point, turn), v);
+  const a = posed(landedDown);
+  const d = posed(directions[presented]);
+  const b = cross(d, a);
+  let radians = Math.atan2(-a[0], b[0]);
+  // Both roots put the content on the screen's vertical; only one puts it the
+  // right way up.
+  if (Math.cos(radians) * a[1] + Math.sin(radians) * b[1] < 0) radians += Math.PI;
+  const degrees = (radians * 180) / Math.PI;
+  // A turn under a thousandth of a degree is a rounding artefact, and emitting
+  // it would put a dead rotate3d on every rendered die.
+  if (!Number.isFinite(degrees) || Math.abs(degrees) < 1e-3) return null;
+  return { axis, degrees };
+}
+
+/**
+ * `landedContentTurn` as the CSS `#orient` carries for a landed solid, or
+ * `'none'`. The parallel of `readingPoseTransform` for the other pose.
+ */
+export function landedContentTransform(
+  surface: SolidSurface,
+  landed: Quat,
+  presented: number,
+): string {
+  const turn = landedContentTurn(surface, landed, presented);
+  return turn ? rotate3d(turn) : 'none';
 }

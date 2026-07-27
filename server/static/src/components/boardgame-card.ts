@@ -102,11 +102,39 @@ export class BoardgameCard extends BoardgameComponent {
         box-shadow: var(--shadow-elevation-raised-rotated);
       }
 
-      #outer.alt-shadow.rotated #inner {
+      /* The rotated alt-shadow elevation, ON #outer -- never on #inner, for
+         exactly the reason boardgame-component.ts spells out for the unrotated
+         pair and boardgame-token.ts for its throb: motionTrackTarget('visual')
+         returns #inner, so #inner is where a component-owned 3D scene mounts
+         and where 'transform-style: preserve-3d' has to go, and a 'filter'
+         forces 'transform-style: flat' on the element carrying it. A rotated
+         card with altShadow set would therefore have been unable to host one.
+
+         Nothing sets 'altShadow' on a card today -- not here, not in ../games
+         -- so this pair was unreachable and the flattening was latent rather
+         than live. That is the argument for moving it NOW: it costs nothing
+         while nothing depends on its stacking, and #inner is exactly where a
+         3D card would have to live.
+
+         Visually inert for the same reason as the unrotated pair: #outer paints
+         nothing of its own, so the alpha silhouette the drop-shadows derive
+         from is the one #inner produced either way.
+
+         .disabled's saturate is restated for the same reason
+         boardgame-component.ts restates it: the two now share ONE filter slot
+         on #outer, and this selector outranks '#outer.alt-shadow.disabled', so
+         a disabled rotated card would otherwise silently stop looking
+         disabled. Elevation first, then saturate -- the order the two-element
+         version painted them. */
+      #outer.alt-shadow.rotated {
         filter: var(--alt-shadow-elevation-normal-rotated);
       }
 
-      #outer.alt-shadow.interactive.rotated:hover #inner {
+      #outer.alt-shadow.rotated.disabled {
+        filter: var(--alt-shadow-elevation-normal-rotated) saturate(60%);
+      }
+
+      #outer.alt-shadow.interactive.rotated:hover {
         filter: var(--alt-shadow-elevation-raised-rotated);
       }
 

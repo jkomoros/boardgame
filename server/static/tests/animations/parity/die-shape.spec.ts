@@ -33,7 +33,12 @@ import { createOfflineGame } from '../helpers';
 // fixture, because an isolated fixture cannot see an ancestor that flattens
 // the 3D context.
 
-const DIE_SIZE_DEFAULT_PX = 50;
+// What a die a caller sizes NOTHING on comes out at: `DEFAULT_DIE_SIZE_PX`.
+// It was 50, inherited from the flat die, and became wrong when --die-size
+// stopped meaning "a face's width" and started meaning "the bounding sphere's
+// diameter" -- a d6 at 50 draws a 29px cube, and the tutorial's own snippets
+// set nothing.
+const DIE_SIZE_DEFAULT_PX = 100;
 
 // Mounts one <boardgame-die> in the served app page. Everything else in this
 // spec reads through page.evaluate on the same element id.
@@ -422,10 +427,11 @@ test.describe('boardgame-die solid', () => {
   // the one face the player is meant to read -- while a d20 was within 16, which
   // is exactly why eyeballing one shape proves nothing.
   //
-  // Only the RESTING pose is pinned. After a physics roll lands the die, the
-  // content roll is whatever the simulation stopped at, the same as a real
-  // die's; this is the pre-roll pose that has to read like the flat 2D die the
-  // solid replaces.
+  // Only the RESTING pose is pinned here; a die the physics has put down is
+  // straightened by a different routine about a different axis
+  // (`landedContentTurn`, on `#orient`), and `die-roll.spec.ts` measures that
+  // one. The two have to agree, or the die would visibly change angle across a
+  // page reload.
   for (const faceCount of [4, 6, 7, 8, 10, 12, 20]) {
     test(`d${faceCount} rests with the presented face's content upright`, async ({ page }) => {
       const worst: string[] = [];
@@ -630,6 +636,12 @@ test.describe('boardgame-die solid', () => {
       window.addEventListener('error', onError);
       const mount = async (faces: number[] | null) => {
         const die = document.createElement('boardgame-die') as any;
+        // The flat die's OWN size, set explicitly. The reel is the pre-3D
+        // fallback and the pip numbers below are the pre-3D die's, so the
+        // comparison is only meaningful at the size that die was drawn at --
+        // which is no longer the component's default (see
+        // DIE_SIZE_DEFAULT_PX).
+        die.style.setProperty('--die-size', '50px');
         die.item = faces === null ? null : {
           Values: { Faces: faces },
           DynamicValues: { SelectedFace: 0, Value: faces[0] },
@@ -648,7 +660,7 @@ test.describe('boardgame-die solid', () => {
           // in the shared path has to show up here too.
           pipsPerFace: faceEls.map((el) => el.querySelectorAll('.pip').length),
           // A dot's diameter and its offset from the face's centre, in px, on
-          // the default 50px die. These are the flat die's original numbers
+          // a 50px die. These are the flat die's original numbers
           // (a 7px dot 10.5px off centre), which is what --content-size: 63%
           // of a reel face is chosen to reproduce.
           pipGeometry: faceEls.length === 0 ? null : (() => {
@@ -1039,17 +1051,36 @@ test.describe('boardgame-die face content', () => {
     }
   });
 
-  // The whole point: the layout is not capped at six. A d10 labelled 0..9
-  // walks the entire generated range, blank face included.
-  test('a d10 labelled 0..9 draws every generated pip count', async ({ page }) => {
-    const faces = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-    await mountDie(page, { faceCount: 10, faces, dieSize: '240px' });
-    const { rows } = await faceContent(page, 10);
+  // The layout is still GENERATED rather than enumerated -- that is what used
+  // to cap the die at six hard-coded CSS classes -- but the range it is
+  // generated over now stops at six on purpose: nobody counts seven dots at a
+  // glance, and on a d8's TRIANGLE they measured 4.2px each. A d7 labelled 0..6
+  // is the whole range, and a d8 labelled with it walks all seven counts,
+  // blank face included. (Not a d7: an odd barrel is read from a face nobody
+  // can see, so it is corner-printed and therefore always numbered.)
+  test('a d8 labelled 0..6 draws every generated pip count', async ({ page }) => {
+    const faces = [0, 1, 2, 3, 4, 5, 6, 6];
+    await mountDie(page, { faceCount: 8, faces, dieSize: '240px' });
+    const { rows } = await faceContent(page, 8);
     expect(rows.map((row: any) => row.faceValue).sort((a: number, b: number) => a - b)).toEqual(faces);
     for (const row of rows) {
       expect(row.pips.length, `face ${row.faceValue} dot count`).toBe(row.faceValue);
       expect(row.pips.map((pip: any) => `${pip.col},${pip.row}`).sort(),
         `face ${row.faceValue} pip cells`).toEqual(expectedPipCells(row.faceValue));
+    }
+  });
+
+  // ...and a d8, whose values run one past the cutoff, is a NUMBERED die --
+  // which is what every real d8 is. This is the assertion that fails if the
+  // cutoff goes back up to the 3x3 lattice's own capacity.
+  test('a d8 is numbered, not pipped', async ({ page }) => {
+    await mountDie(page, {
+      faceCount: 8, faces: [1, 2, 3, 4, 5, 6, 7, 8], dieSize: '240px',
+    });
+    const { rows } = await faceContent(page, 8);
+    for (const row of rows) {
+      expect(row.pips.length, `face ${row.faceValue} draws no pips`).toBe(0);
+      expect(row.text?.text, `face ${row.faceValue} numeral`).toBe(String(row.faceValue));
     }
   });
 
@@ -1070,19 +1101,19 @@ test.describe('boardgame-die face content', () => {
     }
   });
 
-  test('the pip/numeral threshold is per die: 0..9 pips, one value past it numerals', async ({ page }) => {
-    await mountDie(page, { faceCount: 10, faces: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dieSize: '240px' });
+  test('the pip/numeral threshold is per die: 0..6 pips, one value past it numerals', async ({ page }) => {
+    await mountDie(page, { faceCount: 10, faces: [0, 1, 2, 3, 4, 5, 6, 0, 1, 2], dieSize: '240px' });
     const pipped = await faceContent(page, 10);
     expect(pipped.rows.every((row: any) => row.text === null)).toBe(true);
-    expect(pipped.rows.reduce((sum: number, row: any) => sum + row.pips.length, 0)).toBe(45);
+    expect(pipped.rows.reduce((sum: number, row: any) => sum + row.pips.length, 0)).toBe(24);
 
-    // Exactly one value moved past the lattice's capacity; the WHOLE die
-    // switches to numerals.
-    await mountDie(page, { faceCount: 10, faces: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], dieSize: '240px' });
+    // Exactly one value moved past the cutoff; the WHOLE die switches to
+    // numerals, so no die ever shows dots on one face and a number on the next.
+    await mountDie(page, { faceCount: 10, faces: [0, 1, 2, 3, 4, 5, 6, 7, 1, 2], dieSize: '240px' });
     const numeralled = await faceContent(page, 10);
     expect(numeralled.rows.every((row: any) => row.pips.length === 0)).toBe(true);
     expect(numeralled.rows.map((row: any) => row.text?.text).sort())
-      .toEqual(['1', '10', '2', '3', '4', '5', '6', '7', '8', '9']);
+      .toEqual(['0', '1', '1', '2', '2', '3', '4', '5', '6', '7']);
   });
 
   // (c) An author-supplied symbol set wins over both, is keyed by the face's
@@ -1388,8 +1419,11 @@ test.describe('boardgame-die face content', () => {
     ['d4 corner numerals', 4, [1, 2, 3, 4]],
     ['d6 pips', 6, [1, 2, 3, 4, 5, 6]],
     ['d7 corner numerals', 7, [1, 2, 3, 4, 5, 6, 7]],
-    ['d8 pips', 8, [1, 2, 3, 4, 5, 6, 7, 8]],
-    ['d10 pips', 10, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+    ['d8 numerals', 8, [1, 2, 3, 4, 5, 6, 7, 8]],
+    // A pipped die whose facets are SMALL: a d10's kite gives its content
+    // square about a third of the die's width, so this is the pip case that
+    // binds now that a d8 is numbered.
+    ['d10 pips', 10, [0, 1, 2, 3, 4, 5, 6, 0, 1, 2]],
     ['d10 numerals', 10, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]],
     ['d12 numerals', 12, Array.from({ length: 12 }, (_, i) => i + 1)],
     ['d20 numerals', 20, Array.from({ length: 20 }, (_, i) => i + 1)],
@@ -1434,4 +1468,236 @@ test.describe('boardgame-die face content', () => {
       }
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// PROMINENCE.
+//
+// The die is a game's PRIMARY BUTTON, and measured against the flat die it
+// replaces it had quietly become the least prominent thing on the board: at
+// --die-size: 100px its ink is 74.8x69.8 against the flat die's 100x100, its
+// pips 8.1px against 12.6, and where the flat die carried a full elevation
+// shadow plus a hover lift the solid carried `box-shadow: none` and a facet
+// brightening nobody reads as a button. Against pig's cream board it looked
+// low-contrast and, worse, FLOATING.
+//
+// Two of those numbers are the price of drawing a solid inside a sphere and
+// are not defects. The shadow and the hover were, and this is what pins their
+// replacements. Everything here is read from `getComputedStyle` (including the
+// pseudo-element), because a rule that exists and paints nothing would satisfy
+// any weaker check.
+test.describe('boardgame-die prominence', () => {
+  test('the solid is grounded by a contact shadow', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, dieSize: '100px' });
+    const resting = await page.evaluate(() => {
+      const root = (document.getElementById('fixture-die') as any).shadowRoot as ShadowRoot;
+      const main = root.querySelector('#main') as HTMLElement;
+      const shadow = getComputedStyle(main, '::after');
+      return {
+        box: main.offsetWidth,
+        content: shadow.content,
+        width: parseFloat(shadow.width),
+        height: parseFloat(shadow.height),
+        zIndex: shadow.zIndex,
+        image: shadow.backgroundImage,
+        boxShadow: getComputedStyle(main).boxShadow,
+      };
+    });
+    // The shadow EXISTS and is drawn: a generated ellipse of real size,
+    // painting a real gradient, behind the solid.
+    expect(resting.content, 'the contact shadow is a generated box').not.toBe('none');
+    expect(resting.image, 'and it paints a soft ellipse').toContain('radial-gradient');
+    expect(resting.image, 'in the board\'s own shadow ink').toContain('rgba(60, 40, 20');
+    expect(resting.zIndex, 'behind the solid, not over it').toBe('-1');
+    // Big enough to ground a 74.8px-wide silhouette. A one-pixel smudge would
+    // satisfy every assertion above.
+    expect(resting.width / resting.box).toBeGreaterThan(0.4);
+    expect(resting.height / resting.box).toBeGreaterThan(0.05);
+    // ...and it is UNDER the die rather than around it: the solid must not get
+    // the flat die's rectangular elevation shadow back, because a solid has no
+    // rectangle to cast one from.
+    expect(resting.boxShadow, 'no box-shadow on a solid').toBe('none');
+  });
+
+  // THE HOVER AFFORDANCE, in the real app, because the affordance only exists
+  // for a die that can actually be rolled -- `interactive` is a bound move
+  // action, which a fixture cannot fake -- and "is this a button?" is a
+  // question about the shipping die and not about a fixture.
+  test('pig\'s die lifts off its shadow on hover', async ({ page }) => {
+    test.setTimeout(120000);
+    await createOfflineGame(page, 'pig');
+    const die = page.getByRole('button', { name: /Roll die/ });
+    await expect(die).toBeEnabled({ timeout: 30000 });
+    const read = () => page.evaluate(() => {
+      const find = (root: Document | ShadowRoot | Element): HTMLElement | null => {
+        const direct = root.querySelector('boardgame-die') as HTMLElement | null;
+        if (direct) return direct;
+        for (const el of Array.from(root.querySelectorAll('*'))) {
+          const shadow = (el as any).shadowRoot as ShadowRoot | undefined;
+          if (!shadow) continue;
+          const found = find(shadow);
+          if (found) return found;
+        }
+        return null;
+      };
+      const main = (find(document) as any).shadowRoot.querySelector('#main') as HTMLElement;
+      const after = getComputedStyle(main, '::after');
+      return {
+        // m42 is the element's translateY in px: the lift.
+        lift: new DOMMatrix(getComputedStyle(main).transform).m42,
+        width: parseFloat(after.width),
+        height: parseFloat(after.height),
+        opacity: parseFloat(after.opacity),
+      };
+    });
+    const resting = await read();
+    expect(resting.lift, 'a die at rest sits on the table').toBeCloseTo(0, 1);
+
+    await die.hover();
+    // The transitions are 0.18s and 0.28s; give them room to finish.
+    await page.waitForTimeout(600);
+    const hovered = await read();
+    // The die comes up off the table and its shadow spreads, flattens and
+    // fades underneath it -- the same gesture the flat die's raised elevation
+    // shadow made, and something a player can actually see. The previous cue
+    // was a facet background going from #F5F0E8 to #FFFDF8.
+    expect(hovered.lift, 'the die lifts on hover').toBeLessThan(-1);
+    expect(hovered.width, 'and its shadow spreads').toBeGreaterThan(resting.width + 1);
+    expect(hovered.height, 'and flattens').toBeLessThan(resting.height - 0.5);
+    expect(hovered.opacity, 'and softens').toBeLessThan(resting.opacity);
+  });
+
+  // The pose already makes the presented facet the most square-on one, but on a
+  // d20 the margin it can afford is 0.946 towards the camera against a runner-up
+  // at 0.891 -- about 2.8% of projected area, which is below what an eye
+  // resolves. At 520px the neighbouring numeral is equally readable and the only
+  // cue is centrality. So the facet carrying the value says so in ink.
+  for (const faceCount of [6, 12, 20]) {
+    test(`a d${faceCount} marks the facet carrying the value in darker ink`, async ({ page }) => {
+      // A face index that is NOT the value it carries and NOT zero: reading
+      // selectedFace as a value would emphasise the wrong facet and still look
+      // plausible.
+      const selectedFace = 3;
+      await mountDie(page, { faceCount, selectedFace, dieSize: '240px' });
+      const result = await page.evaluate(() => {
+        const root = (document.getElementById('fixture-die') as any).shadowRoot as ShadowRoot;
+        const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
+        // Relative luminance, so "darker" is a measurement rather than a
+        // string comparison and survives a theme changing the base ink.
+        const luminance = (css: string) => {
+          const [r, g, b] = css.match(/[\d.]+/g)!.slice(0, 3).map(Number);
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        return facets.map((el) => ({
+          faceIndex: el.dataset.faceIndex === undefined ? -1 : Number(el.dataset.faceIndex),
+          presented: el.classList.contains('presented'),
+          luminance: luminance(getComputedStyle(el).color),
+        }));
+      });
+      const marked = result.filter((row: any) => row.presented);
+      expect(marked.length, 'exactly one facet is the one being read').toBe(1);
+      expect(marked[0].faceIndex, 'and it is the SELECTED face, an index').toBe(selectedFace);
+      const others = result.filter((row: any) => !row.presented);
+      // Strictly darker than every other facet, by a margin a screen can show.
+      // (Equality here is what "the rule exists but resolves to the same
+      // colour" looks like -- color-mix falling back, for instance.)
+      expect(Math.min(...others.map((row: any) => row.luminance)) - marked[0].luminance,
+        `presented ink ${marked[0].luminance.toFixed(1)} vs the rest`)
+        .toBeGreaterThan(8);
+    });
+  }
+
+  // THE LEGIBILITY FLOOR.
+  //
+  // `die-shape.spec.ts` pins a floor for the shapes that ship. Nothing could
+  // pin one for the shape a game author invents, and "a d7 at the default size"
+  // is a real thing an author will type: its marks come out at a few pixels and
+  // the die is a smudge with nothing in the console to say why. The component
+  // now measures its own marks and says so.
+  test('a die whose marks are too small to read warns, once, and only when it is', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-die.ts');
+      const marks = await import('/src/components/die-face-marks.ts');
+      const warnings: string[] = [];
+      const original = console.warn;
+      // This component's own warnings only: Lit itself warns about update
+      // scheduling in dev, and counting those would make the test a fixture
+      // detector rather than a legibility one.
+      console.warn = (...args: unknown[]) => {
+        const line = args.map(String).join(' ');
+        if (line.startsWith('boardgame-die:')) warnings.push(line);
+      };
+      const mount = async (faceCount: number, sizePx: number) => {
+        const die = document.createElement('boardgame-die') as any;
+        die.style.setProperty('--die-size', `${sizePx}px`);
+        const faces = Array.from({ length: faceCount }, (_, i) => i + 1);
+        die.item = {
+          ID: `legibility-${faceCount}-${sizePx}`,
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: 0, Value: 1, RollCount: 0 },
+        };
+        document.body.appendChild(die);
+        await die.updateComplete;
+        await die.updateComplete;
+        const root = die.shadowRoot as ShadowRoot;
+        const spans = Array.from(root.querySelectorAll('.content > span, .corner > span'));
+        const smallest = spans.reduce(
+          (best, span) => Math.min(best, parseFloat(getComputedStyle(span as HTMLElement).fontSize)),
+          Infinity);
+        die.remove();
+        return smallest;
+      };
+      // THE REFERENCE MEASUREMENT, and the reason there is not a hard-coded
+      // pixel size anywhere below. How small a barrel's marks come out is a
+      // property of how the solid is PROPORTIONED, and that is being changed
+      // under this test: a literal "a d7 at 50px is illegible" would go quietly
+      // green the moment the barrel's marks got bigger, which is exactly when
+      // this test would stop being worth anything. So the die is measured at a
+      // size where it is unambiguously legible, and the sizes below are derived
+      // from what it actually drew.
+      const reference = 1000;
+      const smallestAtReference = await mount(7, reference);
+      const afterLarge = warnings.length;
+      // Big enough that even the smallest mark clears the floor three times
+      // over, and small enough that it is comfortably under it.
+      const legible = Math.ceil((marks.MIN_LEGIBLE_GLYPH_PX * 3 * reference) / smallestAtReference);
+      const illegible = Math.floor((marks.MIN_LEGIBLE_GLYPH_PX * 0.8 * reference) / smallestAtReference);
+      const smallestWhenLegible = await mount(7, legible);
+      const afterLegibleBarrel = warnings.length;
+      const smallestWhenIllegible = await mount(7, illegible);
+      const afterSmall = warnings.slice();
+      // ...and it is said once, not once per die.
+      await mount(7, Math.max(1, illegible - 10));
+      const afterRepeat = warnings.length;
+      // A different shape is a different warning, and this one has nothing to
+      // say: a d6 at the component's own default is legible.
+      await mount(6, 100);
+      const afterLegibleCube = warnings.length;
+      console.warn = original;
+      return {
+        smallestAtReference, legible, illegible, smallestWhenLegible, smallestWhenIllegible,
+        afterLarge, afterLegibleBarrel, afterSmall, afterRepeat, afterLegibleCube,
+        floor: marks.MIN_LEGIBLE_GLYPH_PX,
+      };
+    });
+    // The premise: the two derived sizes really do straddle the floor. Without
+    // this the test could pass with the component warning about nothing at all.
+    expect(result.smallestWhenLegible,
+      `d7 at ${result.legible}px`).toBeGreaterThan(result.floor);
+    expect(result.smallestWhenIllegible,
+      `d7 at ${result.illegible}px`).toBeLessThan(result.floor);
+
+    expect(result.afterLarge, 'a d7 drawn large is legible and says nothing').toBe(0);
+    expect(result.afterLegibleBarrel,
+      'a d7 drawn above the floor records nothing, so a smaller one still warns').toBe(0);
+    expect(result.afterSmall.length, 'a d7 below the floor warns').toBe(1);
+    // The message has to be actionable: which shape, what size, how small, and
+    // the thing an author has actually got wrong.
+    expect(result.afterSmall[0]).toContain('d7');
+    expect(result.afterSmall[0]).toMatch(/\d+(\.\d+)?px, which is too small to read/);
+    expect(result.afterSmall[0]).toContain('BOUNDING SPHERE');
+    expect(result.afterRepeat, 'and does not repeat itself for the same shape').toBe(1);
+    expect(result.afterLegibleCube, 'a legible shape says nothing').toBe(1);
+  });
 });

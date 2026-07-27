@@ -173,18 +173,32 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   gated but not registry-swept — is described at the end of this file.
 - ~~**`expectedSettleMs` watchdog extension end-to-end**~~ — NOW COVERED (was
   "no scenario is long enough to need it; owned by the gate-kernel unit tests").
-  A physics die roll is long enough: `dice-sim.ts` caps a throw at 5000ms and a
-  big barrel reaches the cap, against the gate's 4000ms floor.
   `die-roll.spec.ts`'s *a roll past the watchdog floor extends the deadline
-  instead of being cut off* mounts a d48 inside the LIVE renderer — real ambient
-  registry, real `will-animate` listener, real cycle opened by a real move — and
-  throws it. Measured: with the declaration reaching `AnimationGate.willAnimate`
-  the gate stays open 5532ms, the watchdog does not fire and the tumble reaches
-  progress 1.0; with `expectedSettleMs` dropped on the way into the gate the
-  gate closes at 4003ms (the floor, to three milliseconds), the watchdog fires
-  once, and the die is force-settled at 78% of its throw, still `running`.
+  instead of being cut off* mounts a die inside the LIVE renderer — real ambient
+  registry, real `will-animate` listener, real cycle opened by a real move —
+  declares a 4500ms `postAnimationDelay` on it, and throws it inside pig's own
+  cycle. Measured: with the declaration reaching `AnimationGate.willAnimate` the
+  die declares 4822ms (322ms of tumble + the hold), the gate stays open 4870ms,
+  the watchdog does not fire and the die reports itself settled at 4774ms,
+  `finished`; with `expectedSettleMs` dropped on the way into the gate
+  (`boardgame-render-game.ts:695`) the gate closes at 4000.8ms — the floor, to
+  under a millisecond — the watchdog fires once, and the die never reports
+  settling at all, still `running` when the cycle is torn down.
+
+  **The length used to come from the physics and no longer can.** The original
+  witness was a d48 seed running to `dice-sim.ts`'s own 5000ms cap. The physics
+  retune that followed cut every throw so far that the longest roll over 4,400
+  seeded throws (11 shapes × 400 seeds) is **2761ms** — a d30 — so no seed can
+  reach the 4000ms floor and the test was deterministically dead. It did not go
+  red when that landed; it just stopped exercising anything, and only its own
+  premise guard would have said so. The declared hold is both a real product
+  path (`postAnimationDelay` is a property of every animatable item and
+  `boardgame-component-stack.ts` parses it off an attribute) and a strictly
+  better fixture, because the occupancy is CHOSEN rather than sampled from a
+  distribution any physics change can move.
+
   Note that the OTHER app-level roll test (*a multi-second roll never trips the
-  gate watchdog*) still passes under that same sabotage — a one-second pig roll
+  gate watchdog*) still passes under that same sabotage — a sub-second pig roll
   never reaches the floor, which is exactly why this blind spot survived until a
   scenario was built that does.
 - **The die's tumble has NO geometry golden** — the sampled-motion design
