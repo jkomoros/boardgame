@@ -268,7 +268,7 @@ describe('die geometry', () => {
       });
 
       /**
-       * `circumradius` is the radius the RENDERER normalizes by — half the
+       * `nominalRadius` is the radius the RENDERER normalizes by — half the
        * die's nominal box — and for everything except a barrel that is the
        * circumsphere. A barrel is normalized by its SHORT axis instead, so its
        * length overflows the box and its faces are drawn at the size the box
@@ -276,7 +276,7 @@ describe('die geometry', () => {
        */
       it('normalizes by the circumsphere, except a barrel, by its short axis', () => {
         if (STANDARD_FACE_COUNTS.includes(faceCount)) {
-          close(geometry.circumradius, geometry.boundingRadius, 1e-12, 'nominal radius');
+          close(geometry.nominalRadius, geometry.boundingRadius, 1e-12, 'nominal radius');
           return;
         }
         // A barrel's long axis is z, so its short semi-axis is the radius of
@@ -284,12 +284,12 @@ describe('die geometry', () => {
         const shortAxis = Math.max(
           ...geometry.vertices.map((vertex) => Math.hypot(vertex[0], vertex[1])),
         );
-        close(geometry.circumradius, shortAxis, 1e-12, 'barrel nominal radius');
+        close(geometry.nominalRadius, shortAxis, 1e-12, 'barrel nominal radius');
         // Strictly smaller than the circumsphere, which is the whole point: at
         // a fixed `--die-size` every length on the solid grows by this ratio.
         assert.ok(
-          geometry.boundingRadius / geometry.circumradius >= (faceCount === 3 ? 1.35 : 2.1),
-          `d${faceCount} only gains ${geometry.boundingRadius / geometry.circumradius}x from short-axis normalization`,
+          geometry.boundingRadius / geometry.nominalRadius >= (faceCount === 3 ? 1.35 : 2.1),
+          `d${faceCount} only gains ${geometry.boundingRadius / geometry.nominalRadius}x from short-axis normalization`,
         );
       });
 
@@ -337,7 +337,8 @@ describe('die geometry', () => {
       for (const index of [1, 2, 3, 5, 6, 7]) {
         close(cube.inertiaTensor[index], 0, INERTIA_TOLERANCE, `cube off-diagonal ${index}`);
       }
-      close(cube.circumradius, Math.sqrt(3), 1e-12, 'cube circumradius');
+      close(cube.boundingRadius, Math.sqrt(3), 1e-12, 'cube circumradius');
+      close(cube.nominalRadius, Math.sqrt(3), 1e-12, 'cube nominal radius');
       for (const face of cube.faces) assert.equal(face.polygon.length, 4);
     });
 
@@ -358,7 +359,8 @@ describe('die geometry', () => {
 
     it('builds a regular octahedron whose inertia matches m*R^2/5', () => {
       const octahedron = dieGeometry(8);
-      const expected = (octahedron.circumradius * octahedron.circumradius) / 5;
+      // m*R^2/5 is stated about the CIRCUMRADIUS, so this reads the honest one.
+      const expected = (octahedron.boundingRadius * octahedron.boundingRadius) / 5;
       for (const index of [0, 4, 8]) {
         close(
           octahedron.inertiaTensor[index],
@@ -623,7 +625,7 @@ describe('die geometry', () => {
      * fraction of the BOUNDING radius. Scale-free on purpose: `dice-sim.ts`
      * normalises every die to a bounding radius of 1, so this is the margin in
      * the units the physics actually works in — and it is deliberately not
-     * `circumradius`, which is the RENDERER's normalisation and is a barrel's
+     * `nominalRadius`, which is the RENDERER's normalisation and is a barrel's
      * short axis rather than its circumsphere. The measured values run -0.168
      * (large N) to -0.189 (d3); before the fix a d7 scored +0.161, i.e. stable
      * by about as much as it is now unstable.

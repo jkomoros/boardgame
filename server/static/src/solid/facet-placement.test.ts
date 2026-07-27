@@ -115,7 +115,7 @@ function clipPointInParent(parsed: ParsedStyle, px: number, py: number): Vec3 {
 test('every clip-path vertex lands on the polygon vertex it came from', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
-    const unitsToEm = 0.5 / geometry.circumradius;
+    const unitsToEm = 0.5 / geometry.nominalRadius;
     for (const face of [...geometry.faces, ...geometry.capFaces]) {
       const parsed = parseStyle(facetPlacement(face, unitsToEm, null).style);
       assert.equal(parsed.clip.length, face.polygon.length,
@@ -135,7 +135,7 @@ test('every clip-path vertex lands on the polygon vertex it came from', () => {
 test('the emitted matrix orients the facet along its own outward normal', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
-    const unitsToEm = 0.5 / geometry.circumradius;
+    const unitsToEm = 0.5 / geometry.nominalRadius;
     for (const face of [...geometry.faces, ...geometry.capFaces]) {
       const parsed = parseStyle(facetPlacement(face, unitsToEm, null).style);
       const expected = normalize(toScreen(face.normal));
@@ -160,7 +160,7 @@ function cross3(a: Vec3, b: Vec3): Vec3 {
 test('the box is exactly the polygon bounding box: the clip touches all four sides', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
-    const unitsToEm = 0.5 / geometry.circumradius;
+    const unitsToEm = 0.5 / geometry.nominalRadius;
     for (const face of [...geometry.faces, ...geometry.capFaces]) {
       const { clip } = parseStyle(facetPlacement(face, unitsToEm, null).style);
       const xs = clip.map((p) => p[0]);
@@ -182,7 +182,7 @@ test('the box is exactly the polygon bounding box: the clip touches all four sid
 test('the content square is inside the polygon on every solid', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
-    const unitsToEm = 0.5 / geometry.circumradius;
+    const unitsToEm = 0.5 / geometry.nominalRadius;
     for (const face of geometry.faces) {
       const parsed = parseStyle(facetPlacement(face, unitsToEm, null).style);
       const left = parsed.vars['--content-left'] / 100;
@@ -270,23 +270,61 @@ test('solidFacets covers the whole surface and marks caps with faceIndex -1', ()
 });
 
 /**
- * Every solid must be exactly 1em across its bounding sphere whatever its own
- * natural scale, or a d20 (circumradius 1.902) would render nearly twice the
- * size of a d8 (1.000) at the same `--die-size`, and a tumbling die would leave
- * the box a game laid out for it.
+ * THE ONE SCALE IN THE PIPELINE, and the direction its two radii differ in.
+ *
+ * Every solid renders at `0.5em` per NOMINAL radius whatever its own natural
+ * scale, or a d20 (nominal 1.902) would draw nearly twice the size of a d8
+ * (1.000) at the same `--die-size`.
+ *
+ * Nominal is not bounding, and the gap is load-bearing rather than incidental.
+ * For a closed-form solid the two are the same number, the bounding sphere is
+ * `1em` across and the die never leaves the box a game laid out for it. A
+ * BARREL is normalized by its short axis instead, so its length deliberately
+ * overflows: that overflow is what doubles the size of every mark on it, and a
+ * barrel quietly becoming spherical again would take a d7's numeral back to the
+ * 4.3px that could not be read from a screenshot at all. So the barrel case
+ * pins BOTH ends — its width is exactly the box, and its length is out of it by
+ * about the aspect ratio — and a change in either direction fails here.
  */
-test('solidFacets normalizes every solid to a 1em bounding sphere', () => {
+test('solidFacets renders every solid at 0.5em per nominal radius', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
+    // The barrels in this list. A barrel's long axis is z, and `toScreen` is
+    // `diag(1, -1, 1)`, so z stays the long axis in the rendered frame too.
+    const barrel = geometry.capFaces.length > 0;
     let farthest = 0;
+    let widest = 0;
     for (const facet of solidFacets(geometry)) {
       const parsed = parseStyle(facet.style);
       for (const [px, py] of parsed.clip) {
-        farthest = Math.max(farthest, magnitude(clipPointInParent(parsed, px, py)));
+        const point = clipPointInParent(parsed, px, py);
+        farthest = Math.max(farthest, magnitude(point));
+        widest = Math.max(widest, Math.hypot(point[0], point[1]));
       }
     }
-    assert.ok(Math.abs(farthest - 0.5) < 1e-4,
-      `d${faceCount}: circumradius rendered at ${farthest}em, expected 0.5em`);
+
+    // The scale itself, stated the one way that holds for every shape: the
+    // rendered bounding sphere is the geometry's, times `0.5 / nominalRadius`.
+    const expected = 0.5 * (geometry.boundingRadius / geometry.nominalRadius);
+    assert.ok(Math.abs(farthest - expected) < 1e-4,
+      `d${faceCount}: rendered at ${farthest}em per bounding radius, expected ${expected}em`);
+
+    if (!barrel) {
+      // Closed form: nominal IS the circumradius, so the whole solid fits 1em.
+      assert.ok(Math.abs(farthest - 0.5) < 1e-4,
+        `d${faceCount}: closed-form solid rendered ${farthest}em from centre, expected 0.5em`);
+      continue;
+    }
+    // A barrel's WIDTH is the box: this is the assertion that says its marks
+    // are sized by the short axis, and it is what fails if it is ever
+    // normalized by its circumsphere again.
+    assert.ok(Math.abs(widest - 0.5) < 1e-4,
+      `d${faceCount}: barrel is ${2 * widest}em wide, expected exactly 1em`);
+    // And its LENGTH is outside the box, by the aspect ratio: 2.13x from the d5
+    // up (`BARREL_CAP_SAFETY`), so the bounding sphere clears 1em with room.
+    assert.ok(farthest > 1.0,
+      `d${faceCount}: barrel bounding sphere is only ${2 * farthest}em across; `
+      + 'it has gone back to being sized by its circumsphere and its marks have halved');
   }
 });
 
@@ -326,7 +364,7 @@ test('cornerOwner turns on corner marks, on readable faces only', () => {
 test('each corner mark sits nearest the vertex whose value it carries', () => {
   for (const faceCount of [4, 5, 7] as const) {
     const geometry = dieGeometry(faceCount);
-    const unitsToEm = 0.5 / geometry.circumradius;
+    const unitsToEm = 0.5 / geometry.nominalRadius;
     for (const [faceIndex, face] of geometry.faces.entries()) {
       const parsed = parseStyle(facetPlacement(face, unitsToEm, null).style);
       const { corners } = facetPlacement(face, unitsToEm, face.polygon.map((_, i) => i));
@@ -374,7 +412,7 @@ test('solidFacets accepts any structurally compatible surface, not just a die', 
       ]),
     ],
     capFaces: [],
-    circumradius: Math.hypot(half, half, half),
+    nominalRadius: Math.hypot(half, half, half),
   };
   const facets = solidFacets(slab);
   assert.equal(facets.length, 2);

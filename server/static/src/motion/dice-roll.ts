@@ -76,7 +76,7 @@
  * CSS applies a `perspective()` function to everything to its right in the list,
  * so the solid is projected about ITS OWN centre and only then moved into place.
  * The camera therefore rides with the die, every facet stays within a
- * circumradius of the axis (~6 degrees on a 100px die), and the orthographic
+ * die radius of the axis (~6 degrees on a 100px die), and the orthographic
  * test `backface-visibility` performs is the one the camera would give. The
  * price is that lateral travel is no longer foreshortened, which is a few pixels
  * on a throw and nothing a player can see.
@@ -109,7 +109,7 @@ import {
 /**
  * HALF-extents of the tray a die is thrown in, in die BOUNDING radii — the unit
  * `dice-sim.ts` normalises to, which is `DieGeometry.boundingRadius` and not
- * `circumradius`.
+ * `nominalRadius`.
  *
  * The tray is invisible, so its size is a purely visual budget: it is how far
  * the die may travel from the centre of its own box. At 1.6 a d6 stays within

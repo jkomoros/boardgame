@@ -300,7 +300,7 @@ describe('simulationSolid', () => {
 
   /**
    * The tray is measured in the radius this module normalises by, so it has to
-   * be the one that bounds the solid. `circumradius` is the RENDERER's
+   * be the one that bounds the solid. `nominalRadius` is the RENDERER's
    * normalisation and is a barrel's SHORT axis: a d7 normalised by it would be
    * 2.37 radii long inside a tray only 1.6 radii of half-extent, i.e. wedged
    * through both walls from the first step. That is invisible in any test that
@@ -310,7 +310,7 @@ describe('simulationSolid', () => {
     for (const faceCount of [3, 5, 7, 9, 16]) {
       const geometry = dieGeometry(faceCount);
       assert.ok(
-        geometry.boundingRadius > geometry.circumradius * 1.3,
+        geometry.boundingRadius > geometry.nominalRadius * 1.3,
         `d${faceCount} is not a barrel any more; this test has stopped testing anything`,
       );
       const solid = simulationSolid(geometry);
@@ -351,8 +351,8 @@ describe('simulationSolid', () => {
     // The real bound the "spread narrows" heuristic was reaching for. A die
     // uniformly scaled by any factor is the SAME die to the physics, so
     // `simulationSolid` must return bit-comparable output for both. This is the
-    // property that makes `circumradius` cancel; it fails outright for the
-    // classic mistake of dividing the tensor by `circumradius` instead of its
+    // property that makes the normalising radius cancel; it fails outright for the
+    // classic mistake of dividing the tensor by `boundingRadius` instead of its
     // square, which no comparison of one shape against another can see.
     const stretched = (geometry: DieGeometry, factor: number): DieGeometry => ({
       ...geometry,
@@ -370,7 +370,7 @@ describe('simulationSolid', () => {
       // Unit-mass second moments are lengths squared; both radii are lengths.
       // All three scalings are the geometry module's own contract.
       inertiaTensor: geometry.inertiaTensor.map((entry) => entry * factor * factor),
-      circumradius: geometry.circumradius * factor,
+      nominalRadius: geometry.nominalRadius * factor,
       boundingRadius: geometry.boundingRadius * factor,
     });
 

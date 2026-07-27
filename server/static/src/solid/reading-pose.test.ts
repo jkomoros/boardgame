@@ -423,7 +423,7 @@ test('a facet already square-on and upright needs no pose at all', () => {
   const surface = {
     faces: [{ normal: vec3(0, 0, 1), centroid: vec3(0, 0, 0.5), polygon: [] as readonly Vec3[] }],
     capFaces: [],
-    circumradius: 1,
+    nominalRadius: 1,
   };
   assert.ok(readingPoseTransform(surface, 0).startsWith('rotate3d('));
 });

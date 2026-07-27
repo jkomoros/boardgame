@@ -19,10 +19,15 @@
  * whole solid scales with a custom property with no JavaScript remeasurement.
  * That is the only reason a caller can set a size to anything (`120px`, `6rem`,
  * `10vmin`) and have the solid follow. Geometry units are scaled by
- * `0.5 / circumradius` so the solid's bounding sphere is exactly `1em` across
+ * `0.5 / nominalRadius` so the solid's NOMINAL sphere is exactly `1em` across
  * whatever its face count — `die-geometry.ts` builds each solid at its own
- * natural scale (circumradius 1.000 for a d8, 1.902 for a d20) and documents
+ * natural scale (nominal radius 1.000 for a d8, 1.902 for a d20) and documents
  * that consumers must normalize themselves.
+ *
+ * Nominal, not bounding: for every closed-form solid the two are the same
+ * number and `1em` is also the bounding sphere, but a barrel is nominally its
+ * WIDTH and its length deliberately overflows the box by up to 2.63x, which is
+ * what makes a d7's numerals legible. See `DieGeometry.nominalRadius`.
  *
  * ## The content square, which is what makes one code path enough
  *
@@ -66,8 +71,14 @@ export interface SolidFace {
 export interface SolidSurface {
   readonly faces: readonly SolidFace[];
   readonly capFaces: readonly SolidFace[];
-  /** Distance from the centroid to the farthest vertex, in the surface's own units. */
-  readonly circumradius: number;
+  /**
+   * Half the surface's nominal box, in the surface's own units: what `1em`
+   * buys. Usually the distance from the centroid to the farthest vertex, and a
+   * hand-built surface should just use that; a solid that is much longer than
+   * it is wide may give its SHORT half-extent instead and let the long axis
+   * overflow, which is what `die-geometry.ts` does for a barrel.
+   */
+  readonly nominalRadius: number;
 }
 
 /**
@@ -324,15 +335,17 @@ export interface SolidFacetOptions {
  * The whole surface, as one facet per polygon in surface order
  * (`[...faces, ...capFaces]`, so a face index is also an index into the result).
  *
- * Normalizes the surface to a bounding sphere exactly `1em` across, which is
+ * Normalizes the surface to a NOMINAL sphere exactly `1em` across, which is
  * what lets a caller size the solid with one custom property and lets a solid
- * of any face count fit its box in every orientation.
+ * of any face count draw at a common size. A surface whose `nominalRadius` is
+ * its farthest vertex — every closed-form die — therefore also fits its box in
+ * every orientation; a barrel deliberately does not (see `SolidSurface`).
  */
 export function solidFacets(
   surface: SolidSurface,
   options: SolidFacetOptions = {},
 ): readonly SolidFacet[] {
-  const unitsToEm = 0.5 / surface.circumradius;
+  const unitsToEm = 0.5 / surface.nominalRadius;
   const cornerOwner = options.cornerOwner;
   return [...surface.faces, ...surface.capFaces].map((face, key) => {
     const readable = key < surface.faces.length;

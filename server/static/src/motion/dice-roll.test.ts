@@ -212,7 +212,9 @@ test('a roll travels outside its camera and falls toward it inside', () => {
   const order = /^translate3d\([^)]*\) perspective\([^)]*\) translate3d\([^)]*\)/.test(frame);
   assert.ok(order, `travel, then camera, then depth: ${frame}`);
   // The camera stands PERSPECTIVE_DEPTH_DIE_SIZES die sizes in front of the
-  // solid, which is one die size across, i.e. two circumradii. The same constant
+  // solid, which is one die size across, i.e. two `radiusPx` (two NOMINAL
+  // radii, half the die's box each -- not two bounding radii, which on a barrel
+  // would be up to 2.63x more). The same constant
   // frames the die that has never rolled (boardgame-die.ts's #inner.solid), and
   // a roll framed at a different depth would resize the solid the moment its
   // animation was removed.

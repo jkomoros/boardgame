@@ -400,7 +400,7 @@ test.describe('boardgame-die physics roll', () => {
     expect(roll.last).toBe(roll.expected.restingTransform);
   });
 
-  // Trajectory positions are in die CIRCUMRADII; matrix3d translations are in
+  // Trajectory positions are in die BOUNDING RADII; matrix3d translations are in
   // pixels. The only place that conversion happens is the `radiusPx` the die
   // measures off its own box, and getting it wrong is silent: the die still
   // tumbles, still lands on the right face, still squares up -- it just moves a

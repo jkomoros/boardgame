@@ -92,27 +92,27 @@ export interface DieGeometry {
    * 9 entries, row-major, about the centroid, for unit mass.
    *
    * NOT size-normalized: this is the tensor of the solid at the scale it is
-   * built at, and those scales differ between face counts (see `circumradius`).
+   * built at, and those scales differ between face counts (see `nominalRadius`).
    * Unit-mass inertia goes as R^2, and the d20 is built 1.89x the size of the
    * d10, so a d20's Izz measures 3.73x a d10's (4.11x on the trace). Consumers
-   * must divide lengths by `circumradius` (and the tensor by `circumradius^2`)
-   * or dice of different face counts will tumble at visibly different rates.
+   * must divide lengths by their own normalizing radius and the tensor by its
+   * SQUARE, or dice of different face counts will tumble at visibly different
+   * rates. `dice-sim.ts`, the only consumer of this tensor, normalizes by
+   * `boundingRadius` — not by `nominalRadius`; see both fields.
    */
   readonly inertiaTensor: readonly number[];
   /**
-   * HALF THE DIE'S NOMINAL BOX: the radius every consumer normalizes by, so
-   * that a solid of any face count renders at a common `--die-size` and tumbles
-   * at a common rate. Divide lengths by it (and the inertia tensor by its
-   * square); `facet-placement.ts` does exactly that, at `0.5 / circumradius`
-   * per em.
+   * HALF THE DIE'S NOMINAL BOX: the radius the RENDERER normalizes by, so that
+   * a solid of any face count draws at a common `--die-size`. Divide lengths by
+   * it; `facet-placement.ts` does exactly that, at `0.5 / nominalRadius` per em.
    *
    * NOT normalized across face counts: it runs from 1.000 for the d8 to 1.902
    * for the d20, because each solid keeps its natural closed-form coordinates.
    *
-   * ## Why the name is a half-truth, and where
+   * ## Nominal, which is the circumradius only sometimes
    *
    * For every solid with a closed form this IS the circumradius, and
-   * `circumradius === boundingRadius`. For a BARREL it is deliberately not: a
+   * `nominalRadius === boundingRadius`. For a BARREL it is deliberately not: a
    * barrel is 2.1 to 2.6 times longer than it is wide, so normalizing it by its
    * circumsphere spends the whole die box on a diagonal nobody reads and leaves
    * the readable side faces — whose content is bounded by the barrel's WIDTH —
@@ -122,17 +122,21 @@ export interface DieGeometry {
    * its length overflows the box, and every mark on it roughly doubles.
    *
    * `boundingRadius` is the honest circumsphere and is what the PHYSICS
-   * normalizes by, so the two are not interchangeable — see `dice-sim.ts`.
+   * normalizes by, so the two are not interchangeable — see `dice-sim.ts`. The
+   * field is named for what it means rather than for what it usually equals
+   * precisely because a `circumradius` that is not a circumradius is the kind
+   * of lie every unit test in this pipeline would pass over in silence.
    */
-  readonly circumradius: number;
+  readonly nominalRadius: number;
   /**
    * Distance from the centroid to the farthest vertex: the radius of the
-   * smallest bounding SPHERE, always, for every shape.
+   * smallest bounding SPHERE, always, for every shape. This one really is the
+   * circumradius, for every solid, including a barrel.
    *
-   * Equal to `circumradius` except on a barrel, where it is 1.37x (d3) to 2.63x
-   * (large N) larger. `dice-sim.ts` normalizes by this rather than by
-   * `circumradius`, because the simulator's tray is measured in die radii and a
-   * die whose bounding sphere overflowed the tray would spend the throw
+   * Equal to `nominalRadius` except on a barrel, where it is 1.37x (d3) to
+   * 2.63x (large N) larger. `dice-sim.ts` normalizes by this rather than by
+   * `nominalRadius`, because the simulator's tray is measured in die radii and
+   * a die whose bounding sphere overflowed the tray would spend the throw
    * embedded in a wall.
    */
   readonly boundingRadius: number;
@@ -169,9 +173,9 @@ export interface RawSolid {
   readonly readable: readonly number[];
   readonly readingRule: ReadingRule;
   /**
-   * What `DieGeometry.circumradius` should be, in THESE coordinates, for a
+   * What `DieGeometry.nominalRadius` should be, in THESE coordinates, for a
    * solid that does not want to be normalized by its circumsphere. Omitted —
-   * the usual case — the circumsphere is used and `circumradius` is the
+   * the usual case — the circumsphere is used and `nominalRadius` is the
    * circumradius.
    *
    * Only `barrelSolid` supplies it, and it supplies the barrel's short
@@ -419,16 +423,17 @@ function trapezohedronVertices(): readonly Vec3[] {
  * exactly the ratio the shipped d3 — the one barrel whose caps were already
  * unstable — already had (0.5 * sin 60 / cos^2 60 = sqrt(3)), so every other
  * face count simply inherits the margin of the case that was right. It leaves
- * every cap facet unstable by 0.168 (large N) to 0.189 (the d3) of a
- * circumradius, against the +0.161 by which a d7's cap facets were STABLE
- * before.
+ * every cap facet unstable by 0.168 (large N) to 0.189 (the d3) of a BOUNDING
+ * radius — the circumsphere, which is the unit the physics normalizes by and
+ * the unit every margin in this doc is quoted in — against the +0.161 by which
+ * a d7's cap facets were STABLE before.
  *
  * Splitting that product between band and cap is what decides the die's SHAPE,
  * and it is why the square-side-face rule had to go. h + c is minimised at
  * h = c = sqrt(BARREL_CAP_SAFETY) * cos alpha; the square rule instead drives
  * h to 0 as N grows, so c ~ N/pi and the die becomes a needle (a d24 eleven
  * times longer than wide, a d100 forty-eight times) whose margins collapse to
- * 0.0002 of a circumradius — unstable on paper, balanceable in practice. So
+ * 0.0002 of a bounding radius — unstable on paper, balanceable in practice. So
  * the band keeps the square height only while that is at least the
  * length-minimising height, which is true for N = 3 alone, and is stretched to
  * the minimising height otherwise. Every barrel is then between 1.37 and 2.64
@@ -437,14 +442,15 @@ function trapezohedronVertices(): readonly Vec3[] {
  *
  * "To within a ulp" and not "bit for bit": `barrelCapHeight(3)` now comes out
  * of `sqrt(3) * cos^2(60) / sin(60)` rather than the literal `0.5`, and that
- * evaluates to 0.5000000000000002 — one ulp high. The circumradius shifts in
- * its last bit, and because a tumbling die is chaotic that ulp grows: measured
- * against a d3 pinned to exactly 0.5, poses across 20 two-die rolls diverge by
- * up to 2.3e-5 of a circumradius, while all 20 durations and every presented
- * face stay identical. Still physically nothing, but it is not zero, and the
- * distinction matters because the argument that sqrt(3) is INHERITED from the
- * d3 rather than tuned to it rests on the d3 coming out the same — an argument
- * only as good as its statement of what "the same" means.
+ * evaluates to 0.5000000000000002 — one ulp high. The bounding radius shifts
+ * in its last bit (the nominal radius is the ring radius and is exactly 1
+ * whatever the caps do), and because a tumbling die is chaotic that ulp grows:
+ * measured against a d3 pinned to exactly 0.5, poses across 20 two-die rolls
+ * diverge by up to 2.3e-5 of a bounding radius, while all 20 durations and
+ * every presented face stay identical. Still physically nothing, but it is not
+ * zero, and the distinction matters because the argument that sqrt(3) is
+ * INHERITED from the d3 rather than tuned to it rests on the d3 coming out the
+ * same — an argument only as good as its statement of what "the same" means.
  *
  * ## Signed off, not inherited (Task 11)
  *
@@ -454,17 +460,21 @@ function trapezohedronVertices(): readonly Vec3[] {
  * bind for. A factor of 1.2 removes most of that (d3 1.21, d5 1.77, d100 2.19)
  * and it was measured, rendered and REJECTED, for three reasons:
  *
- *   1. It buys almost nothing legible. A side face's glyphs are sized by the
- *      largest square inscribed in that face, and for N >= 5 that square is
- *      bounded by the face's WIDTH (the ring chord, 2 sin(pi/N)), which the
- *      aspect ratio does not touch. All 1.2 changes is the whole solid's
- *      circumradius, so at a fixed `--die-size` a shorter barrel's faces come
- *      out about 17% wider. Rendered side by side at 160px, a d7's and a d16's
- *      numerals are the same size to the eye in both; the die is simply
- *      stubbier.
+ *   1. It buys nothing legible. A side face's glyphs are sized by the largest
+ *      square inscribed in that face, and for N >= 5 that square is bounded by
+ *      the face's WIDTH (the ring chord, 2 sin(pi/N)), which the aspect ratio
+ *      does not touch. All 1.2 changes is the barrel's LENGTH, and since a
+ *      barrel is normalized by its short axis (`nominalRadius`, the ring
+ *      radius, which 1.2 leaves at exactly 1) that length is not the die box:
+ *      at a fixed `--die-size` a shorter barrel's marks come out the same size,
+ *      not larger. The 17% this doc once claimed was measured back when a
+ *      barrel was normalized by its circumsphere, so shortening it shrank the
+ *      normalizing radius; that is no longer how a barrel is sized. Rendered
+ *      side by side at 160px, a d7's and a d16's numerals are the same size to
+ *      the eye in both; the die is simply stubbier.
  *   2. It costs most of the safety margin the factor exists for: cap facets go
- *      from unstable by 0.168 of a circumradius to unstable by 0.062, which is
- *      below the 0.1 bound `never has a stable cap facet, from the d3 to the
+ *      from unstable by 0.168 of a bounding radius to unstable by 0.062, which
+ *      is below the 0.1 bound `never has a stable cap facet, from the d3 to the
  *      d100` asserts — a bound that is itself backed by measurement (the
  *      pre-fix geometry landed a d16 unreadable 171 times in 240). Adopting
  *      1.2 means loosening a safety test to fit, which is the wrong direction
@@ -507,9 +517,9 @@ function barrelCapHeight(sideCount: number): number {
  *
  * `nominalRadius: 1` — the ring radius — rather than the circumsphere, and it
  * is the single most legible thing about these dice. The die box is `2 *
- * circumradius` across, so normalizing by the circumsphere spends the whole box
- * on the barrel's LENGTH, which nothing is printed along, and leaves its width
- * at `1 / aspect` of the box: 0.42 for a d7, 0.40 for a d9, 0.39 for a d16.
+ * nominalRadius` across, so normalizing by the circumsphere spends the whole
+ * box on the barrel's LENGTH, which nothing is printed along, and leaves its
+ * width at `1 / aspect` of the box: 0.42 for a d7, 0.40 for a d9, 0.39 for a d16.
  * Every mark shrinks with it, because a side face's content is the largest
  * square inscribed in it and that square is bounded by the face's width (the
  * ring chord, `2 sin(pi/N)`) for every N >= 5. Measured on a 50px die before
@@ -567,7 +577,7 @@ function barrelSolid(sideCount: number): RawSolid {
     surface,
     readable,
     readingRule: sideCount % 2 === 0 ? 'up-face' : 'down-face',
-    // THE SHORT AXIS, which is the ring radius: see `DieGeometry.circumradius`
+    // THE SHORT AXIS, which is the ring radius: see `DieGeometry.nominalRadius`
     // and the note above on what it buys.
     nominalRadius: 1,
   };
@@ -758,7 +768,7 @@ export function finishSolid(raw: RawSolid): DieGeometry {
     faces: Object.freeze(faces),
     capFaces: Object.freeze(capFaces),
     inertiaTensor: Object.freeze(inertiaAboutOrigin(triangles)),
-    circumradius: nominalRadius,
+    nominalRadius,
     boundingRadius,
     readingRule: raw.readingRule,
   });

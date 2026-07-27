@@ -137,7 +137,7 @@ async function facetInventory(page: import('@playwright/test').Page, faceCount: 
 //     is rotated onto (u, v) and its normal (w), and whose last column is
 //     where the box centre was moved to;
 //   - from `die-geometry.ts`: the facet's polygon, scaled the one way the
-//     component documents (`0.5 / circumradius` per em, `1em` = --die-size)
+//     component documents (`0.5 / nominalRadius` per em, `1em` = --die-size)
 //     and turned into CSS space by the documented (x, -y, z).
 //
 // and requires that the polygon, projected onto the rendered u/v axes about
@@ -160,7 +160,7 @@ async function facetBoxes(page: import('@playwright/test').Page, faceCount: numb
     // 1em is the die's size: #stage sets font-size, so this is the one number
     // that turns the geometry's own units into the px the browser laid out.
     const emPx = parseFloat(getComputedStyle(root.querySelector('#stage') as HTMLElement).fontSize);
-    const unitsToPx = (0.5 / geometry.circumradius) * emPx;
+    const unitsToPx = (0.5 / geometry.nominalRadius) * emPx;
     const surface = [...geometry.faces, ...geometry.capFaces];
 
     const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -803,7 +803,7 @@ async function faceContent(page: import('@playwright/test').Page, faceCount: num
     const root = die.shadowRoot as ShadowRoot;
     const stage = root.querySelector('#stage') as HTMLElement;
     const emPx = parseFloat(getComputedStyle(stage).fontSize);
-    const unitsToPx = (0.5 / geometry.circumradius) * emPx;
+    const unitsToPx = (0.5 / geometry.nominalRadius) * emPx;
     const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
     // Which face a die in this orientation is READ from is a property of the

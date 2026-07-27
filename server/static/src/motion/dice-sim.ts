@@ -25,7 +25,7 @@
  * radius, not pixels and not the geometry's native coordinates. A renderer
  * scales the whole trajectory by whatever it wants a die radius to be on screen.
  *
- * `boundingRadius` is deliberately not `circumradius`: the latter is the
+ * `boundingRadius` is deliberately not `nominalRadius`: the latter is the
  * RENDERER's normalisation and is a barrel's short axis. The two agree for every
  * closed-form solid, and a barrel is drawn 2.1-2.6x larger than the sphere it is
  * simulated in — see `die-geometry.ts` and `dice-roll.ts`'s `TRAY_BOUNDS`.
@@ -111,7 +111,7 @@ export interface RollConfig {
    * Nothing below this line assumes the dice agree: contacts, inertia, the
    * broad phase and the settle test are all read off the individual body's own
    * solid. The one thing that IS shared is scale, because `simulationSolid`
-   * normalises every shape to circumradius 1 — a mixed throw is a throw of
+   * normalises every shape to bounding radius 1 — a mixed throw is a throw of
    * dice that are all the same SIZE and different shapes. A caller that wants
    * a d20 physically larger than its d6 has to say so somewhere this module
    * does not yet have a word for.
@@ -119,7 +119,9 @@ export interface RollConfig {
   readonly geometry: DieGeometry | readonly DieGeometry[];
   readonly dieCount: number;
   /**
-   * HALF-extents of the container box, in die circumradii. See the file docs.
+   * HALF-extents of the container box, in die BOUNDING radii — circumspheres,
+   * which is the unit this module normalises to and NOT the renderer's
+   * `nominalRadius`. See the file docs.
    *
    * The floor of 1.5 is only what the SPAWN needs. A die also has to be able to
    * fall over once it lands, and a tray near that floor cannot let it: with 3
@@ -191,23 +193,23 @@ export interface SolidPlane {
 }
 
 /**
- * A die's geometry rescaled to the simulator's units: circumradius exactly 1.
+ * A die's geometry rescaled to the simulator's units: bounding radius exactly 1.
  *
  * Exported because it IS the normalisation contract — a test or a renderer that
  * wants to reconstruct world-space vertices from a `DieSample` must use these
- * vertices, not `geometry.vertices`, or it will be off by `circumradius`.
+ * vertices, not `geometry.vertices`, or it will be off by `boundingRadius`.
  */
 export interface SimulationSolid {
   readonly vertices: readonly Vec3[];
   /** Every plane of the closed surface, readable faces and caps alike. */
   readonly planes: readonly SolidPlane[];
-  /** Body-frame unit-mass inertia at unit circumradius, row-major 3x3. */
+  /** Body-frame unit-mass inertia at unit bounding radius, row-major 3x3. */
   readonly inertia: readonly number[];
   readonly inverseInertia: readonly number[];
   /**
    * The farthest any vertex sits from the centre, MEASURED rather than assumed.
    *
-   * `simulationSolid` divides by `geometry.circumradius`, so this is 1 to
+   * `simulationSolid` divides by `geometry.boundingRadius`, so this is 1 to
    * within rounding for anything it returns. It is carried anyway because the
    * broad phase and `closingSpeedBound` need a bound on how far a surface point
    * can be from its own centre, and writing that as the literal `1` bakes this
@@ -752,7 +754,7 @@ const CONJUGATE_SCRATCH = new Float64Array(9);
  * uniformly scaled distances. Reading a resting orientation therefore gives the
  * same answer against the original geometry as against this one.
  *
- * `boundingRadius` and NOT `circumradius`, which the renderer normalizes by and
+ * `boundingRadius` and NOT `nominalRadius`, which the renderer normalizes by and
  * which is a barrel's short axis rather than its circumsphere. The two are the
  * same number for every closed-form solid and differ by up to 2.63x on a
  * barrel, and it is the bounding sphere that this module needs: `bounds` is a

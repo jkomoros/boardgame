@@ -50,10 +50,16 @@
  *
  * ## Units
  *
- * Simulated dice are unit-circumradius, so trajectory positions are in DIE
- * RADII, not pixels (see `dice-sim.ts`'s normalisation contract). `radiusPx`
- * says what one radius is worth on screen; it defaults to 1, which is only
- * useful for tests.
+ * Simulated dice are unit-BOUNDING-radius, so trajectory positions are in die
+ * BOUNDING radii, not pixels (see `dice-sim.ts`'s normalisation contract).
+ * `radiusPx` says what one such radius is worth on screen; it defaults to 1,
+ * which is only useful for tests.
+ *
+ * Nothing here re-derives that unit: this module multiplies by `radiusPx` and
+ * is otherwise scale-free, so the caller owns the choice. `dice-roll.ts`
+ * deliberately passes HALF THE DIE'S DRAWN BOX — i.e. `nominalRadius` worth of
+ * pixels, not `boundingRadius` worth — which for every closed-form solid is the
+ * same number and for a barrel is not; see `posedPosition` there for why.
  */
 
 import type { Quat, Vec3 } from './die-geometry.ts';
@@ -62,8 +68,10 @@ import { CSS_AXIS_SIGN } from '../solid/screen-frame.ts';
 
 export interface BakeOptions {
   /**
-   * On-screen length of one die circumradius, in CSS pixels. Trajectories are
-   * in circumradii, so this is the only scale in the pipeline. Default 1.
+   * On-screen length of one trajectory unit — one die BOUNDING radius, the unit
+   * `dice-sim.ts` normalises to — in CSS pixels. This is the only scale in the
+   * pipeline, and the caller decides what it buys (see the Units docs above).
+   * Default 1.
    */
   readonly radiusPx?: number;
 }

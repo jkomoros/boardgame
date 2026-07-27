@@ -1143,10 +1143,12 @@ class BoardgameDie extends BoardgameAnimatableItem {
     const faces = this.faces;
     const desired = faces[this._presentedFaceIndex(geometry.faceCount)];
     if (!Number.isFinite(desired)) return null;
-    // One circumradius on screen. Read from #stage's font-size because that IS
-    // the die's size (the solid is built at 1em across), and it is a NUMBER of
-    // pixels: interpolating a CSS variable into the matrix instead would forfeit
-    // compositing for the whole tumble.
+    // HALF THE DIE'S BOX on screen, i.e. one `nominalRadius` in px — not one
+    // bounding radius, which for a barrel is up to 2.63x larger; `dice-roll.ts`
+    // documents on `posedPosition` why the travel is scaled by this one. Read
+    // from #stage's font-size because that IS the die's size (the solid is built
+    // at 1em across), and it is a NUMBER of pixels: interpolating a CSS variable
+    // into the matrix instead would forfeit compositing for the whole tumble.
     const stage = this._stageElement;
     const radiusPx = stage ? parseFloat(getComputedStyle(stage).fontSize) / 2 : NaN;
     if (!Number.isFinite(radiusPx) || radiusPx <= 0) return null;
