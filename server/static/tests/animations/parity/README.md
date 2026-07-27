@@ -109,6 +109,19 @@ pose — must assert its own curve survived.
   makes a multi-turn tumble measurable, since a 360° roll's start-to-end
   angle is 0.
 
+- **`will-change: transform` removed from `.facet`** (`boardgame-die.ts`) →
+  `die-shape.spec.ts`'s *a free-running roll never shows a hole in the die*
+  fails: `background showed through the solid on 13 of 236 frames`, largest hole
+  3,826px. That rule is the solid's hidden-surface removal working at all — see
+  its comment — and this is the only test in the repo that can see it, because
+  the bug exists ONLY in frames of a roll that is actually playing. The same
+  transforms applied inline, or reached by pausing the animation and seeking, all
+  render clean (2,413 such frames over ten shapes produced one 12x47px sliver).
+  The test therefore captures a CDP screencast of a free-running roll rather than
+  stepping keyframes, and measures the convex-hull deficit: every solid here is
+  convex, so any background pixel strictly inside the silhouette's convex hull is
+  a hole, and no golden is needed to say so.
+
 ## Accepted residual blind spots (harness-critic ledger)
 
 Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
@@ -236,6 +249,17 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   OTHER reason would land on the same 20 and read as the filter regression.
   Owner: whoever gives `boardgame-card` a real 3D mode should move the probe
   onto `#inner` and recover the 2× tooth.
+- **The 1px SEAM between facets, at small sizes** — the hull-deficit test above
+  pins that no FACET goes missing, with a 60px floor on the largest connected
+  hole. What survives under that floor is a different artifact: on a d7 or d9 at
+  `--die-size: 100px`, roughly one composited frame in 200 shows a 1px background
+  line along a shared facet edge (measured: 1/432 frames on a d7, largest
+  connected run 314px spread over a 32x31 box, i.e. a diagonal hairline and not a
+  blob). `will-change` does not touch it and neither does promoting `#orient` or
+  `#inner`; it is antialiasing on two clip-path edges that meet rather than
+  overlap. Cheap to fix if it ever matters (overlap the facets by a fraction of a
+  percent), left alone because it is a hairline and the fix would perturb every
+  facet's geometry. Owner: whoever finds it visible at a size that ships.
 - **0.08 tolerance** — validated against large-effect teeth (0.17–0.21
   midpoint deltas); a sub-tolerance easing tweak (<0.08 at every fraction)
   would pass. The midpoint sample carries most discriminative power.

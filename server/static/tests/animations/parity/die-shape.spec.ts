@@ -1701,3 +1701,286 @@ test.describe('boardgame-die prominence', () => {
     expect(result.afterLegibleCube, 'a legible shape says nothing').toBe(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// PIXEL TESTS: the solid must be closed while it tumbles, and it must stay
+// inside the room it reserves.
+//
+// Both of these read actual PIXELS, which nothing else in this file does, and
+// both mount on a bare same-origin page rather than into the app. That is not
+// laziness: a pixel test needs a background it knows the colour of, and this
+// one holds a single die for thousands of composited frames, which the app
+// shell's periodic re-render of <body> would wipe out from under it. The
+// contract these check is about the solid's own geometry and Chromium's
+// hidden-surface removal; the ancestor-flattening hazard that justifies
+// mounting in the real app is covered by test 2 above and by
+// component-3d-context.spec.ts.
+//
+// The measure is the CONVEX-HULL DEFICIT. Every solid here is convex, so its
+// projected silhouette is convex too, and any background pixel strictly inside
+// the silhouette's convex hull is a hole in the solid -- no reference render
+// and no golden is needed to say so.
+
+// The backdrop the die is measured against. Nothing the die draws is anywhere
+// near it, so "is this pixel the background" is exact rather than a threshold.
+const PIXEL_BG = { r: 255, g: 0, b: 255 };
+
+/** Where the die's box centre sits in the fixture viewport. */
+const PIXEL_CX = 700;
+const PIXEL_CY = 520;
+
+/**
+ * Mounts one die on a bare same-origin page over a flat backdrop, with the
+ * contact shadow suppressed (it is a soft ellipse that would otherwise blur the
+ * silhouette's edge into the background).
+ */
+async function mountForPixels(
+  page: import('@playwright/test').Page,
+  options: { faceCount: number; sizePx: number },
+): Promise<void> {
+  await page.setViewportSize({ width: 1400, height: 1040 });
+  await page.route('**/die-pixel-fixture', (route) => route.fulfill({
+    contentType: 'text/html',
+    body: '<!doctype html><html><head><meta charset="utf-8"></head>'
+      + '<body style="margin:0;background:rgb(255,0,255)"></body></html>',
+  }));
+  await page.goto('/die-pixel-fixture');
+  await page.evaluate(async (opts) => {
+    await import('/src/components/boardgame-die.ts');
+    const die = document.createElement('boardgame-die') as any;
+    die.id = 'fixture-die';
+    die.style.cssText = `position:fixed;top:${opts.cy - opts.sizePx / 2}px;`
+      + `left:${opts.cx - opts.sizePx / 2}px;z-index:9999;`;
+    die.style.setProperty('--die-size', `${opts.sizePx}px`);
+    const faces = Array.from({ length: opts.faceCount }, (_, i) => (i + 1) * 10);
+    die.item = {
+      ID: 'fixture-component',
+      Values: { Faces: faces },
+      // RollCount 0 on the mount, so the first throw is a CHANGE and plays.
+      DynamicValues: { SelectedFace: 0, Value: faces[0], RollCount: 0 },
+    };
+    document.body.appendChild(die);
+    await die.updateComplete;
+    await die.updateComplete;
+    const style = document.createElement('style');
+    style.textContent = '#main.solid::after{display:none !important}';
+    die.shadowRoot.appendChild(style);
+    await die.updateComplete;
+  }, { faceCount: options.faceCount, sizePx: options.sizePx, cx: PIXEL_CX, cy: PIXEL_CY });
+}
+
+/** Installs a throw and returns how long the die says it will tumble for. */
+async function throwDie(
+  page: import('@playwright/test').Page,
+  options: { seed: number; faceCount: number },
+): Promise<number> {
+  return await page.evaluate(async (opts) => {
+    const die = document.getElementById('fixture-die') as any;
+    const faces = die.faces.slice();
+    const selected = opts.seed % opts.faceCount;
+    die.item = {
+      ID: 'fixture-component',
+      Values: { Faces: faces },
+      DynamicValues: {
+        SelectedFace: selected, Value: faces[selected], RollCount: opts.seed,
+      },
+    };
+    for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+    const inner = die.shadowRoot.querySelector('#inner') as HTMLElement;
+    const animations = inner.getAnimations();
+    if (!animations.length) return -1;
+    return Number((animations[0].effect as any).getTiming().duration) || -1;
+  }, options);
+}
+
+/**
+ * The convex-hull deficit of one captured frame, measured in the page (which is
+ * also the only PNG decoder to hand).
+ *
+ * Returns the silhouette's own pixel count as well, so a caller can tell "the
+ * solid is closed" from "there was no die in this frame at all".
+ */
+async function hullDeficit(
+  page: import('@playwright/test').Page,
+  frame: { base64: string; crop?: { x: number; y: number; width: number; height: number } },
+): Promise<{ largest: number; bbox: { x: number; y: number; w: number; h: number } | null; silhouette: number }> {
+  return await page.evaluate(async ({ base64, crop, bg }) => {
+    const image = new Image();
+    image.src = 'data:image/png;base64,' + base64;
+    await image.decode();
+    const box = crop ?? { x: 0, y: 0, width: image.width, height: image.height };
+    const canvas = document.createElement('canvas');
+    canvas.width = box.width;
+    canvas.height = box.height;
+    const context = canvas.getContext('2d')!;
+    context.drawImage(image, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height);
+    const W = canvas.width;
+    const H = canvas.height;
+    const data = context.getImageData(0, 0, W, H).data;
+    const background = new Uint8Array(W * H);
+    const solid: number[][] = [];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        const isBackground = Math.abs(data[i] - bg.r) < 20
+          && Math.abs(data[i + 1] - bg.g) < 20
+          && Math.abs(data[i + 2] - bg.b) < 20;
+        if (isBackground) background[y * W + x] = 1;
+        else solid.push([x, y]);
+      }
+    }
+    if (solid.length < 200) return { largest: 0, bbox: null, silhouette: solid.length };
+    // Andrew's monotone chain over the silhouette's pixels.
+    const points = solid.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cross = (o: number[], a: number[], b: number[]) =>
+      (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const chain = (list: number[][]) => {
+      const stack: number[][] = [];
+      for (const point of list) {
+        while (stack.length >= 2
+          && cross(stack[stack.length - 2], stack[stack.length - 1], point) <= 0) stack.pop();
+        stack.push(point);
+      }
+      return stack;
+    };
+    const hull = chain(points).slice(0, -1).concat(chain(points.slice().reverse()).slice(0, -1));
+    // Winding is whatever the chain made of it; take the interior's sign from a
+    // point known to be inside rather than assuming one.
+    let cx = 0;
+    let cy = 0;
+    for (const point of hull) { cx += point[0]; cy += point[1]; }
+    cx /= hull.length;
+    cy /= hull.length;
+    const edgeDistance = (x: number, y: number, a: number[], b: number[]) => {
+      const ex = b[0] - a[0];
+      const ey = b[1] - a[1];
+      const length = Math.hypot(ex, ey);
+      if (!length) return Infinity;
+      return ((x - a[0]) * ey - (y - a[1]) * ex) / length;
+    };
+    let sign = 1;
+    for (let i = 0; i < hull.length; i++) {
+      const d = edgeDistance(cx, cy, hull[i], hull[(i + 1) % hull.length]);
+      if (Number.isFinite(d) && d !== 0) { sign = d > 0 ? 1 : -1; break; }
+    }
+    // A 1.5px inward margin, so antialiasing along the hull's own edge -- which
+    // is the silhouette, not a hole -- is never counted.
+    const inside = (x: number, y: number) => {
+      for (let i = 0; i < hull.length; i++) {
+        if (sign * edgeDistance(x, y, hull[i], hull[(i + 1) % hull.length]) < 1.5) return false;
+      }
+      return true;
+    };
+    const hole = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) if (background[y * W + x] && inside(x, y)) hole[y * W + x] = 1;
+    }
+    let largest = 0;
+    let bbox: { x: number; y: number; w: number; h: number } | null = null;
+    const seen = new Uint8Array(W * H);
+    for (let start = 0; start < W * H; start++) {
+      if (!hole[start] || seen[start]) continue;
+      const stack = [start];
+      seen[start] = 1;
+      let count = 0;
+      let x0 = W; let y0 = H; let x1 = -1; let y1 = -1;
+      while (stack.length) {
+        const p = stack.pop()!;
+        count++;
+        const px = p % W;
+        const py = (p / W) | 0;
+        if (px < x0) x0 = px;
+        if (px > x1) x1 = px;
+        if (py < y0) y0 = py;
+        if (py > y1) y1 = py;
+        const neighbours = [
+          px > 0 ? p - 1 : -1, px < W - 1 ? p + 1 : -1,
+          py > 0 ? p - W : -1, py < H - 1 ? p + W : -1,
+        ];
+        for (const q of neighbours) if (q >= 0 && hole[q] && !seen[q]) { seen[q] = 1; stack.push(q); }
+      }
+      if (count > largest) {
+        largest = count;
+        bbox = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+      }
+    }
+    return { largest, bbox, silhouette: solid.length };
+  }, { base64: frame.base64, crop: frame.crop, bg: PIXEL_BG });
+}
+
+// A hole has to be bigger than this to count. Clean frames measure 0 -- the
+// hull margin above already absorbs silhouette antialiasing -- so this is only
+// insurance against a stray seam, and it is two orders of magnitude below the
+// holes the bug produced (5,175px on a d20, 11,083px on a d7).
+const HOLE_FLOOR_PX = 60;
+
+test.describe('the solid stays closed while it tumbles', () => {
+  // WHY THIS SAMPLES A ROLL THAT IS ACTUALLY PLAYING, and why nothing else in
+  // this suite can stand in for it.
+  //
+  // `backface-visibility: hidden` is the whole of the solid's hidden-surface
+  // removal, and Chromium decides it per facet from the transform accumulated
+  // down the preserve-3d chain -- which includes #inner's, the element the
+  // tumble animates. While that animation is running, that decision is baked
+  // into the raster of #inner's subtree rather than re-evaluated every frame, so
+  // a facet crossing from back-facing to front-facing stays culled for a frame
+  // or two and the die is briefly see-through. `.facet { will-change: transform }`
+  // is what fixes it, by giving each facet a transform node of its own.
+  //
+  // The bug is INVISIBLE to every other way of looking at a die. The same
+  // transforms written to #inner as an inline style, or reached by pausing the
+  // animation and seeking to them, render clean -- 2,413 such frames over ten
+  // shapes produced one 12x47px sliver. Only frames of a free-running roll show
+  // it, which is why this captures a screencast instead of stepping keyframes.
+  //
+  // Measured with the fix removed: a d20 tore on 21 of 591 frames, worst hole
+  // 5,175px; with it, 0 of 705.
+  test('a free-running roll never shows a hole in the die', async ({ page }) => {
+    test.setTimeout(180000);
+    const faceCount = 20;
+    const sizePx = 200;
+    await mountForPixels(page, { faceCount, sizePx });
+    const half = Math.round(sizePx * 2.2);
+    const crop = { x: PIXEL_CX - half, y: PIXEL_CY - half, width: half * 2, height: half * 2 };
+
+    const client = await page.context().newCDPSession(page);
+    const captured: string[] = [];
+    client.on('Page.screencastFrame', async (frame: any) => {
+      captured.push(frame.data);
+      try {
+        await client.send('Page.screencastFrameAck', { sessionId: frame.sessionId });
+      } catch { /* the cast is already stopped */ }
+    });
+
+    let framesWithADie = 0;
+    let rollsPlayed = 0;
+    const holes: string[] = [];
+    for (let seed = 1; seed <= 6; seed++) {
+      captured.length = 0;
+      await client.send('Page.startScreencast', { format: 'png', everyNthFrame: 1 });
+      const durationMs = await throwDie(page, { seed, faceCount });
+      if (durationMs > 0) rollsPlayed++;
+      await page.waitForTimeout(1400);
+      await client.send('Page.stopScreencast');
+      for (const base64 of captured.slice()) {
+        const measured = await hullDeficit(page, { base64, crop });
+        if (measured.silhouette < 200) continue;
+        framesWithADie++;
+        if (measured.largest > HOLE_FLOOR_PX) {
+          holes.push(`seed ${seed}: ${measured.largest}px at ${JSON.stringify(measured.bbox)}`);
+        }
+      }
+    }
+    await client.detach();
+
+    // The premise, twice over: a run whose die had been wiped off the page, or
+    // whose throws never played, would otherwise report a clean sweep of
+    // nothing at all.
+    expect(rollsPlayed, 'every seed has to produce a tumble to sample').toBe(6);
+    expect(framesWithADie,
+      'the screencast has to catch the die actually on screen').toBeGreaterThan(200);
+    expect(holes,
+      `background showed through the solid on ${holes.length} of ${framesWithADie} frames`)
+      .toEqual([]);
+  });
+});

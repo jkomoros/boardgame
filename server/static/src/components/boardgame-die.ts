@@ -570,6 +570,62 @@ class BoardgameDie extends BoardgameAnimatableItem {
         top: 50%;
         /* width/height/margin/transform/clip-path are generated per facet. */
         backface-visibility: hidden;
+        /*
+         * THE FACET'S OWN LAYER, and it is what keeps the solid closed while it
+         * tumbles. Not a performance hint -- a correctness one.
+         *
+         * backface-visibility: hidden is the whole of this solid's
+         * hidden-surface removal: every facet is opaque, the surface is closed
+         * and convex, so the facets whose outward normal faces the camera tile
+         * the silhouette exactly and the rest must be culled. Chromium decides
+         * that per facet from the transform accumulated down the preserve-3d
+         * chain -- which includes #inner's, the element the tumble animates.
+         * While that animation RUNS, the decision is baked into the raster of
+         * #inner's subtree rather than re-evaluated every frame, so a facet that
+         * crosses from back-facing to front-facing mid-tumble stays culled for a
+         * frame or two and the die is briefly see-through. Promoting each facet
+         * gives it a transform node of its own, which cc re-evaluates per frame.
+         *
+         * MEASURED (12 seeded rolls per shape, every composited frame captured
+         * and checked for background inside the silhouette's convex hull -- the
+         * solid is convex, so any such pixel is a hole). Largest connected hole,
+         * before -> after:
+         *
+         *   d20 @200px  22/593 frames, worst 5245px  ->  0/705 frames
+         *   d7  @200px   4/415 frames, worst  6187px ->  0/494 frames
+         *   d9  @200px  13/526 frames, worst  9075px ->  0/587 frames
+         *   d12 @200px   2/562 frames, worst  4050px ->  0/610 frames
+         *   d7  @100px   8/392 frames, worst  2900px ->  1/449, worst 447px
+         *
+         * Note what that table says and the branch's earlier claim did not: the
+         * tear was never a barrel problem. The d20 is the WORST affected shape,
+         * and a d6 -- whose facets are squares, so its facet boxes never overhang
+         * into a neighbour -- is the only one that never tore at all.
+         *
+         * IT IS ONLY VISIBLE IN A ROLL THAT IS ACTUALLY PLAYING. The same
+         * transforms written to #inner as an inline style, or reached by pausing
+         * the animation and seeking to them, render clean: 2,413 static frames
+         * over ten shapes produced one 12x47 sliver. So frame-stepping a paused
+         * die cannot see this bug and cannot verify this fix; only sampling a
+         * free-running roll can. die-shape.spec.ts does the latter.
+         *
+         * Why not simply drop the culling and let depth sorting hide the back
+         * faces: measured, it does not. backface-visibility: visible also
+         * takes the holes to zero, but it changes what is DRAWN -- over 1,831
+         * static frames on ten shapes, every single frame differed from the
+         * culled render, by up to a 2,604px connected region, with back faces'
+         * numerals showing through the front of the solid. This rule is
+         * pixel-identical instead: over the same 1,831 frames, two frames on a
+         * d6 differ, by a 14x12 antialiasing blob on one seam.
+         *
+         * The cost is one composited layer per facet -- 6 for a d6, 32 for a
+         * d32 -- which for a 200px die is well under a megabyte. It is declared
+         * unconditionally rather than only while a roll plays because
+         * will-change has to be in effect BEFORE the change it describes, and
+         * a promotion applied in the same task that starts the animation is not
+         * reliably in place for the first frames -- which are frames that tear.
+         */
+        will-change: transform;
         background:
           linear-gradient(135deg, #F5F0E8 0%, #E0D9CE 100%);
         box-shadow: inset 0 0 0 1px rgba(60, 40, 20, 0.14);
