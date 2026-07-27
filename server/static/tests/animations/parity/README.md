@@ -40,9 +40,11 @@ returns NOTHING for shadow-tree animations in this Chromium) is paused and
 seeked to fractions 0/.25/.5/.75/1 of its own delay+duration. Curves compare
 as a SET under 0.08 tolerance (counts are per-game random; count regressions
 are the trace suite's job). Wave-union sampling captures chained cohorts.
-Scenarios: swap flight, reveal flip, interrupted-swap retarget, plus
-component fixtures for `fading-text` and `game-outcome` (the Phase 1
-before/after anchors — full-game flows can't drive them deterministically).
+Scenarios: swap flight, fan-draw relayout, reveal flip, interrupted-swap
+retarget, plus component fixtures for `fading-text` and `game-outcome` (the
+Phase 1 before/after anchors — full-game flows can't drive them
+deterministically). The die roll is deliberately NOT one of them; see the
+ledger entry below.
 
 Per curve, five channels:
 
@@ -77,8 +79,9 @@ per-game random — asserts nothing). Recording a scenario therefore fails
 loudly only if it produces NO curves at all; a scenario for a specific
 element must additionally assert that its own curve survived, or a
 regression that stops the element moving would just shrink the curve set
-inside the tolerant set comparison. A die scenario in particular must assert
-it is never all-null.
+inside the tolerant set comparison. Any scenario added for a specific
+element — a die roll above all, since a tumble can land near its start
+pose — must assert its own curve survived.
 
 ## Teeth (verified failure detection)
 
@@ -162,8 +165,12 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   covered by `waapi-play`/`waapi-companion`.
 - **Mobile viewport** — geometry runs at 1280×900 only; curves are
   size-normalized in principle. Low value vs cost.
-- **Roster / player-info animations** — currently un-gated (the #714 gap);
-  the Phase 2 change lands with its own gate-witness test (plan Task 10).
+- ~~**Roster / player-info animations un-gated**~~ — CLOSED (the #714 gap).
+  Roster animatables now hold the gate through the game-view event pipe, with
+  `player-info-gate.spec.ts` as the witness in both directions: a roster
+  animation forwarded during a real board cycle holds the close, and one with
+  no cycle open leaves the gate untouched. The residual topology asymmetry —
+  gated but not registry-swept — is described at the end of this file.
 - ~~**`expectedSettleMs` watchdog extension end-to-end**~~ — NOW COVERED (was
   "no scenario is long enough to need it; owned by the gate-kernel unit tests").
   A physics die roll is long enough: `dice-sim.ts` caps a throw at 5000ms and a
@@ -180,6 +187,26 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   gate watchdog*) still passes under that same sabotage — a one-second pig roll
   never reaches the floor, which is exactly why this blind spot survived until a
   scenario was built that does.
+- **The die's tumble has NO geometry golden** — the sampled-motion design
+  planned one, recorded from a fixed-value fixture. It was not built, and the
+  decision is recorded here rather than left as a silent omission. Why:
+  a golden fingerprint is *shape under normalization*, and the die's shape is
+  a seeded physics trajectory, so the golden would restate the simulator's
+  output rather than any product invariant, and any change to the sim,
+  the tray, the camera or the trim would rewrite it wholesale. What pins the
+  die instead is `die-roll.spec.ts`, which asserts the RENDERED KEYFRAMES
+  against a trajectory recomputed in-page from the component's own exported
+  seed derivation — a strictly tighter comparison than a 0.08-tolerance
+  normalized curve set, and one that catches a wrong seed, a wrong pixel
+  radius or a mirrored basis. What is genuinely lost: the die does not
+  participate in the cross-cutting curve SET, so a harness-wide regression in
+  how sampled motion is fingerprinted would not show up on the die. That is
+  covered instead by `fingerprint-normalization.spec.ts`, which drives the
+  normalizer with synthetic non-monotone and return-to-start tumbles — the
+  two failure modes the die was the reason to fix — and re-checks the
+  invariants over the whole recorded golden corpus. Owner: whoever adds a
+  second sampled-motion producer should reconsider, because at that point the
+  set comparison starts being worth its cost.
 - **0.08 tolerance** — validated against large-effect teeth (0.17–0.21
   midpoint deltas); a sub-tolerance easing tweak (<0.08 at every fraction)
   would pass. The midpoint sample carries most discriminative power.

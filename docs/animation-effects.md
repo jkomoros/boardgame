@@ -33,9 +33,25 @@ opacity, and card face/rotation changes own the card's inner visual transform.
 The same frozen list decides whether work exists and drives WAAPI playback, so
 a card flip is no longer a second imperative animation system. Structural plans
 publish only the owned channel names for observation; effects still receive no
-write access. Standalone die spins use the same track-to-keyframe executor and
-ambient version timing, but do not claim FLIP provenance or satisfy motion
-anchors. This framework contract is intentionally not a game-author API.
+write access.
+
+A track is a list of SAMPLES, not an endpoint pair. Most tracks are still
+authored as `{from, to}` and compile to two samples at offsets 0 and 1 — a
+no-op for WAAPI — but a component-owned `visual` track may instead supply a
+CURVE, a pure function of progress that the compiler samples on a uniform grid
+it owns. That is how motion which is not "interpolate A→B under one easing"
+enters the system. A sampled track claims its channel's TIMELINE: it is pinned
+to linear easing at the effect level and must be played with immediate rather
+than version timing, because a version slot would clamp a multi-second bake
+into its own length and play it uniformly fast. Curves are permitted only on
+`visual`; a sampled host track would break the FLIP resting write, the
+two-point structural motion path, and trail-echo synchronization.
+
+The standalone die is the current sampled-track producer: it rolls a real 3D
+solid through a seeded physics simulation baked to literal matrices, on the
+same track-to-keyframe executor, without claiming FLIP provenance or
+satisfying motion anchors. This framework contract is intentionally not a
+game-author API.
 
 ## The three axes
 
@@ -518,8 +534,11 @@ start is infrastructure-level scheduling, not a synchronization protocol.
   shuffle, plus demonstrating imperative click celebration and theme/intensity
   controls.
 - `examples/pig` exercises the standalone die's shared `visual:transform`
-  track executor. Its roll stays version-timed and queue-gated without being
-  misrepresented as structural travel.
+  track executor, now as a SAMPLED curve: one physics trajectory baked to
+  literal matrices and played as a single track. Its roll takes its own
+  duration rather than a version slot — a clamped bake is a die falling at
+  five times gravity — but stays queue-gated, declaring that duration so the
+  gate waits for it, without being misrepresented as structural travel.
 - Companion Table/Hand bases preserve their established local choreography
   with `animateBetween()` compatibility flights derived from adjacent sanitized
   snapshots. Hand arrivals launch together from their final pose; Table stub
