@@ -282,15 +282,38 @@ describe('trajectoryCurve interpolation', () => {
 });
 
 /** The angle between the rotation blocks of two emitted matrices, in radians. */
+// The angle between two rotations, measured so that SMALL angles survive the
+// 6-decimal rounding in the emitted matrix string.
+//
+// The obvious estimator, `acos((trace(A^T B) - 1) / 2)`, is unusable here:
+// d(theta)/d(trace) is -1/(2 sin theta), so as the step shrinks it amplifies the
+// rounding without bound. Measured against exact rotations rounded to 6 decimals,
+// worst-case error by step size:
+//
+//     theta     acos       atan2      amplification
+//     0.0010    1.00e-3    8.6e-7     1166x
+//     0.0065    1.46e-4    9.4e-7      156x
+//     0.0500    2.50e-5    8.8e-7       28x
+//     1.0000    1.15e-6    1.0e-6      1.2x
+//
+// This test samples 4096 steps, so theta is ~0.0065 and `acos` contributed
+// ~1.15e-4 of pure measurement noise -- larger than the tolerance, and about
+// 2% of the bound being checked. Reading the skew part directly is O(theta) and
+// is not amplified, so its error stays flat at ~1e-6 for every step size.
 function rotationDelta(a: number[], b: number[]): number {
-  let trace = 0;
-  for (let column = 0; column < 3; column++) {
-    for (let row = 0; row < 3; row++) {
-      // trace(A^T B), summed over the rotation block only.
-      trace += a[column * 4 + row] * b[column * 4 + row];
-    }
-  }
-  return Math.acos(Math.min(1, Math.max(-1, (trace - 1) / 2)));
+  // (A^T B)[row][column]; the inputs are column-major, so element (r, c) of a
+  // matrix M lives at M[c * 4 + r] and A^T B at (r, c) is sum_k A(k,r) B(k,c).
+  const product = (row: number, column: number): number => {
+    let sum = 0;
+    for (let k = 0; k < 3; k++) sum += a[row * 4 + k] * b[column * 4 + k];
+    return sum;
+  };
+  const skewX = product(2, 1) - product(1, 2);
+  const skewY = product(0, 2) - product(2, 0);
+  const skewZ = product(1, 0) - product(0, 1);
+  const sine = Math.hypot(skewX, skewY, skewZ) / 2;
+  const cosine = (product(0, 0) + product(1, 1) + product(2, 2) - 1) / 2;
+  return Math.atan2(sine, cosine);
 }
 
 function translationDelta(a: number[], b: number[]): number {
@@ -381,10 +404,15 @@ function assertContinuous(
     const current = parseMatrix3d(curve(i / steps));
     const angle = rotationDelta(previous, current);
     const distance = translationDelta(previous, current);
-    // 1e-4 of slack absorbs the 6-decimal rounding in the emitted string.
-    assert.ok(angle <= angleBound + 1e-4, `step ${i} of ${steps} rotated ${angle} rad, bound ${angleBound}`);
+    // Slack absorbs the 6-decimal rounding in the emitted string, and nothing
+    // else. `rotationDelta` reads the skew part directly, so its residual error
+    // is ~1e-6 rad at every step size (see its comment) -- 1e-5 is ten times
+    // that, and ~0.15% of the bound rather than the ~2% the old estimator
+    // needed. Translation is a plain component difference, so its rounding is
+    // ~1e-6 px and unamplified.
+    assert.ok(angle <= angleBound + 1e-5, `step ${i} of ${steps} rotated ${angle} rad, bound ${angleBound}`);
     assert.ok(
-      distance <= translationBound + 1e-4,
+      distance <= translationBound + 1e-5,
       `step ${i} of ${steps} moved ${distance} px, bound ${translationBound}`,
     );
     previous = current;
