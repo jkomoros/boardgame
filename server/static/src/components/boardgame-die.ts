@@ -1147,8 +1147,19 @@ class BoardgameDie extends BoardgameAnimatableItem {
     // bounding radius, which for a barrel is up to 2.63x larger; `dice-roll.ts`
     // documents on `posedPosition` why the travel is scaled by this one. Read
     // from #stage's font-size because that IS the die's size (the solid is built
-    // at 1em across), and it is a NUMBER of pixels: interpolating a CSS variable
-    // into the matrix instead would forfeit compositing for the whole tumble.
+    // at 1em across), and it is resolved to a NUMBER of pixels here rather than
+    // left as a `calc()` over `--effective-die-size` in the keyframes.
+    //
+    // NOT because a `calc()` cannot composite — measured, a control animating
+    // `translate3d(calc(var(--probe) * 80px), ...)` kept compositing and still
+    // reported `ActiveTransformAnimation`, because Chromium substitutes a static
+    // custom property when it composes the keyframes. The reason is that
+    // `--die-size` is a caller's property and is not guaranteed static: a game
+    // that retunes it mid-roll (a responsive rule, a theme switch, a `--die-scale`
+    // transition) would invalidate a composited animation in mid-air. Resolving
+    // it once, here, means the tumble depends on nothing it does not own. See
+    // `dice-bake.ts`'s "Why literal `matrix3d`" for the frame-drop measurement
+    // behind the guarantee itself.
     const stage = this._stageElement;
     const radiusPx = stage ? parseFloat(getComputedStyle(stage).fontSize) / 2 : NaN;
     if (!Number.isFinite(radiusPx) || radiusPx <= 0) return null;

@@ -408,7 +408,8 @@ test('readingPoseTransform emits a CSS transform list, outermost first', () => {
   const turns = readingPose(surfaceDirections(geometry), 7, { uprightContent: true });
   assert.equal(text, turns.map(rotate3d).join(' '));
   assert.ok(/^rotate3d\([-\d.]+,[-\d.]+,[-\d.]+,[-\d.]+deg\)( rotate3d\(.*\))*$/.test(text), text);
-  // No var() or calc(): a keyframe carrying either forfeits compositing.
+  // No var() or calc(): a keyframe that reads a custom property can be
+  // invalidated by a change to it mid-roll. See `dice-bake.ts`.
   assert.ok(!text.includes('var(') && !text.includes('calc('));
 });
 

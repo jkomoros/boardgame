@@ -41,12 +41,28 @@
  *
  * ## Why literal `matrix3d`, never `var()` or `calc()`
  *
- * Chromium only promotes a transform animation to the compositor when every
- * keyframe value is a literal transform list. A `calc()` or `var()` anywhere in
- * it silently demotes the animation to the main thread, where a multi-second
- * tumble at 60 Hz stutters under any layout work. So every value this module
- * emits is a bare `matrix3d(...)` of sixteen plain decimal numbers — no units,
- * no custom properties, no scientific notation (which some parsers reject).
+ * A transform animation runs on the compositor only if every keyframe resolves
+ * to a static transform list, and it is dropped to the main thread if anything
+ * later invalidates that — where a tumble at 60 Hz stutters under any layout
+ * work. Every value this module emits is therefore a bare `matrix3d(...)` of
+ * sixteen plain decimal numbers: no units, no custom properties, no scientific
+ * notation (which some parsers reject).
+ *
+ * BE PRECISE ABOUT WHAT WAS MEASURED, because the stronger claim this comment
+ * used to make is false. A `calc()` over a STATIC custom property does not by
+ * itself forfeit compositing: a control animating
+ * `translate3d(calc(var(--probe) * 80px), …)` was measured still reporting
+ * `ActiveTransformAnimation`, because Chromium substitutes the property's value
+ * when it composes the keyframes. So `var()`/`calc()` is not a rule; what is a
+ * rule is that a composited transform animation may not depend on anything that
+ * can change under it. A custom property is exactly such a thing — set it, or
+ * animate it, mid-roll and the composited animation is invalidated in mid-air —
+ * and a literal matrix is the only form with no such dependency at all.
+ *
+ * The guarantee itself was verified directly rather than inferred from the
+ * form: with the main thread hard-blocked for 800ms, the baked tumble rendered
+ * ~45 of 48 frames, against 1–2 frames for a deliberately non-compositable
+ * control.
  *
  * ## Units
  *

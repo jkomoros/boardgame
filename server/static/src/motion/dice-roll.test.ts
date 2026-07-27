@@ -248,8 +248,10 @@ test('the resting transform is the curve\'s own last frame, byte for byte', () =
   // ...and progress past the ends clamps rather than extrapolating.
   assert.equal(scene.transform(1.4), scene.resting);
   assert.equal(scene.transform(-2), scene.transform(0));
-  // Literals only: a var() or calc() in a keyframe forfeits compositing and
-  // drops a multi-second tumble onto the main thread.
+  // Literals only, so no keyframe depends on a custom property that could be
+  // changed under the tumble and invalidate a composited animation in mid-air.
+  // (Not because a calc() cannot composite — see `dice-bake.ts`'s "Why literal
+  // matrix3d" for what was actually measured.)
   for (const value of [scene.transform(0), scene.transform(0.5), scene.resting]) {
     assert.ok(!value.includes('var(') && !value.includes('calc('), value);
     assert.ok(!/\d[eE][-+]?\d/.test(value), `no exponential notation: ${value}`);

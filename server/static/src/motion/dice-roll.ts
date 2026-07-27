@@ -433,10 +433,12 @@ export interface RollScene {
  *
  * `matrix3d` comes from `dice-bake.ts` with the trajectory's positions removed:
  * the bake owns the physics-to-CSS reflection and the slerp, and this module
- * owns where the resulting solid is put. Every number is a literal — a `var()`
- * or `calc()` anywhere in a transform keyframe forfeits compositing and drops a
- * multi-second tumble onto the main thread, which is exactly the behaviour this
- * feature replaces.
+ * owns where the resulting solid is put. Every number is a literal, so no
+ * keyframe here depends on anything that can change under it while the tumble
+ * is in the air; see `dice-bake.ts`'s "Why literal `matrix3d`", which also
+ * records what a measurement showed a `calc()` over a static custom property
+ * actually does (it keeps compositing — the blanket claim that used to be made
+ * here was too strong).
  */
 export function rollScene(
   geometry: DieGeometry,
