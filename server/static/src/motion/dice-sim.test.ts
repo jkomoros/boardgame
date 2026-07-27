@@ -804,6 +804,125 @@ describe('simulateRoll with several dice', () => {
   });
 });
 
+describe('simulateRoll with a geometry per die', () => {
+  /**
+   * The whole point of the per-body thread: a throw may mix shapes.
+   *
+   * Every assertion here is made against the die's OWN solid, which is what a
+   * single shared kernel cannot express. A simulator that quietly used the
+   * first geometry for all three dice passes containment (the shapes are all
+   * circumradius 1 after normalisation, so the box never notices) and fails
+   * this, because a d20's vertices are not a d4's and a face that a d4 can be
+   * read from is not a face of a d20.
+   */
+  const MIXED = [3, 4, 6, 20] as const;
+
+  it('lands each die flat on a face of its own geometry', () => {
+    const geometries = MIXED.map(dieGeometry);
+    const cosLimit = Math.cos((MAX_COCK_DEGREES * Math.PI) / 180);
+    for (const seed of SEEDS) {
+      const roll = simulateRoll({
+        seed,
+        geometry: geometries,
+        dieCount: geometries.length,
+        bounds: BOUNDS,
+      });
+      assert.equal(roll.dice.length, geometries.length);
+      for (let d = 0; d < geometries.length; d++) {
+        const geometry = geometries[d];
+        const sign = resolveReadingRule(geometry) === 'up-face' ? 1 : -1;
+        const wanted: Vec3 = [WORLD_UP[0] * sign, WORLD_UP[1] * sign, WORLD_UP[2] * sign];
+        const resting = roll.dice[d].restingOrientation;
+        const face = geometry.faces[presentedFaceIndex(geometry, resting)];
+        const alignment = dot(rotate(resting, face.normal), wanted);
+        const degrees = (Math.acos(Math.min(1, Math.max(-1, alignment))) * 180) / Math.PI;
+        assert.ok(
+          alignment >= cosLimit,
+          `seed ${seed} d${MIXED[d]}: landed ${degrees.toFixed(2)} degrees off its own face`,
+        );
+      }
+    }
+  });
+
+  it('keeps every die inside the container using its own hull', () => {
+    const geometries = MIXED.map(dieGeometry);
+    const solids = geometries.map(simulationSolid);
+    const planes = containerPlanes(BOUNDS);
+    for (const seed of SEEDS) {
+      const roll = simulateRoll({
+        seed,
+        geometry: geometries,
+        dieCount: geometries.length,
+        bounds: BOUNDS,
+      });
+      for (let d = 0; d < geometries.length; d++) {
+        for (const sample of roll.dice[d].samples) {
+          for (const vertex of worldVertices(solids[d].vertices, sample.position, sample.orientation)) {
+            for (const plane of planes) {
+              assert.ok(
+                dot(plane.normal, vertex) - plane.offset <= CONTAINMENT_EPSILON,
+                `seed ${seed} d${MIXED[d]} at t=${sample.t}: outside plane ${plane.normal}`,
+              );
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps a mixed pair from interpenetrating, each against the other hull', () => {
+    // The die-die narrow phase reads one body's VERTICES against the other
+    // body's PLANES. With one shared kernel those always come from the same
+    // solid and the asymmetry is invisible; with two shapes, getting either
+    // side backwards buries a d4's corner in a d20.
+    const geometries = [dieGeometry(4), dieGeometry(20)];
+    const solids = geometries.map(simulationSolid);
+    for (const seed of SEEDS) {
+      const roll = simulateRoll({ seed, geometry: geometries, dieCount: 2, bounds: BOUNDS });
+      for (let s = 0; s < roll.dice[0].samples.length; s++) {
+        const poses = roll.dice.map((die) => die.samples[s]);
+        for (const [a, b] of [[0, 1], [1, 0]] as const) {
+          for (const vertex of worldVertices(solids[a].vertices, poses[a].position, poses[a].orientation)) {
+            const local = rotate(
+              [-poses[b].orientation[0], -poses[b].orientation[1], -poses[b].orientation[2], poses[b].orientation[3]],
+              sub(vertex, poses[b].position),
+            );
+            let depth = Infinity;
+            for (const plane of solids[b].planes) {
+              depth = Math.min(depth, plane.offset - dot(plane.normal, local));
+            }
+            assert.ok(depth <= 0.01, `seed ${seed}: die ${a} is ${depth} inside die ${b} at t=${poses[a].t}`);
+          }
+        }
+      }
+    }
+  });
+
+  it('reproduces the single-geometry roll exactly when every die is the same shape', () => {
+    // The compatibility contract. A config naming ONE geometry must not merely
+    // still work, it must produce the identical trajectory it always did, or
+    // every consumer's animation moves for no reason anyone asked for.
+    for (const faceCount of SHAPES) {
+      const geometry = dieGeometry(faceCount);
+      const single = simulateRoll(config(faceCount, 4242, { dieCount: 3 }));
+      const listed = simulateRoll({
+        seed: 4242,
+        geometry: [geometry, geometry, geometry],
+        dieCount: 3,
+        bounds: BOUNDS,
+      });
+      assert.deepStrictEqual(listed, single, `d${faceCount} diverged when listed per die`);
+    }
+  });
+
+  it('refuses a geometry list that does not match dieCount', () => {
+    const two = [dieGeometry(6), dieGeometry(20)];
+    assert.throws(() => simulateRoll({ seed: 1, geometry: two, dieCount: 3, bounds: BOUNDS }));
+    assert.throws(() => simulateRoll({ seed: 1, geometry: two, dieCount: 1, bounds: BOUNDS }));
+    assert.throws(() => simulateRoll({ seed: 1, geometry: [], dieCount: 0, bounds: BOUNDS }));
+  });
+});
+
 describe('simulateRoll physical plausibility', () => {
   it('lets a die fall, tumble and travel', () => {
     // Not a correctness bound, a sanity bound: a simulation that dropped the

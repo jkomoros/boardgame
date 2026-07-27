@@ -94,7 +94,24 @@ export interface RollConfig {
    * caller that derives a seed from `(component id, RollCount)` needs it.
    */
   readonly seed: number;
-  readonly geometry: DieGeometry;
+  /**
+   * The shape of every die, or one shape PER DIE.
+   *
+   * A single geometry is the common case and means exactly what it always did:
+   * `dieCount` dice of that shape. A list is a throw of mixed shapes — 2d6 and
+   * a d20 together, or dice alongside some other component this simulator is
+   * reused for — and must have exactly `dieCount` entries, in the order the
+   * dice appear in `RollTrajectory.dice`.
+   *
+   * Nothing below this line assumes the dice agree: contacts, inertia, the
+   * broad phase and the settle test are all read off the individual body's own
+   * solid. The one thing that IS shared is scale, because `simulationSolid`
+   * normalises every shape to circumradius 1 — a mixed throw is a throw of
+   * dice that are all the same SIZE and different shapes. A caller that wants
+   * a d20 physically larger than its d6 has to say so somewhere this module
+   * does not yet have a word for.
+   */
+  readonly geometry: DieGeometry | readonly DieGeometry[];
   readonly dieCount: number;
   /**
    * HALF-extents of the container box, in die circumradii. See the file docs.
@@ -182,6 +199,18 @@ export interface SimulationSolid {
   /** Body-frame unit-mass inertia at unit circumradius, row-major 3x3. */
   readonly inertia: readonly number[];
   readonly inverseInertia: readonly number[];
+  /**
+   * The farthest any vertex sits from the centre, MEASURED rather than assumed.
+   *
+   * `simulationSolid` divides by `geometry.circumradius`, so this is 1 to
+   * within rounding for anything it returns. It is carried anyway because the
+   * broad phase and `closingSpeedBound` need a bound on how far a surface point
+   * can be from its own centre, and writing that as the literal `1` bakes this
+   * function's normalisation into a routine two hundred lines away — where it
+   * would have to be found and changed by whoever first hands the solver a
+   * solid that is not a die.
+   */
+  readonly radius: number;
 }
 
 /**
@@ -541,11 +570,18 @@ export function simulationSolid(geometry: DieGeometry): SimulationSolid {
     planes: Object.freeze(planes),
     inertia: Object.freeze(inertia),
     inverseInertia: Object.freeze(invertMatrix(inertia)),
+    radius: Math.max(...vertices.map((vertex) => Math.sqrt(dot(vertex, vertex)))),
   });
 }
 
-/** The same solid flattened into typed arrays, for the allocation-free loop. */
+/**
+ * The same solid flattened into typed arrays, for the allocation-free loop.
+ *
+ * One per SHAPE, not one per die: a body holds a reference to its own kernel
+ * (see `Body.kernel`), and a throw of five d6 and three d20 builds two.
+ */
 interface Kernel {
+  readonly geometry: DieGeometry;
   readonly vertexCount: number;
   /** 3 per vertex. */
   readonly vertices: Float64Array;
@@ -555,9 +591,11 @@ interface Kernel {
   readonly planeOffsets: Float64Array;
   readonly inertia: Float64Array;
   readonly inverseInertia: Float64Array;
+  /** See `SimulationSolid.radius`: the bound the broad phase reaches for. */
+  readonly radius: number;
 }
 
-function kernelOf(solid: SimulationSolid): Kernel {
+function kernelOf(geometry: DieGeometry, solid: SimulationSolid): Kernel {
   const vertices = new Float64Array(solid.vertices.length * 3);
   solid.vertices.forEach((vertex, index) => vertices.set(vertex, index * 3));
   const planeNormals = new Float64Array(solid.planes.length * 3);
@@ -567,6 +605,7 @@ function kernelOf(solid: SimulationSolid): Kernel {
     planeOffsets[index] = plane.offset;
   });
   return {
+    geometry,
     vertexCount: solid.vertices.length,
     vertices,
     planeCount: solid.planes.length,
@@ -574,7 +613,30 @@ function kernelOf(solid: SimulationSolid): Kernel {
     planeOffsets,
     inertia: Float64Array.from(solid.inertia),
     inverseInertia: Float64Array.from(solid.inverseInertia),
+    radius: solid.radius,
   };
+}
+
+/**
+ * One kernel per DISTINCT geometry in the throw, in die order.
+ *
+ * Deduplicated by object identity, which is the cheap half of the job: the
+ * usual `[g, g, g]` and the usual single geometry both build exactly one
+ * kernel, so a throw of twenty-five identical dice does not flatten the same
+ * solid twenty-five times. Two structurally equal but distinct geometry objects
+ * build two kernels and simulate identically; that is a wasted flatten and
+ * never a wrong answer.
+ */
+function kernelsFor(geometries: readonly DieGeometry[]): Kernel[] {
+  const built = new Map<DieGeometry, Kernel>();
+  return geometries.map((geometry) => {
+    let kernel = built.get(geometry);
+    if (kernel === undefined) {
+      kernel = kernelOf(geometry, simulationSolid(geometry));
+      built.set(geometry, kernel);
+    }
+    return kernel;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -582,6 +644,11 @@ function kernelOf(solid: SimulationSolid): Kernel {
 // ---------------------------------------------------------------------------
 
 interface Body {
+  /**
+   * This die's own shape. Every routine below reads geometry through here and
+   * never through the config, which is what lets one throw mix shapes.
+   */
+  readonly kernel: Kernel;
   readonly position: Float64Array;
   readonly velocity: Float64Array;
   readonly angular: Float64Array;
@@ -595,6 +662,7 @@ interface Body {
 
 function createBody(kernel: Kernel): Body {
   return {
+    kernel,
     position: new Float64Array(3),
     velocity: new Float64Array(3),
     angular: new Float64Array(3),
@@ -607,7 +675,8 @@ function createBody(kernel: Kernel): Body {
 }
 
 /** Recompute everything derived from `position` and `orientation`. */
-function refresh(body: Body, kernel: Kernel): void {
+function refresh(body: Body): void {
+  const kernel = body.kernel;
   quatMatrixInto(body.orientation, body.rotation);
   conjugateInto(body.rotation, kernel.inverseInertia, body.inverseInertiaWorld);
   const r = body.rotation;
@@ -723,8 +792,8 @@ class Contact {
 
 /**
  * An upper bound on how fast any point of `a` can be approaching any point of
- * `b`. Both solids are normalised to circumradius 1, so a body's surface points
- * move at most `|v| + |omega|`. Used only by the broad phase.
+ * `b`. A surface point is at most `kernel.radius` from its own centre, so it
+ * moves at most `|v| + radius * |omega|`. Used only by the broad phase.
  */
 function closingSpeedBound(a: Body, b: Body): number {
   const speed = (body: Body): number => {
@@ -732,7 +801,7 @@ function closingSpeedBound(a: Body, b: Body): number {
     const w = body.angular;
     return (
       Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) +
-      Math.sqrt(w[0] * w[0] + w[1] * w[1] + w[2] * w[2])
+      body.kernel.radius * Math.sqrt(w[0] * w[0] + w[1] * w[1] + w[2] * w[2])
     );
   };
   return speed(a) + speed(b);
@@ -1028,13 +1097,33 @@ function resolved(config: RollConfig): Options {
 }
 
 /**
+ * `config.geometry` as one entry per die, whichever way it was written.
+ *
+ * The single-geometry form repeats the SAME OBJECT, so `kernelsFor` dedupes it
+ * back to one kernel and the throw is byte-identical to what it was before this
+ * module could mix shapes.
+ */
+function geometriesOf(config: RollConfig): readonly DieGeometry[] {
+  if (!Array.isArray(config.geometry)) {
+    return new Array<DieGeometry>(config.dieCount).fill(config.geometry as DieGeometry);
+  }
+  const listed = config.geometry as readonly DieGeometry[];
+  if (listed.length !== config.dieCount) {
+    throw new Error(
+      `geometry lists ${listed.length} shapes but dieCount is ${config.dieCount}; a per-die list must name one shape per die`,
+    );
+  }
+  return listed;
+}
+
+/**
  * Dice start on a grid near the ceiling, one pitch apart so they never begin
  * interpenetrating, with a randomised orientation, spin and throw direction.
  * The grid wraps into a second row when the container is too narrow.
  */
 function spawnBodies(
   config: RollConfig,
-  kernel: Kernel,
+  kernels: readonly Kernel[],
   energy: number,
   random: () => number,
 ): Body[] {
@@ -1051,7 +1140,7 @@ function spawnBodies(
   const vigour = Math.sqrt(energy);
   const bodies: Body[] = [];
   for (let i = 0; i < dieCount; i++) {
-    const body = createBody(kernel);
+    const body = createBody(kernels[i]);
     const column = i % columns;
     const row = Math.floor(i / columns);
     body.position[0] = (column - (columns - 1) / 2) * SPAWN_PITCH + signed(random) * 0.12;
@@ -1066,7 +1155,7 @@ function spawnBodies(
     body.angular[0] *= spin;
     body.angular[1] *= spin;
     body.angular[2] *= spin;
-    refresh(body, kernel);
+    refresh(body);
     bodies.push(body);
   }
   return bodies;
@@ -1105,17 +1194,12 @@ function readableRestAlignment(geometry: DieGeometry, orientation: Quat): number
  * impulse solver announces itself long before anything visibly explodes.
  */
 const INERTIA_WORLD = new Float64Array(9);
-function totalEnergy(
-  bodies: readonly Body[],
-  kernel: Kernel,
-  gravity: number,
-  floor: number,
-): number {
+function totalEnergy(bodies: readonly Body[], gravity: number, floor: number): number {
   let total = 0;
   for (const body of bodies) {
     const v = body.velocity;
     const w = body.angular;
-    conjugateInto(body.rotation, kernel.inertia, INERTIA_WORLD);
+    conjugateInto(body.rotation, body.kernel.inertia, INERTIA_WORLD);
     const lx = INERTIA_WORLD[0] * w[0] + INERTIA_WORLD[1] * w[1] + INERTIA_WORLD[2] * w[2];
     const ly = INERTIA_WORLD[3] * w[0] + INERTIA_WORLD[4] * w[1] + INERTIA_WORLD[5] * w[2];
     const lz = INERTIA_WORLD[6] * w[0] + INERTIA_WORLD[7] * w[1] + INERTIA_WORLD[8] * w[2];
@@ -1131,11 +1215,11 @@ function totalEnergy(
 function throwOnce(
   config: RollConfig,
   options: Options,
-  kernel: Kernel,
+  kernels: readonly Kernel[],
   random: () => number,
 ): RollDiagnostics {
   const { energy, gravity, restitution, friction } = options;
-  const bodies = spawnBodies(config, kernel, energy, random);
+  const bodies = spawnBodies(config, kernels, energy, random);
   const bounds = config.bounds;
   const floor = -bounds.y;
   const dt = STEP_SECONDS;
@@ -1186,7 +1270,7 @@ function throwOnce(
   };
 
   record(0);
-  energyPerStep.push(totalEnergy(bodies, kernel, gravity, floor));
+  energyPerStep.push(totalEnergy(bodies, gravity, floor));
 
   const maxSteps = Math.round(MAX_SECONDS * PHYSICS_HZ);
   let restSteps = 0;
@@ -1206,7 +1290,7 @@ function throwOnce(
     used = 0;
     for (const body of bodies) {
       const w = body.worldVertices;
-      for (let v = 0; v < kernel.vertexCount; v++) {
+      for (let v = 0; v < body.kernel.vertexCount; v++) {
         const px = w[v * 3];
         const py = w[v * 3 + 1];
         const pz = w[v * 3 + 2];
@@ -1242,22 +1326,21 @@ function throwOnce(
         const dy = a.position[1] - b.position[1];
         const dz = a.position[2] - b.position[2];
         // Broad phase, stated as the bound it is rather than as a literal.
-        // Both hulls have circumradius exactly 1, so the surfaces cannot be
-        // closer than `distance - 2`; the narrow phase makes a contact at
-        // `CONTACT_MARGIN + closing * dt * CONTACT_LOOKAHEAD`, and no point of
-        // either body closes faster than the two centre speeds plus the two
-        // spin rates (a point is at most one circumradius from its centre).
-        // Skipping a pair beyond that provably drops no contact.
-        if (
-          dx * dx + dy * dy + dz * dz >
-          (2 + CONTACT_MARGIN + closingSpeedBound(a, b) * dt * CONTACT_LOOKAHEAD) ** 2
-        ) {
-          continue;
-        }
-        maxDieOverlap = Math.max(
-          maxDieOverlap,
-          collectDieContacts(a, b, kernel, restitution, dt, take),
-        );
+        // Each hull is bounded by its OWN `kernel.radius`, so the surfaces
+        // cannot be closer than `distance - (ra + rb)`; the narrow phase makes
+        // a contact at `CONTACT_MARGIN + closing * dt * CONTACT_LOOKAHEAD`, and
+        // `closingSpeedBound` bounds how fast any point of one can approach any
+        // point of the other using those same radii. Skipping a pair beyond
+        // that provably drops no contact — for two shapes as much as for one,
+        // which is why neither radius is written here as the literal 1 that
+        // `simulationSolid`'s normalisation currently makes it.
+        const reach =
+          a.kernel.radius +
+          b.kernel.radius +
+          CONTACT_MARGIN +
+          closingSpeedBound(a, b) * dt * CONTACT_LOOKAHEAD;
+        if (dx * dx + dy * dy + dz * dz > reach * reach) continue;
+        maxDieOverlap = Math.max(maxDieOverlap, collectDieContacts(a, b, restitution, dt, take));
       }
     }
 
@@ -1278,7 +1361,7 @@ function throwOnce(
       body.position[1] += body.velocity[1] * dt;
       body.position[2] += body.velocity[2] * dt;
       integrateOrientation(body, dt);
-      refresh(body, kernel);
+      refresh(body);
 
       // Backstop. The contact constraint is linear in velocity while a vertex
       // on a spinning die travels an arc, so a corner can dip below a wall by
@@ -1291,7 +1374,7 @@ function throwOnce(
         const nz = wallNormals[p * 3 + 2];
         let deepest = 0;
         const w = body.worldVertices;
-        for (let v = 0; v < kernel.vertexCount; v++) {
+        for (let v = 0; v < body.kernel.vertexCount; v++) {
           const gap = wallOffsets[p] - (nx * w[v * 3] + ny * w[v * 3 + 1] + nz * w[v * 3 + 2]);
           if (gap < deepest) deepest = gap;
         }
@@ -1305,11 +1388,11 @@ function throwOnce(
           corrected = true;
         }
       }
-      if (corrected) refresh(body, kernel);
+      if (corrected) refresh(body);
     }
 
     step++;
-    energyPerStep.push(totalEnergy(bodies, kernel, gravity, floor));
+    energyPerStep.push(totalEnergy(bodies, gravity, floor));
 
     let resting = true;
     for (const body of bodies) {
@@ -1341,10 +1424,10 @@ function throwOnce(
   );
 
   let restAlignment = Infinity;
-  for (const die of dice) {
+  for (let i = 0; i < dice.length; i++) {
     restAlignment = Math.min(
       restAlignment,
-      readableRestAlignment(config.geometry, die.restingOrientation),
+      readableRestAlignment(bodies[i].kernel.geometry, dice[i].restingOrientation),
     );
   }
   return Object.freeze({
@@ -1370,19 +1453,24 @@ function throwOnce(
  * Same routine for every shape, and the reason `capFaces` matters: `planes`
  * spans the whole closed surface, so a barrel is a closed convex solid here and
  * not an open tube. Returns the deepest overlap seen, for diagnostics.
+ *
+ * The two sides come from DIFFERENT kernels and the asymmetry is the point:
+ * the vertices are `a`'s, the planes are `b`'s. The caller runs the pair both
+ * ways round, so a d4 against a d20 is tested as four points against twenty
+ * planes and then as twelve points against four.
  */
 function collectDieContacts(
   a: Body,
   b: Body,
-  kernel: Kernel,
   restitution: number,
   dt: number,
   take: () => Contact,
 ): number {
   const r = b.rotation;
   const w = a.worldVertices;
+  const hull = b.kernel;
   let deepest = 0;
-  for (let v = 0; v < kernel.vertexCount; v++) {
+  for (let v = 0; v < a.kernel.vertexCount; v++) {
     const px = w[v * 3];
     const py = w[v * 3 + 1];
     const pz = w[v * 3 + 2];
@@ -1396,12 +1484,12 @@ function collectDieContacts(
     // The tightest supporting plane; negative means the vertex is inside.
     let best = -Infinity;
     let bestPlane = 0;
-    for (let p = 0; p < kernel.planeCount; p++) {
+    for (let p = 0; p < hull.planeCount; p++) {
       const distance =
-        kernel.planeNormals[p * 3] * lx +
-        kernel.planeNormals[p * 3 + 1] * ly +
-        kernel.planeNormals[p * 3 + 2] * lz -
-        kernel.planeOffsets[p];
+        hull.planeNormals[p * 3] * lx +
+        hull.planeNormals[p * 3 + 1] * ly +
+        hull.planeNormals[p * 3 + 2] * lz -
+        hull.planeOffsets[p];
       if (distance > best) {
         best = distance;
         bestPlane = p;
@@ -1409,9 +1497,9 @@ function collectDieContacts(
     }
     if (best < 0 && -best > deepest) deepest = -best;
     // Back to the world frame: R n, pointing out of b and so pushing a away.
-    const bx = kernel.planeNormals[bestPlane * 3];
-    const by = kernel.planeNormals[bestPlane * 3 + 1];
-    const bz = kernel.planeNormals[bestPlane * 3 + 2];
+    const bx = hull.planeNormals[bestPlane * 3];
+    const by = hull.planeNormals[bestPlane * 3 + 1];
+    const bz = hull.planeNormals[bestPlane * 3 + 2];
     const nx = r[0] * bx + r[1] * by + r[2] * bz;
     const ny = r[3] * bx + r[4] * by + r[5] * bz;
     const nz = r[6] * bx + r[7] * by + r[8] * bz;
@@ -1440,15 +1528,14 @@ function collectDieContacts(
 /** `simulateRoll`, plus the internals the suite asserts against. */
 export function simulateRollWithDiagnostics(config: RollConfig): RollDiagnostics {
   const options = resolved(config);
-  const solid = simulationSolid(config.geometry);
-  const kernel = kernelOf(solid);
+  const kernels = kernelsFor(geometriesOf(config));
   // One stream seeds the throws, so the retry chain is itself deterministic.
   const seeds = createRandom(config.seed);
   let best: RollDiagnostics | null = null;
   let attempts = 0;
   while (attempts < MAX_ATTEMPTS) {
     attempts++;
-    const result = throwOnce(config, options, kernel, createRandom(seeds() * 0x100000000));
+    const result = throwOnce(config, options, kernels, createRandom(seeds() * 0x100000000));
     if (best === null || result.restAlignment > best.restAlignment) best = result;
     if (result.restAlignment >= SETTLE_ALIGNMENT) break;
   }

@@ -1,3 +1,5 @@
+import { createSeededRandom, seedFromIdentity } from '../utils/seeded-random.ts';
+
 export const MAX_BURST_PARTICLES = 24;
 
 export interface BurstParticle {
@@ -6,28 +8,6 @@ export interface BurstParticle {
   delayMs: number;
   sizePx: number;
   rotationDeg: number;
-}
-
-function hashSeed(value: string | number): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value >>> 0;
-  const text = String(value);
-  let hash = 2166136261;
-  for (let index = 0; index < text.length; index++) {
-    hash ^= text.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function seededRandom(seed: number): () => number {
-  let state = seed || 0x6d2b79f5;
-  return () => {
-    state += 0x6d2b79f5;
-    let value = state;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 export function burstParticles(
@@ -39,7 +19,11 @@ export function burstParticles(
   const finiteSpread = Number.isFinite(spreadPx) ? spreadPx : 8;
   const count = Math.max(1, Math.min(MAX_BURST_PARTICLES, Math.round(finiteCount)));
   const spread = Math.max(8, Math.min(240, finiteSpread));
-  const random = seededRandom(hashSeed(seed));
+  // The shared seeded-random primitive, composed the same way the dice path
+  // composes it (identity -> uint32 -> avalanched mulberry32 stream). The
+  // local copy this replaced truncated a numeric seed with `>>> 0` first, so
+  // e.g. 3 and 3.7, or 1 and 2**32 + 1, played the identical burst.
+  const random = createSeededRandom(seedFromIdentity(seed));
   const phase = random() * 360;
 
   return Object.freeze(Array.from({ length: count }, (_, index) => {
