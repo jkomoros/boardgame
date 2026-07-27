@@ -233,7 +233,7 @@ export class BoardgameToken extends BoardgameComponent {
     // highlighted CHANGE. Lit does not re-render on a reparent, so no
     // updated() fires and active/highlighted are unchanged: without this, a
     // still-highlighted token moved to a new container would lose its glow
-    // forever. Safe on first connect -- innerElement is null pre-render, so
+    // forever. Safe on first connect -- outerElement is null pre-render, so
     // _syncThrob no-ops, and the first render's updated() starts it as before
     // (see the DOM-reparent test in token-throb.spec.ts).
     this._syncThrob();
