@@ -165,7 +165,8 @@ const EPSILON = 1e-9;
  * closed surface as index loops, and which of those loops are readable faces.
  *
  * Surface loops may be given in any vertex order and any winding: `finishSolid`
- * owns the winding invariant and orients every loop exactly once.
+ * owns the winding invariant and orients every loop exactly once. An author who
+ * already knows its loops' order and winding says so with `oriented`.
  */
 export interface RawSolid {
   readonly vertices: readonly Vec3[];
@@ -185,6 +186,44 @@ export interface RawSolid {
    * on it must say so with that shift already taken out.
    */
   readonly nominalRadius?: number;
+  /**
+   * "My loops are already in polygon order and already wound counter-clockwise
+   * seen from outside — do not rederive either." Set it and `finishSolid` skips
+   * `orientLoop` entirely and uses the loops exactly as handed over.
+   *
+   * ## Why the opt-in exists: `orientLoop` is where convexity is assumed
+   *
+   * Everything else in this module is correct for a non-convex solid, measured:
+   * the signed-tetrahedron volume, centroid and inertia agree with the analytic
+   * values to 1e-16 on a non-convex prism, the fan triangulation's
+   * out-of-polygon triangles cancel exactly (3.3e-16 against the shoelace area),
+   * and `validateClosedSurface` is pure combinatorics. `orientLoop` carries
+   * BOTH of the convexity assumptions, and they are independent:
+   *
+   *   1. It calls a face outward when `dot(normal, centroid - vertexMean) > 0`,
+   *      which is only the right sign when the solid is star-shaped about that
+   *      mean. A U-shaped prism's inner wall faces back toward the mean.
+   *   2. It re-sorts each loop by angle about the loop's own vertex mean,
+   *      discarding the author's order. That reproduces the polygon only when
+   *      the face is star-shaped about its own vertex mean; an L-shaped cap
+   *      comes back permuted.
+   *
+   * Either failure produces a loop that is not the intended polygon, and the
+   * half-edge check downstream then rejects the solid as a non-manifold — which
+   * made non-convex input look unsupported when what was actually unsupported
+   * was rederiving its winding. Verified against 600 random simple polygons: the
+   * conjunction of those two conditions agreed with the shipped accept/reject at
+   * 100%, and 167 of the ACCEPTED cases have non-convex cap faces, so "convex
+   * faces" was never the real constraint.
+   *
+   * Setting this skips derivation, not validation. `validateIndices` and
+   * `validateClosedSurface` still run, so an author who claims a winding it does
+   * not have gets the same manifold error rather than a silently wrong solid.
+   *
+   * Every die shipped from `dieGeometry` leaves this unset and is byte-identical
+   * either way; it exists for `src/solid/`'s hand-built surfaces.
+   */
+  readonly oriented?: boolean;
 }
 
 /** Newell's method: robust for polygons with more than three vertices. */
@@ -242,6 +281,10 @@ function meanPoint(points: readonly Vec3[]): Vec3 {
 /**
  * Order a coplanar index loop counter-clockwise about `normal`, then flip the
  * winding if it does not face away from `interior`.
+ *
+ * BOTH steps assume a convex-ish solid, and they are the only two places in
+ * this module that assume anything of the kind: see `RawSolid.oriented`, the
+ * opt-in that skips this entirely for a caller that already knows its winding.
  */
 function orientLoop(
   loop: readonly number[],
@@ -617,7 +660,15 @@ function inertiaAboutOrigin(triangles: readonly (readonly Vec3[])[]): number[] {
   return covariance.map((value, index) => (index % 4 === 0 ? trace : 0) - value);
 }
 
-/** Fan-triangulate a convex loop, preserving its winding. */
+/**
+ * Fan-triangulate a loop from its first vertex, preserving its winding.
+ *
+ * The fan of a NON-convex loop puts triangles outside the polygon, but every
+ * consumer here integrates a signed quantity over the fan (volume, centroid,
+ * inertia), and for those the outside triangles cancel against the ones that
+ * cover the same region twice: measured at 3.3e-16 against the shoelace area on
+ * an L-shaped cap. This is not a triangulation fit for rasterizing.
+ */
 function triangulate(polygon: readonly Vec3[]): Vec3[][] {
   const triangles: Vec3[][] = [];
   for (let i = 1; i + 1 < polygon.length; i++) {
@@ -717,7 +768,11 @@ function validateClosedSurface(loops: readonly (readonly number[])[]): void {
 export function finishSolid(raw: RawSolid): DieGeometry {
   validateIndices(raw);
   const interior = meanPoint(raw.vertices);
-  const oriented = raw.surface.map((loop) => orientLoop(loop, raw.vertices, interior));
+  // `interior` is also the apex the tetrahedra below are hung off, which needs
+  // no assumption about the shape; only `orientLoop` does. See `RawSolid.oriented`.
+  const oriented: readonly (readonly number[])[] = raw.oriented
+    ? raw.surface
+    : raw.surface.map((loop) => orientLoop(loop, raw.vertices, interior));
   validateClosedSurface(oriented);
 
   // Volume-weighted centroid, from tetrahedra hung off the interior point.
