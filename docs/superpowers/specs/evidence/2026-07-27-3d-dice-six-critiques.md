@@ -182,6 +182,18 @@ stack child at all. The branch did not solve the stack question; it never met it
 
 ## Known scaling limit
 
+> **Corrected 2026-07-28 — "at rest, not while rolling" is half the story and the smaller
+> half.** Chromium also promotes every element inside a live `preserve-3d` context the
+> moment an **ANCESTOR** transform animates — which is what a stack's FLIP does to a
+> component host on every move — and that path is far more expensive: 55 solids went from
+> 57 composited layers to **1,047**, and 88.6 megapixels of layer area, because a
+> `clip-path`ed facet seen through a `perspective` gets conservative layer bounds ~2000px
+> across. The numbers below stand for a die, which sits in no stack; they understate the
+> cliff for anything that does. It is why `boardgame-token` uses no live 3D at all — see
+> `docs/superpowers/specs/evidence/2026-07-27-3d-components.md`, finding F1. (That also
+> retires the note above about tokens being "unable to host a 3D scene on their visual
+> channel": a token does not want one.)
+
 `preserve-3d` promotes every facet to its own composited layer, and the cliff arrives **at
 rest**, not while rolling. An unrelated animation drops to 40fps beside a stationary d64
 (329 layers) and 19fps beside a d100 (509 layers). It is layer count, not pixels: a d100 at

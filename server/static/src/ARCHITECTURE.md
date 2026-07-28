@@ -75,8 +75,12 @@ also may perturb the exact position of the children to give a messier layout.
 animating elements when necesary. More on that later.
 
 The actual `boardgame-component` are generally either `boardgame-token` or
-`boardgame-card`. The former is way simpler; it is just a simple object whose
-appearance is defined by the attributes it has. Cards are way more
+`boardgame-card`. The former is way simpler as a state machine — it has no flip,
+no rotation and no internal animation, and its whole appearance is a pure
+function of the attributes it has — though what it *draws* is no longer a
+sprite: four of its six shapes are generated 3D solids, projected once at build
+time and emitted as flat polygons. See "The solid pipeline" below. Cards are
+way more
 complicated; they can be tall or wide, rotated or not, and flipped or not. All
 of those attributes, when changed, animate. If you select one in the DOM and
 change one of those properties, you'll see them animate smoothly. Of course,
@@ -346,6 +350,95 @@ pipeline is five pure modules and one component, each testable without a DOM:
    declares its own settle budget through `will-animate`, extends the watchdog,
    and honors reduced motion by resolving to duration 0 and landing on its
    resting pose.
+
+## The solid pipeline (`src/solid/`), and its two consumers
+
+`src/solid/` is the shared half of the above: how a closed convex surface
+becomes DOM. Nothing in it knows what the solid *is*, and nothing in it may
+learn — it imports no module named for a die, and the vector vocabulary it
+borrows from `motion/die-geometry.ts` is nothing but arithmetic.
+
+| module | what it owns |
+|---|---|
+| `screen-frame.ts` | the ONE map from the physics frame (+Y up, right-handed) into CSS's (+Y down, left-handed). It is the reflection `S = diag(1, −1, 1)` and must be: a proper rotation renders the solid's mirror image, which is how this shipped once. `screen-frame.test.ts` pins `det(S) = −1`. |
+| `prism.ts` | a flat-capped right prism — N side walls about an axis, two flat caps — parameterized by side count and height-over-diameter. It is built about **+Z**, i.e. facing the camera, where a die is built about +Y. |
+| `reading-pose.ts` | the turns that lean a solid so a nominated facet faces the viewer, a second facet stays visible, and the nominated facet's content rolls upright. |
+| `facet-placement.ts` | one polygon → one absolutely positioned, `clip-path`ed element carrying a `matrix3d` that stands it up in a live 3D scene, plus the inscribed content square marks are laid out in. Units are `em` against the stage's `font-size`, so a solid follows a custom property with no JS remeasurement. |
+| `flat-facets.ts` | one **already-projected** polygon → one ordinary, untransformed element. No `matrix3d`, no 3D anything. |
+
+The last two rows are the fork, and **the two consumers do not differ in
+degree — they use different halves of the module.**
+
+**A die tumbles, so its pose is not a constant.** Its facets have to be
+re-projected by the browser every frame of a throw, so `boardgame-die.ts` uses
+`facet-placement.ts` and builds a real 3D context: `perspective` on the
+wrapper, `transform-style: preserve-3d` on the carrier, a `matrix3d` per facet,
+`backface-visibility: hidden` as the hidden-surface removal, and
+`will-change: transform` on every facet so promotion is in place before a roll
+starts (without it a facet crossing from back- to front-facing mid-tumble stays
+culled for a frame and tears a hole in the solid — `die-shape.spec.ts` measures
+exactly that, 13 frames of 236 with a 3,826px hole).
+
+**A token does not tumble, so its pose IS a constant** — a pure function of its
+`type` — and therefore so is its projection. `components/token-solid.ts` does
+the perspective divide **once, in JavaScript**, culls the back faces at build
+time, and hands `flat-facets.ts` polygons that are already in screen space.
+What reaches the DOM is flat, opaque, untransformed `clip-path` polygons.
+`boardgame-token.ts` has **no `perspective`, no `preserve-3d`, no per-facet
+transform and no `will-change`** — and deliberately no `.facet` CSS rule at
+all, because position, box, margin, clip-path and background are every one of
+them per-facet and all come from `flat-facets.ts`.
+
+That is not tidiness, it is the frame rate, and the mechanism is layers rather
+than arithmetic. **Chromium promotes every element inside a live `preserve-3d`
+context to its own composited layer the moment an ANCESTOR transform
+animates** — which is precisely what a stack's FLIP does to a component host on
+every move. Nothing the token authored asked for it, and declining
+`will-change` does not decline it. Measured in `pass` with 55 tokens at 14
+facets each, through CDP's `LayerTree`:
+
+| | painted layers | layer area | fps during a move |
+|---|---|---|---|
+| flat SVG art (the control) | 57 | 1.6 Mpx | 59.6 |
+| live 3D solids, at rest | nothing promoted | — | 31.0 |
+| live 3D solids, hosts animating | **1,047** | **88.6 Mpx** | **30.0** |
+| precomputed flat solids | 57 | 1.6 Mpx | **60.5** |
+
+The layers are not token-sized: a `clip-path`ed facet seen through a
+`perspective` gets conservative layer bounds ~2000px on a side, which is where
+88.6 megapixels of raster comes from. Removing any *two* of {`perspective`,
+`preserve-3d`, the facets' own 3D transforms} still left ~1,000 layers; all
+three had to go, and for a token they can.
+
+**Culling replaces `backface-visibility`, and is exactly as sufficient.** The
+same theorem underwrites both: on a closed convex surface the camera-facing
+facets tile the silhouette exactly once and every other facet is hidden. So the
+flat path decides facing itself, never builds the back faces, and paints what
+is left in any order — there is nothing to sort. A 12-side prism draws 6 or 7
+of its 14 polygons; a cube 3 of 6.
+
+**This is why non-convex shapes are not solids at all.** `meeple` and `pawn`
+keep their authored SVG and get depth from a `scaleX(-1)` (both assets are lit
+from the upper right; every solid is lit from the upper left), a hard-edged
+edge shadow along the light's own in-plane direction, and a contact shadow
+sized off the art's *drawn* width. `token-solid.ts`'s `SHADOW_DIRECTION` is
+derived from the same `LIGHT` vector the solids' Lambert shading uses, so the
+board cannot end up lit from two places.
+
+Two properties the token side must keep, both structural rather than
+incidental. The pose is a **pure function of `(type, color)` with no DOM in
+it**, which is what makes it safe on a host a stack pooled and reparented —
+nothing re-derives a pose on reuse, so a remembered one would leak the previous
+occupant's shape. And the solid is sized by **drawn extent**, not by
+circumsphere: a token's `#inner` box *is* its silhouette (`fitScale` solves for
+it), where a die's `--die-size` is a bounding-sphere diameter with a separately
+reserved footprint. Sizing a token the die's way would draw it ~40% small.
+
+Colour is shared arithmetically rather than by two lists agreeing.
+`TOKEN_COLOR_FILTERS` is the single table: `boardgame-token.ts` generates its
+`#outer.<color> img` rules from it for the flat art, and `tokenBaseColor`
+evaluates the same filter strings as colour matrices over one representative
+red to get a solid's base colour.
 
 ## Animation timing: play() / settlement / the gate
 

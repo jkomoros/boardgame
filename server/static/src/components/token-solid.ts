@@ -70,8 +70,9 @@
  * generates its `#outer.<color> img` rules from it, and `tokenBaseColor` runs it
  * through the filter arithmetic. So a 3D chip and a 2D meeple beside it are the
  * same hue by construction rather than by two lists agreeing.
- * `token-color-parity.spec.ts` pins the arithmetic against the browser's own
- * filter implementation.
+ * `token-3d.spec.ts`'s *is coloured by the same filters the flat art is* pins
+ * the arithmetic against the browser's own filter implementation, at distance
+ * zero on all nine colours.
  */
 
 import { dieGeometry, dot, normalize, scale as scaleVec, vec3, type Vec3 } from '../motion/die-geometry.ts';

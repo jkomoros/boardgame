@@ -2148,6 +2148,103 @@ A die with fewer than three faces has no solid to be, and falls back to the flat
 vertical reel the component used before it drew solids. Nothing else changes:
 same properties, same events, same action binding.
 
+##### boardgame-token
+
+`boardgame-token` is the small piece: a checkers counter, a poker chip, a
+worker, a pawn. Like a card it is a `BoardgameComponent`, so a stack lays it
+out, animates it, pools its host and reparents it, and the idiomatic way to
+make one is a `tokenView` bound into a stack rather than an element you
+construct yourself:
+
+```typescript
+private readonly pieces = tokenView<GameState['Spaces']>({
+  properties: ({ kind, component }) => ({
+    type: 'disc',
+    color: kind === 'visible' ? component.Values.Color : '',
+  }),
+});
+```
+
+Two properties do nearly all of the work. `type` is the shape, one of `token`,
+`chip`, `disc`, `cube`, `meeple` and `pawn`, defaulting to `token`. `color` is
+one of ten names — `red`, `blue`, `green`, `teal`, `purple`, `pink`, `yellow`,
+`orange`, `gray`, `black` — defaulting to `red`. `active` and `highlighted` are
+two independent selection styles that games use for whatever they mean locally.
+
+**Four of the six shapes are real three-dimensional solids, and two are not.
+The line is not taste; it is where CSS stops rendering correctly.**
+
+| `type` | drawn as |
+|---|---|
+| `cube` | a real solid — exactly the cube a six-sided die is |
+| `token` | a real solid — a twelve-sided prism, chunky (height 0.55 of its width) |
+| `chip` | a real solid — the same prism, thin (0.13) |
+| `disc` | a real solid — the same prism, thinnest (0.1) |
+| `meeple` | its authored SVG, tilted and given an edge and a contact shadow |
+| `pawn` | the same |
+
+The reason is worth knowing, because otherwise it looks arbitrary. The solids
+are drawn as one flat polygon per visible face, and the only thing that keeps
+the picture honest is that a **convex** solid's camera-facing faces tile its
+outline exactly once and never overlap — so the hidden faces can simply not be
+drawn and nothing is left to sort. CSS has no depth buffer. A meeple and a pawn
+are **not convex** (a pawn's neck is a genuine waist), so a prism built over
+their outline would paint its own back surface through its front, and the
+browser gives no way to make it sort correctly — explicit `z-index` was
+measured and changed nothing. The band of viewing angles where such a prism
+*does* render correctly turns out to be exactly the band where it looks like a
+tilted flat card with a thin rim, which is a picture the authored art plus a
+tilt already gives for free. So `meeple` and `pawn` keep their art.
+
+The practical consequence: a `meeple` next to a `cube` is lit from the same
+direction, sits at the same camera angle and casts a shadow the same way, so a
+mixed board reads as one set of pieces. What it does *not* get is real
+three-dimensional silhouette — turn it, and it is still a picture of a meeple.
+Nothing turns a token anyway, which is why this is a fair trade rather than a
+compromise.
+
+**Sizing.** A token's box is `--component-width` (a CSS length, default `30px`)
+times `--component-scale` (a float, default `1.0`), and it is **square**:
+
+```css
+boardgame-token {
+  --component-width: 60px;
+}
+```
+
+The box is the layout contract — the board layout clamps every component host
+to `aspect-ratio: 1`, the spatial board centres a piece on both axes, and a
+stack's spread and fan margins and the FLIP scale ratio all key off it — so a
+token, unlike a die, **cannot reserve extra space** and there is no per-shape
+aspect ratio to set. The authored art keeps its own proportions inside that
+square (a pawn's SVG is 0.43 as wide as it is tall and draws that way), and the
+solids are scaled so their *drawn outline* fills it.
+
+That last point is the one trap, and it is the opposite of `boardgame-die`'s.
+`--die-size` is the diameter of a sphere the solid is sized *against*, so a
+cube's face comes out about 58% of it. `--component-width` is the width the
+piece is actually **drawn** at. A 60px cube and a 60px disc have the same
+outline width, and both match the flat SVG they replaced. Do not try to
+compensate for a foreshortening factor here — there isn't one.
+
+**What you cannot do**, said plainly:
+
+- **You cannot choose a shape outside the six.** `type` is a closed set and an
+  unknown value is not a new shape.
+- **You cannot make a token non-square**, per the sizing contract above. A rule
+  setting `--component-aspect-ratio` from inside the token does nothing at all;
+  the property is only readable at `:host` or above.
+- **A token carries no face content.** No pips, no numerals, no symbols — that
+  is `boardgame-die`, and a token has no faces to put them on.
+- **Tokens do not tumble, and there is no physics.** The die's simulator is a
+  convex solver; two meeples would pass straight through each other. A token's
+  pose is a constant.
+- **`meeple` and `pawn` are presented, not modelled**, per above. There is no
+  option to force a mesh, and asking for one would reintroduce the sorting
+  failure the design exists to avoid.
+- **There is no inter-piece occlusion and no real cast shadow.** A piece's
+  contact shadow is its own; pieces do not shade each other.
+
 ##### boardgame-base-game-renderer
 
 Game renderers should extend the generated `GameRenderer` in

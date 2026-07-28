@@ -7,6 +7,20 @@ presentation of their existing art, and fix three live bugs found on the way.
 **Spec:** `docs/superpowers/specs/2026-07-27-3d-components-design.md` — read it first. Its
 decisions were measured, not chosen, and the measurements are in it.
 
+> **SUPERSEDED IN PART — this plan is the plan of record and is kept as written.**
+> Task 4 below plans a live CSS 3D scene on a token's `#inner`, and the facet budget in
+> Global Constraints is derived from it. That shipped and was then measured out: **a token
+> uses no live 3D at all.** Its pose is a constant, so its projection is precomputed at
+> build time and the renderer emits flat, untransformed `clip-path` polygons with the back
+> faces culled — no `perspective`, no `preserve-3d`, no per-facet transform, no layer
+> promotion. That took `pass` at 55 tokens from 30fps to 60.5 during a move. A DIE is
+> unchanged: it genuinely tumbles, so its pose is not constant and it still needs a real 3D
+> context. There is no ~1400-facet wall; it was the layer cliff, measured at rest where it
+> does not bite. For what exists, read
+> `docs/superpowers/specs/evidence/2026-07-27-3d-components.md` (finding F1),
+> `server/static/src/ARCHITECTURE.md`'s "The solid pipeline", and the design's own
+> "SUPERSEDED BY MEASUREMENT" section.
+
 ## Global Constraints
 
 - Work in `/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/.claude/worktrees/three-d-dice`

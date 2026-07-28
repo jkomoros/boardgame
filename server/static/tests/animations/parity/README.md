@@ -83,6 +83,102 @@ inside the tolerant set comparison. Any scenario added for a specific
 element — a die roll above all, since a tumble can land near its start
 pose — must assert its own curve survived.
 
+## Solids: the specs with no golden, and why they have none
+
+`src/solid/` renders a closed convex surface as one flat polygon per face, and
+three specs here cover it. **None of the three has a golden file, and none may
+ever be given one** — each derives its expected answer from the geometry on
+every run, which is the whole point. A recorded image would freeze today's
+answer to a question that is supposed to be recomputed.
+
+**`solid-render-truth.spec.ts` — does this solid draw what a z-buffer would?**
+The only test in the repo that can answer that. Every other check asks
+something weaker: `die-shape.spec.ts` asks whether the silhouette has a HOLE,
+which cannot see two facets drawn in the wrong order because a mis-sorted solid
+is still perfectly opaque; the golden corpus compares against recorded
+behaviour, so it pins whatever shipped, correct or not.
+
+This one compares against a COMPUTED reference. It renders the solid under the
+real pipeline — the actual `solidFacets()` output, the real camera on the real
+`preserve-3d` carrier, real `backface-visibility` and `will-change` — with an
+opaque, distinguishable flat fill per facet so that every pixel names the facet
+that drew it. Then it rasterizes the SAME geometry in-page with a real z-buffer
+under an IDENTICAL camera, no culling anywhere: one ray per subsample, nearest
+fragment wins. If culling is right the nearest fragment is always front-facing
+and the two pictures agree.
+
+Antialiasing is excluded TWO ways, deliberately, so that raising a tolerance is
+never the answer. The reference is supersampled 3×3 and a pixel whose nine
+subsamples disagree is a seam the reference itself declares and is **not judged
+at all**; those seams are then **dilated by 2px** because the browser's
+compositing spreads wider than the geometric edge. What survives is differenced
+exactly and **eroded once** before measurement — a 1px hairline does not
+survive an erosion, a facet painted in front of the facet that should have
+hidden it does.
+
+**How it validates itself, which is what makes any of its other numbers
+believable:**
+
+| case | asserted |
+|---|---|
+| **d20** (negative control) | **zero wrong pixels**, not merely zero thick regions. A d20 is convex with 20 equal facets — the most nearly-equal-depth neighbours in the set — so it is necessarily rendered correctly, and any error reported on it is the harness's own (a camera that does not match CSS's, a normalization applied twice, an axis flipped). The original experiment measured 0 across 253 poses. **If this ever goes non-zero, fix the harness before believing anything it says about a shape whose rendering is actually in question.** |
+| **d6** | zero thick regions, and the 1px shared-edge hairline is measured and required NOT to survive the erosion — i.e. the erosion is doing the work, not a loose tolerance |
+| **12-side prism**, and the real `token`/`chip`/`disc` prisms unpromoted | zero thick regions |
+| **mis-painted d20** (positive control) | **>90% of the silhouette wrong** and a thick region over 1000px, on every pose. Without this the zeros above would be consistent with a harness that reports zero for everything. |
+
+**`token-flat-truth.spec.ts` — is the precomputed projection the same picture?**
+A token does not use live CSS 3D at all: its pose is a constant, so
+`token-solid.ts` does the perspective divide once and emits flat, untransformed
+`clip-path` polygons (see `ARCHITECTURE.md`). This spec renders both the live-3D
+and the precomputed rendering of each shape and requires every difference to be
+a one-pixel antialiasing band and nothing else. Its positive control is a **2%
+error injected into the projection**, which must be caught on every shape.
+
+**`token-3d.spec.ts`'s layer-count tripwire — the frame-rate test that is not a
+frame-rate test.** *promotes no layers, even while an ancestor transform
+animates* mounts 55 tokens and drives a real animating ancestor transform on
+each — exactly what a stack's FLIP does to a component host on every move, and
+the only thing that provokes the failure. **AT REST the broken version passes
+every other assertion in the file.** It then reads the browser's own layer tree
+through CDP rather than inferring it.
+
+Chromium promotes every element inside a live `preserve-3d` context to its own
+composited layer the moment an ANCESTOR transform animates. Measured in `pass`
+with 55 tokens at 14 facets: **57 painted layers at rest, 1,047 during a move,
+88.6 megapixels of layer area** (a `clip-path`ed facet under a `perspective`
+gets conservative layer bounds ~2000px on a side), 30fps against the flat SVG
+art's 59.6. The spec asserts fewer than `2 × tokens` painted layers and
+token-sized bounds — the old facets were 2062×2062 each, so the area assertion
+catches a promotion that somehow kept the count down.
+
+It is a layer assertion and not an fps assertion **deliberately**: frames per
+second on a shared machine is a coin flip, while the layer count is exact and is
+the thing that actually changed. `token-art-depth.spec.ts` carries the same
+tripwire for `meeple`/`pawn`, whose depth treatment must not reintroduce a 3D
+context either.
+
+**`src/components/property-attribute-names.test.ts` — a lint, not a spec, and
+it runs under `npm run test:unit`.** Listed here because it closes a class of
+bug this suite kept finding one instance at a time. Lit derives a reactive
+property's observed attribute by LOWERCASING the property name, not by
+dash-casing it, so `@property({ type: Number }) fauxComponents` observes
+`fauxcomponents` and the dashed `faux-components="5"` every author writes is a
+silent no-op — nothing throws, the attribute sits in the DOM, the property keeps
+its default. `fauxComponents`, `noDefaultSpacer`, `autoMessage` and five roster
+and lobby boolean bindings were all dead for exactly this reason, some for
+years. No runtime test can see a bug whose symptom is "nothing happened", so the
+rule is mechanical: every multi-word reactive property in `src/` must SAY what
+its attribute is — the dash-case name, or `attribute: false` if it is
+property-only — and a declared name must BE the dash-case one, since declaring
+the wrong one reproduces the bug with extra steps. The lint carries its own
+premise guard (it must find >100 declarations and >50 multi-word ones) so that a
+refactor cannot turn it vacuous.
+
+Note the neighbouring trap it does NOT catch, because it is a different one: a
+single-word property that needs `reflect: true`. `spacer` observed the right
+name and still could not be found, because without reflection the attribute was
+never written at all — see `stack-spacer-reflect.spec.ts`.
+
 ## Teeth (verified failure detection)
 
 - Suppressing card `play` hooks → trace suite fails debuganimations, memory,
