@@ -302,23 +302,7 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Array, attribute: false })
   spatialPositions: Array<{ top: number; left: number } | null> = [];
 
-  /**
-   * How many component hosts this stack shows AT MINIMUM, real ones included:
-   * the "this deck is not empty" illusion under a stack that only ever ships
-   * its top card.
-   *
-   * `attribute: 'faux-components'` is not decoration. Lit's default observed
-   * attribute is the property name LOWERCASED, so without it this listened for
-   * `fauxcomponents` and nothing has ever written that spelling.
-   * `boardgame-component-zone` declares the dashed form for its own attribute
-   * and then forwards the value down as a PROPERTY, which is why the zone path
-   * always worked and the raw-stack path never did -- including both of
-   * `debuganimations`' uses, in the one game written to exercise it. Measured
-   * before the fix: `getAttribute('faux-components')` was `"5"`, this property
-   * was `0`, and zero faux hosts existed. See
-   * `tests/animations/parity/stack-faux-components.spec.ts`.
-   */
-  @property({ type: Number, attribute: 'faux-components' })
+  @property({ type: Number })
   fauxComponents = 0;
 
   // stagger, when > 0, offsets the start of each animating child in a
