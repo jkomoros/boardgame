@@ -158,7 +158,25 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   @property({ type: Boolean, attribute: 'boardgame-component', reflect: true })
   boardgameComponent = true;
 
-  @property({ type: Boolean })
+  /**
+   * True for the placeholder host a stack keeps so an EMPTY stack still
+   * occupies space. It stands for no item, so it is `visibility: hidden`.
+   *
+   * `reflect: true` is LOAD-BEARING, for the same reason it is on `id` above.
+   * `boardgame-component-stack` finds its spacer with the ATTRIBUTE selector
+   * `#container>[boardgame-component][spacer]` in three places -- to refresh
+   * it when the view recipe changes, to tear it down when the recipe changes
+   * shape, and (twice) in `_slotChanged` to decide whether one already exists
+   * and to remove surplus ones. Without reflection the property lives only in
+   * Lit state, that attribute is never written, and all three selectors match
+   * NOTHING: the stack believes it has no spacer, builds another one every
+   * time the slot changes while empty, and can never remove one once the
+   * stack fills. Measured before the fix: a raw stack cycled empty/full six
+   * times ended with nine spacer hosts and zero selector matches, and a fresh
+   * `debuganimations` carried 60 spacer hosts across 15 stacks where 15 were
+   * intended. See `tests/animations/parity/stack-spacer-reflect.spec.ts`.
+   */
+  @property({ type: Boolean, reflect: true })
   spacer = false;
 
   @property({ type: Boolean, attribute: 'no-shadow' })

@@ -23,17 +23,15 @@ test.describe('dashed attributes reach their properties', () => {
    * rather than in an example game: the animator, `boardgame-game-board` and
    * `boardgame-spatial-board` all write it, and none of the three was heard.
    *
-   * Note the spacer hosts are counted by walking `#container`'s own children
-   * and reading the `.spacer` PROPERTY, not with the `[spacer]` attribute
-   * selector `boardgame-component-stack` itself uses: `spacer` is declared
-   * without `reflect`, so that selector matches nothing. Which is why the
-   * stack's own `haveSpacer` guard never fires and an unsuppressed empty stack
-   * builds a placeholder every time the spacer branch runs rather than keeping
-   * exactly one -- measured on this fixture: THREE placeholder hosts on the
-   * control, zero on the suppressed stack. That accumulation is a separate
-   * defect (a missing `reflect`, not a wrong attribute name) and is left
-   * alone; it is described here because it is what the unheard attribute was
-   * failing to prevent. The count is asserted loosely for that reason.
+   * The spacer hosts are counted by walking `#container`'s own children and
+   * reading the `.spacer` PROPERTY, which is the measurement that does not
+   * depend on the other half of this story: `spacer` used to be declared
+   * without `reflect`, so the `[spacer]` attribute selector the stack's own
+   * bookkeeping uses matched nothing, `haveSpacer` never fired, and the
+   * control here accumulated THREE placeholder hosts rather than one. That was
+   * a separate defect -- a missing `reflect`, not a wrong attribute name --
+   * and it is fixed; `stack-spacer-reflect.spec.ts` owns it. The control's
+   * count is asserted exactly now that it can be.
    */
   test('no-default-spacer suppresses the placeholder an empty stack would draw', async ({ page }) => {
     await page.goto('/');
@@ -92,8 +90,10 @@ test.describe('dashed attributes reach their properties', () => {
     // does NOT ask for suppression still builds its placeholder, so 0 above
     // means the attribute did something.
     expect(result.control.property, 'the control must not be suppressed').toBe(false);
-    expect(result.control.initial, 'and must still draw its placeholder')
-      .toBeGreaterThanOrEqual(1);
+    expect(result.control.initial, 'and must still draw its placeholder -- exactly one')
+      .toBe(1);
+    expect(result.control.afterReevaluation, 'and still exactly one after re-evaluation')
+      .toBe(1);
   });
 
   /**

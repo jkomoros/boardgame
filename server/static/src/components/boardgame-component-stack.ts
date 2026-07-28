@@ -1122,6 +1122,14 @@ export class BoardgameComponentStack extends LitElement {
       const spacer = this.newComponent();
       if (spacer) {
         spacer.spacer = true;
+        // Lit reflects on the SPACER's own update, which is a microtask away,
+        // and `_slotChanged` can run several times before that lands (four
+        // times during a debuganimations mount). Every one of those runs would
+        // see no `[spacer]` yet and build another host. Write the attribute
+        // synchronously so the very next run's `haveSpacer` is true; the
+        // reflection then rewrites the same value and clears it when `spacer`
+        // goes false.
+        spacer.setAttribute('spacer', '');
         spacer.id = 'spacer';
         this.container.insertBefore(spacer, fauxComponentsContainer);
       }
