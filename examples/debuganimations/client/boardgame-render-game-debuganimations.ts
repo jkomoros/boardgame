@@ -195,6 +195,25 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
   @property({ type: Array })
   legalTokenColors: string[] = [];
 
+  /**
+   * What the demo token in `#token` stands for.
+   *
+   * `BoardgameComponent.item` defaults to null, and a null item means
+   * `spacer = true`, which means `visibility: hidden`. The demo bound `color`,
+   * `type`, `active` and `highlighted` and no item -- so the one widget in the
+   * repo where a person can switch a token through all six shapes and ten
+   * colours by hand has been invisible the whole time.
+   *
+   * A frozen constant rather than an inline object literal, because a fresh
+   * object every render is a fresh value to Lit: it would re-run
+   * `_itemChanged` -- and so rewrite `spacer` and the reflected `id` -- on
+   * every keystroke of the two selects. It carries an ID because
+   * `_itemChanged` copies `item.ID` onto the host's `id`, and a stable one
+   * keeps this widget addressable. See
+   * `tests/animations/parity/debuganimations-token-demo.spec.ts`.
+   */
+  private static readonly demoTokenItem = Object.freeze({ ID: 'demo-token' });
+
   override animationLength(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     if (this.slowAnimations) return 5000;
     return 0;
@@ -481,6 +500,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
 
         <div id="token">
           <boardgame-token
+            .item=${BoardgameRenderGameDebuganimations.demoTokenItem}
             color="${this.tokenColor}"
             ?highlighted="${this.tokenHighlighted}"
             ?active="${this.tokenActive}"
