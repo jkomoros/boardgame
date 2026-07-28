@@ -8,6 +8,27 @@
  * module knows what a `chip` is and nothing about how a polygon is placed.
  * `boardgame-token.ts` is then only DOM.
  *
+ * ## There is no 3D in the DOM, and that is the point
+ *
+ * A die tumbles, so its facets have to be re-projected by the browser every
+ * frame and it pays for a live `preserve-3d` scene. A TOKEN'S POSE IS A
+ * CONSTANT, so its projection is a constant, so it is done here — once, per
+ * `(type, colour)` — and the DOM gets flat, coloured, untransformed polygons.
+ *
+ * That is a frame-rate decision, not a tidiness one. Chromium promotes every
+ * element inside a live `preserve-3d` context to its own composited layer the
+ * moment an ANCESTOR transform animates, which is exactly what a stack's FLIP
+ * does to a component host on every move. Measured in `pass`: 55 tokens went
+ * from 57 composited layers at rest to 1,047 during a move, 88.6 megapixels of
+ * layer area, and 30fps against the flat art's 59.6. Projecting here is what
+ * makes a token composite like the SVG it replaced. `src/solid/flat-facets.ts`
+ * carries the measurements and the three things that all had to go.
+ *
+ * Back-facing facets are not hidden, they are never built: `backface-visibility`
+ * was the whole hidden-surface removal and the same convexity that made it
+ * sufficient makes culling here sufficient. A prism draws 6 or 7 elements
+ * rather than 14, a cube 3 rather than 6.
+ *
  * It is a separate module for one concrete reason: everything here is a pure
  * function of `(type, color)` with no DOM anywhere in it, so `token-solid.test.ts`
  * can run it under `node --test`. That matters more here than anywhere else on
@@ -54,9 +75,10 @@
  */
 
 import { dieGeometry, dot, normalize, scale as scaleVec, vec3, type Vec3 } from '../motion/die-geometry.ts';
-import { solidFacets, type SolidSurface } from '../solid/facet-placement.ts';
+import { type SolidSurface } from '../solid/facet-placement.ts';
+import { flatFacetStyle, type FlatPoint } from '../solid/flat-facets.ts';
 import { prismSurface } from '../solid/prism.ts';
-import { SCREEN_UP, cssNumber, toScreen } from '../solid/screen-frame.ts';
+import { SCREEN_UP, toScreen } from '../solid/screen-frame.ts';
 
 // ---------------------------------------------------------------------------
 // The camera.
@@ -184,21 +206,13 @@ function apply(m: Mat3, v: Vec3): Vec3 {
   );
 }
 
-/**
- * A rotation as the CSS that performs it.
- *
- * A literal `matrix3d` rather than a `rotateX(...) rotateY(...)` list, and for
- * the reason `dice-bake.ts` gives for the tumble: the shading and the fit are
- * computed from this matrix in JavaScript, so emitting anything the browser
- * might compose differently would let the picture and the arithmetic that sized
- * and lit it drift apart. `matrix3d` takes its arguments COLUMN by column.
+/*
+ * There is deliberately no `matrix3d(pose)` emitter here any more. The pose is
+ * never handed to CSS: it is applied in `visibleFacetPolygons`, once, and what
+ * reaches the DOM is the result. See `src/solid/flat-facets.ts` for why -- a
+ * live 3D transform anywhere in a token's subtree is a thousand composited
+ * layers the first time a stack animates the host.
  */
-function matrix3d(m: Mat3): string {
-  const columns = [0, 1, 2].map((col) => [
-    cssNumber(m[col]), cssNumber(m[3 + col]), cssNumber(m[6 + col]), '0',
-  ].join(','));
-  return `matrix3d(${columns.join(',')},0,0,0,1)`;
-}
 
 // ---------------------------------------------------------------------------
 // The shape catalogue.
@@ -221,14 +235,22 @@ interface ShapeSpec {
 }
 
 /**
- * Every prism is 12-sided, and that number is a BUDGET, not a taste.
+ * Every prism is 12-sided, and that number is now a LOOK, not a budget.
  *
- * Measured at rest, no animation, in a real game: 55 tokens as 24-sided prisms
- * is 1,430 `clip-path`-ed facet elements and 42.8fps; the same 55 at 12 sides is
- * 770 elements and a steady 60fps. Promotion is irrelevant to it (42.4 vs 42.8
- * with `will-change: transform`), so this is a different wall from the ~330-layer
- * one — roughly 800 elements free, 1,400 a cliff. Raising this means measuring
- * again, not reasoning again.
+ * It was a budget. Measured in a real game before the flattening, 55 tokens as
+ * 24-sided prisms was 1,430 `clip-path`-ed elements and 42.8fps at rest, against
+ * 770 and 60fps at 12 sides, and it read as a wall somewhere near 800 elements.
+ * That wall was misread: the cost was not the element count, it was that each of
+ * those elements sat in a live `preserve-3d` context and took a composited layer
+ * of its own the instant a stack animated the host (`src/solid/flat-facets.ts`
+ * has the layer measurements). Flattened and culled, 55 chips draw 330 elements
+ * and hold 60fps through a move, and doubling the sides would draw about 660 —
+ * still an order of magnitude under anything measured to hurt.
+ *
+ * What DOES bound it is the picture: 12 sides reads as a circle up to about
+ * 100px and as a visible dodecagon above it, and the boards this draws for
+ * (checkers at ~50px, `pass` at 30 and 60) sit under that. Raising it is a
+ * legibility decision now, and should still be made by looking.
  */
 export const PRISM_SIDES = 12;
 
@@ -329,8 +351,20 @@ export function restingPose(shape: TokenSolidShape): Mat3 {
 // ---------------------------------------------------------------------------
 
 /**
+ * How far the camera is from the solid's centre, in the solid's own `em`, when
+ * the solid is drawn at `fit` times the token's box.
+ *
+ * `CAMERA_DEPTH_WIDTHS` is stated in token WIDTHS and `1em` is `fit` widths, so
+ * the two differ by exactly `fit` — the same conversion `fitScale` solves its
+ * fixed point against, named once so the projection and the sizing cannot drift.
+ */
+function cameraDepthEm(fit: number): number {
+  return CAMERA_DEPTH_WIDTHS / fit;
+}
+
+/**
  * Half the projected silhouette's widest half-extent, in the solid's own `em`
- * (where `solidFacets` has already normalized the nominal sphere to 1em).
+ * (where `0.5 / nominalRadius` has normalized the nominal sphere to 1em).
  *
  * Measured from the ORIGIN outwards rather than as a bounding box, because the
  * box is centred on the token's box and a silhouette that is off-centre sticks
@@ -383,7 +417,7 @@ export function fitScale(shape: TokenSolidShape): number {
  * without knowing how many iterations the solver took.
  */
 export function silhouetteExtent(shape: TokenSolidShape, fit: number): number {
-  const depthEm = fit > 0 ? CAMERA_DEPTH_WIDTHS / fit : Infinity;
+  const depthEm = fit > 0 ? cameraDepthEm(fit) : Infinity;
   return 2 * projectedHalfExtent(SHAPES[shape].surface(), restingPose(shape), depthEm);
 }
 
@@ -527,11 +561,71 @@ export interface TokenFacet {
 
 /** Everything `boardgame-token.ts` needs to draw one solid, and nothing else. */
 export interface TokenSolid {
+  /**
+   * The FRONT-FACING facets only, already projected. A back-facing one is not
+   * hidden here, it is never built: see `visibleFacetPolygons`.
+   */
   readonly facets: readonly TokenFacet[];
-  /** `#solid`'s transform: the resting pose. */
-  readonly pose: string;
   /** What `#solid`'s `font-size` multiplies `--component-effective-width` by. */
   readonly fit: number;
+}
+
+/**
+ * Every facet the camera can see, as its projected outline in `em` from the
+ * solid's centre — and NOTHING for the ones it cannot.
+ *
+ * Two things happen here that used to be the browser's job, and both are only
+ * possible because a token's pose is a constant:
+ *
+ * 1. FACING. `backface-visibility: hidden` culls a facet whose outward normal
+ *    has turned away from the eye. The same test, done here: the eye sits at
+ *    `(0, 0, depth)` and a facet is drawn exactly when its outward normal points
+ *    against the ray from the eye to its centroid. It is the PERSPECTIVE-correct
+ *    test — the eye is a point, not a direction — which is what CSS does too, so
+ *    the two agree facet for facet.
+ *
+ * 2. PROJECTION. The perspective divide CSS would apply per frame, applied once:
+ *    a point at depth `z` is magnified by `depth / (depth - z)`. This is the
+ *    same expression `projectedHalfExtent` sizes the solid with, which is what
+ *    keeps the silhouette exactly one box wide.
+ *
+ * Nothing is sorted, and nothing needs to be: the front-facing facets of a
+ * CONVEX solid tile the silhouette exactly once. Every shape that renders as a
+ * solid is convex — that is the same precondition the culled 3D version rested
+ * on, and it is why `meeple` and `pawn` keep their authored art.
+ */
+export function visibleFacetPolygons(
+  shape: TokenSolidShape,
+  fit: number = fitScale(shape),
+): readonly { readonly key: number; readonly points: readonly FlatPoint[] }[] {
+  const surface = SHAPES[shape].surface();
+  const pose = restingPose(shape);
+  const unitsToEm = 0.5 / surface.nominalRadius;
+  const depthEm = cameraDepthEm(fit);
+  const out: { key: number; points: FlatPoint[] }[] = [];
+  [...surface.faces, ...surface.capFaces].forEach((face, key) => {
+    const normal = apply(pose, toScreen(face.normal));
+    const centroid = apply(pose, scaleVec(toScreen(face.centroid), unitsToEm));
+    // The ray from the eye to the facet. Front-facing means the outward normal
+    // opposes it.
+    const facing = normal[0] * centroid[0]
+      + normal[1] * centroid[1]
+      + normal[2] * (centroid[2] - depthEm);
+    if (facing >= 0) return;
+    const points = face.polygon.map((vertex) => {
+      const p = apply(pose, scaleVec(toScreen(vertex), unitsToEm));
+      if (!(depthEm > p[2])) {
+        throw new Error(`token solid: the camera at ${depthEm}em is inside the solid`);
+      }
+      const magnify = depthEm / (depthEm - p[2]);
+      return { x: p[0] * magnify, y: p[1] * magnify };
+    });
+    out.push({ key, points });
+  });
+  if (out.length === 0) {
+    throw new Error(`token solid: ${shape} presents no facet to the camera`);
+  }
+  return out;
 }
 
 /**
@@ -543,8 +637,8 @@ export interface TokenSolid {
 const SOLID_CACHE = new Map<string, TokenSolid>();
 
 /**
- * The solid for a token of this type and colour: one style string per facet,
- * the resting pose and the sizing multiplier.
+ * The solid for a token of this type and colour: one style string per VISIBLE
+ * facet, and the sizing multiplier.
  *
  * Everything returned is derived; nothing is remembered between calls except as
  * a cache keyed by the same inputs. A caller that renders this on every update —
@@ -560,7 +654,7 @@ export function tokenSolid(shape: TokenSolidShape, color: string): TokenSolid {
   const surface = SHAPES[shape].surface();
   const pose = restingPose(shape);
   const base = tokenBaseColor(color);
-  const placements = solidFacets(surface);
+  const fit = fitScale(shape);
   const polygons = [...surface.faces, ...surface.capFaces];
   // How bright this colour can be lit before a channel clips. Shading MULTIPLIES,
   // which is what keeps a 3D blue chip the same blue as a flat blue meeple beside
@@ -568,16 +662,21 @@ export function tokenSolid(shape: TokenSolidShape, color: string): TokenSolid {
   // (255, 91, 0), so a highlight above 1.0 would clip the red and lift only the
   // green, turning the lit facet yellow. Ceilinged instead, per colour.
   const headroom = 255 / Math.max(base[0], base[1], base[2], 1);
-  const facets = placements.map((placement, index) => {
-    const shade = Math.min(facetShade(normalize(apply(pose, toScreen(polygons[index].normal)))), headroom);
+  const facets = visibleFacetPolygons(shape, fit).map(({ key: facetKey, points }) => {
+    const shade = Math.min(
+      facetShade(normalize(apply(pose, toScreen(polygons[facetKey].normal)))),
+      headroom,
+    );
     const fill = [0, 1, 2].map((i) => Math.round(clampChannel(base[i] * shade))).join(',');
-    return Object.freeze({ key: placement.key, style: `${placement.style};background:rgb(${fill})` });
+    return Object.freeze({
+      key: facetKey,
+      style: `${flatFacetStyle(points)};background:rgb(${fill})`,
+    });
   });
 
   const solid: TokenSolid = Object.freeze({
     facets: Object.freeze(facets),
-    pose: matrix3d(pose),
-    fit: fitScale(shape),
+    fit,
   });
   SOLID_CACHE.set(key, solid);
   return solid;

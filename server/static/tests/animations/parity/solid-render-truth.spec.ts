@@ -86,13 +86,21 @@ import { test, expect, type Page } from '@playwright/test';
  * ## Promoted and unpromoted are two different questions
  *
  * A die gives every facet `will-change: transform`, so that a promotion is in
- * place before a tumble starts. A 3D `boardgame-token` deliberately does not:
- * it never tumbles, and declining the promotion is what keeps 55 of them at
- * 60fps. That is not a cosmetic difference to THIS question — a promotion gives
- * each facet its own transform node, which is exactly the thing the compositor
- * decides ordering with — so the token prisms are measured unpromoted, in all
- * three of their aspect ratios and in their own resting pose as well as in the
- * eight adversarial ones. Both configurations measure zero.
+ * place before a tumble starts. The unpromoted configuration is measured too:
+ * a promotion gives each facet its own transform node, which is exactly the
+ * thing the compositor decides ordering with, so it is a different question and
+ * not an inference. Both configurations measure zero.
+ *
+ * NOTE ON TOKENS. The prism cases below are the shapes a `boardgame-token`'s
+ * `token`, `chip` and `disc` ARE, and their own resting poses are measured
+ * here, but a token no longer draws itself this way: its pose is a constant, so
+ * it is projected once in JavaScript and drawn as flat polygons (see
+ * `src/solid/flat-facets.ts` for the frame rate that forced that, and
+ * `token-flat-truth.spec.ts` for the proof that it is the same picture). What
+ * these cases are for is the SHARED 3D placement path, which the die still uses
+ * for every shape including its own prisms — and the token's geometry, pose and
+ * camera, which are unchanged and are still what the flat projection is derived
+ * from.
  *
  * ## What it measures when the real mechanism is broken
  *
@@ -1228,16 +1236,21 @@ test.describe('a solid renders what a z-buffer would', () => {
   });
 
   /**
-   * THE TOKEN PRISMS, EXACTLY AS A TOKEN RENDERS THEM.
+   * THE TOKEN PRISMS, IN THEIR OWN GEOMETRY AND POSES, UNPROMOTED.
    *
    * The 12-side prism above is checked in the DIE's configuration: one facet per
    * polygon, `backface-visibility: hidden`, and `will-change: transform` on every
-   * one of them. A token deliberately does NOT promote — the promotion is a
-   * dice-specific need (it has to be in place before a tumble starts) and
-   * declining it is what keeps 55 tokens at 60fps. Promotion is not cosmetic to
-   * this question: it gives each facet its own transform node, which is exactly
-   * what changes when the compositor decides what is in front of what. So the
-   * unpromoted case has to be measured, not assumed to follow.
+   * one of them. Promotion is not cosmetic to this question: it gives each facet
+   * its own transform node, which is exactly what changes when the compositor
+   * decides what is in front of what. So the unpromoted case has to be measured,
+   * not assumed to follow.
+   *
+   * These are a token's SHAPES and a token's RESTING POSES, but not a token's
+   * DOM: since the layer-cliff measurements in `src/solid/flat-facets.ts`, a
+   * token projects its constant pose once and draws flat polygons instead.
+   * `token-flat-truth.spec.ts` differences the two renderings and requires
+   * every disagreement to be a one-pixel anti-aliasing seam, so what is proved
+   * exactly here is inherited there.
    *
    * All three ratios, because they are three different shapes to a renderer:
    * `token` at 0.55 is nearly as deep as it is wide, `disc` at 0.10 is a slab

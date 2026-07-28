@@ -38,20 +38,47 @@ function fillOf(style: string): Rgb {
 // The facet budget.
 // ---------------------------------------------------------------------------
 
-test('a prism token is 14 facets and a cube is 6', () => {
+test('only the facets the camera can see are built at all', () => {
   assert.equal(PRISM_SIDES, 12);
-  assert.equal(tokenSolid('cube', 'red').facets.length, 6);
+  // A closed surface is 6 and 14 polygons; a solid draws the front-facing half.
+  assert.equal(tokenSurface('cube').faces.length + tokenSurface('cube').capFaces.length, 6);
+  assert.equal(tokenSolid('cube', 'red').facets.length, 3);
   for (const shape of ['token', 'chip', 'disc'] as const) {
-    assert.equal(tokenSolid(shape, 'red').facets.length, PRISM_SIDES + 2);
+    const surface = tokenSurface(shape);
+    assert.equal(surface.faces.length + surface.capFaces.length, PRISM_SIDES + 2);
+    // One cap plus five walls: at a 50-degree lean with the spin half a side
+    // off, six of the twelve walls turn away and so does the far cap.
+    assert.equal(tokenSolid(shape, 'red').facets.length, 6, shape);
   }
 });
 
-test('55 tokens fit under the measured facet budget', () => {
-  // The wall the design measured: ~800 clip-path'ed elements is free, ~1400 is
-  // 42.8fps. `pass` is the worst real case at 55 tokens, all of them chips.
+test('a culled facet is one that faces away, and every kept one faces the camera', () => {
+  // The cull must agree with the arithmetic that shades: `posedNormals` is in
+  // surface order and a facet's key IS that order, so a kept key must name a
+  // normal pointing back towards the eye. This is the property that would break
+  // silently -- an off-by-one in the cull draws the WRONG six facets, which
+  // still looks like a solid and is still six elements.
+  for (const shape of SHAPES) {
+    const normals = posedNormals(shape);
+    const kept = new Set(tokenSolid(shape, 'red').facets.map((facet) => facet.key));
+    assert.ok(kept.size > 0, shape);
+    normals.forEach((normal, key) => {
+      // Orthographically, `normal.z > 0` faces the camera. The real test is
+      // perspective-correct so a facet within a couple of degrees of edge-on
+      // may fall either way; nothing may be kept that points clearly away, and
+      // nothing clearly towards may be dropped.
+      if (normal[2] > 0.15) assert.ok(kept.has(key), `${shape} dropped facet ${key}`);
+      if (normal[2] < -0.15) assert.ok(!kept.has(key), `${shape} kept back facet ${key}`);
+    });
+  }
+});
+
+test('55 tokens draw no more elements than the flat art they replace cost', () => {
+  // The wall this used to be about was a facet-count wall, and it was the wrong
+  // wall: the cost was compositor layers, not elements, and a token no longer
+  // takes any (see src/solid/flat-facets.ts). What is left is the honest count.
   const worst = Math.max(...SHAPES.map((shape) => tokenSolid(shape, 'red').facets.length));
-  assert.equal(worst * 55, 770);
-  assert.ok(worst * 55 < 800, `55 tokens is ${worst * 55} facet elements`);
+  assert.equal(worst * 55, 330);
 });
 
 // ---------------------------------------------------------------------------
@@ -328,15 +355,23 @@ test('a solid is a pure function of its type and colour', () => {
   }
 });
 
-test('every facet carries a clip path, a transform and a fill', () => {
+test('every facet is a clipped, filled box and carries NO transform', () => {
   for (const shape of SHAPES) {
     const solid = tokenSolid(shape, 'teal');
-    solid.facets.forEach((facet, index) => {
-      assert.equal(facet.key, index, `${shape} facet keys must be the surface order`);
+    let previousKey = -1;
+    for (const facet of solid.facets) {
+      assert.ok(facet.key > previousKey, `${shape} facet keys must stay in surface order`);
+      previousKey = facet.key;
       assert.match(facet.style, /clip-path:polygon\(/);
-      assert.match(facet.style, /transform:translate3d\(.*matrix3d\(/);
       assert.match(facet.style, /background:rgb\(/);
-    });
+      assert.match(facet.style, /width:[\d.]+em;height:[\d.]+em/);
+      // THE ONE THAT KEEPS THE FRAME RATE. A transform of any kind here -- and
+      // a 3D one in particular -- is what hands every facet its own composited
+      // layer the moment a stack's FLIP animates the host: 1,047 layers and
+      // 88.6 megapixels for 55 tokens, measured. See src/solid/flat-facets.ts.
+      assert.ok(!facet.style.includes('transform'), `${shape} facet ${facet.key}: ${facet.style}`);
+      assert.ok(!facet.style.includes('backface'), `${shape} facet ${facet.key}: ${facet.style}`);
+    }
   }
 });
 

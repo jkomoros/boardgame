@@ -138,11 +138,19 @@ contract.
   pass through each other. Not a small extension; explicitly out of scope.
 - **No layer promotion.** `will-change: transform` on facets exists so promotion is in
   place *before a roll starts*; a static token has no such need, and declining it means a
-  3D token promotes no layers at all.
+  3D token promotes no layers at all. **(Half wrong — corrected below. Declining
+  `will-change` does not decline promotion: a live `preserve-3d` context is promoted
+  wholesale the moment an ancestor animates, and a stack's FLIP animates the host on
+  every move. A token has no live 3D context now.)**
 - **No face content**, no reading pose, no `readingRule`, no `capFaces` semantics, no
   legibility floor. Tokens carry no marks.
 
 ### The facet budget — a second wall, under the layer cliff
+
+> **SUPERSEDED 2026-07-28 — see "The wall was the layer cliff after all" below.** The
+> table here is real but was measured only AT REST, and its conclusion (an independent
+> element-count wall) is wrong. The cost was promotion all along; it just does not happen
+> until something animates.
 
 Declining promotion does **not** buy unlimited facets. The ~330-layer cliff is a
 *promotion* cost; there is an independent wall in raw `clip-path`-ed element count.
@@ -161,6 +169,45 @@ proves this is a different wall. **Budget: ~800 facet elements is free, ~1400 is
 With `pass` at 55 tokens, that caps a prism at **12 sides**. Whether 12 sides reads as
 round for a `disc` or `chip` is an open question for implementation — if it does not, that
 is a trip-wire (below), not a licence to spend facets.
+
+### The wall was the layer cliff after all
+
+Implementation shipped 12-sided prisms on this budget, and `pass` then ran at **30fps
+during a Pass move** against the flat SVG art's 59.6 — linear in facet count, and
+unmoved by promoting the container, exactly as the table above predicts an
+element-count wall would behave. It is not one.
+
+`LayerTree` says what is actually happening. 55 tokens, 14 facets each, measured
+through CDP:
+
+| | composited layers | painted | layer area |
+|---|---|---|---|
+| flat SVG art, hosts animating | 59 | 57 | 1.6 Mpx |
+| 3D solids, at rest | — | — | (nothing promoted) |
+| 3D solids, hosts animating | **1104** | **1047** | **88.6 Mpx** |
+
+**Chromium promotes every element inside a live `preserve-3d` context to its own
+composited layer the moment an ANCESTOR transform animates** — which is what a stack's
+FLIP does to a component host on every single move. Nothing the token authored asked
+for it; declining `will-change` does not decline this. And the layers are not
+token-sized: a `clip-path`-ed facet seen through a `perspective` gets conservative
+bounds ~2000px on a side, which is where 88.6 megapixels of raster comes from.
+
+That is why the at-rest table looks like an element wall. At rest nothing is promoted,
+so what it measured was the ordinary paint cost of 1,430 clipped elements; under
+animation the same scene crosses the layer cliff and the two effects are
+indistinguishable from the frame rate alone.
+
+**Removing any two of {`perspective`, `preserve-3d`, the facets' own 3D transforms}
+still leaves ~1,000 layers.** All three have to go — which for a token they can,
+because *a token's pose is a constant*. It is projected once in JavaScript and drawn as
+flat `clip-path` polygons, with the back faces culled rather than hidden
+(`src/solid/flat-facets.ts`). `pass` then holds **60.5fps through a Pass move** and
+composites exactly like the flat art it replaced: 57 painted layers, 1.6 Mpx.
+
+This does **not** transfer to the die, which tumbles and therefore needs a live 3D
+context and the promotion that goes with it. It is the reason the two are separate
+code paths.
 
 ## Why not WebGL
 
@@ -201,8 +248,11 @@ from its own focus ring and hit target, and could not self-correct on the first 
 **Trip-wires that flip this decision.** Any one firing means revisit:
 1. A shape in scope must be a real solid at any angle (i.e. a game wants a meeple that
    genuinely *is* a meeple).
-2. A `disc`/`chip` needs more than ~16 sides to read as round, or any game ships more than
-   ~70 3D pieces — either pushes past the 1400-facet wall.
+2. ~~A `disc`/`chip` needs more than ~16 sides to read as round, or any game ships more
+   than ~70 3D pieces — either pushes past the 1400-facet wall.~~ **Retired 2026-07-28:
+   there is no 1400-facet wall (see above). 55 chips draw 330 elements flattened and
+   hold 60fps through a move; doubling the sides would draw ~660. Side count is a
+   legibility question now, not a budget one.**
 3. Real contact shadows or inter-piece occlusion become design goals.
 
 ## Bugs found in passing (fix on-branch, with evidence)

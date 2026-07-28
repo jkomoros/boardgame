@@ -29,11 +29,13 @@ import { test, expect, type Page } from '@playwright/test';
  *    missing, if the fit is computed the die's way (which draws every token
  *    ~40% small), or if a facet is misplaced.
  *
- * 3. NO LAYER PROMOTION. `will-change: transform` is a dice-specific need — it
- *    exists so a promotion is in place before a tumble starts. A token does not
- *    tumble, and declining promotion is what keeps 55 of them at 60fps. Asserted
- *    as a computed style, because it is the kind of thing that gets copied in
- *    from the die by accident.
+ * 3. NO LAYER PROMOTION, WHILE AN ANCESTOR TRANSFORM IS ANIMATING. Not at rest
+ *    — at rest the broken version passed. Chromium promotes every element in a
+ *    live `preserve-3d` context the instant something above it animates, which
+ *    is what a stack's FLIP does on every move: 55 tokens went from 57
+ *    composited layers to 1,047 and from 59.6 to 30fps. Measured through the
+ *    browser's own LayerTree, because a frame-rate assertion is a coin flip and
+ *    the layer count is the thing that actually changed.
  *
  * 4. THE COLOURS AGREE WITH THE BROWSER'S OWN FILTERS. The arithmetic in
  *    `token-solid.ts` reimplements `hue-rotate`, `saturate` and `brightness`.
@@ -64,7 +66,7 @@ test.describe('a token that is a solid', () => {
     await deepQueryInstalled(page);
   });
 
-  test('draws one element per surface polygon, and no more', async ({ page }) => {
+  test('draws one element per VISIBLE surface polygon, and no more', async ({ page }) => {
     const counts = await page.evaluate(async () => {
       await import('/src/components/boardgame-token.ts');
       const out: Record<string, { facets: number; img: number; solid: boolean }> = {};
@@ -85,12 +87,13 @@ test.describe('a token that is a solid', () => {
       return out;
     });
 
-    // 6 for a cube, 12 walls + 2 caps for a prism. The budget the whole design
-    // is built around: 55 tokens at 14 facets is 770 elements, and ~800 is where
-    // the measured cliff starts.
-    expect(counts.cube).toEqual({ facets: 6, img: 0, solid: true });
+    // A cube is 6 polygons and a prism 12 walls + 2 caps, but a solid only
+    // BUILDS the ones the camera can see: `backface-visibility: hidden` is gone
+    // and token-solid.ts culls instead. 3 of a cube's 6, and one cap plus five
+    // walls of a prism's 14. 55 tokens is 330 elements, not 770.
+    expect(counts.cube).toEqual({ facets: 3, img: 0, solid: true });
     for (const type of ['token', 'chip', 'disc']) {
-      expect(counts[type], `${type} is a 12-side prism`).toEqual({ facets: 14, img: 0, solid: true });
+      expect(counts[type], `${type} is a 12-side prism`).toEqual({ facets: 6, img: 0, solid: true });
     }
     // The non-convex pair keep their authored art, and build no scene: culling
     // is provably wrong for them (see the design's measured tilt table).
@@ -128,49 +131,136 @@ test.describe('a token that is a solid', () => {
 
     expect(result.asSpacer.spacer, 'a token with no item is a spacer').toBe(true);
     expect(result.asSpacer.visibility).toBe('hidden');
-    expect(result.asSpacer.facets, 'an invisible spacer must not build 14 elements').toBe(0);
+    expect(result.asSpacer.facets, 'an invisible spacer must not build a scene').toBe(0);
     expect(result.asComponent.spacer).toBe(false);
-    expect(result.asComponent.facets, 'and the scene appears when it stands for something').toBe(14);
+    expect(result.asComponent.facets, 'and the scene appears when it stands for something').toBe(6);
   });
 
-  test('promotes no layers', async ({ page }) => {
-    const styles = await page.evaluate(async () => {
-      await import('/src/components/boardgame-token.ts');
-      const el = document.createElement('boardgame-token') as any;
-      el.type = 'chip';
-      el.item = { ID: 'a' };
-      document.body.appendChild(el);
-      await el.updateComplete;
-      await el.updateComplete;
-      const facet = el.renderRoot.querySelector('.facet');
-      const inner = el.renderRoot.querySelector('#inner');
-      const outer = el.renderRoot.querySelector('#outer');
-      const solid = el.renderRoot.querySelector('#solid');
-      const result = {
-        facetWillChange: getComputedStyle(facet).willChange,
-        facetBackface: getComputedStyle(facet).backfaceVisibility,
-        innerStyle: getComputedStyle(inner).transformStyle,
-        solidStyle: getComputedStyle(solid).transformStyle,
-        outerPerspective: getComputedStyle(outer).perspective,
-        innerTransform: getComputedStyle(inner).transform,
-      };
-      el.remove();
-      return result;
-    });
+  /**
+   * THE FRAME-RATE TEST, AND THE REASON THIS FILE EXISTS AT ALL.
+   *
+   * A token used to draw itself in a live `preserve-3d` scene: a `perspective`
+   * on #outer, `transform-style: preserve-3d` on #inner and #solid, and a
+   * `matrix3d` on every facet. Nothing about that asked to be composited, and at
+   * rest nothing was. But CHROMIUM PROMOTES EVERY ELEMENT INSIDE A LIVE 3D
+   * SORTING CONTEXT TO ITS OWN COMPOSITED LAYER THE MOMENT AN ANCESTOR
+   * TRANSFORM ANIMATES -- and a stack's FLIP animates the component host on
+   * every single move. Measured in `pass`, 55 tokens at 14 facets: 57
+   * composited layers at rest, 1,047 during a move, and 88.6 megapixels of
+   * layer area, because a clip-path'ed facet seen through a perspective gets
+   * conservative layer bounds two thousand pixels across. 30fps against the
+   * flat art's 59.6, linear in facet count, and unmoved by promoting the
+   * container -- because the promotion was never the container's.
+   *
+   * A token's pose is a constant, so the fix was to stop asking a browser to
+   * project it: token-solid.ts does the perspective divide once and emits flat,
+   * already-projected, untransformed polygons. `pass` went to 60.5fps during a
+   * move, at parity with the flat SVG art.
+   *
+   * THIS IS A STRUCTURAL TEST, NOT A FRAME-RATE ONE, deliberately. A frames-
+   * per-second assertion on a shared machine is a coin flip; the layer count is
+   * the thing that actually changed and it is exact -- 55 tokens promoted 57
+   * layers before this test could fail and 1,047 after. It drives the layers
+   * through the browser's own LayerTree via CDP rather than inferring them, and
+   * it animates a real ancestor transform, because AT REST the broken version
+   * passes every assertion here.
+   */
+  test('promotes no layers, even while an ancestor transform animates', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'CDP LayerTree is Chromium-only');
 
-    // The one that matters for the frame rate.
-    expect(styles.facetWillChange, 'a static token must promote nothing').toBe('auto');
-    // And the one that makes the picture right: culling IS the hidden-surface
-    // removal, and it is sufficient exactly because these shapes are convex.
-    expect(styles.facetBackface).toBe('hidden');
-    expect(styles.innerStyle, '#inner is the 3D carrier').toBe('preserve-3d');
-    expect(styles.solidStyle, 'and the pose carrier must not flatten it').toBe('preserve-3d');
-    // 30px * 6 widths. A camera that had quietly gone away would read 'none',
-    // and every solid would render orthographically at the wrong size.
-    expect(styles.outerPerspective).toBe('180px');
+    const TOKENS = 55;
+    await page.evaluate(async (count) => {
+      await import('/src/components/boardgame-token.ts');
+      document.body.style.cssText = 'margin:0;background:#eee;height:100vh;overflow:hidden';
+      document.body.innerHTML = '';
+      const tokens: any[] = [];
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('boardgame-token') as any;
+        el.type = 'chip';
+        el.color = ['red', 'blue', 'green', 'yellow'][i % 4];
+        el.item = { ID: `t${i}` };
+        el.style.cssText = `position:absolute;left:${(i % 10) * 95 + 10}px;`
+          + `top:${Math.floor(i / 10) * 95 + 10}px;--component-width:60px`;
+        document.body.appendChild(el);
+        tokens.push(el);
+      }
+      await Promise.all(tokens.map((t) => t.updateComplete));
+      await Promise.all(tokens.map((t) => t.updateComplete));
+      (window as any).__tokens = tokens;
+      // Exactly what a stack's FLIP does to a host, and the only thing that
+      // provokes the promotion: an ANIMATING ANCESTOR TRANSFORM.
+      (window as any).__drive = () => tokens.map((t) => t.animate(
+        [{ transform: 'translate(0px,0px)' }, { transform: 'translate(8px,5px)' }],
+        { duration: 900, iterations: Infinity, direction: 'alternate', composite: 'add' },
+      ));
+    }, TOKENS);
+
+    const facets = await page.evaluate(() => (window as any).__tokens
+      .reduce((n: number, t: any) => n + t.renderRoot.querySelectorAll('.facet').length, 0));
+    expect(facets, 'the scene under test must actually be 55 solids').toBe(TOKENS * 6);
+
+    // The measured half: the browser's own layer tree, while the hosts animate.
+    const client = await page.context().newCDPSession(page);
+    const snapshots: any[][] = [];
+    client.on('LayerTree.layerTreeDidChange', (event: any) => {
+      if (event.layers) snapshots.push(event.layers);
+    });
+    await client.send('LayerTree.enable');
+    await page.waitForTimeout(500);
+    await page.evaluate(() => (window as any).__drive());
+    await page.waitForTimeout(1200);
+    await client.send('LayerTree.disable');
+    await client.detach();
+
+    const layers = snapshots[snapshots.length - 1] ?? [];
+    const painted = layers.filter((layer) => layer.drawsContent);
+    const megapixels = painted.reduce((sum, l) => sum + l.width * l.height, 0) / 1e6;
+
+    // The animating hosts themselves are promoted, and should be: that is one
+    // layer per token plus the document's own, which is what the flat SVG art
+    // took too (57 painted layers, 1.6 megapixels, measured). A facet that took
+    // a layer of its own would put this in four figures.
+    expect(layers.length, `the layer tree did not arrive (${snapshots.length} snapshots)`)
+      .toBeGreaterThan(0);
+    expect(painted.length,
+      `55 animating tokens must promote about one layer each, not one per facet`)
+      .toBeLessThan(TOKENS * 2);
+    // And the layers that do exist must be token-sized. The old version's
+    // facets were 2062x2062 each; this catches a promotion that somehow kept
+    // the count down but not the area.
+    expect(megapixels, 'the promoted layer area must stay in the low megapixels')
+      .toBeLessThan(10);
+
+    // The declarative half: nothing a token renders may name a 3D context or
+    // ask to be promoted. Each of these on its own was measured to leave ~1,000
+    // layers standing, so all of them have to hold.
+    const styles = await page.evaluate(() => {
+      const el = (window as any).__tokens[0];
+      const facet = el.renderRoot.querySelector('.facet');
+      return {
+        facetWillChange: getComputedStyle(facet).willChange,
+        facetTransform: getComputedStyle(facet).transform,
+        facetBackface: getComputedStyle(facet).backfaceVisibility,
+        innerStyle: getComputedStyle(el.renderRoot.querySelector('#inner')).transformStyle,
+        solidStyle: getComputedStyle(el.renderRoot.querySelector('#solid')).transformStyle,
+        solidTransform: getComputedStyle(el.renderRoot.querySelector('#solid')).transform,
+        outerPerspective: getComputedStyle(el.renderRoot.querySelector('#outer')).perspective,
+        innerTransform: getComputedStyle(el.renderRoot.querySelector('#inner')).transform,
+      };
+    });
+    expect(styles.facetWillChange, 'a token must promote nothing').toBe('auto');
+    expect(styles.facetTransform, 'a facet is already projected; it takes no transform')
+      .toBe('none');
+    expect(styles.solidTransform, 'the pose is in the polygons, not on #solid').toBe('none');
+    expect(styles.outerPerspective, 'the camera is applied in JavaScript, not by CSS')
+      .toBe('none');
+    expect(styles.innerStyle, '#inner must not open a 3D sorting context').toBe('flat');
+    expect(styles.solidStyle, 'nor may #solid').toBe('flat');
+    expect(styles.facetBackface, 'culling happens in token-solid.ts now').toBe('visible');
     // #inner's transform belongs to the animation kernel. Nothing here may put
     // anything on it -- see beforeOrphaned.
     expect(styles.innerTransform).toBe('none');
+
   });
 
   /**
@@ -361,7 +451,11 @@ test.describe('a token that is a solid', () => {
         type: el.type,
         color: el.color,
         facets: el.renderRoot.querySelectorAll('.facet').length,
-        pose: el.renderRoot.querySelector('#solid')?.style.transform ?? null,
+        // The pose is no longer a transform anywhere: it is baked into every
+        // facet's clip-path, so the facet STYLES are what carries it and what a
+        // stale host would be wearing. See src/solid/flat-facets.ts.
+        pose: [...el.renderRoot.querySelectorAll('.facet')]
+          .map((facet: any) => facet.style.clipPath).join('|') || null,
         fontSize: el.renderRoot.querySelector('#solid')?.style.fontSize ?? null,
         fill: el.renderRoot.querySelector('.facet')?.style.background ?? null,
       });
@@ -383,8 +477,8 @@ test.describe('a token that is a solid', () => {
       return { asCube, whilePooled, asDisc };
     });
 
-    expect(result.asCube.facets, 'the first occupant is a cube').toBe(6);
-    expect(result.asCube.pose).toMatch(/^matrix3d\(/);
+    expect(result.asCube.facets, 'the first occupant is a cube').toBe(3);
+    expect(result.asCube.pose).toMatch(/^polygon\(/);
 
     // The hazard, made visible: a pooled host keeps its last occupant's scene.
     expect(result.whilePooled.orphaned, 'the host must actually leave the stack').toBe(true);
@@ -394,7 +488,7 @@ test.describe('a token that is a solid', () => {
     // THE ASSERTION. Same DOM node, entirely the new component's presentation.
     expect(result.asDisc.recycled, 'the stack must have reused the pooled host').toBe(true);
     expect(result.asDisc.type).toBe('disc');
-    expect(result.asDisc.facets, 'a disc is 14 facets, a cube 6').toBe(14);
+    expect(result.asDisc.facets, 'a visible disc is 6 facets, a visible cube 3').toBe(6);
     expect(result.asDisc.pose, 'the pose must be the disc\'s, not the cube\'s')
       .not.toBe(result.asCube.pose);
     expect(result.asDisc.fontSize, 'and so must the size')
@@ -412,7 +506,8 @@ test.describe('a token that is a solid', () => {
       await el.updateComplete;
       await el.updateComplete;
       const out = {
-        pose: el.renderRoot.querySelector('#solid').style.transform,
+        pose: [...el.renderRoot.querySelectorAll('.facet')]
+          .map((facet: any) => facet.style.clipPath).join('|'),
         fontSize: el.renderRoot.querySelector('#solid').style.fontSize,
         fill: el.renderRoot.querySelector('.facet').style.background,
       };

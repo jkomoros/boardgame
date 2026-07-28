@@ -7,7 +7,6 @@ import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
 import { cssNumber } from '../solid/screen-frame.js';
 import {
-  CAMERA_DEPTH_WIDTHS,
   TOKEN_COLOR_FILTERS,
   isTokenSolidShape,
   tokenSolid,
@@ -44,81 +43,67 @@ export class BoardgameToken extends BoardgameComponent {
       }
 
       /*
-       * THE CAMERA, on #outer, exactly where boardgame-card.ts puts its own.
+       * THE BOX THE SOLID IS DRAWN IN -- and, deliberately, NO CAMERA.
        *
-       * It cannot go on #inner: #inner is what motionTrackTarget('visual')
-       * returns, so its transform belongs to the animation kernel, and a camera
-       * written there would be replaced outright the first time anything plays a
-       * visual track (the same argument boardgame-die.ts makes for its #orient).
-       * It reaches the facets from #outer even though #outer carries the
-       * alt-shadow filter: measured, the probe in
-       * parity/component-3d-context.spec.ts reads 25px with this rule and 20px
-       * without it.
+       * There used to be a perspective here and a preserve-3d on #inner,
+       * with the camera reaching the facets from #outer the way
+       * boardgame-card.ts's does. It is gone, and its absence is load-bearing:
+       * Chromium hands EVERY element inside a live preserve-3d context its own
+       * composited layer as soon as an ancestor transform starts animating, and
+       * a stack's FLIP animates the component host on every single move.
+       * Measured in pass, 55 tokens: 57 composited layers at rest, 1,047
+       * during a move, 88.6 megapixels of layer area, 30fps against the flat
+       * art's 59.6. Removing any two of {perspective, preserve-3d, the facets'
+       * 3D transforms} still left ~1,000 layers; removing all three is what
+       * restores 60fps.
        *
-       * The depth is in TOKEN WIDTHS rather than the card's flat 1000px, so that
-       * two tokens at different --component-scale values (pass puts 55 on screen
-       * at two scales) are drawn by the same lens and not by two. See
-       * CAMERA_DEPTH_WIDTHS.
+       * So the camera lives in JavaScript now. A token's pose is a constant, so
+       * its projection is a constant: token-solid.ts applies the same
+       * perspective divide once and emits flat, already-projected polygons. The
+       * lens is unchanged -- still CAMERA_DEPTH_WIDTHS token widths, still
+       * scale-invariant so that pass's two --component-scale values are drawn by
+       * one lens -- it is just evaluated somewhere cheaper.
        *
-       * The explicit box is what keeps perspective-origin honest: it defaults to
-       * the centre of #outer's own box, and #outer is a block that would
-       * otherwise stretch to whatever cell the stack put it in, projecting the
-       * solid about a point that is not the solid's centre.
+       * The explicit box stays: #outer is a block that would otherwise stretch
+       * to whatever cell the stack put it in, and #solid is sized off it.
        */
       #outer.solid {
         width: var(--component-effective-width);
         height: var(--component-effective-height);
-        perspective: calc(var(--component-effective-width) * ${unsafeCSS(CAMERA_DEPTH_WIDTHS)});
       }
 
       /*
-       * The 3D carrier. Nothing from here down may take a grouping property --
-       * a filter, an opacity below 1, a clip-path, an overflow other than
-       * visible -- because each of those forces transform-style back to flat and
-       * collapses the solid into a pile of overlapping outlines. That is the
-       * whole reason the elevation and the throb live on #outer (see
-       * boardgame-component.ts's styles and _syncThrob below). The facets
-       * themselves do carry clip-path, which is fine: they are leaves.
-       */
-      #outer.solid #inner {
-        transform-style: preserve-3d;
-      }
-
-      /*
-       * The solid's own element: the sizing (its font-size IS the solid's size,
-       * so every generated length below can be an em and the whole thing follows
-       * --component-width with no JavaScript remeasurement) and the resting pose,
-       * both written from the template on every render.
+       * The solid's own element: the sizing, and nothing else. Its font-size IS
+       * the solid's size, so every generated length below can be an em and the
+       * whole thing follows --component-width with no JavaScript remeasurement.
+       *
+       * No transform. The pose is already in the polygons -- see
+       * token-solid.ts's visibleFacetPolygons.
        */
       #solid {
         position: relative;
         width: 100%;
         height: 100%;
-        transform-style: preserve-3d;
       }
 
       /*
-       * One element per surface polygon. backface-visibility is the whole of the
-       * hidden-surface removal, and it is exactly right here because every shape
-       * that renders as a solid is convex: its camera-facing facets tile the
-       * silhouette once and the rest must be culled.
+       * One element per VISIBLE surface polygon, drawn as its own projected
+       * outline. A back-facing facet is not hidden here, it was never built:
+       * backface-visibility: hidden used to be the whole of the hidden-surface
+       * removal, and the same fact that made it sufficient -- every shape that
+       * renders as a solid is convex, so its camera-facing facets tile the
+       * silhouette exactly once -- lets token-solid.ts cull them instead. That
+       * is also why nothing here sorts: what is left cannot overlap.
        *
-       * NO will-change. The die promotes every facet because a facet that
-       * crosses from back-facing to front-facing DURING a tumble would otherwise
-       * stay culled for a frame or two and tear a hole in the solid -- and a
-       * promotion has to be in place before the animation starts. A token does
-       * not tumble; its pose is a constant. Declining promotion is what keeps 55
-       * of these at 60fps, and it is measured: promotion changes the frame rate
-       * at 24 sides by 0.4fps, i.e. not at all.
+       * NO will-change, and now nothing that could provoke a promotion either.
+       * The die promotes every facet because a facet that crosses from
+       * back-facing to front-facing DURING a tumble would otherwise stay culled
+       * for a frame or two and tear a hole in the solid. A token does not tumble.
+       *
+       * There is deliberately no .facet rule at all: position, box, margin,
+       * clip-path and background are every one of them per facet, and they all
+       * come from src/solid/flat-facets.ts.
        */
-      .facet {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        /* width/height/margin/transform/clip-path/background are per facet. */
-        backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
-      }
 
       #outer.pawn {
         --component-aspect-ratio: 2.0;
@@ -393,7 +378,7 @@ export class BoardgameToken extends BoardgameComponent {
   private _renderSolid(solid: TokenSolid) {
     return html`
       <div id="solid"
-        style="font-size:calc(var(--component-effective-width) * ${cssNumber(solid.fit)});transform:${solid.pose}">
+        style="font-size:calc(var(--component-effective-width) * ${cssNumber(solid.fit)})">
         ${repeat(solid.facets, (facet) => facet.key, (facet) =>
           html`<div class="facet" style="${facet.style}"></div>`)}
       </div>
