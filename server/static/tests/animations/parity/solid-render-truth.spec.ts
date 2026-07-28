@@ -83,6 +83,17 @@ import { test, expect, type Page } from '@playwright/test';
  * how confidently it classified them, so "the exclusions ate the whole image"
  * and "every colour landed halfway between two entries" cannot pass either.
  *
+ * ## Promoted and unpromoted are two different questions
+ *
+ * A die gives every facet `will-change: transform`, so that a promotion is in
+ * place before a tumble starts. A 3D `boardgame-token` deliberately does not:
+ * it never tumbles, and declining the promotion is what keeps 55 of them at
+ * 60fps. That is not a cosmetic difference to THIS question — a promotion gives
+ * each facet its own transform node, which is exactly the thing the compositor
+ * decides ordering with — so the token prisms are measured unpromoted, in all
+ * three of their aspect ratios and in their own resting pose as well as in the
+ * eight adversarial ones. Both configurations measure zero.
+ *
  * ## What it measures when the real mechanism is broken
  *
  * The positive control breaks the PAINT. To check that the assertions also bite
@@ -598,6 +609,16 @@ interface Verdict {
   readonly judged: number;
   /** Judged pixels the reference says are part of the solid. */
   readonly silhouette: number;
+  /**
+   * Every pixel the reference says is part of the solid, judged or not.
+   *
+   * The difference between this and `silhouette` is what the seam exclusions
+   * cost, and stating both is what lets a THIN shape be checked at all: a chip
+   * seen edge-on is a 150-by-20px sliver, so a flat floor on the judged
+   * silhouette cannot tell "this pose is small" from "nothing rendered", and
+   * the ratio can.
+   */
+  readonly referenceSilhouette: number;
   /** Judged pixels naming the wrong facet (or the wrong presence of one). */
   readonly wrong: number;
   /** `wrong / silhouette`, the sensitive-but-noisy number. */
@@ -661,9 +682,11 @@ function compare(expected: Int16Array, observed: Uint8Array, distance: Uint8Arra
   const samples: string[] = [];
   let judged = 0;
   let silhouette = 0;
+  let referenceSilhouette = 0;
   let wrong = 0;
   let worstColourDistance = 0;
   for (let p = 0; p < expected.length; p++) {
+    if (expected[p] > 0) referenceSilhouette++;
     if (excluded[p]) continue;
     judged++;
     if (expected[p] > 0) silhouette++;
@@ -681,6 +704,7 @@ function compare(expected: Int16Array, observed: Uint8Array, distance: Uint8Arra
   return {
     judged,
     silhouette,
+    referenceSilhouette,
     wrong,
     wrongFractionOfSilhouette: silhouette ? wrong / silhouette : 1,
     wrongFractionOfJudged: judged ? wrong / judged : 1,
@@ -700,6 +724,12 @@ interface ShapeSpec {
   readonly kind: 'die' | 'prism';
   readonly count: number;
   readonly heightRatio?: number;
+  /**
+   * A `boardgame-token` type, when this prism is one. Two things follow from
+   * it: the shape's own RESTING POSE joins the pose set, and the facets are
+   * rendered the way a token renders them — see `promote`.
+   */
+  readonly tokenShape?: string;
 }
 
 interface PreparedShape {
@@ -708,6 +738,8 @@ interface PreparedShape {
   readonly nominalRadius: number;
   /** `PERSPECTIVE_DEPTH_DIE_SIZES` — read from `src/`, never restated. */
   readonly perspectiveDieSizes: number;
+  /** `token-solid.ts`'s resting pose, row-major, when `tokenShape` was given. */
+  readonly restingPose: number[] | null;
 }
 
 /**
@@ -723,6 +755,7 @@ async function installHarness(page: Page, stagePx: number, diePx: number): Promi
     const prism = await import('/src/solid/prism.ts');
     const dieGeometry = await import('/src/motion/die-geometry.ts');
     const diceRoll = await import('/src/motion/dice-roll.ts');
+    const tokenSolid = await import('/src/components/token-solid.ts');
 
     interface Surface {
       faces: readonly { readonly polygon: readonly (readonly number[])[] }[];
@@ -739,7 +772,7 @@ async function installHarness(page: Page, stagePx: number, diePx: number): Promi
 
     (window as any).__renderTruth = {
       /** Build the surface, and hand its raw body-frame geometry back. */
-      prepare(kind: string, count: number, heightRatio: number) {
+      prepare(kind: string, count: number, heightRatio: number, tokenShape: string | null) {
         const surface = surfaceFor(kind, count, heightRatio);
         current = { surface, facets: facetPlacement.solidFacets(surface as any) };
         return {
@@ -747,6 +780,9 @@ async function installHarness(page: Page, stagePx: number, diePx: number): Promi
             .map((face) => face.polygon.map((vertex) => [vertex[0], vertex[1], vertex[2]])),
           nominalRadius: surface.nominalRadius,
           perspectiveDieSizes: diceRoll.PERSPECTIVE_DEPTH_DIE_SIZES,
+          restingPose: tokenShape
+            ? [...tokenSolid.restingPose(tokenShape as any)]
+            : null,
         };
       },
 
@@ -762,7 +798,12 @@ async function installHarness(page: Page, stagePx: number, diePx: number): Promi
        * hidden` plus `will-change: transform`, which are the culling and the
        * per-facet layer whose interaction this whole spec exists to check.
        */
-      async render(pose: string, colours: readonly string[], background: string) {
+      async render(
+        pose: string,
+        colours: readonly string[],
+        background: string,
+        promote: boolean,
+      ) {
         (window as any).__renderTruth.teardown();
         const stage = document.createElement('div');
         stage.id = 'render-truth-stage';
@@ -777,7 +818,8 @@ async function installHarness(page: Page, stagePx: number, diePx: number): Promi
         for (const facet of current!.facets) {
           const el = document.createElement('div');
           el.setAttribute('style', `${facet.style};position:absolute;left:50%;top:50%;`
-            + `backface-visibility:hidden;will-change:transform;background:${colours[facet.key]};`);
+            + `backface-visibility:hidden;${promote ? 'will-change:transform;' : ''}`
+            + `background:${colours[facet.key]};`);
           orient.appendChild(el);
         }
         carrier.appendChild(orient);
@@ -1005,12 +1047,18 @@ interface PoseMeasurement extends Verdict {
 async function measureShape(
   page: Page,
   shape: ShapeSpec,
-  options: { mispaint?: boolean } = {},
+  options: { mispaint?: boolean; promote?: boolean } = {},
 ): Promise<{ measurements: PoseMeasurement[]; facetCount: number; paletteDistance: number }> {
+  const promote = options.promote ?? true;
   const prepared = await page.evaluate(
-    ({ kind, count, heightRatio }) =>
-      (window as any).__renderTruth.prepare(kind, count, heightRatio) as PreparedShape,
-    { kind: shape.kind, count: shape.count, heightRatio: shape.heightRatio ?? 1 },
+    ({ kind, count, heightRatio, tokenShape }) =>
+      (window as any).__renderTruth.prepare(kind, count, heightRatio, tokenShape) as PreparedShape,
+    {
+      kind: shape.kind,
+      count: shape.count,
+      heightRatio: shape.heightRatio ?? 1,
+      tokenShape: shape.tokenShape ?? null,
+    },
   );
   const polygons = prepared.polygons as V3[][];
   const facetCount = polygons.length;
@@ -1027,12 +1075,23 @@ async function measureShape(
   const colours = painted.map((slot) => `rgb(${palette[slot].join(',')})`);
   const background = `rgb(${palette[0].join(',')})`;
 
+  // A token's own resting pose first, when this shape is one: the pose the
+  // player actually looks at, as opposed to the poses chosen to break a
+  // renderer. `posesFor` cannot derive it — it is a component's decision, not
+  // the geometry's — so it is read from `token-solid.ts` and rendered here.
+  const poses: Pose[] = [
+    ...(prepared.restingPose
+      ? [{ name: `${shape.tokenShape} resting pose`, matrix: prepared.restingPose as M3 }]
+      : []),
+    ...posesFor(polygons),
+  ];
+
   const measurements: PoseMeasurement[] = [];
-  for (const pose of posesFor(polygons)) {
+  for (const pose of poses) {
     const rect = await page.evaluate(
-      ({ pose: poseCss, colours: fills, background: bg }) =>
-        (window as any).__renderTruth.render(poseCss, fills, bg),
-      { pose: matrix3dOf(pose.matrix), colours, background },
+      ({ pose: poseCss, colours: fills, background: bg, promote: layered }) =>
+        (window as any).__renderTruth.render(poseCss, fills, bg, layered),
+      { pose: matrix3dOf(pose.matrix), colours, background, promote },
     );
     expect(
       { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
@@ -1066,6 +1125,7 @@ function report(label: string, measurements: readonly PoseMeasurement[]): string
   return [`${label}:`, ...measurements.map((m) =>
     `  ${m.pose}: thickest ${m.thickest}px (${m.thickestBox}), wrong ${m.wrong}px`
     + ` = ${(m.wrongFractionOfSilhouette * 100).toFixed(3)}% of a ${m.silhouette}px silhouette`
+    + ` (of ${m.referenceSilhouette}px the reference draws)`
     + ` (${(m.wrongFractionOfJudged * 100).toFixed(3)}% of ${m.judged}px judged),`
     + ` worst colour distance ${m.worstColourDistance}`
     + (m.samples.length ? `\n      ${m.samples.join('\n      ')}` : ''))].join('\n');
@@ -1164,6 +1224,60 @@ test.describe('a solid renders what a z-buffer would', () => {
       expect(m.worstColourDistance, `${m.pose}: a judged pixel was not a flat facet fill\n${summary}`)
         .toBeLessThanOrEqual(MAX_JUDGED_COLOUR_DISTANCE);
       expect(m.thickest, `${m.pose}: a thick wrong region\n${summary}`).toBe(0);
+    }
+  });
+
+  /**
+   * THE TOKEN PRISMS, EXACTLY AS A TOKEN RENDERS THEM.
+   *
+   * The 12-side prism above is checked in the DIE's configuration: one facet per
+   * polygon, `backface-visibility: hidden`, and `will-change: transform` on every
+   * one of them. A token deliberately does NOT promote — the promotion is a
+   * dice-specific need (it has to be in place before a tumble starts) and
+   * declining it is what keeps 55 tokens at 60fps. Promotion is not cosmetic to
+   * this question: it gives each facet its own transform node, which is exactly
+   * what changes when the compositor decides what is in front of what. So the
+   * unpromoted case has to be measured, not assumed to follow.
+   *
+   * All three ratios, because they are three different shapes to a renderer:
+   * `token` at 0.55 is nearly as deep as it is wide, `disc` at 0.10 is a slab
+   * whose cap and walls meet at a 90-degree corner across a 10:1 aspect ratio,
+   * and `chip` sits between them. And each is measured in its OWN RESTING POSE
+   * as well as in the eight adversarial ones — the pose a player is actually
+   * looking at is the one that would be embarrassing to get wrong.
+   */
+  test('the token prisms are rendered exactly, unpromoted', async ({ page }) => {
+    test.setTimeout(300000);
+    for (const [tokenShape, heightRatio] of [
+      ['token', 0.55], ['chip', 0.13], ['disc', 0.1],
+    ] as const) {
+      const { measurements, facetCount } = await measureShape(
+        page,
+        { kind: 'prism', count: 12, heightRatio, tokenShape },
+        { promote: false },
+      );
+      expect(facetCount, `a ${tokenShape} is 14 facets`).toBe(14);
+      const summary = report(`${tokenShape} (prism-12 @ ${heightRatio}, unpromoted)`, measurements);
+      console.log(summary);
+      expect(measurements[0].pose, 'the resting pose must be measured first')
+        .toBe(`${tokenShape} resting pose`);
+      for (const m of measurements) {
+        // A RATIO here, where the die shapes above use a flat floor, and the
+        // reason is the shapes themselves: a `chip` turned edge-on is a
+        // 150-by-20px sliver whose true silhouette is about 2,200px, so a flat
+        // 4,000px floor would reject the pose for being thin rather than for
+        // being wrong. Split into the two things the floor was ever for.
+        // Observed worst over all 27 poses here: 2,182px drawn, 52% of it
+        // judged.
+        expect(m.referenceSilhouette, `${tokenShape} ${m.pose}: the shape is not on screen\n${summary}`)
+          .toBeGreaterThan(1500);
+        expect(m.silhouette / m.referenceSilhouette,
+          `${tokenShape} ${m.pose}: the exclusions ate the picture\n${summary}`)
+          .toBeGreaterThan(0.35);
+        expect(m.worstColourDistance, `${tokenShape} ${m.pose}: a judged pixel was not a flat facet fill\n${summary}`)
+          .toBeLessThanOrEqual(MAX_JUDGED_COLOUR_DISTANCE);
+        expect(m.thickest, `${tokenShape} ${m.pose}: a thick wrong region\n${summary}`).toBe(0);
+      }
     }
   });
 

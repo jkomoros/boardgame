@@ -1,9 +1,32 @@
 import { BoardgameComponent } from './boardgame-component.js';
-import { html, css, CSSResult, TemplateResult } from 'lit';
+import { html, css, CSSResult, TemplateResult, unsafeCSS } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { repeat } from 'lit/directives/repeat.js';
 import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
+import { cssNumber } from '../solid/screen-frame.js';
+import {
+  CAMERA_DEPTH_WIDTHS,
+  TOKEN_COLOR_FILTERS,
+  isTokenSolidShape,
+  tokenSolid,
+  type TokenSolid,
+} from './token-solid.js';
+
+/**
+ * The `#outer.<color> img` rules, generated from the one table that also feeds
+ * the solids' arithmetic.
+ *
+ * They used to be authored here, and a 3D token would then have had a SECOND
+ * list of colours that had to agree with this one by hand. Generating them means
+ * the flat art and the solid are recoloured by the same nine strings — see
+ * `token-solid.ts`'s `TOKEN_COLOR_FILTERS`. Red is absent on purpose: it is the
+ * colour the art is drawn in, so it needs no filter and never had a rule.
+ */
+const COLOR_FILTER_RULES = Object.entries(TOKEN_COLOR_FILTERS)
+  .map(([name, filter]) => `#outer.${name} img { filter: ${filter}; }`)
+  .join('\n      ');
 
 @customElement('boardgame-token')
 export class BoardgameToken extends BoardgameComponent {
@@ -18,6 +41,83 @@ export class BoardgameToken extends BoardgameComponent {
       #inner img {
         height: 100%;
         width: 100%;
+      }
+
+      /*
+       * THE CAMERA, on #outer, exactly where boardgame-card.ts puts its own.
+       *
+       * It cannot go on #inner: #inner is what motionTrackTarget('visual')
+       * returns, so its transform belongs to the animation kernel, and a camera
+       * written there would be replaced outright the first time anything plays a
+       * visual track (the same argument boardgame-die.ts makes for its #orient).
+       * It reaches the facets from #outer even though #outer carries the
+       * alt-shadow filter: measured, the probe in
+       * parity/component-3d-context.spec.ts reads 25px with this rule and 20px
+       * without it.
+       *
+       * The depth is in TOKEN WIDTHS rather than the card's flat 1000px, so that
+       * two tokens at different --component-scale values (pass puts 55 on screen
+       * at two scales) are drawn by the same lens and not by two. See
+       * CAMERA_DEPTH_WIDTHS.
+       *
+       * The explicit box is what keeps perspective-origin honest: it defaults to
+       * the centre of #outer's own box, and #outer is a block that would
+       * otherwise stretch to whatever cell the stack put it in, projecting the
+       * solid about a point that is not the solid's centre.
+       */
+      #outer.solid {
+        width: var(--component-effective-width);
+        height: var(--component-effective-height);
+        perspective: calc(var(--component-effective-width) * ${unsafeCSS(CAMERA_DEPTH_WIDTHS)});
+      }
+
+      /*
+       * The 3D carrier. Nothing from here down may take a grouping property --
+       * a filter, an opacity below 1, a clip-path, an overflow other than
+       * visible -- because each of those forces transform-style back to flat and
+       * collapses the solid into a pile of overlapping outlines. That is the
+       * whole reason the elevation and the throb live on #outer (see
+       * boardgame-component.ts's styles and _syncThrob below). The facets
+       * themselves do carry clip-path, which is fine: they are leaves.
+       */
+      #outer.solid #inner {
+        transform-style: preserve-3d;
+      }
+
+      /*
+       * The solid's own element: the sizing (its font-size IS the solid's size,
+       * so every generated length below can be an em and the whole thing follows
+       * --component-width with no JavaScript remeasurement) and the resting pose,
+       * both written from the template on every render.
+       */
+      #solid {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+      }
+
+      /*
+       * One element per surface polygon. backface-visibility is the whole of the
+       * hidden-surface removal, and it is exactly right here because every shape
+       * that renders as a solid is convex: its camera-facing facets tile the
+       * silhouette once and the rest must be culled.
+       *
+       * NO will-change. The die promotes every facet because a facet that
+       * crosses from back-facing to front-facing DURING a tumble would otherwise
+       * stay culled for a frame or two and tear a hole in the solid -- and a
+       * promotion has to be in place before the animation starts. A token does
+       * not tumble; its pose is a constant. Declining promotion is what keeps 55
+       * of these at 60fps, and it is measured: promotion changes the frame rate
+       * at 24 sides by 0.4fps, i.e. not at all.
+       */
+      .facet {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        /* width/height/margin/transform/clip-path/background are per facet. */
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
       }
 
       #outer.pawn {
@@ -46,43 +146,10 @@ export class BoardgameToken extends BoardgameComponent {
         --throb-color-to: rgba(255,255,0,0.0);
       }
 
-      #outer.gray img {
-        filter: saturate(0.0) brightness(3.0);
-      }
-
-      #outer.green img {
-        filter: hue-rotate(130deg) brightness(2.0);
-      }
-
-      #outer.teal img {
-        filter: hue-rotate(185deg) brightness(2.4);
-      }
-
-      #outer.purple img {
-        filter: hue-rotate(300deg) brightness(1.0);
-      }
-
-      #outer.pink img {
-        filter: hue-rotate(-93deg) brightness(4) saturate(0.8);
-      }
-
-      /* red is the default color, no need for shifting */
-
-      #outer.blue img {
-        filter: hue-rotate(220deg) brightness(2.0) saturate(1.5);
-      }
-
-      #outer.orange img {
-        filter: hue-rotate(50deg) brightness(2.5);
-      }
-
-      #outer.yellow img {
-        filter: hue-rotate(70deg) brightness(4);
-      }
-
-      #outer.black img {
-        filter: saturate(0.0) brightness(1.7);
-      }
+      /* The per-colour filters for the FLAT art, generated from the same table
+         the solids' base colours are computed from. Red is the colour the art is
+         already drawn in, so it has no rule. */
+      ${unsafeCSS(COLOR_FILTER_RULES)}
     `
   ];
 
@@ -181,7 +248,38 @@ export class BoardgameToken extends BoardgameComponent {
       ...named,
       active: this.active,
       highlighted: this.highlighted,
+      solid: this._solid() !== null,
     };
+  }
+
+  /**
+   * The solid this token draws, or null for the flat art -- and it is a PURE
+   * FUNCTION OF CURRENT STATE, deliberately, which is the single most important
+   * fact about this component.
+   *
+   * A stack pools and reparents component hosts across membership changes and
+   * nothing re-derives a pose on reuse, so a node carries whatever its previous
+   * occupant's last write left on it. That is the failure `boardgame-die.ts`'s
+   * `_clearRoll` exists to prevent -- a die that dropped a roll without clearing
+   * the transform it wrote sat 60 to 106px outside its own slot, permanently --
+   * and here it would be worse, because a token's motion carriers are `noAnimate`
+   * and can never self-correct by playing anything.
+   *
+   * So there is no imperative write anywhere in this component's 3D path. The
+   * pose, the size, the facet placements and the colours are all rendered from
+   * the template, from this function, on every update; `token-solid.ts` holds no
+   * state but a cache keyed by the same two strings it is called with. A pooled
+   * host that arrives with a new `type` or `color` re-renders every one of them,
+   * and one that arrives as a `spacer` drops the scene entirely.
+   */
+  private _solid(): TokenSolid | null {
+    // A spacer has no item to stand for. It is `visibility: hidden` and exists
+    // only to hold a slot open, so it must not build a scene at all -- 14 facet
+    // elements per empty square of a board is exactly the kind of cost nobody
+    // would ever see and everybody would pay.
+    if (this.spacer) return null;
+    if (!isTokenSolidShape(this.type)) return null;
+    return tokenSolid(this.type, this.color);
   }
 
   protected override updated(changedProperties: Map<string, any>) {
@@ -263,12 +361,51 @@ export class BoardgameToken extends BoardgameComponent {
     super.disconnectedCallback();
   }
 
+  /**
+   * The last thing this host does before a stack orphans it -- which, because
+   * `_insertNodes` pushes removed hosts straight into `_componentPool`, is also
+   * the last thing it does before some OTHER component is rendered into it.
+   *
+   * Everything the scene is made of is rendered from the template and so is
+   * re-derived for the next occupant. `#inner`'s own transform is not: it is
+   * what `motionTrackTarget('visual')` returns, the animation kernel writes a
+   * track's resting value there, and a value left behind would compose with the
+   * next occupant's pose forever. A token compiles no visual tracks today, so
+   * nothing writes it today -- and that is exactly the situation in which a
+   * stale write is invisible until it is permanent. Measured precedent: a stale
+   * write to a card's #inner transform was invisible for a whole flight and
+   * became permanent the instant the animation ended, leaving the card stuck at
+   * 45 degrees. One line here is cheaper than finding that again.
+   */
+  override beforeOrphaned(): void {
+    if (this.innerElement) this.innerElement.style.transform = '';
+    super.beforeOrphaned();
+  }
+
+  /**
+   * The scene, as one element per polygon under one posed, sized carrier.
+   *
+   * Every value here is bound, so Lit rewrites all of them whenever the state
+   * that produced them changes -- including on a recycled host, which is the
+   * case that matters. Keyed by facet index so that switching a live token
+   * between a 6-facet cube and a 14-facet prism reconciles rather than rebuilds.
+   */
+  private _renderSolid(solid: TokenSolid) {
+    return html`
+      <div id="solid"
+        style="font-size:calc(var(--component-effective-width) * ${cssNumber(solid.fit)});transform:${solid.pose}">
+        ${repeat(solid.facets, (facet) => facet.key, (facet) =>
+          html`<div class="facet" style="${facet.style}"></div>`)}
+      </div>
+    `;
+  }
+
   override render(): TemplateResult {
-    const asset = this._computeAsset(this.type);
+    const solid = this._solid();
     return html`
       <div id="outer" class="${classMap(this._computeClasses())}" @click="${(e: Event) => this.handleTap(e)}" style="${this._outerStyle}">
         <div id="inner">
-          <img src="${asset}">
+          ${solid ? this._renderSolid(solid) : html`<img src="${this._computeAsset(this.type)}">`}
         </div>
       </div>
     `;
