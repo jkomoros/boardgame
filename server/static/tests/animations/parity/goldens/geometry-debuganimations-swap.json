@@ -174,6 +174,47 @@
     {
       "progress": [
         0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "rotation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        275,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        0,
         0.14,
         0.5,
         0.86,
@@ -214,11 +255,11 @@
     },
     {
       "progress": [
-        0,
-        0.16,
-        0.5,
-        0.84,
-        1
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "rotation": [
         0,

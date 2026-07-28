@@ -174,10 +174,133 @@
     {
       "progress": [
         0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "rotation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        275,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        0,
         0.14,
         0.5,
         0.86,
         1
+      ],
+      "rotation": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        500,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        0,
+        0.15,
+        0.5,
+        0.85,
+        1
+      ],
+      "rotation": [
+        0,
+        0.13,
+        0.5,
+        0.87,
+        1
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "opacity": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "timing": [
+        500,
+        0
+      ],
+      "zIndex": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "progress": [
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "rotation": [
         0,
