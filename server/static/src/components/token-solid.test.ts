@@ -1,19 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  ART_ASSET_ASPECT,
+  ART_DEPTH,
   CAMERA_DEPTH_WIDTHS,
   CAMERA_LEAN_DEGREES,
   PRISM_SIDES,
+  SHADOW_DIRECTION,
   SHAPE_HEIGHT_RATIO,
   TOKEN_BASE_RED,
   TOKEN_COLOR_FILTERS,
   applyColorFilter,
+  artDrawnWidth,
   facetShade,
   fitScale,
   isTokenSolidShape,
   posedNormals,
   posedUp,
   restingPose,
+  shadowOffsetEm,
   silhouetteExtent,
   tokenBaseColor,
   tokenSolid,
@@ -233,6 +238,54 @@ test('the light comes from above and from the left', () => {
   assert.ok(up > down, `up ${up} must be brighter than down ${down}`);
   assert.ok(left > right, `left ${left} must be brighter than right ${right}`);
   assert.ok(up <= 1.08 && down >= 0.5, `the shade range is ${down}..${up}`);
+});
+
+test('a shadow falls the opposite way from the light, and mostly downwards', () => {
+  // The two families are lit by the SAME light and this is the only place the
+  // art half can express it: meeple and pawn have no mesh to shade, so all of
+  // their depth is shadow OFFSETS, and every one of them points this way.
+  const [x, y] = SHADOW_DIRECTION;
+  assert.ok(x > 0, `the light is on the left, so a shadow falls right (${x})`);
+  assert.ok(y > 0, `and downwards (${y})`);
+  assert.ok(y > x, `and further down than sideways (${y} vs ${x})`);
+  assert.ok(Math.abs(Math.hypot(x, y) - 1) < 1e-12, 'it is a unit direction');
+  // The same three comparisons facetShade is asserted with, so a light moved in
+  // one place and not the other cannot pass both.
+  assert.ok(facetShade([-1, 0, 0]) > facetShade([1, 0, 0]));
+  assert.ok(facetShade([0, -1, 0]) > facetShade([0, 1, 0]));
+});
+
+test('a shadow offset stays parallel to the light at any distance', () => {
+  for (const distance of [0.01, ART_DEPTH.edgeEm, ART_DEPTH.groundEm, 3]) {
+    const offset = shadowOffsetEm(distance);
+    assert.ok(Math.abs(Math.hypot(offset.x, offset.y) - distance) < 1e-12,
+      `${distance}em came out ${Math.hypot(offset.x, offset.y)}`);
+    assert.ok(Math.abs(offset.x * SHADOW_DIRECTION[1] - offset.y * SHADOW_DIRECTION[0]) < 1e-12,
+      'the cross product with the light direction must be zero');
+  }
+});
+
+test('the tilt is small enough to leave a piece standing', () => {
+  // The scene camera sits CAMERA_LEAN_DEGREES above the board, and fully
+  // reprojecting a standing piece to it would foreshorten it by cos(50) = 0.64
+  // and lay it down -- the mesh work this design declines. The tilt has to be a
+  // long way short of that and still do something.
+  const flat = Math.cos((CAMERA_LEAN_DEGREES * Math.PI) / 180);
+  assert.ok(ART_DEPTH.lean < 1, 'the art is foreshortened at all');
+  assert.ok(ART_DEPTH.lean > (1 + flat) / 2,
+    `lean ${ART_DEPTH.lean} is nearer lying down than standing (flat is ${flat})`);
+});
+
+test('a piece\'s contact shadow is sized off the piece, not off its box', () => {
+  // The box is square and an SVG keeps its own proportions inside it, so a pawn
+  // is drawn at 0.43 of its box's width. Sized off the box, its shadow came out
+  // nearly twice as wide as the pawn.
+  assert.equal(artDrawnWidth('meeple'), ART_ASSET_ASPECT.meeple);
+  assert.equal(artDrawnWidth('pawn'), ART_ASSET_ASPECT.pawn);
+  assert.ok(artDrawnWidth('pawn') < 0.5, 'a pawn is a narrow piece in a square box');
+  // A shape at least as tall as it is wide fills the box across, and a solid --
+  // which has no asset to letterbox -- is the same case.
+  assert.equal(artDrawnWidth('cube'), 1);
 });
 
 test('a facing cap is drawn at the flat art\'s own brightness', () => {

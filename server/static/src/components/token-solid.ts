@@ -161,6 +161,109 @@ export function facetShade(posedNormal: Vec3): number {
   return Math.min(SHADE_MAX, Math.max(SHADE_MIN, lambert));
 }
 
+/**
+ * Which way a shadow falls ON SCREEN, as a unit vector in CSS space (+x right,
+ * +y down): `LIGHT`'s in-plane part, negated and renormalized.
+ *
+ * The solids never need this — a solid's shading is a dot product against the
+ * full 3D `LIGHT` and it has no shadow of its own. `meeple` and `pawn` do:
+ * they are authored art with no mesh to shade, so everything that gives them
+ * depth is a shadow OFFSET, and every one of those offsets has to point the way
+ * this vector points or the board is lit from two places at once. It is derived
+ * rather than typed so that moving the light moves the shadows with it.
+ */
+export const SHADOW_DIRECTION: readonly [number, number] = (() => {
+  const length = Math.hypot(LIGHT[0], LIGHT[1]);
+  return Object.freeze([-LIGHT[0] / length, -LIGHT[1] / length] as const);
+})();
+
+/**
+ * How the two NON-CONVEX shapes are given depth: the numbers, in one place,
+ * because the whole point is that they agree with the solids' light.
+ *
+ * `meeple` and `pawn` keep their authored SVG — a prism over a non-convex
+ * outline paints its own back surface through its front and CSS has no z-buffer
+ * to stop it (the design's measured tilt table: 2.8% of a meeple's silhouette
+ * wrong at 75 degrees, and a comb-shaped test case at 12.1%). So they get depth
+ * without a mesh, and these are the three things that do it.
+ *
+ * `mirrored` IS THE ONE THAT MATTERS, and it was measured rather than guessed.
+ * Both assets are lit from the upper RIGHT and every solid is lit from the
+ * upper LEFT. Sampled at 200px on white, as mean luma per quadrant of the drawn
+ * silhouette: the cube reads TL 43.0 / TR 42.1 and BL 34.0 / BR 28.9 — left
+ * brighter in both rows — while the meeple reads TL 44.7 / TR 51.9 and the pawn
+ * TL 36.2 / TR 53.6, both decisively the other way. A meeple and a pawn are
+ * mirror-symmetric in silhouette, so `scaleX(-1)` moves their light across
+ * without touching their shape: it is the entire fix, and it costs nothing.
+ *
+ * `edgeEm` is a hard-edged shadow hugging the silhouette, offset along
+ * `SHADOW_DIRECTION`. It is what a rim treatment can be here: there is no
+ * inset-shadow filter, so the piece's own edge cannot be shaded, and the
+ * outside of it can. Deliberately NOT paired with a light rim on the other
+ * side, even though that is the obvious symmetry — the solids' brightest
+ * surface is 1.02 times base and their darkest is 0.5, so a white highlight is
+ * not something this light ever produces, and drawn at 110px it read as a
+ * cut-out sticker outline rather than an edge.
+ *
+ * `groundEm` and `groundAlpha` are the contact shadow: a soft ellipse under the
+ * piece's foot, offset the same way. A standing piece needs one and a lying
+ * disc does not, which is why the solids have none — their dark bottom rim
+ * already meets the board.
+ *
+ * `lean` is the tilt, as a vertical scale about the foot. It is small on
+ * purpose: the scene camera sits `CAMERA_LEAN_DEGREES` above the board, and
+ * fully reprojecting a standing piece to that camera would foreshorten it by
+ * cos(50) = 0.64 and lay it down flat — which is precisely the mesh work this
+ * design declines. Chosen by looking at 30, 60 and 110px, the same way
+ * `CAMERA_LEAN_DEGREES` itself was: enough to stop the art reading as a decal
+ * on the board, not enough to read as a card lying on one.
+ */
+export const ART_DEPTH = Object.freeze({
+  mirrored: true,
+  edgeEm: 0.05,
+  edgeAlpha: 0.3,
+  groundEm: 0.055,
+  groundAlpha: 0.34,
+  /** The contact shadow, as a fraction of the piece's own DRAWN width. */
+  groundWidth: 0.82,
+  lean: 0.94,
+});
+
+/**
+ * Each authored asset's width over height, straight off its own `viewBox`.
+ *
+ * The token's box is square and an SVG's default `preserveAspectRatio` is
+ * `xMidYMid meet`, so a piece is drawn at its own proportions and fills the box
+ * in its LONG axis only: a meeple spans 0.90 of the box's width, a pawn 0.43.
+ * The contact shadow has to know that. Sized off the box instead, a pawn's
+ * shadow came out nearly twice as wide as the pawn and read as a puddle rather
+ * than as the piece meeting the board.
+ */
+export const ART_ASSET_ASPECT: Readonly<Record<string, number>> = Object.freeze({
+  meeple: 146.083 / 161.979,
+  pawn: 89.536 / 207.215,
+});
+
+/**
+ * How wide a shape is actually drawn, in units of its own box: 1 for a shape at
+ * least as tall as it is wide, and its aspect for a narrow one.
+ */
+export function artDrawnWidth(shape: string): number {
+  return Math.min(1, ART_ASSET_ASPECT[shape] ?? 1);
+}
+
+/**
+ * A shadow offset `distanceEm` along `SHADOW_DIRECTION`, as the `x` and `y` a
+ * CSS length pair wants. Exists so no caller ever writes the two components by
+ * hand and lets them drift out of parallel with the light.
+ */
+export function shadowOffsetEm(distanceEm: number): { readonly x: number; readonly y: number } {
+  return Object.freeze({
+    x: SHADOW_DIRECTION[0] * distanceEm,
+    y: SHADOW_DIRECTION[1] * distanceEm,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 3x3 rotations, in the CSS frame.
 // ---------------------------------------------------------------------------

@@ -7,8 +7,11 @@ import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
 import { cssNumber } from '../solid/screen-frame.js';
 import {
+  ART_DEPTH,
   TOKEN_COLOR_FILTERS,
+  artDrawnWidth,
   isTokenSolidShape,
+  shadowOffsetEm,
   tokenSolid,
   type TokenSolid,
 } from './token-solid.js';
@@ -27,6 +30,60 @@ const COLOR_FILTER_RULES = Object.entries(TOKEN_COLOR_FILTERS)
   .map(([name, filter]) => `#outer.${name} img { filter: ${filter}; }`)
   .join('\n      ');
 
+/**
+ * The depth treatment for the two shapes that keep their authored art, spelled
+ * out from `ART_DEPTH` so that the numbers live next to the light they are
+ * derived from rather than in a stylesheet nobody would think to check.
+ *
+ * Every offset here points along `SHADOW_DIRECTION`, which is `LIGHT`'s
+ * in-plane part negated. Move the light in `token-solid.ts` and all of these
+ * move with it, which is the only way "the same scene" survives an edit.
+ */
+const EDGE = shadowOffsetEm(ART_DEPTH.edgeEm);
+const GROUND = shadowOffsetEm(ART_DEPTH.groundEm);
+const ART_EDGE_FILTER =
+  `drop-shadow(${EDGE.x.toFixed(4)}em ${EDGE.y.toFixed(4)}em 0 `
+  + `rgba(0, 0, 0, ${ART_DEPTH.edgeAlpha}))`;
+
+/** Every `type` a token accepts. Module-level so the rules below can be derived. */
+const LEGAL_TYPES = Object.freeze([
+  'token',
+  'chip',
+  'cube',
+  'pawn',
+  'meeple',
+  'disc',
+]);
+
+/**
+ * The types the depth treatment applies to: every legal type that is NOT a
+ * solid — today `pawn` and `meeple`.
+ *
+ * Derived rather than listed, so that promoting a shape to a real solid stops
+ * it being mirrored and leaned by deleting nothing: `SHAPES` in
+ * `token-solid.ts` is the only list either half reads. A stale hardcoded pair
+ * here would mirror a shape that had grown a mesh.
+ */
+const ART_SHAPES = LEGAL_TYPES.filter((type) => !isTokenSolidShape(type));
+
+/** `#outer.meeple X, #outer.pawn X` for whatever `X` a rule needs. */
+const artSelector = (suffix: string): string =>
+  ART_SHAPES.map((type) => `#outer.${type} ${suffix}`).join(',\n      ');
+
+/**
+ * The contact shadow's width, per shape, because it is a fraction of the
+ * PIECE's drawn width and not of the box.
+ *
+ * A meeple spans 0.90 of its square box and a pawn 0.43 — the box is square and
+ * the SVG keeps its own proportions inside it. One shared width sized off the
+ * box gave the pawn a shadow nearly twice as wide as the pawn, which reads as a
+ * puddle rather than as the piece meeting the board.
+ */
+const GROUND_WIDTH_RULES = ART_SHAPES
+  .map((type) => `#outer.${type} #inner::after { width: `
+    + `${(artDrawnWidth(type) * ART_DEPTH.groundWidth).toFixed(4)}em; }`)
+  .join('\n      ');
+
 @customElement('boardgame-token')
 export class BoardgameToken extends BoardgameComponent {
   static override styles: any = [
@@ -35,11 +92,111 @@ export class BoardgameToken extends BoardgameComponent {
       #inner {
         height: var(--component-effective-height);
         width: var(--component-effective-width);
+        /* The contact shadow below is positioned against this box. No offsets,
+           so nothing moves; #inner's own transform still belongs entirely to
+           the animation kernel and is never written here. */
+        position: relative;
       }
 
-      #inner img {
+      /*
+       * DEPTH FOR THE TWO SHAPES THAT ARE NOT SOLIDS.
+       *
+       * meeple and pawn keep their authored SVG because a prism over a
+       * non-convex outline paints its own back surface through its front and
+       * CSS has no z-buffer to stop it -- measured at 2.8% of a meeple's
+       * silhouette wrong at 75 degrees, and a comb-shaped control at 12.1%,
+       * with explicit z-index sorting measured to make it WORSE rather than
+       * better. So they are presented rather than modelled, and the whole of
+       * the presentation is these three rules plus the mirror on the img.
+       *
+       * All of it is pure CSS keyed off the type's own class, which
+       * _computeClasses derives from this.type on every render. Nothing is
+       * written imperatively and nothing is remembered, so a pooled host that
+       * arrives as a meeple having been a cube is a meeple -- the same
+       * property the solid path is built around.
+       *
+       * #art exists so the edge shadow and the recolouring do not fight over
+       * one filter slot: an #outer.COLOUR img rule is more specific than anything
+       * that could be written for the img here, so an edge filter on the img
+       * would be dropped for all nine non-red colours and survive only on red.
+       * On the wrapper it composes -- the img is recoloured, then the wrapper's
+       * drop-shadow is derived from the recoloured result's alpha.
+       *
+       * The font-size is what makes every length below scale with the token:
+       * 1em IS the token's width, exactly as #solid's font-size is the solid's
+       * size, so nothing has to be remeasured in JavaScript.
+       */
+      #art {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        font-size: var(--component-effective-width);
+      }
+
+      #art img {
         height: 100%;
         width: 100%;
+      }
+
+      ${unsafeCSS(artSelector('#art'))} {
+        filter: ${unsafeCSS(ART_EDGE_FILTER)};
+        /* The tilt: a vertical scale about the FOOT, so the piece leans away
+           rather than shrinking. Small on purpose -- fully reprojecting a
+           standing piece to the scene's 50-degree camera would foreshorten it
+           by 0.64 and lay it flat, which is the mesh work this design
+           declines. A 2D scale, deliberately: a rotateX here would be a 3D
+           transform, and a 3D transform is a composited layer. */
+        transform: scaleY(${unsafeCSS(String(ART_DEPTH.lean))});
+        transform-origin: 50% 100%;
+      }
+
+      /*
+       * THE MIRROR, and it is the load-bearing half of this whole treatment.
+       *
+       * Both assets are lit from the upper RIGHT and every solid is lit from
+       * the upper LEFT. Measured at 200px on white, mean luma per quadrant of
+       * the drawn silhouette: a cube reads TL 43.0 / TR 42.1 and BL 34.0 /
+       * BR 28.9 -- left brighter in both rows -- while a meeple reads TL 44.7 /
+       * TR 51.9 and a pawn TL 36.2 / TR 53.6. A meeple and a pawn are
+       * mirror-symmetric in silhouette, so this moves their light across
+       * without touching their shape. It costs one declaration and it is the
+       * difference between two art styles and one scene.
+       */
+      ${unsafeCSS(artSelector('#art img'))} {
+        transform: scaleX(${unsafeCSS(ART_DEPTH.mirrored ? '-1' : '1')});
+      }
+
+      /*
+       * The contact shadow: a soft ellipse under the piece's foot, offset along
+       * the same SHADOW_DIRECTION every other shadow here uses.
+       *
+       * Only the standing shapes get one, and that is the point rather than an
+       * omission: a disc lying on the board already meets it along a dark
+       * bottom rim, and a pool of shadow under a lying piece would be a second
+       * light source. The colour is the elevation shadows' own rgba(60,40,20),
+       * so a token has one shadow palette rather than two.
+       */
+      ${unsafeCSS(artSelector('#inner::after'))} {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        /* Its own font-size, so the offset below can be em and stay PARALLEL to
+           the light. Expressed in percentages it would not be: a percentage
+           translate resolves against the element's own box, and this box is
+           0.78 wide by 0.15 tall, which would shear the direction by five to
+           one. */
+        font-size: var(--component-effective-width);
+        /* Width is per shape; see GROUND_WIDTH_RULES below. */
+        height: 0.15em;
+        transform: translate(
+          calc(-50% + ${unsafeCSS(`${GROUND.x.toFixed(4)}em`)}),
+          ${unsafeCSS(`${GROUND.y.toFixed(4)}em`)});
+        background: radial-gradient(closest-side,
+          rgba(60, 40, 20, ${unsafeCSS(String(ART_DEPTH.groundAlpha))}),
+          rgba(60, 40, 20, ${unsafeCSS(String(ART_DEPTH.groundAlpha * 0.35))}) 62%,
+          rgba(60, 40, 20, 0) 100%);
+        z-index: -1;
       }
 
       /*
@@ -165,6 +322,8 @@ export class BoardgameToken extends BoardgameComponent {
         --throb-color-to: rgba(255,255,0,0.0);
       }
 
+      ${unsafeCSS(GROUND_WIDTH_RULES)}
+
       /* The per-colour filters for the FLAT art, generated from the same table
          the solids' base colours are computed from. Red is the colour the art is
          already drawn in, so it has no rule. */
@@ -191,14 +350,7 @@ export class BoardgameToken extends BoardgameComponent {
   type = 'token';
 
   get legalTypes(): string[] {
-    return [
-      'token',
-      'chip',
-      'cube',
-      'pawn',
-      'meeple',
-      'disc',
-    ];
+    return [...LEGAL_TYPES];
   }
 
   get legalColors(): string[] {
@@ -419,12 +571,32 @@ export class BoardgameToken extends BoardgameComponent {
     `;
   }
 
+  /**
+   * The authored art, under the one wrapper the depth treatment needs.
+   *
+   * `#art` is not decoration: the edge shadow and the per-colour recolouring
+   * would otherwise compete for the img's single `filter` slot, and
+   * `#outer.<color> img` outranks anything the img could be given here — so the
+   * edge would survive on red and vanish on the other nine. On the wrapper the
+   * two compose in the right order: the img is recoloured, and the wrapper's
+   * drop-shadow is derived from the recoloured result.
+   *
+   * Every shape still reaches this when it is a `spacer`, which has no item to
+   * stand for and is `visibility: hidden`. That is deliberate and unchanged:
+   * the img is what holds the slot's box open.
+   */
+  private _renderArt(): TemplateResult {
+    return html`
+      <div id="art"><img src="${this._computeAsset(this.type)}"></div>
+    `;
+  }
+
   override render(): TemplateResult {
     const solid = this._solid();
     return html`
       <div id="outer" class="${classMap(this._computeClasses())}" @click="${(e: Event) => this.handleTap(e)}" style="${this._outerStyle}">
         <div id="inner">
-          ${solid ? this._renderSolid(solid) : html`<img src="${this._computeAsset(this.type)}">`}
+          ${solid ? this._renderSolid(solid) : this._renderArt()}
         </div>
       </div>
     `;
