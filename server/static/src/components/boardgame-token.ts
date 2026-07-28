@@ -155,14 +155,32 @@ export class BoardgameToken extends BoardgameComponent {
   }
 
   // Override _computeClasses and add some more.
+  //
+  // The colour and the type name their own classes, so BOTH have to survive
+  // being empty -- and a stack is entitled to pass an empty colour: checkers
+  // passes `''` for every component whose colour this player may not see, which
+  // on the first render pass is all of them, because the view runs before the
+  // state arrives.
+  //
+  // An empty key here is not a harmless no-op. `classMap` records it as a class
+  // it applied, and on the next update -- the one where the colour finally has
+  // a name -- removes it with `classList.remove('')`, which throws a
+  // SyntaxError from inside Lit's own update. That aborts `performUpdate`, and
+  // Lit never retries: the class list, the item, the spacer flag and the
+  // rendered content freeze at the poisoned pass's values permanently. It
+  // emptied the entire checkers board, silently. See
+  // parity/token-unnamed-color.spec.ts.
   protected override _computeClasses(): Record<string, boolean> {
     const result = super._computeClasses();
+    const named: Record<string, boolean> = {};
+    for (const name of [this.color.toLowerCase(), this.type]) {
+      if (name) named[name] = true;
+    }
     return {
       ...result,
-      [this.color.toLowerCase()]: true,
+      ...named,
       active: this.active,
       highlighted: this.highlighted,
-      [this.type]: true
     };
   }
 
