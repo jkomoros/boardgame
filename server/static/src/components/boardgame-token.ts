@@ -105,13 +105,47 @@ export class BoardgameToken extends BoardgameComponent {
        * come from src/solid/flat-facets.ts.
        */
 
-      #outer.pawn {
-        --component-aspect-ratio: 2.0;
-      }
-
-      #outer.meeple {
-        --component-aspect-ratio: 1.25;
-      }
+      /*
+       * THERE ARE DELIBERATELY NO PER-SHAPE ASPECT RATIOS HERE.
+       *
+       * A rule setting --component-aspect-ratio to 2.0 on #outer.pawn, and one
+       * setting it to 1.25 on #outer.meeple, used to sit here -- and neither
+       * had ever once applied. A custom property that REFERENCES another is
+       * substituted where it is DECLARED, and --component-effective-height is
+       * declared at :host (boardgame-component.ts), above #outer. So it was
+       * always substituted with the :host ratio of 1.0, whatever #outer said.
+       * Measured: a pawn computed --component-aspect-ratio: 2.0 on #outer
+       * while --component-effective-height computed to
+       * calc(calc(1.0 * 30px) * 1.0), and every shape drew in a 30x30 box.
+       *
+       * They were deleted rather than made to work, for three measured
+       * reasons.
+       *
+       * THE BOX IS THE LAYOUT CONTRACT, AND EVERY CONSUMER ASSUMES IT SQUARE.
+       * The board layout puts aspect-ratio: 1 on every component host,
+       * boardgame-spatial-board's tokenPosition centres a piece at
+       * coords - tokenSize / 2 in BOTH axes, and the stack's spread/fan
+       * margins and the FLIP scale ratio all key off the same box. A
+       * stack-hosted component cannot reserve extra space -- the same rule
+       * that makes a 3D token size by drawn extent rather than by
+       * circumsphere.
+       *
+       * THE ART IS ALREADY IN TRUE PROPORTION. An SVG's default
+       * preserveAspectRatio is xMidYMid meet, so token_pawn.svg (89.536 by
+       * 207.215) draws at its own 0.432 inside whatever box it is handed. The
+       * rules would not have removed that letterbox, only resized it.
+       *
+       * AND THE NUMBERS WERE WRONG ANYWAY: 2.0 against the pawn asset's 2.31,
+       * 1.25 against the meeple's 1.11. Honouring 2.0 was rendered and looked
+       * at -- at a 120px component width it draws a pawn 240px tall next to a
+       * 120px cube, which is the opposite of "pieces from the same set".
+       *
+       * --component-aspect-ratio still works where it is meant to be set: at
+       * :host or above, which is where --component-effective-height can see
+       * it. What cannot work is setting it from inside this shadow tree.
+       * tests/animations/parity/token-box.spec.ts pins the invariant both
+       * ways: a shape may not declare a ratio its box does not have.
+       */
 
       /* Declared on #outer, which is where the throb that reads them plays.
          They still inherit down to #inner, so a reader that has not caught up
