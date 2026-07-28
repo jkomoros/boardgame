@@ -1043,7 +1043,15 @@ test.describe('boardgame-die face content', () => {
   test('d6 draws generated pips, one dot per value, on the canonical lattice', async ({ page }) => {
     await mountDie(page, { faceCount: 6, faces: [1, 2, 3, 4, 5, 6], dieSize: '240px' });
     const { rows } = await faceContent(page, 6);
-    expect(rows.map((row: any) => row.faceValue)).toEqual([1, 2, 3, 4, 5, 6]);
+    // Every value is on the die exactly once -- but NOT in the order the caller
+    // gave them: an un-rolled die is laid out by `assignFaceValues` too, so a
+    // d6 is one of the 24 rotations of the standard Western die (opposite faces
+    // summing to 7, 1-2-3 right-handed) rather than construction order. Which
+    // facet carries which value is that routine's business and is pinned in
+    // `die-faces.test.ts`; what matters HERE is that whatever a facet carries,
+    // it draws.
+    expect(rows.map((row: any) => row.faceValue).sort((a: number, b: number) => a - b))
+      .toEqual([1, 2, 3, 4, 5, 6]);
     for (const row of rows) {
       expect(row.pips.length, `face ${row.faceValue} dot count`).toBe(row.faceValue);
       expect(row.text, `face ${row.faceValue} draws pips, not a numeral`).toBe(null);
@@ -1102,6 +1110,103 @@ test.describe('boardgame-die face content', () => {
     }
   });
 
+  // A REAL DIE'S OPPOSITE FACES SUM TO A CONSTANT: 7 on a d6, 9 on a d8, 13 on
+  // a d12, 21 on a d20, 17 on a d16 barrel.
+  //
+  // `assignFaceValues` has always built that -- for a die that has ROLLED. A
+  // die that had never rolled laid the server's list straight down in the
+  // geometry's own CONSTRUCTION order, which is a standard die only by luck:
+  // measured, a d6 and a d8 came out right (their construction order happens to
+  // pair), a d12's opposite faces summed to 11, 12, 13, 14 and 15, a d20's to
+  // everything from 15 to 27, and a d16's to every even number from 10 to 24.
+  // Nothing was functionally wrong -- no adjacent facet carried a duplicate --
+  // but a d20 whose 1 and 20 are neighbours reads as a fake to anyone who knows
+  // dice, and the die silently relabelled itself the first time it was thrown.
+  //
+  // Read off the RENDERED facets (`data-face-value`), not from the module, so
+  // this says what the player is looking at.
+  for (const faceCount of [6, 8, 10, 12, 16, 20]) {
+    test(`an un-rolled d${faceCount} pairs opposite faces to a constant sum`, async ({ page }) => {
+      // Several presented faces: the arrangement is solved AROUND the presented
+      // face, so one sample says nothing about the next.
+      for (const selectedFace of [0, 1, faceCount - 1]) {
+        await mountDie(page, {
+          faceCount,
+          selectedFace,
+          faces: Array.from({ length: faceCount }, (_, i) => i + 1),
+          dieSize: '160px',
+        });
+        const result = await page.evaluate(async (count) => {
+          const geometryModule: any = await import('/src/motion/die-geometry.ts');
+          const facesModule: any = await import('/src/motion/die-faces.ts');
+          const geometry = geometryModule.dieGeometry(count);
+          const pairs = facesModule.antipodalFacePairs(geometry);
+          const die = document.getElementById('fixture-die') as any;
+          const root = die.shadowRoot as ShadowRoot;
+          const values: (number | null)[] = new Array(count).fill(null);
+          for (const el of Array.from(root.querySelectorAll('.facet[data-face-index]')) as HTMLElement[]) {
+            values[Number(el.dataset.faceIndex)] = Number(el.dataset.faceValue);
+          }
+          return {
+            paired: pairs !== null,
+            values,
+            sums: pairs === null ? [] : values.map((v, i) => (v ?? NaN) + (values[pairs[i]] ?? NaN)),
+            presentedValue: values[die.selectedFace],
+          };
+        }, faceCount);
+
+        // The premise: this shape HAS opposite faces to pair, and every facet
+        // rendered a value.
+        expect(result.paired, `d${faceCount} has an antipodal pairing`).toBe(true);
+        expect(result.values.filter((v: number | null) => v === null)).toEqual([]);
+        // The presented face still carries what the server chose, so the
+        // relabelling costs the die nothing it announces.
+        expect(result.presentedValue,
+          `d${faceCount} face ${selectedFace} presented value`).toBe(selectedFace + 1);
+        // THE ASSERTION: one sum, and it is min + max.
+        expect([...new Set(result.sums)],
+          `d${faceCount} presenting face ${selectedFace}, values ${JSON.stringify(result.values)}`)
+          .toEqual([1 + faceCount]);
+      }
+    });
+  }
+
+  // ...and the shapes that genuinely cannot, said out loud rather than left as
+  // the gap in the list above. A tetrahedron's normals point at its VERTICES
+  // and an odd-sided barrel's side normals never add to a half turn, so neither
+  // has an opposite face to pair and there is no convention to honour. What
+  // they must still be is a bijection of the server's own list.
+  for (const faceCount of [4, 7, 9]) {
+    test(`an un-rolled d${faceCount} has no opposite faces to pair, and stays a bijection`, async ({ page }) => {
+      await mountDie(page, {
+        faceCount,
+        selectedFace: 1,
+        faces: Array.from({ length: faceCount }, (_, i) => i + 1),
+        dieSize: '200px',
+      });
+      const result = await page.evaluate(async (count) => {
+        const geometryModule: any = await import('/src/motion/die-geometry.ts');
+        const facesModule: any = await import('/src/motion/die-faces.ts');
+        const geometry = geometryModule.dieGeometry(count);
+        const die = document.getElementById('fixture-die') as any;
+        const root = die.shadowRoot as ShadowRoot;
+        const values: (number | null)[] = new Array(count).fill(null);
+        for (const el of Array.from(root.querySelectorAll('.facet[data-face-index]')) as HTMLElement[]) {
+          values[Number(el.dataset.faceIndex)] = Number(el.dataset.faceValue);
+        }
+        return {
+          paired: facesModule.antipodalFacePairs(geometry) !== null,
+          values,
+          presentedValue: values[die.selectedFace],
+        };
+      }, faceCount);
+      expect(result.paired, `d${faceCount} must have no antipodal pairing`).toBe(false);
+      expect([...result.values].sort((a: number, b: number) => a - b))
+        .toEqual(Array.from({ length: faceCount }, (_, i) => i + 1));
+      expect(result.presentedValue).toBe(2);
+    });
+  }
+
   test('the pip/numeral threshold is per die: 0..6 pips, one value past it numerals', async ({ page }) => {
     await mountDie(page, { faceCount: 10, faces: [0, 1, 2, 3, 4, 5, 6, 0, 1, 2], dieSize: '240px' });
     const pipped = await faceContent(page, 10);
@@ -1129,12 +1234,20 @@ test.describe('boardgame-die face content', () => {
       symbols: { Sun: '☀', Moon: '☽', Star: '★', Cloud: '☁', Rain: '☂', Snow: '❄' },
     });
     const result = await faceContent(page, 6);
-    expect(result.rows.map((row: any) => row.text?.text))
-      .toEqual(['☀', '☽', '★', '☁', '☂', '❄']);
+    // Per FACET rather than in the caller's order: an un-rolled die is laid out
+    // by `assignFaceValues`, so which facet holds which value is that routine's
+    // business. What is asserted is the mapping value -> glyph -> announced
+    // name, on whichever facet the value landed.
+    const glyphs = ['☀', '☽', '★', '☁', '☂', '❄'];
+    const names = ['Sun', 'Moon', 'Star', 'Cloud', 'Rain', 'Snow'];
+    for (const row of result.rows) {
+      expect(row.text?.text, `value ${row.faceValue} glyph`).toBe(glyphs[row.faceValue - 1]);
+      expect(row.label, `value ${row.faceValue} label`).toBe(names[row.faceValue - 1]);
+    }
+    expect(result.rows.map((row: any) => row.faceValue).sort((a: number, b: number) => a - b))
+      .toEqual([1, 2, 3, 4, 5, 6]);
     // The symbol set beats the pips these values would otherwise generate.
     expect(result.rows.every((row: any) => row.pips.length === 0)).toBe(true);
-    expect(result.rows.map((row: any) => row.label))
-      .toEqual(['Sun', 'Moon', 'Star', 'Cloud', 'Rain', 'Snow']);
     // selectedFace is an INDEX: index 2 carries value 3, named Star.
     expect(result.ariaLabel).toBe('Die showing Star');
     // ... and through the real accessibility tree, not just the attribute.
@@ -1178,7 +1291,9 @@ test.describe('boardgame-die face content', () => {
     expect(glyph.ariaLabel).toBe('Die showing Moon');
     // A named face with NO glyph still announces something a player can tie
     // to what is drawn: the numeral is on the facet, the name is the meaning.
-    const unnamed = glyph.rows.find((row: any) => row.faceIndex === 0);
+    // Found by VALUE, not by facet index -- an un-rolled die is laid out by
+    // `assignFaceValues`, so value 1 is not necessarily on facet 0.
+    const unnamed = glyph.rows.find((row: any) => row.faceValue === 1);
     expect(unnamed.label).toBe('1');
   });
 

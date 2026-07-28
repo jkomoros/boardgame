@@ -244,10 +244,16 @@ pipeline is five pure modules and one component, each testable without a DOM:
    it. `presentedFaceIndex(geometry, orientation)` reads which face a resting
    orientation turned up, and `assignFaceValues` paints the server's value onto
    exactly that face while permuting the rest into a still-legitimate die
-   (opposite faces still pair, and a d6 still winds 1-2-3 right-handed, so the
-   result is not a mirrored die). Re-simulating until the physics agreed would
-   cost `sides^dice` throws in expectation; this costs one, always. The visible
-   price is that a die's OTHER faces carry different numbers after each roll.
+   (opposite faces sum to `min + max` — 7 on a d6, 13 on a d12, 21 on a d20 —
+   and a d6 still winds 1-2-3 right-handed, so the result is not a mirrored
+   die). Re-simulating until the physics agreed would cost `sides^dice` throws
+   in expectation; this costs one, always. The visible price is that a die's
+   OTHER faces carry different numbers after each roll. `boardgame-die.ts` runs
+   the die it has NOT rolled through the same routine, so a d12 or a d20 is a
+   constant-sum die on the board before anyone touches it and does not silently
+   relabel itself on the first throw. A d4 and every odd-sided barrel have no
+   antipodal face pairs at all — a tetrahedron's normals point at its vertices —
+   so there is no sum rule to honour on them and any bijection is correct.
    A d4 and an odd-sided barrel are read from the face they rest ON, which is
    what `ReadingRule` records.
 3. **Simulation** (`motion/dice-sim.ts`). A seeded rigid-body throw: vertex

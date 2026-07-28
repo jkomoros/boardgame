@@ -572,6 +572,70 @@ describe('assignFaceValues', () => {
     });
   });
 
+  /**
+   * THE CONSTANT-SUM RULE, EXHAUSTIVELY, ON EVERY SHAPE THAT CAN HONOUR IT.
+   *
+   * A real die's opposite faces sum to a constant — 7 on a d6, 9 on a d8, 13 on
+   * a d12, 21 on a d20 — and `standardArrangement` builds that for any solid
+   * whose faces pair antipodally, not for a list of face counts. The d6 and d20
+   * blocks above assert it for two of them; this asserts it for all of them, and
+   * it is exhaustive (every presented face x every desired value) for the same
+   * reason those are: "always solvable" is the whole reason the outcome is
+   * PAINTED onto the die instead of re-rolled for, so an unsolvable pair is a
+   * die that cannot show a particular number.
+   *
+   * The barrels are in here deliberately. A d16 is an even-sided barrel: its
+   * side normals do pair, so it has a convention to honour, and laid down in
+   * construction order its opposite faces summed to every even number from 10
+   * to 24 instead of the constant 17.
+   */
+  for (const faceCount of [6, 8, 10, 12, 16, 20, 30]) {
+    it(`solves every (presented, desired) pair on a d${faceCount} with opposite faces summing to min+max`, () => {
+      const geometry = dieGeometry(faceCount);
+      const pairs = antipodalFacePairs(geometry);
+      assert.ok(pairs, `d${faceCount} is meant to have an antipodal pairing`);
+      const pips = Array.from({ length: faceCount }, (_, i) => i + 1);
+      const target = 1 + faceCount;
+      const reached = new Set<string>();
+      for (let presented = 0; presented < faceCount; presented++) {
+        for (const desired of pips) {
+          const values = assignFaceValues(geometry, pips, presented, desired);
+          const label = `d${faceCount} presented ${presented}, desired ${desired}`;
+          assert.deepEqual(sorted(values), pips, `${label}: not a permutation`);
+          assert.equal(values[presented], desired, `${label}: wrong face presented`);
+          for (let i = 0; i < faceCount; i++) {
+            assert.equal(
+              values[i] + values[pairs[i]],
+              target,
+              `${label}: faces ${i} and ${pairs[i]} sum to ${values[i] + values[pairs[i]]}, not ${target}`,
+            );
+          }
+          reached.add(`${presented}:${desired}`);
+        }
+      }
+      assert.equal(reached.size, faceCount * faceCount);
+    });
+  }
+
+  /**
+   * ...and which shapes genuinely cannot, stated as a fact about the GEOMETRY
+   * rather than left implied by the shapes the loop above happens to list.
+   *
+   * A tetrahedron's normals point at its VERTICES, so no face has an opposite
+   * at all; an odd-sided barrel's side normals are spaced at angles that never
+   * add to a half turn. There is no constant-sum convention to honour on either,
+   * and forcing one would mean inventing a pairing the solid does not have.
+   */
+  it('has no opposite faces to pair on a d4 or an odd-sided barrel', () => {
+    for (const faceCount of [4, 3, 5, 7, 9, 11]) {
+      assert.equal(
+        antipodalFacePairs(dieGeometry(faceCount)),
+        null,
+        `d${faceCount} is not meant to have an antipodal pairing`,
+      );
+    }
+  });
+
   it('keeps a right-handed low-value frame on every solid that has one', () => {
     // Only the d6 has a convention to violate, but the chirality correction is
     // written for any antipodally-paired solid, so it is asserted on all of

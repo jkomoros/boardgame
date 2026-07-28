@@ -1563,14 +1563,51 @@ class BoardgameDie extends BoardgameAnimatableItem {
   /**
    * The face VALUES the die is currently drawing, by face index.
    *
-   * The server's list until the die has rolled, and the roll's own assignment
-   * afterwards — same multiset, permuted so the value the server chose sits on
-   * the face the physics turned up.
+   * The roll's own assignment once the die has rolled — same multiset, permuted
+   * so the value the server chose sits on the face the physics turned up — and
+   * BEFORE that, the same assignment computed for the face the die is showing.
+   *
+   * ## Why the un-rolled die is relabelled too
+   *
+   * A real die's opposite faces sum to a constant: 7 on a d6, 9 on a d8, 13 on
+   * a d12, 21 on a d20. `assignFaceValues` builds exactly that wherever the
+   * solid's faces pair antipodally, which is what a rolled die has always been
+   * given. A die that had never rolled instead got the server's list laid down
+   * in the geometry's own CONSTRUCTION order, and that order is a standard die
+   * only by luck: measured, a d6 and a d8 come out right (7 and 9), a d12's
+   * opposite pairs sum to 11, 12, 13, 14 and 15, a d20's to everything from 15
+   * to 27, and a d16 barrel's to every even number from 10 to 24. Nothing is
+   * functionally wrong — no adjacent facet carries a duplicate — but a player
+   * who knows dice reads a d20 whose 1 and 20 are neighbours as a fake, and the
+   * die visibly relabelled itself the first time it was thrown.
+   *
+   * The presented face keeps its value exactly (`faces[presented]` is what is
+   * asked for), so nothing the die announces, emphasises or is tested on
+   * changes; only the numbers on the faces the player is not reading.
+   *
+   * Shapes with no antipodal pairing — a d4, every odd-sided barrel — have no
+   * constant-sum convention to honour, and `assignFaceValues` falls through to
+   * a plain bijection for them. That is not a gap: a tetrahedron's normals
+   * point at its VERTICES, so no face has an opposite at all.
+   *
+   * Recomputed rather than cached: it is O(n^2) over at most 32 faces and runs
+   * a handful of times per render pass, and the alternative is a cache keyed on
+   * `faces`, `selectedFace` and the roll, which is three ways to go stale.
    */
   private _faceValues(): readonly number[] {
     const faces = Array.isArray(this.faces) ? this.faces : [];
     const roll = this._roll;
-    return roll && roll.faces.length === faces.length ? roll.faces : faces;
+    if (roll && roll.faces.length === faces.length) return roll.faces;
+    const solid = this._solid();
+    if (!solid) return faces;
+    const presented = this._presentedFaceIndex(faces.length);
+    try {
+      return assignFaceValues(solid.geometry, faces, presented, faces[presented]);
+    } catch {
+      // A value set `assignFaceValues` refuses is still a die worth drawing;
+      // the server's own order is a perfectly good bijection.
+      return faces;
+    }
   }
 
   /**
