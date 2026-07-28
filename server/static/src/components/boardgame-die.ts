@@ -931,6 +931,25 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _announcement = '';
 
   /**
+   * Set while a throw is in the air: from the pass that PLANS it (which is
+   * already the pass that renumbers the faces) until the tumble settles.
+   *
+   * It exists for `_ariaLabel`, and only for it. The face assignment swaps at
+   * the START of a roll, deliberately — see `_startRoll` — so from that instant
+   * `_shownFaceIndex` and `_faceValues` describe the die's RESULT while the
+   * solid on screen is still tumbling. That is right for everything that draws
+   * (the first airborne frame is already correctly numbered) and wrong for the
+   * one thing that SPEAKS: a screen-reader user who tabbed to the die mid-roll
+   * was told the result 87ms in, a whole roll before the die showed it. A die
+   * that is mid-tumble has no readable value, and the label says so.
+   *
+   * Not derived from `_roll !== null`, which stays set for the whole life of
+   * the landed pose, nor from `_announcement === ''`, which is also true of a
+   * die that has never rolled.
+   */
+  private _rolling = false;
+
+  /**
    * The `faceCount@sizePx` the legibility floor was last evaluated for, so an
    * unchanged die is not re-measured on every update pass.
    */
@@ -1209,6 +1228,10 @@ class BoardgameDie extends BoardgameAnimatableItem {
     this._rollGeneration++;
     this._roll = roll;
     this._pendingRoll = roll;
+    // From HERE, not from `_playRoll`: this is the pass that renumbers the
+    // faces, so it is the first pass at which the die's own state describes a
+    // result it is not showing yet. See `_rolling`.
+    this._rolling = true;
     // `roll-start` is dispatched by `_playRoll`, not here: this pass has only
     // PLANNED the throw, and the render carrying its face values has not run
     // yet. A listener that fired now would read the die's previous numbers off
@@ -1236,6 +1259,9 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _clearRoll(): void {
     this._roll = null;
     this._pendingRoll = null;
+    // A die that is no longer showing a roll is not rolling one either; this
+    // is the path a superseded or unplannable throw leaves through.
+    this._rolling = false;
     // The element only exists once the solid has rendered; a die that has never
     // had one has nothing to clear either.
     if (this._innerElement) this._innerElement.style.transform = '';
@@ -1388,6 +1414,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _finishRoll(roll: DieRoll, generation: number): void {
     // A roll superseded by a later one is not this die's result any more.
     if (generation !== this._rollGeneration || this._roll !== roll) return;
+    this._rolling = false;
     const detail = this._rollDetail(roll);
     const values = this._faceValues();
     const label = values.length
@@ -1753,11 +1780,26 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * What the die announces: the label of the face it is presenting, so a
    * screen reader is told the same thing the facet draws. Absent entirely for
    * a die with no faces, which is what an unconfigured `<boardgame-die>` is.
+   *
+   * WHILE IT IS ROLLING IT NAMES NO VALUE, and that is the point of this being
+   * more than one line. The face assignment swaps as the throw starts, so the
+   * label used to flip to the landed number 87ms into a roll that runs for a
+   * second or more — a screen-reader user who tabbed to a tumbling die was read
+   * the result a whole roll before the die drew it, and before the live region
+   * (which is what actually announces it) said anything. A die mid-tumble has
+   * no value to report; "rolling" is the true answer and the only one that
+   * cannot be early.
+   *
+   * The result still reaches a screen reader exactly once, from the live region
+   * at the moment the die settles: `aria-label` is not announced when it
+   * changes on a button, which is why the live region exists at all. Nobody
+   * loses anything here except a number that was not true yet.
    */
   private _ariaLabel(interactive: boolean, solid: DieSolid | null): string {
     const base = interactive ? 'Roll die' : 'Die';
     const values = this._faceValues();
     if (values.length === 0) return base;
+    if (this._rolling) return `${base}, rolling`;
     const shown = this._shownFaceIndex(values.length);
     return `${base} showing ${this._resolveFace(values[shown], this._usesPips(solid)).label}`;
   }

@@ -2163,3 +2163,90 @@ test.describe('a landed die reads as a solid', () => {
     });
   }
 });
+
+// ---------------------------------------------------------------------------
+// THE LABEL DOES NOT LEAD THE DIE.
+//
+// The face assignment swaps as a throw STARTS -- deliberately, so the first
+// airborne frame is already correctly numbered (see `_startRoll`) -- and
+// `aria-label` was built from it. So the button's accessible name flipped to
+// the landed value 87ms into a roll that runs for a second or more: a
+// screen-reader user who tabbed to a tumbling die was read the result a whole
+// roll before the die drew it, and before the polite live region said a word.
+//
+// The live region was and is correct. What is fixed is the label, which now
+// reports the only honest thing a die mid-tumble can: that it is rolling.
+
+test.describe('the die announces nothing it is not showing yet', () => {
+  test('aria-label says "rolling" for the whole tumble, and the value only after', async ({ page }) => {
+    test.setTimeout(120000);
+    await mountDie(page, { faceCount: 20, selectedFace: 0, dieSize: '120px' });
+    const observed = await page.evaluate(async () => {
+      const die = document.getElementById('fixture-die') as any;
+      const root = die.shadowRoot as ShadowRoot;
+      const inner = root.querySelector('#inner') as HTMLElement;
+      const button = root.querySelector('#main') as HTMLElement;
+      const live = root.querySelector('.visually-hidden') as HTMLElement;
+      const faces = die.faces.slice();
+      const selected = 7;
+
+      const labels: string[] = [];
+      const announcements: string[] = [];
+      let sawTumble = false;
+      let firstSampleMs = -1;
+
+      die.stateVersion = 1;
+      die.item = {
+        ID: 'fixture-component',
+        Values: { Faces: faces },
+        DynamicValues: { SelectedFace: selected, Value: faces[selected], RollCount: 1 },
+      };
+      const start = performance.now();
+      // Poll every frame from the instant the roll is installed, which is
+      // BEFORE the tumble exists: the label used to have flipped by 87ms.
+      while (performance.now() - start < 6000) {
+        const live0 = inner.getAnimations().length > 0;
+        if (live0) sawTumble = true;
+        if (live0) {
+          if (firstSampleMs < 0) firstSampleMs = performance.now() - start;
+          labels.push(button.getAttribute('aria-label') ?? '');
+          announcements.push(live.textContent?.trim() ?? '');
+        }
+        if (sawTumble && !live0 && performance.now() - start > 200) break;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      await die.updateComplete;
+      await die.updateComplete;
+      return {
+        sawTumble,
+        firstSampleMs,
+        samples: labels.length,
+        duringLabels: [...new Set(labels)],
+        duringAnnouncements: [...new Set(announcements)],
+        landedValue: die._roll ? String(die._roll.faces[die._roll.presented]) : null,
+        serverValue: String(faces[selected]),
+        finalLabel: button.getAttribute('aria-label'),
+        finalAnnouncement: live.textContent?.trim() ?? '',
+      };
+    });
+
+    // The premise: a real tumble really did run while this was polling, and it
+    // was sampled from close to its first frame.
+    expect(observed.sawTumble).toBe(true);
+    expect(observed.samples).toBeGreaterThan(10);
+    expect(observed.firstSampleMs).toBeLessThan(400);
+    expect(observed.landedValue).toBe(observed.serverValue);
+
+    // THE ASSERTION. Nothing the label said during the tumble named a value --
+    // not the incoming one, not the outgoing one, not any of them.
+    expect(observed.duringLabels, 'the label named something mid-roll')
+      .toEqual(['Die, rolling']);
+    // ...and the live region stayed silent for the whole of it, so the result
+    // is announced once, at the end, and not narrated.
+    expect(observed.duringAnnouncements, 'the live region spoke mid-roll').toEqual(['']);
+
+    // And once it lands, both agree on the number the die is showing.
+    expect(observed.finalLabel).toBe(`Die showing ${observed.serverValue}`);
+    expect(observed.finalAnnouncement).toBe(`Rolled ${observed.serverValue}`);
+  });
+});
