@@ -840,7 +840,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * silent bug this component invites: it is in range, it selects a face, and
    * the die shows the wrong number.
    */
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'selected-face' })
   selectedFace = 0;
 
   /**
@@ -853,7 +853,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * attached, a face's name is its own value written out, so a symbol set can
    * be keyed by plain integers and still work.
    */
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'face-names' })
   faceNames: Record<string, string> | null = null;
 
   /**
@@ -880,7 +880,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * has to wire it up; set it explicitly to drive a die that has no such
    * ancestor.
    */
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'state-version' })
   stateVersion: number | null = null;
 
   @property({ type: Boolean })

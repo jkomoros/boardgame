@@ -268,15 +268,15 @@ export class BoardgameGameBoard extends LitElement {
   checkerboard = false;
 
   /** Array of space indices to highlight (e.g., legal move destinations). */
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'highlighted-spaces' })
   highlightedSpaces: number[] = [];
 
   /** Array of space indices to dim/disable. */
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'disabled-spaces' })
   disabledSpaces: number[] = [];
 
   /** Index of the currently selected space (e.g., piece being moved). -1 = none. */
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'selected-space' })
   selectedSpace = -1;
 
   /** Explicit escape hatch for untyped child properties. Prefer a bound component view. */

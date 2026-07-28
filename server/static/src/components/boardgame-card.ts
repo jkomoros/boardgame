@@ -241,19 +241,19 @@ export class BoardgameCard extends BoardgameComponent {
   @property({ type: String })
   rank = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'face-up' })
   faceUp = false;
 
   @property({ type: Boolean, reflect: true })
   rotated = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'no-content' })
   noContent = false;
 
   @property({ type: Boolean })
   tall = false;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'aspect-ratio' })
   aspectRatio = 0.6666666;
 
   @query('#front-slot')

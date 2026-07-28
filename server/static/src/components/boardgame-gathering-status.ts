@@ -25,22 +25,22 @@ export class BoardgameGatheringStatus extends LitElement {
     }
   `;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'players-info' })
   playersInfo: PlayerInfo[] = [];
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'has-empty-slots' })
   hasEmptySlots = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-open' })
   gameOpen = false;
 
   @property({ type: Boolean })
   finished = false;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'ready-to-start-error' })
   readyToStartError = '';
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'start-move-form' })
   startMoveForm: MoveForm | null = null;
 
   private get _emptyCount(): number {

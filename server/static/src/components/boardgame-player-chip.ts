@@ -31,13 +31,13 @@ export class BoardgamePlayerChip extends LitElement {
     }
   `;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'photo-url' })
   photoUrl = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'display-name' })
   displayName = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'is-agent' })
   isAgent = false;
 
   // If set, overrides the hash-based background color with this CSS color.

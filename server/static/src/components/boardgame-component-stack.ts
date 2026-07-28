@@ -277,10 +277,10 @@ export class BoardgameComponentStack extends LitElement {
     return this._idsLastSeen;
   }
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'deck-name' })
   deckName = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'game-name' })
   gameName = '';
 
   @property({ type: Boolean })
@@ -289,13 +289,13 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   messiness = 1.0;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'no-default-spacer' })
   noDefaultSpacer = false;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'board-cols' })
   boardCols = 8;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'board-rows' })
   boardRows = 8;
 
   /** Pixel positions for spatial layout. Index i = position for component at slot i. */

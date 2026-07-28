@@ -26,7 +26,7 @@ class BoardgameRenderPlayerInfo extends LitElement {
   @property({ type: Boolean })
   active = false;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'game-name' })
   gameName = '';
 
   @property({ type: Object, attribute: false })
@@ -35,10 +35,10 @@ class BoardgameRenderPlayerInfo extends LitElement {
   @property({ type: String, attribute: false })
   rendererGameName = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'renderer-loaded' })
   rendererLoaded = false;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'player-index' })
   playerIndex = 0;
 
   @query('#container')

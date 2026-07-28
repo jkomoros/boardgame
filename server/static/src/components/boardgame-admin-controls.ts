@@ -134,28 +134,28 @@ export class BoardgameAdminControls extends LitElement {
   @property({ type: Boolean })
   active = false;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: GameRoute | null = null;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'view-as' })
   viewAs: 'custom' | 'admin' | 'current' | 'observer' = 'current';
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'custom-requested-player' })
   customRequestedPlayer = 0;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'make-moves-as-viewing-as-player' })
   makeMovesAsViewingAsPlayer = true;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
   @property({ type: Object })
   chest: unknown = null;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'current-state' })
   currentState: unknown = null;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'move-forms' })
   moveForms: MoveForm[] = [];
 
   @property({ type: Object })

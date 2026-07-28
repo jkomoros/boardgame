@@ -161,10 +161,10 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   @property({ type: Boolean })
   spacer = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'no-shadow' })
   noShadow = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'alt-shadow' })
   altShadow = false;
 
   @query('#inner')

@@ -49,16 +49,16 @@ export class BoardgameGatheringRolePicker extends LitElement {
     }
   `;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'move-form' })
   moveForm: MoveForm | null = null;
 
   @property({ type: Object })
   state: any = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'players-info' })
   playersInfo: PlayerInfo[] = [];
 
   private get _availableRoles(): EnumValue[] {

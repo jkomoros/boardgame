@@ -80,7 +80,7 @@ export class BoardgameTableViewBase<
    * with the surface=table cookie). Host-only controls (Lock room toggle,
    * SkipTurn button on the current-player badge) are gated on this flag.
    */
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'is-host' })
   isHost = false;
 
   /**
@@ -94,7 +94,7 @@ export class BoardgameTableViewBase<
    * (sanitized stacks still carry placeholder indexes, so counts survive
    * hiding). Set false for bespoke animation wiring.
    */
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'auto-fly-deals' })
   autoFlyDeals = true;
 
   // Compatibility baseline: the first visible snapshot establishes counts
@@ -145,7 +145,7 @@ export class BoardgameTableViewBase<
    * locked the room against new joiners). Renders as a closed-padlock
    * indicator on the room code display.
    */
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'room-locked' })
   roomLocked = false;
 
   /**
@@ -153,7 +153,7 @@ export class BoardgameTableViewBase<
    * smaller, in a corner during gameplay. Empty string before the server
    * has resolved it.
    */
-  @property({ type: String })
+  @property({ type: String, attribute: 'room-code' })
   roomCode = '';
 
   // gameName + gameId are populated by boardgame-render-game's

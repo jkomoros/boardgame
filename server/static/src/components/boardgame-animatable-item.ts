@@ -51,7 +51,7 @@ interface PlayInstrumentation {
 }
 
 export class BoardgameAnimatableItem extends LitElement {
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'no-animate' })
   noAnimate = false;
 
   // Installed by the shared animator for the state version currently being

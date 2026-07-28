@@ -25,7 +25,7 @@ export abstract class BoardgameBasePlayerInfoRenderer<
   @property({ type: Object })
   state: State | null = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'player-index' })
   playerIndex = 0;
 
   private _lastChipPresentation: PlayerChipPresentationChangedDetail | null = null;

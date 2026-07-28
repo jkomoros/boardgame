@@ -96,13 +96,13 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
   @property({ type: Boolean })
   admin = false;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: GameRoute | null = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'move-as-player' })
   moveAsPlayer = 0;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'game-version' })
   gameVersion = 0;
 
   // animating mirrors boardgame-render-game's isAnimating, threaded down

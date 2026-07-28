@@ -92,19 +92,19 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     }
   `;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'has-empty-slots' })
   hasEmptySlots = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-open' })
   gameOpen = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-visible' })
   gameVisible = false;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: GameRoute | null = null;
 
   @property({ type: Boolean })
@@ -113,13 +113,13 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   @property({ type: Boolean })
   admin = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'is-owner' })
   isOwner = false;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'players-info' })
   playersInfo: PlayerInfo[] = [];
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'current-player-index' })
   currentPlayerIndex = 0;
 
   @property({ type: Object })
@@ -131,10 +131,10 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   @property({ type: Array })
   winners: number[] = [];
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'logged-in' })
   loggedIn = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'renderer-loaded' })
   rendererLoaded = false;
 
   @property({ type: String, attribute: false })
@@ -143,15 +143,15 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   private _rendererLoadGeneration = 0;
 
   // Framework-computed CSS colors per player (from selectPlayerColors).
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'player-colors' })
   playerColors: string[] = [];
 
   // Framework-computed activity per player (from selectPlayerActivity).
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'player-activity' })
   playerActivity: boolean[] = [];
 
   // Custom player display order (from selectPlayerOrder), or null for default.
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'player-order' })
   playerOrder: number[] | null = null;
 
   @query('#join')

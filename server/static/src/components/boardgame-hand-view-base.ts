@@ -73,7 +73,7 @@ export class BoardgameHandViewBase<
    * player's stacks does not retrigger. New authored choreography belongs in
    * motionTransfersForTransition(); set this false when opting into it.
    */
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'auto-fly-incoming' })
   autoFlyIncoming = true;
 
   // Compatibility baseline. A first render or identity change records the

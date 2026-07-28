@@ -73,22 +73,22 @@ const MAX_COMPANION_WAIT_MS = 10_000;
  * increases, that increments TargetVersion, which changes the URL to fetch.
  */
 class BoardgameGameStateManager extends connect(store)(LitElement) {
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: { name: string; id: string } | null = null;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-finished' })
   gameFinished = false;
 
   @property({ type: Boolean })
   admin = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'auto-current-player' })
   autoCurrentPlayer = false;
 
   @property({ type: Boolean })
   active = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'logged-in' })
   loggedIn = false;
 
   @property({ type: String, attribute: false })
@@ -97,19 +97,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: String, attribute: false })
   gameViewPath = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'game-base-path' })
   gameBasePath = '';
 
   @property({ type: String, attribute: false })
   effectiveGameVersionPath = '';
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'requested-player' })
   requestedPlayer = 0;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'active-renderer' })
   activeRenderer: HostedGameRenderer | null = null;
 
   @property({ type: String, attribute: false })

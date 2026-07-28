@@ -134,28 +134,28 @@ export class BoardgameUser extends connect(store)(LitElement) {
     }
   `;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _verifyingAuth = false;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: false })
   private _user: UserInfo | null = null;
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _errorMessage = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _dialogOpen = false;
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _email = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _password = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _isCreate = false;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: false })
   private _selectedPage = 0;
 
   stateChanged(state: any): void {

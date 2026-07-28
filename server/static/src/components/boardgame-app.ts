@@ -287,12 +287,12 @@ export class BoardgameApp extends connect(store)(LitElement) {
     }
   `;
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _page = '';
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _pageExtra = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _errorShowing = false;
 
   // Raw payload of the error dialog currently on screen, used to collapse the
@@ -300,22 +300,22 @@ export class BoardgameApp extends connect(store)(LitElement) {
   // error. See _handleShowError.
   private _lastShownErrorKey: string | null = null;
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _errorMessage = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _errorFriendlyMessage = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _errorTitle = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _adminAllowed = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _admin = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _drawerOpen = false;
 
   firstUpdated() {
