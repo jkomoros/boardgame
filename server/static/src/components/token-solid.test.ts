@@ -151,9 +151,26 @@ test('the camera leans towards the viewer, so the up face is visible', () => {
 });
 
 test('the pose depends on nothing but the shape', () => {
+  // `TokenSolid` has no `pose` field and has not had one since the projection
+  // moved to build time -- the pose is baked into every facet's already-
+  // projected outline. This test compared `.pose` on two solids, so both sides
+  // were `undefined` and it asserted nothing; `*.test.ts` is outside
+  // tsconfig.json's `include`, so the type checker never saw it either.
+  //
+  // What must not vary with colour is therefore the GEOMETRY of the facet
+  // styles: their boxes, their offsets and their clip paths, i.e. everything
+  // but the fill.
+  const geometry = (shape: TokenSolidShape, color: string) =>
+    tokenSolid(shape, color).facets.map((facet) => facet.style.replace(/;background:.*$/, ''));
+  const fills = (shape: TokenSolidShape, color: string) =>
+    tokenSolid(shape, color).facets.map((facet) => fillOf(facet.style));
   for (const shape of SHAPES) {
     assert.deepEqual(restingPose(shape), restingPose(shape));
-    assert.deepEqual(tokenSolid(shape, 'red').pose, tokenSolid(shape, 'blue').pose);
+    assert.deepEqual(geometry(shape, 'red'), geometry(shape, 'blue'),
+      `${shape} is posed differently depending on its colour`);
+    // ...and not vacuous in the other direction: the colours DO differ, so the
+    // two solids being compared are genuinely two different solids.
+    assert.notDeepEqual(fills(shape, 'red'), fills(shape, 'blue'));
   }
 });
 
