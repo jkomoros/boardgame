@@ -82,6 +82,58 @@ So: **add an opt-in to `RawSolid` for author-ordered loops** and skip the rederi
 is a small seam, it is what the convex prisms need anyway, and it leaves the door open if
 the browser ever gains a real sort. It must not change any shipped die by a ULP.
 
+## SUPERSEDED BY MEASUREMENT: a token has no 3D context at all
+
+The sections below describe putting a live `preserve-3d` scene on a token's `#inner`. That
+shipped, and then measurement forced it out. Kept because the reasoning about `#inner`,
+FLIP and the resting pose remains correct and load-bearing — only the *rendering mechanism*
+changed.
+
+**What was found.** The real cost is not facet count. **Chromium promotes every element
+inside a live `preserve-3d` context to its own compositor layer the moment an ancestor
+transform animates** — which is precisely what a stack's FLIP does on every move. Measured
+in `pass` at 55 tokens, read from CDP's `LayerTree`:
+
+| | painted layers | layer area |
+|---|---|---|
+| flat SVG art | 57 | 1.6 Mpx |
+| 3D solids, at rest | nothing promoted | — |
+| 3D solids, hosts animating | **1,047** | **88.6 Mpx** |
+
+That explains every symptom the facet-count theory could not: linear in facets (one layer
+each), zero for flat art, fine at rest, and unmoved by promoting the container — because the
+promotion was never the container's to give. Removing any *two* of {`perspective`,
+`preserve-3d`, facet 3D transforms} still left ~1,000 layers; all three had to go.
+
+**So the "second wall under the layer cliff" WAS the layer cliff**, previously measured at
+rest, where it does not bite.
+
+**The fix, and why it is not a compromise.** A token's pose is a **constant** — it never
+tumbles, and its orientation is a pure function of its shape. So its projection is a
+constant too. The perspective divide is done **once at build time** and the renderer emits
+flat, untransformed `clip-path` polygons; back faces are culled at build time, which
+convexity makes exactly as sufficient as `backface-visibility` was, and which means nothing
+needs sorting at all. A 12-side prism draws 6 of its 14 polygons; a cube draws 3 of 6.
+
+| `pass`, 55 tokens | before | after | flat-art control |
+|---|---|---|---|
+| at rest | 31.0 | **59.8** | — |
+| during a real move | 30.0 | **60.5** | 59.6 |
+
+Nothing about the die changed — a die genuinely tumbles, so its pose is not constant and it
+still needs a real 3D context.
+
+**Consequence for the trip-wires below:** the facet budget and the 12-side cap were derived
+from the layer cliff. With no 3D context, a token's facets are ordinary clipped divs, and
+that budget no longer binds the same way. The 12-side cap stays for now on *appearance*
+grounds (a dodecagon reads as a dodecagon above ~100px), not performance.
+
+**Caveat found in passing:** `pass` and `checkers` are **never actually at rest**. A
+relayout loop (`slotchange` → `_updateComponentClasses` → `layoutTransform` → `play()`)
+starts fresh 500ms animations on every component roughly twice a second, forever. It is
+pre-existing and identical with flat art — but it means the earlier "60.3fps at rest"
+figure was measuring an animating board, and it deserves its own investigation.
+
 ## Where the scene lives, and why the stack is not the risk
 
 `#inner` is the carrier. It is what `motionTrackTarget('visual')` returns, and for a token
