@@ -138,10 +138,72 @@ contract.
   pass through each other. Not a small extension; explicitly out of scope.
 - **No layer promotion.** `will-change: transform` on facets exists so promotion is in
   place *before a roll starts*; a static token has no such need, and declining it means a
-  3D token promotes no layers at all. The measured ~330-layer cliff is a dice constraint
-  tokens simply do not inherit. This matters: `pass` shows **55 tokens at once**.
+  3D token promotes no layers at all.
 - **No face content**, no reading pose, no `readingRule`, no `capFaces` semantics, no
   legibility floor. Tokens carry no marks.
+
+### The facet budget — a second wall, under the layer cliff
+
+Declining promotion does **not** buy unlimited facets. The ~330-layer cliff is a
+*promotion* cost; there is an independent wall in raw `clip-path`-ed element count.
+Measured at rest, no animation, in a real game:
+
+| tokens | sides/prism | facet elements | promoted | fps |
+|---|---|---|---|---|
+| 55 | 6 | 440 | no | **60.0** |
+| 55 | 12 | 770 | no | **60.0** |
+| 55 | 24 | 1430 | no | **42.8** |
+| 55 | 24 | 1430 | yes | 42.4 |
+| 68 | 24 | 1768 | no | **32.4** |
+
+Promotion changes nothing (42.4 vs 42.8), which both confirms the layer reasoning and
+proves this is a different wall. **Budget: ~800 facet elements is free, ~1400 is not.**
+With `pass` at 55 tokens, that caps a prism at **12 sides**. Whether 12 sides reads as
+round for a `disc` or `chip` is an open question for implementation — if it does not, that
+is a trip-wire (below), not a licence to spend facets.
+
+## Why not WebGL
+
+Asked and answered properly, with a prototype, rather than assumed. **Keep CSS 3D** — but
+for the right reasons, because three plausible-sounding wrong reasons would block the
+correct decision later.
+
+- **A z-buffer would make the sorting problem vanish entirely** — no tilt band, no comb
+  pathology, no non-monotone failure. That is the strongest argument for WebGL and it is
+  real. It is also a capability this design **declines** rather than a bug it suffers, and
+  that is what settles it.
+- **"Canvas cannot keep the compositing premise" is FALSE, and must not be written down.**
+  A main-thread rAF loop rendered **0 of 46** frames under an 800ms block — but an
+  **OffscreenCanvas in a Worker rendered 47 of 47**, and the full architecture at 68
+  components rendered 46 of 46. The premise is recoverable by the same trick the baking
+  already uses: precompute, hand it to something that is not the main thread.
+- **"The parity harness forbids it" overstates the harness.** The die's tumble already has
+  no geometry golden — it is covered by comparing rendered keyframes against a recomputed
+  trajectory — and `die-shape.spec.ts`'s screencast + hull-deficit harness is entirely
+  renderer-agnostic. The harness constrains *how* to test, not *what* to build.
+- **The real cost is text.** The legibility system — inscribed content squares, corner-mark
+  insets, the 6px floor — is DOM typography, and reproducing it in GL means an SDF glyph
+  atlas and re-deriving every tuned constant. That, plus losing the element inspector on a
+  pipeline whose bugs were repeatedly found by inspecting elements, is the actual price.
+
+Measured and worth banking, because they make a future crossing cheap: the WebGL context
+cap is exactly **16** (one context per component is dead on arrival at 24 checkers pieces);
+a per-component canvas inside `#inner` rides a real 485px cross-stack FLIP with **0.00px**
+tracking error over 166 frames; a hand-rolled renderer is **2.3KB gzipped** with no new
+dependency and no asset pipeline (meshes extrude from the SVGs already shipped);
+accessibility and hit-testing are **unchanged**, because they live on the host and the
+canvas is `pointer-events: none`.
+
+One architecture is ruled out permanently: a **shared board-wide overlay canvas** that
+tracks components by reading their rects. Under an 800ms block it stranded a piece **255px**
+from its own focus ring and hit target, and could not self-correct on the first frame back.
+
+**Trip-wires that flip this decision.** Any one firing means revisit:
+1. A shape in scope must be a real solid at any angle (i.e. a game wants a meeple that
+   genuinely *is* a meeple).
+2. A `disc`/`chip` needs more than ~16 sides to read as round, or any game ships more than
+   ~70 3D pieces — either pushes past the 1400-facet wall.
+3. Real contact shadows or inter-piece occlusion become design goals.
 
 ## Bugs found in passing (fix on-branch, with evidence)
 
