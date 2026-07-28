@@ -25,7 +25,7 @@ import {
 import type { Component } from '../types/boardgame-types.js';
 import { cssNumber as num } from '../solid/screen-frame.js';
 import { solidFacets, type SolidFacet } from '../solid/facet-placement.js';
-import { landedContentTransform, readingPoseTransform } from '../solid/reading-pose.js';
+import { readingPoseTransform } from '../solid/reading-pose.js';
 import {
   CORNER_GLYPH_HEIGHT,
   GLYPH_HEIGHT,
@@ -312,13 +312,6 @@ interface DieRoll {
   readonly curve: (progress: number) => string;
   /** Byte-identical to `curve(1)`: see `_playRoll`. */
   readonly resting: string;
-  /**
-   * What `#orient` carries for the whole of this roll: the turn, about the
-   * landed face's OWN normal, that leaves the number the player has to read the
-   * right way up. See `landedContentTurn` for why it is that axis and why it
-   * cannot disturb the scene the tumble is framed in.
-   */
-  readonly contentUpright: string;
 }
 
 class BoardgameDie extends BoardgameAnimatableItem {
@@ -1309,7 +1302,6 @@ class BoardgameDie extends BoardgameAnimatableItem {
         // single rounding digit of disagreement would show up as the die
         // twitching as it settles.
         resting: scene.resting,
-        contentUpright: landedContentTransform(geometry, die.restingOrientation, presented),
       };
     } catch (error) {
       // A geometry the simulator or the bake refuses. Nothing here may throw
@@ -1716,20 +1708,21 @@ class BoardgameDie extends BoardgameAnimatableItem {
   private _renderSolid(solid: DieSolid) {
     const values = this._faceValues();
     const usePips = this._usesPips(solid);
-    // Once the die has rolled, its AIM is the physics's entirely: #inner holds
-    // the tumble (and, once it finishes, the trajectory's own resting
-    // transform, written by the motion-track kernel), so #orient must not carry
-    // a second presentation pose or the two would compose into a third.
+    // Once the die has rolled, the whole of its pose is the scene's: #inner
+    // holds the tumble (and, once it finishes, the trajectory's own resting
+    // transform, written by the motion-track kernel), and that transform ends
+    // in `landedReadingPose` -- the aim, the lean AND the roll that leaves the
+    // landed numeral upright. So #orient must carry nothing at all, or the two
+    // would compose into a third pose.
     //
-    // What it does carry is the one turn the scene structurally cannot: the
-    // roll about the LANDED FACE'S OWN NORMAL that leaves the number upright.
-    // That axis is why it belongs here rather than in the scene -- it is a
-    // rotation of the die about the face being read, so it survives being
-    // applied inside the tumble's pose, and it provably cannot change which
-    // facet is most square-on (see `landedContentTurn`). The presentation pose
-    // is what a die that has never rolled is shown in, and only that.
+    // It used to carry the upright roll, about the landed face's own normal,
+    // because the scene structurally could not: a rotation about that normal
+    // fixes it, so the presented facet stayed the most square-on one. What it
+    // did NOT fix was every other facet's depth, and on a d4 that undid the
+    // lean that makes a tetrahedron read as a solid at all. The roll is a roll
+    // of the picture now, inside the scene, where it cannot (see `readingPose`).
     const orient = this._roll
-      ? this._roll.contentUpright
+      ? 'none'
       : readingPoseTransform(solid.geometry, this._presentedFaceIndex(solid.geometry.faceCount));
     // Which facet the player is meant to read: the one the physics landed once
     // the die has rolled, the selected one before that. It is emphasised in

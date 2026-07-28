@@ -100,9 +100,8 @@ import { trajectoryCurve } from './dice-bake.ts';
 import { cssNumber, toScreen } from '../solid/screen-frame.ts';
 import {
   applyTurn,
-  readingPose,
+  landedReadingPose,
   rotate3d,
-  surfaceDirections,
   type Turn,
 } from '../solid/reading-pose.ts';
 
@@ -407,14 +406,26 @@ export interface RollScene {
 /**
  * One simulated throw, as the CSS `#inner` carries for every frame of it.
  *
- * The pose is `readingPose` handed the facet normals AS THE THROW LEFT THEM, so
- * a rolled die is framed exactly the way a die that has never rolled is framed —
- * see `readingPose` for why that has to be one routine and not two. Note what it
- * is NOT allowed to do: `minimalTurn` carries the landed face round to the
- * reading direction about an axis perpendicular to that face's own normal, so
- * the pose aims the camera and cannot twist the die about the face being read.
- * Whatever roll the simulation stopped at survives, which is what a real die
- * does.
+ * The pose is `landedReadingPose` — `readingPose` handed the facet normals AS
+ * THE THROW LEFT THEM — so a rolled die is framed exactly the way a die that has
+ * never rolled is framed; see `readingPose` for why that has to be one routine
+ * and not two. Note what the AIM is not allowed to do: `minimalTurn` carries the
+ * landed face round to the reading direction about an axis perpendicular to that
+ * face's own normal, so it aims the camera and cannot twist the die about the
+ * face being read. The one turn that does twist it is the last of the three, and
+ * it is a roll of the whole PICTURE about the camera axis that leaves the landed
+ * numeral upright — the same turn, from the same routine, that a die which has
+ * never rolled gets.
+ *
+ * That roll is in `turns`, so it poses the TRAVEL too, and it may be read as
+ * turning the throw's screen bearing. It does not change how far the die
+ * travels or how big any step in the flight is: `entrySimilarity` below rotates
+ * the whole path rigidly anyway, its scale depends only on the entry's lateral
+ * DISTANCE (which a screen-plane rotation preserves exactly), and it clamps the
+ * bearing into a cone about straight up regardless. Every number in
+ * `MAX_ENTRY_OFFSET_DIE_WIDTHS`'s and `MAX_ENTRY_LEAN_DEGREES`'s measurements
+ * is therefore untouched by it; only which direction inside the cone a given
+ * throw enters from moves.
  *
  * The emitted list is, outermost first:
  *
@@ -451,10 +462,8 @@ export function rollScene(
   // `null` would put a dead `rotate3d(..., 0deg)` in every one of up to 256
   // keyframes. Dropped BEFORE the travel below is computed, so the offset is
   // minus the position the emitted list actually poses the die at.
-  const turns = readingPose(
-    surfaceDirections(geometry, die.restingOrientation), presented,
-    { uprightContent: false },
-  ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
+  const turns = landedReadingPose(geometry, die.restingOrientation, presented)
+    .filter((turn) => Math.abs(turn.degrees) > 1e-4);
   const samples = die.samples;
   const first = samples[0].t;
   const last = samples[samples.length - 1].t;

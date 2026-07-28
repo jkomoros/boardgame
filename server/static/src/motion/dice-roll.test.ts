@@ -14,7 +14,7 @@ import {
   settledTrajectory,
 } from './dice-roll.ts';
 import { presentedFaceIndex } from './die-faces.ts';
-import { readingPose, surfaceDirections } from '../solid/reading-pose.ts';
+import { landedReadingPose } from '../solid/reading-pose.ts';
 
 /**
  * A hand-built trajectory. Nothing here calls `simulateRoll`: the properties
@@ -160,9 +160,8 @@ test('a roll comes to rest on the origin of its own box', () => {
   // minus the posed resting position, applied the way the browser will: the list
   // reads outermost first, so the last entry acts first.
   const offset = travelOf(scene.transform(0));
-  const turns = readingPose(
-    surfaceDirections(geometry, die.restingOrientation), 0, { uprightContent: false },
-  ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
+  const turns = landedReadingPose(geometry, die.restingOrientation, 0)
+    .filter((turn) => Math.abs(turn.degrees) > 1e-4);
   const posedAt = (point: Vec3) => turns.reduceRight(
     (value, turn) => rotate(value, turn.axis, turn.degrees), point);
   // toScreen (CSS y points down), then to px.
@@ -397,9 +396,8 @@ test('the entry cap is one similarity of the whole path, not a per-frame nudge',
   ]);
   const radiusPx = 50;
   const scene = rollScene(geometry, die, 3, radiusPx, 600);
-  const raw = readingPose(
-    surfaceDirections(geometry, die.restingOrientation), 3, { uprightContent: false },
-  ).filter((turn) => Math.abs(turn.degrees) > 1e-4);
+  const raw = landedReadingPose(geometry, die.restingOrientation, 3)
+    .filter((turn) => Math.abs(turn.degrees) > 1e-4);
   const posedAt = (point: Vec3) => raw.reduceRight(
     (value, turn) => rotate(value, turn.axis, turn.degrees), point);
   const rest = posedAt(vec3(0, 0, 0));

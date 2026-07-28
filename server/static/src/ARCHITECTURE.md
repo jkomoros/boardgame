@@ -306,15 +306,24 @@ pipeline is five pure modules and one component, each testable without a DOM:
    presented facet at most half the smallest angle between any two of the
    solid's facet normals, which is what guarantees that the face carrying the
    value is the most square-on facet on the die rather than a neighbour of it.
+   It also leans far enough for a SECOND facet to be visible where the solid's
+   normals are too far apart for the fixed tilt to manage (`companionTilt`,
+   which on this set of shapes means the d4 and nothing else) — without it a
+   tetrahedron renders as the flat triangle the 2D die it replaces was.
+
    Aiming cannot rotate the numeral upright — its turn is about an axis
-   perpendicular to the face's normal — so a second, separate turn does that:
-   `landedContentTurn` solves in closed form for the roll about the presented
-   facet's OWN normal that leaves its content the right way up, and the
-   component carries it on `#orient`, inside the scene's pose. About that axis
-   it fixes the presented normal and preserves every pairwise facet angle, so
-   it provably cannot cost the presented face its square-on lead. (Only the
-   presented facet's content is corrected; the rest keep whatever orientation
-   their geometry gives them.)
+   perpendicular to the face's normal — so a third turn does that: a roll about
+   the CAMERA axis, solved in closed form for the content direction the caller
+   hands over (`facetBasis` of the resting normal for a die that has never
+   moved, `landedContentDown` for one a throw has put down). About that axis it
+   leaves every facet's depth alone, so it can cost neither the presented face
+   its square-on lead nor the companion its visibility. It used to be a turn
+   about the presented facet's OWN normal, carried on `#orient` inside the
+   scene's pose; that kept the lead (it fixes the presented normal) but not the
+   lean, and it took a landed d4 back to a flat triangle in a quarter of throws.
+   `#orient` now carries the resting pose or nothing at all. (Only the presented
+   facet's content is corrected; the rest keep whatever orientation their
+   geometry gives them.)
 
    A roll is played for the simulator's own duration with no dead tail: the
    simulator ends a trajectory at the last frame in which the die was still

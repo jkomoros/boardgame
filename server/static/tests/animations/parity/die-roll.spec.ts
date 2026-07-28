@@ -1473,8 +1473,8 @@ test.describe('boardgame-die post-roll readability', () => {
   // THE LANDED NUMBER IS UPRIGHT, on every shape.
   //
   // The tolerance is deliberately tiny rather than generous, because the
-  // correction is EXACT and not approximate: `landedContentTurn` solves in
-  // closed form for the turn about the landed facet's own normal that puts its
+  // correction is EXACT and not approximate: `readingPose` solves in closed
+  // form for the roll, about the camera axis, that puts the landed facet's own
   // local +y on the screen's vertical, so anything left over is Chromium's own
   // serialization of the composed matrix (about six significant figures, worth
   // ~5e-4 degrees here) and nothing else. A tolerance of, say, 15 degrees would
@@ -1994,4 +1994,172 @@ test.describe('boardgame-die roll aftermath', () => {
     expect(result.reelFaces).toBe(0);
     expect(result.ariaLabel).toBe('Die');
   });
+});
+
+// ---------------------------------------------------------------------------
+// A LANDED DIE STILL READS AS A SOLID.
+//
+// The resting pose has a fix for a solid whose other facets are too far round
+// to be seen -- `companionTilt`, which leans the pose until the most face-on of
+// them reaches `COMPANION_VIEW_LIMIT` (75 degrees off the camera axis) and not
+// one degree further. It is generic, not face-count-specific, and on a d4 --
+// whose other three normals are 109.47 degrees away, past where
+// `backface-visibility: hidden` culls them -- it is the difference between a
+// flat triangle and a tetrahedron.
+//
+// It did not survive LANDING. The landed numeral used to be straightened by a
+// separate turn about the presented facet's OWN normal, emitted on `#orient`
+// INSIDE the scene's pose. That turn fixes the presented normal and preserves
+// every pairwise angle, so it provably could not cost the presented facet its
+// dominance -- and there was a test asserting exactly that, passing. What it
+// does move is every other facet's DEPTH, and measured analytically over 12
+// seeded landings it carried the companion the tilt had just placed at exactly
+// 75.0 degrees to anywhere between 71.0 and 88.4, leaving the second facet a
+// hairline in 3 of them.
+//
+// The correction is a roll of the PICTURE about the camera axis now, from the
+// same `readingPose` a die that has never rolled uses, so it cannot: a rotation
+// about +Z leaves every direction's z alone.
+//
+// Measured here from the RENDER, by hit-testing a grid over the die -- not from
+// normals, which is what the analytic argument above already covers, and not
+// from the animation's frames, which is a different question (see
+// `die-shape.spec.ts`'s hull-deficit test). The pose under test is a static
+// state: `fill: 'none'` means a finished tumble renders the resting style.
+
+/**
+ * Which facets a LANDED die shows, over `rolls` seeded throws, by share of the
+ * die's own hit area.
+ *
+ * Counted by share and not by "was hit at all": a facet a few degrees off
+ * edge-on is a sliver a pixel or two wide, which is not a facet a player can
+ * see. `minShare` is the same 0.05 `die-shape.spec.ts` uses for the resting
+ * pose, so the two poses are judged by one standard.
+ */
+async function landedVisibleFacets(
+  page: import('@playwright/test').Page,
+  options: { faceCount: number; rolls: number; minShare: number },
+) {
+  return await page.evaluate(async (opts) => {
+    await import('/src/components/boardgame-die.ts');
+    document.querySelectorAll('boardgame-die').forEach((el) => el.remove());
+    const die = document.createElement('boardgame-die') as any;
+    die.id = 'landed-visibility-die';
+    die.style.cssText = 'position:fixed;top:200px;left:200px;z-index:9999;';
+    // 200px, the size the resting-pose measurement uses: big enough that a
+    // facet's projected size is a real number of hit-test cells.
+    die.style.setProperty('--die-size', '200px');
+    const faces = Array.from({ length: opts.faceCount }, (_, i) => (i + 1) * 10);
+    die.item = {
+      ID: 'landed-visibility-component',
+      Values: { Faces: faces },
+      DynamicValues: { SelectedFace: 0, Value: faces[0], RollCount: 0 },
+    };
+    document.body.appendChild(die);
+    await die.updateComplete;
+    await die.updateComplete;
+    const root = die.shadowRoot as ShadowRoot;
+
+    const sample = (presented: number) => {
+      const box = (root.querySelector('#main') as HTMLElement).getBoundingClientRect();
+      const hits = new Map<string, number>();
+      const N = 60;
+      for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+          const hit = (root as any).elementFromPoint(
+            box.left + ((i + 0.5) / N) * box.width,
+            box.top + ((j + 0.5) / N) * box.height,
+          ) as Element | null;
+          const facet = hit?.closest?.('.facet') as HTMLElement | null;
+          if (!facet) continue;
+          const key = facet.dataset.faceIndex
+            ?? `cap${Array.from(root.querySelectorAll('.facet')).indexOf(facet)}`;
+          hits.set(key, (hits.get(key) ?? 0) + 1);
+        }
+      }
+      const total = [...hits.values()].reduce((a, b) => a + b, 0);
+      return {
+        total,
+        distinctFacetsVisible:
+          [...hits.values()].filter((value) => value / total >= opts.minShare).length,
+        presentedShare: total ? (hits.get(String(presented)) ?? 0) / total : 0,
+        shares: Object.fromEntries(
+          [...hits.entries()].map(([key, value]) => [key, Number((value / total).toFixed(3))]),
+        ),
+      };
+    };
+
+    const results: any[] = [];
+    for (let seed = 1; seed <= opts.rolls; seed++) {
+      const selected = seed % opts.faceCount;
+      die.item = {
+        ID: 'landed-visibility-component',
+        Values: { Faces: faces },
+        DynamicValues: { SelectedFace: selected, Value: faces[selected], RollCount: seed },
+      };
+      for (let pass = 0; pass < 5; pass++) await die.updateComplete;
+      const inner = root.querySelector('#inner') as HTMLElement;
+      // Finish rather than wait: `fill: 'none'` renders the resting style the
+      // instant the tumble is done, and that resting style IS the pose here.
+      inner.getAnimations().forEach((animation) => animation.finish());
+      await die.updateComplete;
+      const presented = die._roll ? die._roll.presented : -1;
+      const facet = root.querySelector(`.facet[data-face-index="${presented}"]`) as HTMLElement;
+      results.push({
+        seed,
+        presented,
+        serverValue: faces[selected],
+        presentedValue: facet?.dataset.faceValue ?? null,
+        ...sample(presented),
+      });
+    }
+    die.remove();
+    return results;
+  }, options);
+}
+
+test.describe('a landed die reads as a solid', () => {
+  // Every shape the critique screenshotted. The d4 is the one the companion
+  // tilt exists for; the other four are the controls that say the fix did not
+  // buy the tetrahedron anything at the rest of the set's expense.
+  for (const faceCount of [4, 6, 10, 12, 20]) {
+    test(`a landed d${faceCount} shows more than one facet`, async ({ page }) => {
+      test.setTimeout(180000);
+      await page.goto('/');
+      const landed = await landedVisibleFacets(page, { faceCount, rolls: 8, minShare: 0.05 });
+      expect(landed.length).toBe(8);
+
+      // The premise: these really are landed dice, showing the value the
+      // server chose. A measurement of the wrong facet proves nothing.
+      for (const pose of landed) {
+        expect(pose.presented, `d${faceCount} seed ${pose.seed} did not land`)
+          .toBeGreaterThanOrEqual(0);
+        expect(pose.presentedValue, `d${faceCount} seed ${pose.seed} presented value`)
+          .toBe(String(pose.serverValue));
+        expect(pose.total, `d${faceCount} seed ${pose.seed} hit nothing`).toBeGreaterThan(100);
+      }
+
+      const flat = landed.filter((pose: any) => pose.distinctFacetsVisible < 2);
+      expect(flat.map((pose: any) =>
+        `seed ${pose.seed}: ${JSON.stringify(pose.shares)}`),
+        `${flat.length}/${landed.length} landed d${faceCount} poses read as a single flat polygon`)
+        .toEqual([]);
+
+      // ...and the face carrying the value is still the dominant one, which is
+      // what stops "show a second facet" being satisfied by drowning the first.
+      // Asserted for the d4 only, for the same reason the resting-pose test
+      // does: it is the shape the tilt touches, and its facets are big enough
+      // that Chromium's hit testing of a preserve-3d subtree is dependable.
+      if (faceCount === 4) {
+        for (const pose of landed) {
+          expect(pose.presentedShare,
+            `d4 seed ${pose.seed} presented share, shares ${JSON.stringify(pose.shares)}`)
+            .toBeGreaterThan(0.5);
+          expect(pose.presentedShare,
+            `d4 seed ${pose.seed} presented share, shares ${JSON.stringify(pose.shares)}`)
+            .toBeLessThan(0.95);
+        }
+      }
+    });
+  }
 });

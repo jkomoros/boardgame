@@ -428,10 +428,11 @@ test.describe('boardgame-die solid', () => {
   // is exactly why eyeballing one shape proves nothing.
   //
   // Only the RESTING pose is pinned here; a die the physics has put down is
-  // straightened by a different routine about a different axis
-  // (`landedContentTurn`, on `#orient`), and `die-roll.spec.ts` measures that
-  // one. The two have to agree, or the die would visibly change angle across a
-  // page reload.
+  // straightened by the same `readingPose` roll about the same camera axis, but
+  // from the content direction the LANDING left (`landedContentDown`) rather
+  // than from `facetBasis` of the resting normal, and `die-roll.spec.ts`
+  // measures that one. The two have to agree, or the die would visibly change
+  // angle across a page reload.
   for (const faceCount of [4, 6, 7, 8, 10, 12, 20]) {
     test(`d${faceCount} rests with the presented face's content upright`, async ({ page }) => {
       const worst: string[] = [];

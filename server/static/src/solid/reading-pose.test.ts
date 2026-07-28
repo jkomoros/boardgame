@@ -16,8 +16,8 @@ import { CAMERA_AXIS, facetBasis, toScreen } from './screen-frame.ts';
 import {
   applyTurn,
   companionTilt,
-  landedContentTransform,
-  landedContentTurn,
+  landedContentDown,
+  landedReadingPose,
   minimalTurn,
   presentedTiltLimit,
   readingPose,
@@ -50,6 +50,24 @@ function degreesBetween(a: Vec3, b: Vec3): number {
  */
 function pose(turns: readonly Turn[], v: Vec3): Vec3 {
   return turns.reduceRight((point, turn) => applyTurn(point, turn), v);
+}
+
+/**
+ * The content-down direction a solid that has never moved hands `readingPose`:
+ * the facet's local +y as `facet-placement.ts` lays its box out along. Spelled
+ * once here because every test below that asks for an upright pose asks for
+ * exactly this one, and `readingPoseTransform` is what it mirrors.
+ */
+function restingContentDown(directions: readonly Vec3[], presented: number): Vec3 {
+  return facetBasis(directions[presented]).v;
+}
+
+/** `readingPose`'s two modes, as the option objects the tests hand it. */
+function poseModes(directions: readonly Vec3[], presented: number) {
+  return [
+    { label: 'upright', options: { contentDown: restingContentDown(directions, presented) } },
+    { label: 'raw', options: { contentDown: null } },
+  ] as const;
 }
 
 test('applyTurn is a rigid rotation: lengths and angles survive', () => {
@@ -150,15 +168,15 @@ test('the pose leaves the presented facet the most square-on facet, on every sol
     const geometry = dieGeometry(faceCount);
     const directions = surfaceDirections(geometry);
     for (let presented = 0; presented < geometry.faces.length; presented++) {
-      for (const uprightContent of [true, false]) {
-        const turns = readingPose(directions, presented, { uprightContent });
+      for (const { label, options } of poseModes(directions, presented)) {
+        const turns = readingPose(directions, presented, options);
         const posed = directions.map((direction) => pose(turns, direction));
         const own = degreesBetween(posed[presented], CAMERA_AXIS);
         posed.forEach((direction, index) => {
           if (index === presented) return;
           const other = degreesBetween(direction, CAMERA_AXIS);
           assert.ok(other >= own + READING_MARGIN - 1e-6,
-            `d${faceCount} face ${presented} (upright=${uprightContent}): facet ${index} is at `
+            `d${faceCount} face ${presented} (${label}): facet ${index} is at `
               + `${other.toFixed(2)} deg, presented is at ${own.toFixed(2)} deg`);
         });
       }
@@ -177,7 +195,9 @@ test('every solid shows at least two facets, so it reads as a solid', () => {
     const geometry = dieGeometry(faceCount);
     const directions = surfaceDirections(geometry);
     for (let presented = 0; presented < geometry.faces.length; presented++) {
-      const turns = readingPose(directions, presented, { uprightContent: true });
+      const turns = readingPose(directions, presented, {
+        contentDown: restingContentDown(directions, presented),
+      });
       const frontFacing = directions
         .map((direction) => pose(turns, direction))
         .filter((direction) => direction[2] > 1e-6).length;
@@ -187,16 +207,60 @@ test('every solid shows at least two facets, so it reads as a solid', () => {
 });
 
 /**
+ * ...AND IT SHOWS THEM BIG ENOUGH TO BE FACETS, which "front-facing" does not
+ * say. A facet a degree off edge-on is a hairline at the silhouette, not a
+ * second face, so what `companionTilt` actually promises is a companion within
+ * `COMPANION_VIEW_LIMIT` (75 degrees) of the camera axis — a foreshortening of
+ * cos 75, i.e. at least a quarter of the facet's own area.
+ *
+ * Asserted over LANDED orientations as well as the resting one, and that is the
+ * point of it: the resting pose has always kept this and the landed pose did
+ * not. The landed correction was a roll about the presented facet's own normal,
+ * composed INSIDE the aim, which moves every other facet's depth — so a d4's
+ * companion was placed at exactly 75.0 by the tilt and then carried anywhere
+ * from 71.0 to 88.4 by the correction, past the point it is a hairline in 3 of
+ * 12 seeded landings. The correction is a roll of the picture about the camera
+ * axis now, which provably cannot.
+ */
+test('every solid shows a SECOND facet a player can see, landed or at rest', () => {
+  const COMPANION_VIEW_LIMIT = 75;
+  for (const faceCount of FACE_COUNTS) {
+    const geometry = dieGeometry(faceCount);
+    for (const landed of [null, ...landings(24)]) {
+      const directions = surfaceDirections(geometry, landed ?? undefined);
+      for (let presented = 0; presented < geometry.faces.length; presented++) {
+        const turns = landed === null
+          ? readingPose(directions, presented, {
+            contentDown: restingContentDown(directions, presented),
+          })
+          : landedReadingPose(geometry, landed, presented);
+        const posed = directions.map((direction) => pose(turns, direction));
+        let best = 180;
+        posed.forEach((direction, index) => {
+          if (index === presented) return;
+          best = Math.min(best, degreesBetween(direction, CAMERA_AXIS));
+        });
+        assert.ok(best <= COMPANION_VIEW_LIMIT + 1e-6,
+          `d${faceCount} face ${presented}, ${landed === null ? 'at rest' : `landing ${landed.map((n) => n.toFixed(3))}`}:`
+            + ` the most face-on other facet is ${best.toFixed(2)} deg off the camera axis`);
+      }
+    }
+  }
+});
+
+/**
  * The correction that makes a numeral read the right way up. Measured without
  * it, a d4 presenting face 1 was 122 degrees out and a d10 presenting face 2
  * was 116 — an upside-down number on a die that had never moved.
  */
-test('uprightContent leaves the presented facet content the right way up', () => {
+test('contentDown leaves the presented facet content the right way up', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
     const directions = surfaceDirections(geometry);
     for (let presented = 0; presented < geometry.faces.length; presented++) {
-      const turns = readingPose(directions, presented, { uprightContent: true });
+      const turns = readingPose(directions, presented, {
+        contentDown: restingContentDown(directions, presented),
+      });
       // The facet's local +y is what `facet-placement.ts` lays its box out
       // along, so this is the direction the content's "down" points on screen.
       const down = pose(turns, facetBasis(directions[presented]).v);
@@ -219,8 +283,10 @@ test('the two poses differ by exactly one roll about the camera axis', () => {
     const geometry = dieGeometry(faceCount);
     const directions = surfaceDirections(geometry);
     for (let presented = 0; presented < geometry.faces.length; presented++) {
-      const upright = readingPose(directions, presented, { uprightContent: true });
-      const raw = readingPose(directions, presented, { uprightContent: false });
+      const upright = readingPose(directions, presented, {
+        contentDown: restingContentDown(directions, presented),
+      });
+      const raw = readingPose(directions, presented, { contentDown: null });
       assert.ok(upright.length === raw.length || upright.length === raw.length + 1,
         `d${faceCount} face ${presented}: unexpected turn count`);
       // The raw pose is the tail of the upright one: same lean, same aim.
@@ -247,8 +313,8 @@ test('the two poses differ by exactly one roll about the camera axis', () => {
 /**
  * A landing orientation, from a seeded stream, uniform on the sphere of
  * rotations (Shoemake). Deterministic so a failure is reproducible; there is
- * nothing physical about these, and there must not be — `landedContentTurn` has
- * to hold for whatever pose a throw stops at, not for the ones a tray produces.
+ * nothing physical about these, and there must not be — the landed pose has to
+ * hold for whatever pose a throw stops at, not for the ones a tray produces.
  */
 function landings(count: number): readonly Quat[] {
   let state = 0x2f6e2b1;
@@ -276,88 +342,83 @@ function landedInCss(landed: Quat, v: Vec3): Vec3 {
  *
  * This composes the whole chain the browser does — the facet's own box
  * (`facetBasis` of its BODY normal, which is what `facet-placement.ts` emits),
- * then `#orient`'s correction, then the landing pose, then the scene's aim —
- * and asks where the content's "down" ends up. Anything less than the whole
- * chain would not have caught the bug this replaces: reading the facet's local
- * +y back out of `facetBasis(landedDirection)` instead of carrying the body one
- * through the landing looks identical in a diagram and is wrong by up to 180
- * degrees on screen, because `facetBasis` is defined against a FIXED direction
- * and so is not equivariant under rotation.
+ * then the landing, then the whole landed reading pose — and asks where the
+ * content's "down" ends up. Anything less than the whole chain would not have
+ * caught the bug this replaces: reading the facet's local +y back out of
+ * `facetBasis(landedDirection)` instead of carrying the body one through the
+ * landing looks identical in a diagram and is wrong by up to 180 degrees on
+ * screen, because `facetBasis` is defined against a FIXED direction and so is
+ * not equivariant under rotation.
  */
-test('landedContentTurn leaves a landed facet content upright, whatever the landing', () => {
+test('the landed pose leaves a landed facet content upright, whatever the landing', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
     for (const landed of landings(12)) {
-      const directions = surfaceDirections(geometry, landed);
       for (let presented = 0; presented < geometry.faces.length; presented++) {
-        const turns = readingPose(directions, presented, { uprightContent: false });
-        const correction = landedContentTurn(geometry, landed, presented);
-        // The facet's local +y as the DOM has it: body frame, CSS handedness.
+        const turns = landedReadingPose(geometry, landed, presented);
+        // The facet's local +y as the DOM has it: body frame, CSS handedness,
+        // carried through the landing by the SAME `S R S` similarity the
+        // renderer's own chain applies.
         const local = facetBasis(normalize(toScreen(geometry.faces[presented].normal))).v;
-        const down = pose(turns, landedInCss(landed, applyTurn(local, correction)));
+        const down = pose(turns, landedInCss(landed, local));
         const where = `d${faceCount} face ${presented}, landing ${landed.map((n) => n.toFixed(3))}`;
         assert.ok(Math.abs(down[0]) < 1e-9, `${where}: content is ${down[0]} off vertical`);
         assert.ok(down[1] > 0, `${where}: content is upside down`);
+        // ...and `landedContentDown` is that same vector, which is what makes
+        // the pose above solvable in one pass rather than a fixed point.
+        const declared = landedContentDown(geometry, landed, presented);
+        assert.ok(declared && magnitude(subtract(declared, landedInCss(landed, local))) < 1e-12,
+          `${where}: landedContentDown is not the facet's carried +y`);
       }
     }
   }
 });
 
 /**
- * ...and it buys that WITHOUT spending any of the aim.
+ * ...and it buys that WITHOUT spending any of the aim OR any of the lean.
  *
- * The correction turns about the presented facet's own normal, so that normal
- * is fixed and every pairwise angle between facets is preserved. Which means
- * `presentedTiltLimit`'s guarantee — the presented facet is the most square-on
- * one, by at least `READING_MARGIN` — survives it verbatim rather than being
- * traded against it. That is the entire argument for doing this at all, so it
- * is measured rather than asserted in prose.
+ * The correction is a roll about the CAMERA axis, so it leaves every direction's
+ * z component alone: the presented facet is exactly as square-on as the aim left
+ * it, and so is every rival, and so is the companion `companionTilt` placed. It
+ * is measured rather than asserted in prose because the previous correction —
+ * about the presented facet's OWN normal — passed the first two of those and
+ * failed the third, and there was no test that could tell the difference.
  */
-test('landedContentTurn moves no facet towards or away from the camera', () => {
+test('the landed content roll moves no facet towards or away from the camera', () => {
   for (const faceCount of FACE_COUNTS) {
     const geometry = dieGeometry(faceCount);
     for (const landed of landings(6)) {
       const directions = surfaceDirections(geometry, landed);
       for (let presented = 0; presented < geometry.faces.length; presented++) {
-        const correction = landedContentTurn(geometry, landed, presented);
-        const turns = readingPose(directions, presented, { uprightContent: false });
-        const surface = [...geometry.faces, ...geometry.capFaces];
-        const before = directions.map((direction) => pose(turns, direction));
-        const after = surface.map((face) => pose(turns, landedInCss(
-          landed, applyTurn(normalize(toScreen(face.normal)), correction))));
+        const aimed = readingPose(directions, presented, { contentDown: null });
+        const full = landedReadingPose(geometry, landed, presented);
         const where = `d${faceCount} face ${presented}`;
-        // The presented facet does not move AT ALL: it is the axis.
-        assert.ok(magnitude(subtract(after[presented], before[presented])) < 1e-9,
-          `${where}: the presented facet moved`);
-        // Every facet keeps its angle to the presented one, so the triangle
-        // inequality `presentedTiltLimit` relies on is untouched.
-        for (let index = 0; index < after.length; index++) {
-          assert.ok(
-            Math.abs(dot(after[index], after[presented]) - dot(before[index], before[presented]))
-              < 1e-9,
-            `${where}: facet ${index} changed its angle to the presented facet`);
+        // The upright roll is one extra turn, outermost, about the camera axis.
+        assert.ok(full.length === aimed.length || full.length === aimed.length + 1, where);
+        assert.deepEqual(full.slice(full.length - aimed.length), aimed,
+          `${where}: the landed pose is not the aim plus a roll`);
+        for (const turn of full.slice(0, full.length - aimed.length)) {
+          assert.deepEqual(turn.axis, CAMERA_AXIS, `${where}: the extra turn is not a picture roll`);
         }
-        // And the presented facet is still the most square-on one afterwards.
-        const worst = after.reduce((best, direction, index) =>
-          index === presented ? best : Math.min(best, degreesBetween(CAMERA_AXIS, direction)), 180);
-        assert.ok(worst - degreesBetween(CAMERA_AXIS, after[presented]) >= READING_MARGIN - 1e-9,
-          `${where}: rival at ${worst.toFixed(2)} degrees off axis`);
+        // Which is the whole claim, measured: no facet changes depth.
+        directions.forEach((direction, index) => {
+          const before = pose(aimed, direction);
+          const after = pose(full, direction);
+          assert.ok(Math.abs(before[2] - after[2]) < 1e-9,
+            `${where}: facet ${index} changed depth under the content roll`);
+        });
       }
     }
   }
 });
 
-test('landedContentTransform emits the turn as CSS, and nothing when there is none', () => {
+test('landedContentDown declines a face index the surface does not have', () => {
   const geometry = dieGeometry(6);
   const landed = landings(1)[0];
-  const turn = landedContentTurn(geometry, landed, 0);
-  assert.ok(turn, 'a general landing needs a correction');
-  assert.equal(landedContentTransform(geometry, landed, 0), rotate3d(turn));
-  // The axis is the facet's own normal, which is what makes it safe to apply
-  // INSIDE the scene's pose (on `#orient`) rather than outside it.
-  assert.ok(magnitude(cross(turn.axis, normalize(toScreen(geometry.faces[0].normal)))) < 1e-9);
-  // An out-of-range face is a caller bug, not a crash mid-render.
-  assert.equal(landedContentTransform(geometry, landed, 99), 'none');
+  // A caller mid-render gets an unstraightened facet rather than an exception;
+  // `readingPose` itself is what refuses an index off the end of the surface.
+  assert.equal(landedContentDown(geometry, landed, 99), null);
+  assert.ok(landedContentDown(geometry, landed, 0));
 });
 
 /** A pose that mirrored the solid would show the face opposite the read one. */
@@ -366,7 +427,9 @@ test('the composed pose is a proper rotation, never a reflection', () => {
     const geometry = dieGeometry(faceCount);
     const directions = surfaceDirections(geometry);
     for (let presented = 0; presented < geometry.faces.length; presented++) {
-      const turns = readingPose(directions, presented, { uprightContent: true });
+      const turns = readingPose(directions, presented, {
+        contentDown: restingContentDown(directions, presented),
+      });
       const columns = [vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)].map((axis) => pose(turns, axis));
       const det = dot(columns[0], cross(columns[1], columns[2]));
       assert.ok(Math.abs(det - 1) < 1e-9, `d${faceCount} face ${presented}: det ${det}`);
@@ -405,7 +468,10 @@ test('companionTilt only fires when a facet is too far round to be seen', () => 
 test('readingPoseTransform emits a CSS transform list, outermost first', () => {
   const geometry = dieGeometry(20);
   const text = readingPoseTransform(geometry, 7);
-  const turns = readingPose(surfaceDirections(geometry), 7, { uprightContent: true });
+  const restingDirections = surfaceDirections(geometry);
+  const turns = readingPose(restingDirections, 7, {
+    contentDown: restingContentDown(restingDirections, 7),
+  });
   assert.equal(text, turns.map(rotate3d).join(' '));
   assert.ok(/^rotate3d\([-\d.]+,[-\d.]+,[-\d.]+,[-\d.]+deg\)( rotate3d\(.*\))*$/.test(text), text);
   // No var() or calc(): a keyframe that reads a custom property can be
@@ -417,7 +483,7 @@ test('a facet already square-on and upright needs no pose at all', () => {
   // Two coincident directions would be a degenerate solid, so this exercises
   // the "no turns" path through a hand-built surface rather than a die.
   const flat = [CAMERA_AXIS, vec3(0, 0, -1)];
-  const turns = readingPose(flat, 0, { uprightContent: true });
+  const turns = readingPose(flat, 0, { contentDown: restingContentDown(flat, 0) });
   // The resting view is a deliberate lean, so there IS a turn; what must hold
   // is that the transform is well formed and never the empty string.
   assert.ok(turns.length >= 1);
