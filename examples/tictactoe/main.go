@@ -159,14 +159,13 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			// the real animation key and Slot argument; everyone else receives
 			// an opaque transition and learns the placement from sanitized state.
 			moves.WithMoveNameSanitization("self:visible", "Hidden Action"),
-			// Declarative migration (Task 7 survey re-check, design spec §6
-			// §3): Legal() is deleted (see moves.go); the token-availability
-			// gate is now declarative via the players[move.Field].Prop path
-			// kind, with the MayMoveToSlot check surviving as LegalCustom
-			// residue.
-			moves.WithLegalPreconditions(
-				legal.StackNotEmpty("players[move.TargetPlayerIndex].UnusedTokens").WithMessage("tictactoe.no_tokens_left"),
-			),
+			//The source is a stack on the PLAYER, named through the same
+			//path grammar the legal catalog uses. Both of this move's former
+			//legality gates are contributed by moves.MoveComponentToSlot from
+			//these two paths plus the discovered Slot field, so it authors no
+			//preconditions of its own and has no LegalCustom residue left.
+			moves.WithSourceProperty("players[move.TargetPlayerIndex].UnusedTokens"),
+			moves.WithDestinationProperty("game.Slots"),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
@@ -174,13 +173,15 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	)
 }
 
-// ConfigureLegalTemplates supplies the tictactoe.* template key
-// movePlaceToken's WithLegalPreconditions plan references (Task 7 survey
-// re-check, design spec §6 §3), with the verbatim legacy string from the
-// pre-migration Legal() body (see moves.go's comment).
+// ConfigureLegalTemplates supplies the one catalog template key
+// movePlaceToken's contributed mayMoveFirstToSlot atom emits, keeping the
+// verbatim legacy string from the pre-migration Legal() body (see moves.go's
+// comment). mayMoveFirstToSlot is the only predicate in this game that emits
+// legal.TemplateNoComponentToMove, so overriding the catalog default here is
+// unambiguous.
 func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 	return map[string]string{
-		"tictactoe.no_tokens_left": "there aren't any remaining tokens for the current player to place",
+		legal.TemplateNoComponentToMove: "there aren't any remaining tokens for the current player to place",
 	}
 }
 

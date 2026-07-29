@@ -714,6 +714,8 @@ func TestDefaultConstructors(t *testing.T) {
 		"componentPresentAtKey":            true,
 		"mayMoveTo":                        true,
 		"mayMoveToSlot":                    true,
+		"mayMoveFirstTo":                   true,
+		"mayMoveFirstToSlot":               true,
 		"mayMoveAllTo":                     true,
 		"mayMoveCountTo":                   true,
 		"mayMoveFixedCountTo":              true,

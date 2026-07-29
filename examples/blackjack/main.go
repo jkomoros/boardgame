@@ -254,6 +254,10 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveCurrentPlayerHit),
 				moves.WithHelpText("The current player hits, drawing a card."),
+				//The hand this draws into. Without it boot would refuse the
+				//move: blackjack's playerState has three stacks, so the one to
+				//draw into is genuinely ambiguous.
+				moves.WithPlayerProperty("VisibleHand"),
 				moves.WithLegalPreconditions(
 					legal.PlayerBoolIs("Eliminated", false).WithMessage("hit.already_busted"),
 					legal.StackNotEmpty("game.DrawStack").WithMessage("hit.no_cards_left"),

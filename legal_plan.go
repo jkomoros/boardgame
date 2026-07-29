@@ -920,6 +920,17 @@ const legalMovesPackagePathSuffix = "boardgame/moves"
 // (moves/catalog_framework.go) and the frozen chain agree on every
 // occurrence, including repeats, because they call the exact same
 // moves.Default.legalMoveInProgression method.
+// MoveComponentToSlot and DrawToPlayer -- the reusable "play a card" and
+// "draw a card" verbs -- join this set on the same terms as the Task 6
+// additions, and for a stronger reason than convenience: neither declares a
+// Legal() of its own AT ALL. Their entire legality is contributed
+// preconditions (legal.MayMoveFirstToSlot / legal.MayMoveToSlot /
+// legal.MayMoveFirstTo) layered on CurrentPlayer's, and each forces
+// LegalPlanEnabled() to true so a plan is always assembled. A game embedding
+// one of them therefore keeps the full declarative surface -- its own
+// WithLegalPreconditions and its own LegalCustom residue -- which is exactly
+// what the four example games that hand-rolled these verbs already relied on
+// and could not have given up to adopt a reusable move.
 var legalSupportedMovesBaseTypes = map[string]bool{
 	"Default":                   true,
 	"CurrentPlayer":             true,
@@ -927,6 +938,8 @@ var legalSupportedMovesBaseTypes = map[string]bool{
 	"FixUp":                     true,
 	"FixUpMulti":                true,
 	"StartPhase":                true,
+	"MoveComponentToSlot":       true,
+	"DrawToPlayer":              true,
 }
 
 // LegalSupportedMovesBaseTypeNames is engine-internal plumbing exposing the

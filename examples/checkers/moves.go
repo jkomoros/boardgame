@@ -90,10 +90,17 @@ func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 //     unchanged. This single precondition is also what opts the move in,
 //     satisfying the boot rule that a LegalCustom move must declare at least
 //     one WithLegalPreconditions spec.
-//   - MayMoveToSlot stays in LegalCustom because its source is the FIXED index
-//     0 ("first" of UnusedTokens), rather than a move field. The declarative
-//     legal.MayMoveToSlot supports distinct source/destination fields, but not
-//     a literal source index. Its native error is returned verbatim.
+//   - MayMoveToSlot stays in LegalCustom, and this move keeps its bespoke
+//     struct rather than embedding moves.MoveComponentToSlot, for two
+//     independent reasons -- NEITHER of which is the literal source index any
+//     more. legal.MayMoveFirstToSlot now names "the first component" as a
+//     catalog concept, which is what tictactoe's movePlaceToken migrated onto.
+//     What still blocks this one is (a) its base type: it is a FixUpMulti that
+//     places every token automatically during setup, and moves.MoveComponentToSlot
+//     is the PLAYER verb, built on moves.CurrentPlayer -- a move cannot embed
+//     both; and (b) its slot field: TargetIndex is an enum.RangeVal, and the
+//     mayMove* predicates require an int-typed destination slot. Its native
+//     error is returned verbatim.
 //   - spaceIsBlack stays imperative in LegalCustom too, in its ORIGINAL order
 //     (AFTER MayMoveToSlot). checkers already registers a
 //     "checkers.spaceIsBlack" predicate (moveMoveToken uses it), but migrating

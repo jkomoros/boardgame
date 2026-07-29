@@ -965,6 +965,64 @@ The wire catalog is v4. It includes counts, typed equality, move-field-indexed p
 
 None of these are dead ends: the escape hatch (`LegalCustom`) always works, and every one of these is exactly the kind of gap the catalog's "growth rule" above is designed to fill in, one purpose-built predicate at a time, as real games need it.
 
+##### moves.MoveComponentToSlot and moves.DrawToPlayer
+
+"Play a card" and "draw a card" are the two most common verbs in the medium, and each has a reusable move.
+
+`moves.MoveComponentToSlot` moves one component out of a source stack and into the slot of a destination stack that the player chose. Name the two stacks with `WithSourceProperty` and `WithDestinationProperty`. Those take a *stack path*, so either end may live on gameState, on the current player, or on the player one of the move's own fields names:
+
+```go
+//boardgame:codegen
+type movePlaceToken struct {
+    moves.MoveComponentToSlot
+    //The chosen slot. MoveComponentToSlot discovers this field
+    //automatically, because it is the move's only int property.
+    Slot int
+}
+
+//...in ConfigureMoves...
+auto.MustConfig(
+    new(movePlaceToken),
+    moves.WithSourceProperty("players[move.TargetPlayerIndex].UnusedTokens"),
+    moves.WithDestinationProperty("game.Slots"),
+)
+```
+
+The four stack path spellings are `"DrawStack"` and `"game.DrawStack"` (both mean gameState), `"player.Hand"` (the current player), and `"players[move.SomeField].Hand"` (the player a `PlayerIndex`-typed move field names). They are the same paths the `legal` package uses. `WithSourceProperty` and `WithDestinationProperty` accept them everywhere they are understood, including on `moves.MoveCountComponents` and its `Until...` variants.
+
+By default the component that moves is the *first* one in the source stack — "take the next piece off the pile". `WithSourceSlotField` selects a different one; passing it the same field name as the slot gives the mirrored layout where one index means both "this card here" and "that slot there". If your move has more than one int property, name the slot with `WithSlotField`; boot will otherwise tell you the candidates and refuse to start.
+
+`moves.DrawToPlayer` moves one component from the game's draw stack into the current player's stack. It discovers both ends where it can: the source is the draw stack of the gameState's `behaviors.DrawDiscardPair` (the same behavior `moves.ShuffleDiscardIntoDraw` uses), and the destination is the playerState's stack when there is exactly one. So a game with those two things needs no configuration at all:
+
+```go
+auto.MustConfig(new(moves.DrawToPlayer))
+```
+
+Otherwise name them with `WithGameProperty` and `WithPlayerProperty`. blackjack's playerState has three stacks, so its hit move says `moves.WithPlayerProperty("VisibleHand")`.
+
+Neither move declares a `Legal()` of its own. Their legality is *contributed* declaratively — `legal.MayMoveFirstToSlot`, `legal.MayMoveToSlot`, or `legal.MayMoveFirstTo` — on top of `moves.CurrentPlayer`'s phase and proposer checks. That means embedding one costs you nothing: your move may still pass `WithLegalPreconditions` of its own and still implement `LegalCustom` for rules the catalog cannot express. blackjack's hit move keeps a `LegalCustom` for its hand-value arithmetic and two authored preconditions besides.
+
+One ordering rule matters. Contributed specs are evaluated base-first, so the verb's own "may this component go there" check runs *before* any spec your game authored. If your game has a gate whose message must win over that one — memory's "that card has already been revealed", for instance — keep your bespoke move rather than reordering what the player sees.
+
+When your move has bookkeeping of its own, override `Apply` and super-call:
+
+```go
+func (m *movePlaceToken) Apply(state boardgame.State) error {
+
+    if err := m.MoveComponentToSlot.Apply(state); err != nil {
+        return err
+    }
+
+    game, players := concreteStates(state)
+
+    players[m.TargetPlayerIndex.EnsureValid(state)].TokensToPlaceThisTurn--
+
+    game.Phase.SetValue(phaseAfterFirstMove)
+
+    return nil
+}
+```
+
 ##### moves.FinishTurn
 
 Another common pattern is to have a FixUp move that inspects the state to see if the current player's turn is done, and if it is, advances to the next player and resets their properties for turn start.
@@ -1012,7 +1070,7 @@ func (p *playerState) TurnDone() error {
         return errors.New("they still have cards left to reveal")
     }
 
-    game, _ := concreteStates(state)
+    game, _ := concreteStates(p.State())
 
     if game.VisibleCards.NumComponents() > 0 {
         return errors.New("there are still some cards revealed, which they must hide")

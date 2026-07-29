@@ -22,6 +22,9 @@ type consumesRequireAdminConfiguration interface{ consumesRequireAdminConfigurat
 type consumesMarketFieldConfiguration interface{ consumesMarketFieldConfiguration() }
 type consumesDrawDiscardPairFieldConfiguration interface{ consumesDrawDiscardPairFieldConfiguration() }
 type consumesRecordedChoiceConfiguration interface{ consumesRecordedChoiceConfiguration() }
+type consumesSlotFieldConfiguration interface{ consumesSlotFieldConfiguration() }
+
+func (*MoveComponentToSlot) consumesSlotFieldConfiguration() {}
 
 func (*StartPhase) consumesStartPhaseConfiguration() {}
 
@@ -113,6 +116,12 @@ func validateCustomConfiguration(move boardgame.Move, config boardgame.PropertyC
 		//is precisely the case worth failing at boot. Testing for the interface
 		//rather than a marker on the framework base types deliberately also
 		//accepts a game's own move that implements the stacker itself.
+		{configPropSlotField, "WithSlotField", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
+			return implementsConfigurationConsumer[consumesSlotFieldConfiguration](move)
+		}},
+		{configPropSourceSlotField, "WithSourceSlotField", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
+			return implementsConfigurationConsumer[consumesSlotFieldConfiguration](move)
+		}},
 		{configPropSourceProperty, "WithSourceProperty", func(move boardgame.Move, config boardgame.PropertyCollection) bool {
 			if _, ok := move.(interfaces.SourceStacker); ok {
 				return true

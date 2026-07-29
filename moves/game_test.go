@@ -56,9 +56,10 @@ type gameState struct {
 	base.SubState
 	behaviors.CurrentPlayerBehavior
 	behaviors.PhaseBehavior
-	DrawStack    boardgame.Stack `stack:"cards"`
-	DiscardStack boardgame.Stack `stack:"cards"`
-	Counter      int
+	behaviors.DrawDiscardPair `draw:"DrawStack" discard:"DiscardStack"`
+	DrawStack                 boardgame.Stack `stack:"cards"`
+	DiscardStack              boardgame.Stack `stack:"cards"`
+	Counter                   int
 }
 
 //boardgame:codegen

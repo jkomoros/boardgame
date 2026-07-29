@@ -180,6 +180,24 @@ func MayMoveToSameSlot(srcPath, dstPath, indexField string) Spec {
 	return MayMoveToSlot(srcPath, dstPath, indexField, indexField)
 }
 
+// MayMoveFirstTo is MayMoveTo for the very common shape where the component
+// being moved is simply the FIRST one in srcPath -- "draw a card" -- rather
+// than one a move field selects. The path grammar has no literal-index syntax
+// and deliberately gains none: "the first component" is a distinct, named
+// concept (the same one ImmutableStack.ImmutableFirst denotes), not the
+// integer 0 smuggled in as a path.
+func MayMoveFirstTo(srcPath, dstPath string) Spec {
+	return Spec{Name: "mayMoveFirstTo", Args: []string{srcPath, dstPath}}
+}
+
+// MayMoveFirstToSlot is MayMoveToSlot with the same first-component source as
+// [MayMoveFirstTo] -- "take the next piece off the pile and put it in the slot
+// the player chose". This is the residual shape that checkers' and tictactoe's
+// place-token moves each independently commented on being unable to express.
+func MayMoveFirstToSlot(srcPath, dstPath, destinationSlotField string) Spec {
+	return Spec{Name: "mayMoveFirstToSlot", Args: []string{srcPath, dstPath, destinationSlotField}}
+}
+
 // MayMoveAllTo returns a server-evaluated Spec that passes when every
 // component in srcPath could be moved to dstPath transactionally. It is not
 // client-evaluable because custom stack constraints may inspect other runtime
@@ -425,25 +443,36 @@ func componentPresentAtKeyConstructor() *PredicateConstructor {
 // dstPath unconditionally, which is always honest (never under-declares) at
 // the cost of sometimes being more conservative than necessary. Narrowing
 // this via one or both of the above is legitimate future work.
-func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
+// firstSource selects the "the component being moved is the FIRST one in
+// srcPath" variants (mayMoveFirstTo / mayMoveFirstToSlot). Those take no
+// sourceIndexField argument at all: the source is a named concept, not an
+// index the caller supplies.
+func mayMoveConstructor(name string, useSlot bool, firstSource bool) *PredicateConstructor {
 	return &PredicateConstructor{
 		Name: name,
 		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
 			wantArgs := 3
 			argDescription := "srcPath, dstPath, sourceIndexField"
+			if firstSource {
+				wantArgs = 2
+				argDescription = "srcPath, dstPath"
+			}
 			if useSlot {
-				wantArgs = 4
-				argDescription = "srcPath, dstPath, sourceIndexField, destinationSlotField"
+				wantArgs++
+				argDescription += ", destinationSlotField"
 			}
 			if len(spec.Args) != wantArgs {
 				return nil, fmt.Errorf("legal: %s requires %d args (%s), got %d", name, wantArgs, argDescription, len(spec.Args))
 			}
 			srcPath := spec.Args[0]
 			dstPath := spec.Args[1]
-			sourceIndexField := spec.Args[2]
+			sourceIndexField := ""
+			if !firstSource {
+				sourceIndexField = spec.Args[2]
+			}
 			destinationSlotField := ""
 			if useSlot {
-				destinationSlotField = spec.Args[3]
+				destinationSlotField = spec.Args[wantArgs-1]
 			}
 
 			noComponentTemplate := spec.Message
@@ -471,12 +500,14 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 			reads := []Read{
 				{Path: PropPath(srcPath), Facet: boardgame.LegalFacetOccupancy},
 				{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
-				{Path: PropPath(sourceIndexField), Facet: boardgame.LegalFacetValues},
 			}
 			requiredReadTypes := map[PropPath]boardgame.PropertyType{
-				PropPath(srcPath):          boardgame.TypeStack,
-				PropPath(dstPath):          boardgame.TypeStack,
-				PropPath(sourceIndexField): boardgame.TypeInt,
+				PropPath(srcPath): boardgame.TypeStack,
+				PropPath(dstPath): boardgame.TypeStack,
+			}
+			if !firstSource {
+				reads = append(reads, Read{Path: PropPath(sourceIndexField), Facet: boardgame.LegalFacetValues})
+				requiredReadTypes[PropPath(sourceIndexField)] = boardgame.TypeInt
 			}
 			if useSlot {
 				if destinationSlotField != sourceIndexField {
@@ -495,9 +526,13 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 				EmittedTemplates:  []string{noComponentTemplate, mayNotMoveTemplate},
 				EmittedBindings:   emittedBindings,
 				Evaluate: func(ctx Context) Verdict {
-					sourceIndex, err := resolveIntPath(sourceIndexField, ctx)
-					if err != nil {
-						return UnknownVerdict(err.Error())
+					sourceIndex := 0
+					var err error
+					if !firstSource {
+						sourceIndex, err = resolveIntPath(sourceIndexField, ctx)
+						if err != nil {
+							return UnknownVerdict(err.Error())
+						}
 					}
 					destinationSlot := sourceIndex
 					if useSlot {
@@ -518,7 +553,13 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 						return UnknownVerdict("legal: source or destination stack path resolved to nil")
 					}
 
-					comp := src.ImmutableComponentAt(sourceIndex)
+					//"First" is the stack's own notion of its first
+					//component (ImmutableFirst), not slot zero: for a sized
+					//stack those differ whenever slot zero is empty.
+					comp := src.ImmutableFirst()
+					if !firstSource {
+						comp = src.ImmutableComponentAt(sourceIndex)
+					}
 					if comp == nil {
 						return FailT(noComponentTemplate, map[string]BindingValue{
 							"index": Int(sourceIndex),
@@ -544,11 +585,19 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 }
 
 func mayMoveToConstructor() *PredicateConstructor {
-	return mayMoveConstructor("mayMoveTo", false)
+	return mayMoveConstructor("mayMoveTo", false, false)
 }
 
 func mayMoveToSlotConstructor() *PredicateConstructor {
-	return mayMoveConstructor("mayMoveToSlot", true)
+	return mayMoveConstructor("mayMoveToSlot", true, false)
+}
+
+func mayMoveFirstToConstructor() *PredicateConstructor {
+	return mayMoveConstructor("mayMoveFirstTo", false, true)
+}
+
+func mayMoveFirstToSlotConstructor() *PredicateConstructor {
+	return mayMoveConstructor("mayMoveFirstToSlot", true, true)
 }
 
 func mayMoveAllToConstructor() *PredicateConstructor {
@@ -804,6 +853,8 @@ func DefaultConstructors() []*PredicateConstructor {
 		componentPresentAtKeyConstructor(),
 		mayMoveToConstructor(),
 		mayMoveToSlotConstructor(),
+		mayMoveFirstToConstructor(),
+		mayMoveFirstToSlotConstructor(),
 		mayMoveAllToConstructor(),
 		mayMoveCountToConstructor(),
 		mayMoveFixedCountToConstructor(),

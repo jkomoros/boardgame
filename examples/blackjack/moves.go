@@ -18,9 +18,15 @@ type moveRevealHiddenCard struct {
 	moves.CurrentPlayer
 }
 
+// moveCurrentPlayerHit is the reusable "draw a card" verb plus this game's own
+// two rules. moves.DrawToPlayer supplies the source (discovered from the
+// gameState's behaviors.DrawDiscardPair -- the same pair moveReshuffle
+// already uses), the "may the top card go into this hand" check, and the
+// transfer itself.
+//
 //boardgame:codegen
 type moveCurrentPlayerHit struct {
-	moves.CurrentPlayer
+	moves.DrawToPlayer
 }
 
 //boardgame:codegen
@@ -214,30 +220,36 @@ func (m *moveIncrementRoundsCompleted) Apply(state boardgame.State) error {
  * moveCurrentPlayerHit Implementation
  *
  * The persisted gates (not eliminated and a non-empty draw stack) are
- * declarative. HandValue arithmetic and the component MayMoveTo check remain
- * in LegalCustom because they are computed/value-level rules.
+ * declarative. The component MayMoveTo check is now contributed by
+ * moves.DrawToPlayer (legal.MayMoveFirstTo), so only the HandValue
+ * arithmetic -- a computed rule with no property path -- remains in
+ * LegalCustom.
  *
  **************************************************/
 
 func (m *moveCurrentPlayerHit) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	game, players := concreteStates(state)
+	_, players := concreteStates(state)
 
-	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
+	currentPlayer := players[state.CurrentPlayerIndex()]
 
 	if currentPlayer.HandValue() >= targetScore {
 		return errors.New("Current player is already at target scores")
 	}
 
-	first := game.DrawStack.ImmutableFirst()
-	return first.MayMoveTo(currentPlayer.VisibleHand)
+	return nil
 }
 
+// Apply super-calls moves.DrawToPlayer.Apply for the transfer itself, then
+// does this game's own bust/stand bookkeeping.
 func (m *moveCurrentPlayerHit) Apply(state boardgame.State) error {
-	game, players := concreteStates(state)
 
-	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
+	if err := m.DrawToPlayer.Apply(state); err != nil {
+		return err
+	}
 
-	game.DrawStack.First().MoveToFirstSlot(currentPlayer.VisibleHand)
+	_, players := concreteStates(state)
+
+	currentPlayer := players[state.CurrentPlayerIndex()]
 
 	handValue := currentPlayer.HandValue()
 

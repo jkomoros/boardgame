@@ -1,0 +1,31 @@
+{
+  "predicate": "mayMoveFirstTo",
+  "cases": [
+    {
+      "spec": {"name": "mayMoveFirstTo", "args": ["game.HiddenCards", "game.VisibleCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "mayMoveFirstTo", "args": ["game.HiddenCards", "game.VisibleCards"]},
+      "fixture": "memoryVisibleOccupied",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "mayMoveFirstTo", "args": ["game.HiddenCards", "game.HiddenCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.may_not_move_to"
+    },
+    {
+      "spec": {"name": "mayMoveFirstTo", "args": ["game.VisibleCards", "game.HiddenCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.no_component_to_move"
+    }
+  ]
+}

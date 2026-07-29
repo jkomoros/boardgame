@@ -245,7 +245,9 @@ each has on the one above it. See the documentation for each struct for more.
 	└ Default
 	  ├ Done
 	  ├ CurrentPlayer
-	  │ └ MoveOnGraph
+	  │ ├ MoveOnGraph
+	  │ ├ MoveComponentToSlot
+	  │ └ DrawToPlayer
 	  ├ AnyPlayer
 	  │ ├ AdminPlayer
 	  │ ├ SelectTeam
@@ -339,6 +341,50 @@ selection, define your enum with a sentinel first value:
 	)
 
 Then check for the sentinel in your ReadyToStart implementation.
+
+# Play A Card, Draw A Card
+
+The two most common verbs in the medium each have a move:
+
+[MoveComponentToSlot] moves one component into the slot of a destination stack
+that the player chose. [DrawToPlayer] moves one component from the game's draw
+stack into the current player's stack.
+
+	moves.AddForPhase(phaseNormal,
+	    auto.MustConfig(
+	        new(movePlaceToken),
+	        moves.WithSourceProperty("players[move.TargetPlayerIndex].UnusedTokens"),
+	        moves.WithDestinationProperty("game.Slots"),
+	    ),
+	    //DrawToPlayer discovers the draw stack from the gameState's
+	    //behaviors.DrawDiscardPair, and the destination when the playerState
+	    //has exactly one stack.
+	    auto.MustConfig(new(moves.DrawToPlayer)),
+	)
+
+Both discover what they can and refuse to boot when they cannot: an ambiguous
+slot field, an ambiguous player stack, a missing draw stack and a misspelled
+path are all NewGameManager errors naming the move and the fix.
+
+Neither declares a Legal() of its own. Their legality is contributed
+declaratively on top of [CurrentPlayer]'s phase and proposer checks, so an
+embedding move keeps its full declarative surface -- its own
+[WithLegalPreconditions] and its own LegalCustom residue for the rules the
+catalog cannot express. Contributed specs are evaluated base-first, so the
+verb's own "may this component go there" check runs BEFORE any spec the game
+authored; a game whose own message must win over that one should keep its
+bespoke move.
+
+An embedding move that has bookkeeping of its own overrides Apply and
+super-calls:
+
+	func (m *movePlaceToken) Apply(state boardgame.State) error {
+	    if err := m.MoveComponentToSlot.Apply(state); err != nil {
+	        return err
+	    }
+	    //...this game's own bookkeeping...
+	    return nil
+	}
 
 # Move Deal and Collect Component Moves
 
