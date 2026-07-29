@@ -59,7 +59,18 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 	extras := getBool(out, in, "Generate useful extras like a test, CurrentPhase, and CurrentPlayer?", true)
 
 	if !extras {
+		//SuppressExtras also turns off seating, which needs a SetUp phase to
+		//seat into, so don't ask about seating at all in that case.
 		result.SuppressExtras()
+	} else {
+		//This question used to be folded into the tutorial question below,
+		//whose wording gave no hint that it controlled whether the server
+		//could seat users at all -- and which defaulted to no.
+		seating := getBool(out, in, "Generate multiplayer seating, so the server can seat real people into this game? (Say no only for a solitaire or hotseat game.)", true)
+
+		if !seating {
+			result.SuppressSeating = true
+		}
 	}
 
 	client := getBool(out, in, "Generate stub client renderers?", true)

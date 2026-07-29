@@ -24,11 +24,11 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 }
 
 // phaseEnum is the enum.Enum for phase
-var phaseEnum = enums.MustAddTree("phase", map[int]string{
+var phaseEnum = enums.MustAddTree("phase", map[enum.EnumKey]string{
 	phase:       "",
 	phaseNormal: "Normal",
 	phaseSetUp:  "Set Up",
-}, map[int]int{
+}, map[enum.EnumKey]enum.EnumKey{
 	phase:       phase,
 	phaseNormal: phase,
 	phaseSetUp:  phase,

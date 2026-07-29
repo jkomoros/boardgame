@@ -48,9 +48,27 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
-
+		//SeatPlayer is scoped to phaseSetUp, the same phase whose
+		//DefaultRoundSetup below activates the players it seats. That
+		//pairing is load-bearing: SeatPlayer marks everyone it seats as
+		//Inactive, and only ActivateInactivePlayer (inside DefaultRoundSetup)
+		//clears that. An inactive player can never be the CurrentPlayer, so a
+		//player seated in a phase with no activation move would be a silent
+		//permanent spectator. This is where seating belongs anyway -- the game
+		//starts in phaseSetUp and WaitForEnoughPlayers holds it there until
+		//enough players have arrived.
+		//
+		//If you want drop-in players after the game starts, give your game a
+		//round loop -- a phase that begins each round and runs
+		//DefaultRoundSetup -- and widen SeatPlayer to the phases that loop
+		//back through it. Do not simply make SeatPlayer legal everywhere.
+		moves.AddForPhase(
+			phaseSetUp,
+			auto.MustConfig(new(moves.SeatPlayer)),
+		),
 		moves.AddOrderedForPhase(
 			phaseSetUp,
+			moves.DefaultRoundSetup(auto),
 
 			//Because we used AddOrderedForPhase, this next move won't apply
 			//until the move before it is done applying.

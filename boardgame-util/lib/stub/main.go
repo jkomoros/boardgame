@@ -46,8 +46,17 @@ type Options struct {
 	EnableExampleVariants               bool
 	EnableExampleClient                 bool
 	EnableExampleMoves                  bool
-	EnableSeatPlayer                    bool
-	EnableInactivePlayer                bool
+	//SuppressSeating turns off multiplayer seating. Seating is on by default:
+	//without it the server has no way to put a real user into a player slot,
+	//and a creator who accepts every default would get a game that compiles,
+	//boots, serves, and silently seats nobody. Set this only for a game that
+	//genuinely has no seats to fill (a solitaire or hotseat scaffold).
+	SuppressSeating bool
+	//EnableSeatPlayer and EnableInactivePlayer are what the templates read.
+	//Validate derives them from SuppressSeating, so callers normally leave
+	//them alone.
+	EnableSeatPlayer     bool
+	EnableInactivePlayer bool
 }
 
 // FileContents is the generated contents of the files to later write to the
@@ -61,16 +70,21 @@ func (o *Options) SuppressClient() {
 }
 
 // SuppressExtras sets all of the non-client extras that are on by default to
-// off.
+// off. That includes seating: seating needs a SetUp phase to seat into, and
+// SuppressExtras turns phases off.
 func (o *Options) SuppressExtras() {
 	o.SuppressTest = true
 	o.SuppressPhase = true
 	o.SuppressCurrentPlayer = true
 	o.SuppressMovesStubs = true
 	o.SuppressComponentsStubs = true
+	o.SuppressSeating = true
 }
 
-// EnableTutorials enables all of the off-by-default tutorial options.
+// EnableTutorials enables all of the off-by-default tutorial options. Seating
+// is deliberately not among them: it is not tutorial content, it is the thing
+// that makes the game multiplayer at all, so it is on by default and turned off
+// with SuppressSeating.
 func (o *Options) EnableTutorials() {
 	o.EnableExampleDeck = true
 	o.EnableExampleDynamicComponentValues = true
@@ -80,8 +94,6 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleVariants = true
 	o.EnableExampleClient = true
 	o.EnableExampleMoves = true
-	o.EnableSeatPlayer = true
-	o.EnableInactivePlayer = true
 }
 
 func nameLegal(gameName string) bool {
@@ -162,6 +174,13 @@ func (o *Options) Validate() error {
 
 	if o.EnableExampleDeck {
 		o.SuppressComponentsStubs = false
+	}
+
+	//Seating is on unless explicitly suppressed. SeatPlayer marks the players
+	//it seats inactive, so the two behaviors always ship together.
+	if !o.SuppressSeating {
+		o.EnableSeatPlayer = true
+		o.EnableInactivePlayer = true
 	}
 
 	if o.EnableInactivePlayer {
