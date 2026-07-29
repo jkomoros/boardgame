@@ -10,6 +10,7 @@ import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
+import { classMap } from 'lit/directives/class-map.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { cardView, fx, isStackLayout, motion, tokenView } from '../../src/client.js';
 import type { ClientMove, StackLayout } from '../../src/client.js';
@@ -39,25 +40,15 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
         --animation-length: 5s;
       }
 
+      /*
+       * The eight identical display:flex + flex-direction:row + gap:16px +
+       * align-items:center blocks this file used to carry -- one per row --
+       * are now class="horizontal center gap" from the framework's shared
+       * layout vocabulary. What is left here is only what is actually specific
+       * to this debug harness.
+       */
       #container {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
         padding: 16px;
-      }
-
-      #shortstacks {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
-      }
-
-      #draw {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
       }
 
       #shortstacks boardgame-card > div {
@@ -67,71 +58,19 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
         justify-content: center;
       }
 
-      #fan {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
-      }
-
       #fan boardgame-component-stack:first-child {
         --component-scale: 1.2;
       }
 
-      .flex {
-        flex: 1;
-      }
-
+      /* The stacked switch column wants a tighter rhythm than the row gap. */
       .controls {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      #hidden {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
+        --boardgame-gap: 8px;
       }
 
       #controls {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
-        flex-wrap: wrap;
         padding: 12px 16px;
         background: var(--md-sys-color-surface-container-low, #f7f2fa);
         border-radius: 12px;
-      }
-
-      #all {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
-      }
-
-      #token {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
-      }
-
-      #tokens {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
-      }
-
-      #tokens-sanitized {
-        display: flex;
-        flex-direction: row;
-        gap: 16px;
-        align-items: center;
       }
 
       md-filled-button,
@@ -282,11 +221,10 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
     })];
   }
 
-  private _classes(): string {
-    if (this.slowAnimations) {
-      return 'slow';
-    }
-    return '';
+  // Lit ships `classMap` for exactly this; a renderer never needs to build a
+  // class attribute out of string concatenation and ternaries.
+  private _containerClasses() {
+    return classMap({ vertical: true, gap: true, slow: this.slowAnimations });
   }
 
   override async firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
@@ -304,8 +242,8 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
     const fromFirstShortStack = (game?.FirstShortStack.Components.length ?? 0) > 0;
     const fromDrawStack = (game?.DiscardStack.Components.length ?? 0) < 3;
     return html`
-      <div id="container" class="${this._classes()}">
-        <div id="controls">
+      <div id="container" class="${this._containerClasses()}">
+        <div id="controls" class="horizontal center gap wrap">
           <label><md-switch
             ?selected="${this.fromStackRotated}"
             @change="${(e: Event) => { this.fromStackRotated = (e.target as MdSwitch).selected; }}">
@@ -359,7 +297,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
             Celebrate
           </button>
         </div>
-        <div id="shortstacks">
+        <div id="shortstacks" class="horizontal center gap">
           <boardgame-component-stack
             layout="stack"
             .stack="${this.state?.Game?.FirstShortStack}"
@@ -380,7 +318,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           </boardgame-action-button>
         </div>
 
-        <div id="draw">
+        <div id="draw" class="horizontal center gap">
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
@@ -403,7 +341,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           </boardgame-fading-text>
         </div>
 
-        <div id="draw">
+        <div id="draw" class="horizontal center gap">
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
@@ -413,7 +351,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           <boardgame-action-button .action=${this.move(MoveNames.FlipCardBetweenHiddenAndRevealed)}>Flip</boardgame-action-button>
         </div>
 
-        <div id="fan" data-effect-anchor="visible-shuffle">
+        <div id="fan" class="horizontal center gap" data-effect-anchor="visible-shuffle">
           <boardgame-component-stack
             layout="${this.fromStackLayout}"
             ?messy="${this.messy}"
@@ -431,7 +369,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
             style="${styleMap({ '--component-scale': this.toCardScale.toString() })}"
             >
           </boardgame-component-stack>
-          <div class="controls">
+          <div class="controls vertical gap">
             <boardgame-action-button .action=${this.move(MoveNames.MoveFanCard)}>Draw</boardgame-action-button>
             <boardgame-action-button .action=${this.move(MoveNames.VisibleShuffle)}>Public Shuffle</boardgame-action-button>
             <boardgame-action-button .action=${this.move(MoveNames.Shuffle)}>Shuffle</boardgame-action-button>
@@ -460,7 +398,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           </div>
         </div>
 
-        <div id="hidden">
+        <div id="hidden" class="horizontal center gap">
           <boardgame-component-stack
             layout="fan"
             ?messy="${this.messy}"
@@ -481,7 +419,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           <boardgame-action-button .action=${this.move(MoveNames.MoveBetweenHidden)}>Draw</boardgame-action-button>
         </div>
 
-        <div id="all">
+        <div id="all" class="horizontal center gap">
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
@@ -498,7 +436,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           <boardgame-action-button .action=${this.move(MoveNames.StartMoveAllComponentsToVisible)}>To Visible</boardgame-action-button>
         </div>
 
-        <div id="token">
+        <div id="token" class="horizontal center gap">
           <boardgame-token
             .item=${BoardgameRenderGameDebuganimations.demoTokenItem}
             color="${this.tokenColor}"
@@ -537,7 +475,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           </md-filled-select>
         </div>
 
-        <div id="tokens">
+        <div id="tokens" class="horizontal center gap">
           <boardgame-component-stack
             data-effect-anchor="token-source"
             layout="grid"
@@ -555,7 +493,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           <boardgame-action-button .action=${this.move(MoveNames.MoveToken)}>Swap</boardgame-action-button>
         </div>
 
-        <div id="tokens-sanitized">
+        <div id="tokens-sanitized" class="horizontal center gap">
           <boardgame-component-stack
             layout="pile"
             ?messy="${this.messy}"

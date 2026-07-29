@@ -31,16 +31,10 @@ export class BoardgameRenderGameMemory extends GameRenderer {
 
       .discards {
         --component-scale: 0.7;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
       }
 
       .discard-pile {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
+        --boardgame-gap: 4px;
       }
     `
   ];
@@ -133,8 +127,8 @@ export class BoardgameRenderGameMemory extends GameRenderer {
             .trigger="${this.state?.Game?.Cards?.Components?.length}">
           </boardgame-fading-text>
         </div>
-        <div class="discards">
-          <div class="discard-pile">
+        <div class="discards horizontal space-around">
+          <div class="discard-pile vertical center gap">
             <boardgame-player-badge .player=${this.playerPresentation(0)} compact></boardgame-player-badge>
             <boardgame-component-stack
               layout="stack"
@@ -146,7 +140,7 @@ export class BoardgameRenderGameMemory extends GameRenderer {
           </div>
           <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
           <boardgame-card spacer></boardgame-card>
-          <div class="discard-pile">
+          <div class="discard-pile vertical center gap">
             <boardgame-player-badge .player=${this.playerPresentation(1)} compact></boardgame-player-badge>
             <boardgame-component-stack
               layout="stack"

@@ -6,6 +6,10 @@
  * proves the need; deep implementation modules remain unsupported.
  */
 export { html, css } from 'lit';
+// The shared layout/state vocabulary. Every generated renderer base already
+// carries it, so most renderers never name these; import them when a renderer
+// replaces `static styles` outright instead of spreading the base's.
+export { layoutStyles, rendererStyles, stateStyles } from './styles/renderer-styles.js';
 export { BoardgameBaseGameRenderer } from './components/boardgame-base-game-renderer.js';
 export { BoardgameBasePlayerInfoRenderer } from './components/boardgame-base-player-info-renderer.js';
 export { BoardgameTableViewBase } from './components/boardgame-table-view-base.js';

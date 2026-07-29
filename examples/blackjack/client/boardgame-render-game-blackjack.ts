@@ -1,5 +1,6 @@
 import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
+import { classMap } from 'lit/directives/class-map.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { MoveNames } from './_move_names.js';
 import { cardView } from '../../src/client.js';
@@ -17,34 +18,22 @@ export class BoardgameRenderGameBlackjack extends GameRenderer {
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
-      #draw {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-      }
-
       #players {
         --boardgame-player-grid-min-width: 14rem;
       }
 
-      .flex {
-        flex: 1;
-      }
-
+      /*
+       * A busted seat is the framework's "eliminated" state. Blackjack wants
+       * more than the default drain -- it blurs, so a busted hand reads as out
+       * of play at a glance -- and says so by replacing the one filter token
+       * rather than declaring a private .busted class, which is how this repo
+       * ended up with four unrelated "eliminated" treatments.
+       */
       .player {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .busted {
-        filter: saturate(0.5) blur(1px);
+        --boardgame-state-eliminated-filter: saturate(0.5) blur(1px);
       }
     `
   ];
-
-  private _bustedClass(busted: boolean): string {
-    return busted ? 'busted' : '';
-  }
 
   override render() {
     return html`
@@ -56,7 +45,7 @@ export class BoardgameRenderGameBlackjack extends GameRenderer {
           .winners=${this.gameWinners}
           .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
         </boardgame-game-outcome>
-        <div id="draw">
+        <div id="draw" class="horizontal center">
           <boardgame-component-zone
             label="Draw pile"
             .stack="${this.state?.Game?.DrawStack}"
@@ -79,7 +68,7 @@ export class BoardgameRenderGameBlackjack extends GameRenderer {
         <boardgame-player-grid id="players">
           ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
             <boardgame-player-panel
-                class="player ${this._bustedClass(player.Eliminated)}"
+                class=${classMap({ player: true, vertical: true, eliminated: player.Eliminated })}
                 label=${`Player ${index + 1}`}
                 .active=${index === this.currentPlayerIndex}>
               <boardgame-component-zone

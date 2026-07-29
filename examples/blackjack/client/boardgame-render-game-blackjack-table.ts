@@ -1,4 +1,5 @@
 import { html, css } from 'lit';
+import { classMap } from 'lit/directives/class-map.js';
 import { cardView } from '../../src/client.js';
 import { TableRenderer, registerTableRenderer } from './_game_renderer.js';
 import type { GameState } from './_types.js';
@@ -41,38 +42,36 @@ export class BlackjackTableView extends TableRenderer {
         margin: 0 0 16px 0;
       }
       .draw {
-        display: flex;
-        justify-content: center;
         margin: 24px auto;
       }
       .draw boardgame-component-stack {
         width: auto;
       }
       .seats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 24px;
-        justify-content: center;
+        --boardgame-gap: 24px;
         margin: 24px 0;
       }
+      /*
+       * The gold ring is the framework's "active" state -- whose turn it is --
+       * retinted through its own custom property rather than rewritten as a
+       * private .seat.current rule. --boardgame-state-ring-offset defaults
+       * to -2px, so the shared outline lands exactly where this seat's own
+       * 2px border used to be drawn, and the reserved transparent border keeps
+       * an inactive seat the same size as an active one.
+       */
       .seat {
+        --boardgame-state-active-ring: gold;
         text-align: center;
         padding: 12px 16px;
         border-radius: 12px;
         border: 2px solid transparent;
-      }
-      .seat.current {
-        border-color: gold;
       }
       .seat-name {
         font-weight: 700;
         margin-bottom: 8px;
       }
       .seat-cards {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-        align-items: center;
+        --boardgame-gap: 8px;
         min-height: 110px;
         --component-width: 64px;
       }
@@ -97,16 +96,16 @@ export class BlackjackTableView extends TableRenderer {
       ${this.renderGameOverBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
-      <div class="draw">
+      <div class="draw horizontal justify-center">
         ${this.state?.Game?.DrawStack
           ? html`<boardgame-component-stack id="deal-source" .stack=${this.state.Game.DrawStack} .componentView=${this.cards.withProperties({ rotated: true })}></boardgame-component-stack>`
           : html`<small>waiting for state…</small>`}
       </div>
-      <div class="seats">
+      <div class="seats horizontal wrap justify-center gap">
         ${players.map((p, i) => html`
-          <div class="seat ${i === this.currentPlayerIndex ? 'current' : ''}">
+          <div class=${classMap({ seat: true, active: i === this.currentPlayerIndex })}>
             <div class="seat-name">${nameFor(i)} · ${p.Score} pts</div>
-            <div class="seat-cards">
+            <div class="seat-cards horizontal center justify-center gap">
               ${p.VisibleHand
                 ? html`<boardgame-component-stack .stack=${p.VisibleHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan" messy></boardgame-component-stack>`
                 : ''}

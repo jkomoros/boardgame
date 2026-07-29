@@ -210,7 +210,8 @@ export class BoardgameHandViewBase<
     return html`<div class="hand-top-edge-anchor" id="hand-top-edge"></div>`;
   }
 
-  static styles: CSSResultGroup = css`
+  // Composed, not replaced: see the same note on the Table base.
+  static override styles: CSSResultGroup = [BoardgameBaseGameRenderer.styles, css`
     .hand-top-edge-anchor {
       position: fixed;
       top: 0;
@@ -244,5 +245,5 @@ export class BoardgameHandViewBase<
       opacity: 1;
       font-weight: 700;
     }
-  `;
+  `];
 }

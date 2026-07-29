@@ -1546,6 +1546,108 @@ By following this convention, you cleanly keep your client views for a game next
 to the server logic, and also make it easy to import the game package into
 different servers with a minimum of fuss.
 
+#### Layout and state vocabulary
+
+**Do not declare `.horizontal { display: flex; flex-direction: row }` in your
+renderer.** You already have it. Every generated renderer base — game, Table,
+Hand, and player-info — carries a shared vocabulary of layout and state classes,
+so any renderer whose `static styles` spreads its base gets them with no import:
+
+```typescript
+static override styles = [
+  ...(GameRenderer.styles ? [GameRenderer.styles] : []),
+  css`/* only what is actually specific to your game */`
+];
+```
+
+That spread is what the generated renderers already write. If you replace
+`styles` outright instead of spreading, import the pieces you want from the
+client facade: `import { layoutStyles, stateStyles, rendererStyles } from
+'../../src/client.js'`.
+
+##### Layout classes
+
+| Class | Effect |
+|---|---|
+| `horizontal` | `display: flex; flex-direction: row` |
+| `vertical` | `display: flex; flex-direction: column` |
+| `center` | `align-items: center` |
+| `justify-center` | `justify-content: center` |
+| `space-between` / `space-around` | the matching `justify-content` |
+| `wrap` | `flex-wrap: wrap` |
+| `gap` | `gap: var(--boardgame-gap, 16px)` |
+| `flex` | `flex: 1` — the spacer that pushes the next thing to the far end |
+
+They compose: `class="horizontal center gap wrap"` is a wrapping, vertically
+centred row with a 16px gap. Gap is the one value games genuinely disagree
+about, so it reads a custom property instead of freezing a number — set
+`--boardgame-gap` on the element or any ancestor to retune it:
+
+```typescript
+css`
+  .discard-pile { --boardgame-gap: 4px; }
+`
+```
+
+##### State classes
+
+One vocabulary for "what is going on with this thing", replacing the four
+mutually incompatible ones this repo's games each invented:
+
+| Class | Meaning |
+|---|---|
+| `active` | **whose turn it is** |
+| `responding` | **who the game is waiting on right now** — a simultaneous response, a reaction window, a luck roll. This is a genuinely different state from `active` and it exists because games kept reinventing it. |
+| `selected` | this player picked this thing |
+| `targetable` | this player *may* pick this thing (a dashed ring — an invitation, not a commitment) |
+| `disabled` | dimmed, `cursor: not-allowed`, no pointer events |
+| `eliminated` | drained of colour and dimmed |
+
+The ring is an `outline` drawn *inside* the element's own edge, so adding or
+removing a state never reflows the element's neighbours — you do not need to
+reserve space for it with a transparent border.
+
+Every one is retinted by a custom property rather than by writing a competing
+rule, so a game can keep its own look without abandoning the vocabulary:
+
+```typescript
+css`
+  /* Blackjack's Table view keeps its gold current-seat ring. */
+  .seat { --boardgame-state-active-ring: gold; }
+  /* Blackjack's busted seats blur as well as drain. opacity() is itself a
+     filter function, so one token covers the whole treatment. */
+  .player { --boardgame-state-eliminated-filter: saturate(0.5) blur(1px); }
+`
+```
+
+The full set: `--boardgame-state-{active,responding,selected}-{ring,surface}`,
+`--boardgame-state-targetable-ring`, `--boardgame-state-ring-width`,
+`--boardgame-state-ring-offset`, `--boardgame-state-radius`,
+`--boardgame-state-disabled-opacity`, `--boardgame-state-eliminated-filter`.
+Because they are custom properties they inherit through shadow boundaries, so
+setting one on the renderer also reaches inside a component's shadow tree.
+
+##### Toggling a class
+
+Use Lit's `classMap` directive. Do not build a class attribute by string
+concatenation, and do not write a `_bustedClass()` helper — several renderers in
+this repo did, and every one of them was reinventing this:
+
+```typescript
+import { classMap } from 'lit/directives/class-map.js';
+
+html`<div class=${classMap({ seat: true, active: index === this.currentPlayerIndex })}>`
+```
+
+##### A note on class names, not attributes
+
+The vocabulary is delivered as classes rather than as `[active]` / `[selected]`
+attribute selectors, which would read better. The reason is concrete:
+`boardgame-player-panel` reflects an `active` attribute, and
+`boardgame-selection-option` and `boardgame-placement-item` reflect `disabled`.
+An `[active]` rule in your shadow root would silently start ringing every player
+panel you bind `.active=${...}` on.
+
 #### Helpful Components
 
 Before we get into a specific worked example, it's important to dig into a

@@ -1,5 +1,6 @@
-import { LitElement, type PropertyValues } from 'lit';
+import { LitElement, type CSSResultGroup, type PropertyValues } from 'lit';
 import { property } from 'lit/decorators.js';
+import { rendererStyles } from '../styles/renderer-styles.js';
 
 export interface PlayerChipPresentation {
   readonly text?: string;
@@ -22,6 +23,14 @@ export abstract class BoardgameBasePlayerInfoRenderer<
   State extends PlayerInfoState<PlayerState>,
   PlayerState,
 > extends LitElement {
+  /**
+   * The shared layout/state vocabulary. A player-info renderer that writes
+   * `static override styles = css\`...\`` REPLACES this rather than composing
+   * it — spread `PlayerInfoRenderer.styles` first, or import `layoutStyles` /
+   * `stateStyles` from `src/client.js`, to keep it.
+   */
+  static styles: CSSResultGroup = rendererStyles;
+
   @property({ type: Object })
   state: State | null = null;
 

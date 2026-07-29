@@ -495,7 +495,10 @@ export class BoardgameTableViewBase<
     }
   }
 
-  static styles: CSSResultGroup = css`
+  // Composed, not replaced: the base carries the shared layout/state
+  // vocabulary, and a bare `= css` here would have quietly dropped it for every
+  // Table renderer.
+  static override styles: CSSResultGroup = [BoardgameBaseGameRenderer.styles, css`
     .avatar-strip {
       display: flex;
       flex-wrap: wrap;
@@ -647,5 +650,5 @@ export class BoardgameTableViewBase<
       from { opacity: 0; }
       to { opacity: 1; }
     }
-  `;
+  `];
 }

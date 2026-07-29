@@ -16,15 +16,6 @@ export class BoardgameRenderGamePig extends GameRenderer {
       boardgame-die {
         --die-size: 100px;
       }
-
-      .container {
-        display: flex;
-        flex-direction: row;
-      }
-
-      .flex {
-        flex: 1;
-      }
     `
   ];
 
@@ -81,7 +72,7 @@ export class BoardgameRenderGamePig extends GameRenderer {
   override render() {
     return html`
       <boardgame-game-surface heading="Pig">
-        <div class="container">
+        <div class="horizontal">
           <boardgame-die
             .item="${this.state?.Game?.Die?.Components?.[0]}"
             .action="${this.move(MoveNames.RollDice)}"

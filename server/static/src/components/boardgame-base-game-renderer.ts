@@ -1,5 +1,6 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
+import { rendererStyles } from '../styles/renderer-styles.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import type { MovePreviewSpec } from '../legal/previewLegality.js';
 import type { FullGameState, GameChest } from '../types/boardgame-types.js';
@@ -71,6 +72,20 @@ export class BoardgameBaseGameRenderer<
   E extends object = object,
   MCP extends MoveChoiceProjectionTypes = Record<never, never>,
 > extends LitElement {
+  /**
+   * The shared layout/state vocabulary, so a renderer gets it without asking.
+   *
+   * Every generated renderer already opens its `static styles` with
+   * `...(GameRenderer.styles ? [GameRenderer.styles] : [])`, and that guard
+   * exists precisely because this used to be undefined. Now it is not, and the
+   * idiom every renderer already writes picks the vocabulary up for free —
+   * which is the point, because the audit's finding was that nobody
+   * experienced hand-rolling `.horizontal` as friction worth an import.
+   *
+   * It comes FIRST, so a renderer's own rules win any specificity tie.
+   */
+  static styles: CSSResultGroup = rendererStyles;
+
   /** Generated safe-input contract installed by a bound/game renderer. */
   protected readonly moveInputSchema: MoveInputSchema | null = null;
   protected readonly moveInputSchemaFingerprint: string | null = null;
