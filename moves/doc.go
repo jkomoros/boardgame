@@ -268,6 +268,7 @@ each has on the one above it. See the documentation for each struct for more.
 	      ├ DefaultComponent
 	      ├ ActivateInactivePlayer
 	      ├ ActivateEmptySeat
+	      ├ ActivateFilledSeat
 	      ├ CloseEmptySeat
 	      ├ InactivateEmptySeat
 	      └ ApplyUntil

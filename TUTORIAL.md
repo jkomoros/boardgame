@@ -3975,6 +3975,34 @@ and then inactivate any currently empty seats so we won't wait for those
 non-existent players in the round. That's such a common series of moves that you
 can use moves.DefaultRoundSetup().
 
+#### Drop-in joining
+
+`DefaultRoundSetup` handles the case where everyone arrives before the game
+starts. If you also want players to be able to join *after* it has started, make
+`moves.SeatPlayer` legal in your play phase too — and pair it with
+`moves.ActivateFilledSeat`, not `moves.ActivateInactivePlayer`:
+
+```go
+moves.AddForPhase(phaseNormal,
+    auto.MustConfig(new(moves.SeatPlayer),
+        moves.WithMoveNameSuffix("Mid Game"),
+    ),
+    auto.MustConfig(new(moves.ActivateFilledSeat)),
+),
+```
+
+The distinction is load-bearing. `ActivateInactivePlayer` activates *every*
+inactive player, which is right during setup — no seat has been closed yet — but
+wrong afterwards: `DefaultRoundSetup`'s `InactivateEmptySeat` has by then closed
+the seats nobody is sitting in, and re-activating those makes the game start
+waiting on players who do not exist. `ActivateFilledSeat` activates only the
+seats a real player is in, so it is safe to leave always legal.
+
+Without that move there is no safe always-legal activation at all, which is why
+a game that inactivates empty seats had to choose between drop-in joining and
+correct round setup. It no longer has to. The generated scaffold ships this
+pairing by default.
+
 You can see idiomatic use of these concepts in the blackjack example.
 
 See the package doc of the behaviors package for more.

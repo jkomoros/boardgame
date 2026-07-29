@@ -65,23 +65,28 @@ func TestSuppressSeatingIsTheOnlyWayOut(t *testing.T) {
 	}
 }
 
-// TestSeatPlayerIsScopedToThePhaseThatActivatesPlayers is the second half of
-// the scaffolding bug: even with seating enabled, the generated game seated
-// late joiners into a permanent freeze.
+// TestSeatPlayerIsScopedToPhasesThatActivate is the second half of the
+// scaffolding bug: even with seating enabled, the generated game seated late
+// joiners into a permanent freeze.
 //
-// moves.SeatPlayer marks every player it seats inactive, and the only thing
-// that undoes that is Optional(ActivateInactivePlayer), which lives inside
-// moves.DefaultRoundSetup. The stub puts DefaultRoundSetup inside
-// AddOrderedForPhase(phaseSetUp, ...) while registering SeatPlayer with a bare
-// moves.Add -- legal in every phase. The generated game runs phaseSetUp exactly
-// once and then starts phaseNormal forever, so anyone the server seated after
-// that was inactivated and never activated again: a silent permanent spectator.
+// moves.SeatPlayer marks every player it seats inactive, and something has to
+// undo that. The stub originally registered SeatPlayer with a bare moves.Add --
+// legal in every phase -- while the only activation, ActivateInactivePlayer,
+// lived inside moves.DefaultRoundSetup in phaseSetUp. The generated game runs
+// phaseSetUp exactly once, so anyone seated after that was inactivated and
+// never activated again: a silent permanent spectator.
 //
-// The fix scopes SeatPlayer to the same phase that activates. That phase is
-// where seating is supposed to happen anyway: the game starts in phaseSetUp
-// (a tree enum's default value is its first real member, not the root) and
-// WaitForEnoughPlayers holds it there until enough players are seated.
-func TestSeatPlayerIsScopedToThePhaseThatActivatesPlayers(t *testing.T) {
+// The first fix scoped SeatPlayer to phaseSetUp alone, which was correct but
+// cost the scaffold drop-in joining outright -- there was no filled-seat-only
+// activation, and putting ActivateInactivePlayer in phaseNormal would have
+// re-activated the empty seats DefaultRoundSetup's InactivateEmptySeat had just
+// closed. moves.ActivateFilledSeat is that missing complement, so seating is
+// legal in BOTH phases again, each paired with the activation that is correct
+// for it.
+//
+// This test pins the pairing structurally. The runtime proof that a late joiner
+// can actually take a turn is moves/drop_in_joining_test.go.
+func TestSeatPlayerIsScopedToPhasesThatActivate(t *testing.T) {
 
 	tutorialOptions := &Options{Name: "checkers"}
 	tutorialOptions.EnableTutorials()
@@ -95,26 +100,59 @@ func TestSeatPlayerIsScopedToThePhaseThatActivatesPlayers(t *testing.T) {
 			t.Fatalf("%s: generating: %v", name, err)
 		}
 
-		group, ok := seatPlayerRegistrationGroup(t, string(contents["checkers/main.go"]))
-		if !ok {
+		source := string(contents["checkers/main.go"])
+
+		groups := moveRegistrationGroups(t, source, "moves.SeatPlayer")
+
+		if len(groups) == 0 {
 			t.Errorf("%s: could not find a moves.Add* group registering moves.SeatPlayer", name)
 			continue
 		}
 
-		if group != "AddForPhase(phaseSetUp)" {
-			t.Errorf("%s: moves.SeatPlayer is registered via %s, so the server can "+
-				"seat a player in a phase where no ActivateInactivePlayer will ever "+
-				"run; that player is inactivated on seating and stays a permanent "+
-				"spectator. Expected AddForPhase(phaseSetUp)", name, group)
+		for _, group := range groups {
+			if group != "AddForPhase(phaseSetUp)" && group != "AddForPhase(phaseNormal)" {
+				t.Errorf("%s: moves.SeatPlayer is registered via %s, a group with no "+
+					"paired activation move; a player seated there is inactivated on "+
+					"seating and stays a permanent spectator", name, group)
+			}
+		}
+
+		if !containsGroup(groups, "AddForPhase(phaseSetUp)") {
+			t.Errorf("%s: moves.SeatPlayer is not legal in phaseSetUp, where the "+
+				"game waits for players to arrive", name)
+		}
+
+		if !containsGroup(groups, "AddForPhase(phaseNormal)") {
+			t.Errorf("%s: moves.SeatPlayer is not legal in phaseNormal, so the "+
+				"scaffold has no drop-in joining at all", name)
+		}
+
+		activations := moveRegistrationGroups(t, source, "moves.ActivateFilledSeat")
+		if !containsGroup(activations, "AddForPhase(phaseNormal)") {
+			t.Errorf("%s: phaseNormal seats players but registers no "+
+				"moves.ActivateFilledSeat, so a drop-in joiner is never activated. "+
+				"moves.ActivateInactivePlayer is NOT a substitute here: it would also "+
+				"re-activate the empty seats InactivateEmptySeat just closed", name)
 		}
 	}
 }
 
-// seatPlayerRegistrationGroup parses generated Go and reports which moves.Add*
-// call registers moves.SeatPlayer, as e.g. "Add" or "AddForPhase(phaseSetUp)".
-// Parsing rather than grepping matters here: the whole bug is about which
-// grouping call encloses the registration, which a substring search cannot see.
-func seatPlayerRegistrationGroup(t *testing.T, source string) (string, bool) {
+func containsGroup(groups []string, want string) bool {
+	for _, group := range groups {
+		if group == want {
+			return true
+		}
+	}
+	return false
+}
+
+// moveRegistrationGroups parses generated Go and reports which moves.Add*
+// calls register moveName, as e.g. "Add" or "AddForPhase(phaseSetUp)" -- one
+// entry per registration, since a move may legitimately be registered in more
+// than one phase. Parsing rather than grepping matters here: the whole bug is
+// about which grouping call encloses each registration, which a substring
+// search cannot see.
+func moveRegistrationGroups(t *testing.T, source string, moveName string) []string {
 	t.Helper()
 
 	fileSet := token.NewFileSet()
@@ -124,13 +162,13 @@ func seatPlayerRegistrationGroup(t *testing.T, source string) (string, bool) {
 	}
 
 	// Walk down from every moves.Add* call, so the nearest enclosing one wins.
-	var found string
+	var found []string
 	var describe func(node ast.Node, enclosing string)
 	describe = func(node ast.Node, enclosing string) {
 		ast.Inspect(node, func(n ast.Node) bool {
 			if selector, ok := n.(*ast.SelectorExpr); ok {
-				if selectorName(selector) == "moves.SeatPlayer" && found == "" {
-					found = enclosing
+				if selectorName(selector) == moveName {
+					found = append(found, enclosing)
 				}
 				return false
 			}
@@ -163,7 +201,7 @@ func seatPlayerRegistrationGroup(t *testing.T, source string) (string, bool) {
 		describe(funcDecl, "")
 	}
 
-	return found, found != ""
+	return found
 }
 
 func selectorName(expr ast.Expr) string {

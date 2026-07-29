@@ -246,23 +246,33 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 		{{ else -}}
 		{{if .EnableSeatPlayer -}}
-		//SeatPlayer is scoped to phaseSetUp, the same phase whose
-		//DefaultRoundSetup below activates the players it seats. That
-		//pairing is load-bearing: SeatPlayer marks everyone it seats as
-		//Inactive, and only ActivateInactivePlayer (inside DefaultRoundSetup)
-		//clears that. An inactive player can never be the CurrentPlayer, so a
-		//player seated in a phase with no activation move would be a silent
-		//permanent spectator. This is where seating belongs anyway -- the game
-		//starts in phaseSetUp and WaitForEnoughPlayers holds it there until
-		//enough players have arrived.
+		//Seating is legal in both phases, so a player can join before the
+		//game starts OR drop in after it has. The pairing with an activation
+		//move is load-bearing: SeatPlayer marks everyone it seats as
+		//Inactive, and an inactive player can never be the CurrentPlayer, so
+		//a player seated in a phase with no activation move would be a silent
+		//permanent spectator.
 		//
-		//If you want drop-in players after the game starts, give your game a
-		//round loop -- a phase that begins each round and runs
-		//DefaultRoundSetup -- and widen SeatPlayer to the phases that loop
-		//back through it. Do not simply make SeatPlayer legal everywhere.
+		//The two phases need DIFFERENT activation moves. In phaseSetUp,
+		//DefaultRoundSetup's ActivateInactivePlayer activates everyone --
+		//correct there, because no seat has been closed yet, and
+		//WaitForEnoughPlayers holds the game there until enough players
+		//arrive. In phaseNormal, ActivateInactivePlayer would be WRONG: it
+		//would re-activate the empty seats DefaultRoundSetup's
+		//InactivateEmptySeat just closed, and the game would start waiting on
+		//seats nobody is sitting in. ActivateFilledSeat activates only the
+		//seats a real player is in, which is exactly what drop-in joining
+		//needs.
 		moves.AddForPhase(
 			phaseSetUp,
 			auto.MustConfig(new(moves.SeatPlayer)),
+		),
+		moves.AddForPhase(
+			phaseNormal,
+			auto.MustConfig(new(moves.SeatPlayer),
+				moves.WithMoveNameSuffix("Mid Game"),
+			),
+			auto.MustConfig(new(moves.ActivateFilledSeat)),
 		),{{end}}
 		moves.AddOrderedForPhase(
 			phaseSetUp,
