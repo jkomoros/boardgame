@@ -31,6 +31,16 @@ type ActivateInactivePlayer struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+// IsActivateInactivePlayerMove returns true. This is a way for moves to signal
+// to other libraries that this is an ActivateInactivePlayer move, even when the
+// registered move is a subclass rather than literally this struct. The
+// framework looks for it at boot to verify that a game which inactivates the
+// players it seats has some way of activating them again. Implements
+// interfaces.ActivateInactivePlayerMover.
+func (a *ActivateInactivePlayer) IsActivateInactivePlayerMove() bool {
+	return true
+}
+
 // DefaultsForState sets TargetPlayerIndex to the next player who is currently
 // marked as inactive, according to interfaces.PlayerInactiver.
 func (a *ActivateInactivePlayer) DefaultsForState(state boardgame.ImmutableState) {

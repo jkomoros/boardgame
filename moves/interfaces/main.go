@@ -190,6 +190,27 @@ type SeatPlayerMover interface {
 	IsSeatPlayerMove() bool
 }
 
+// ActivateInactivePlayerMover should be implemented for moves that are
+// [moves.ActivateInactivePlayer] moves, returning true from
+// IsActivateInactivePlayerMove(). Typically you use
+// [moves.ActivateInactivePlayer] directly, which implements this interface, but
+// you might also embed it in another move. The framework looks for this
+// interface at boot: a game whose seating move inactivates the players it seats
+// and whose moves are current-player-gated has no way out of that state without
+// one of these.
+type ActivateInactivePlayerMover interface {
+	IsActivateInactivePlayerMove() bool
+}
+
+// CurrentPlayerMover should be implemented for moves that are gated on the
+// game's current player, returning true from IsCurrentPlayerMove().
+// [moves.CurrentPlayer] implements it, so any move embedding it -- at any depth
+// -- is detected too. This is how the framework knows a game's play depends on
+// PlayerIndex.Valid, which an inactive player fails.
+type CurrentPlayerMover interface {
+	IsCurrentPlayerMove() bool
+}
+
 // SeatPlayerSignaler is the way that [moves.SeatPlayer] and the server coordinate
 // about where to seat a player.
 type SeatPlayerSignaler interface {

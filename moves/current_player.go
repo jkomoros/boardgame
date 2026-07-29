@@ -35,6 +35,16 @@ type CurrentPlayer struct {
 // used by auto.Config to recognize this embedded behavior.
 func (c *CurrentPlayer) moveInputCurrentPlayerBehavior() {}
 
+// IsCurrentPlayerMove returns true. This is a way for moves to signal to other
+// libraries that this move is gated on the game's current player, even when the
+// registered move is a subclass rather than literally this struct. The
+// framework uses it at boot to check behavior pairings: a game whose moves are
+// current-player-gated and whose seating marks players inactive needs a way to
+// activate them again. Implements interfaces.CurrentPlayerMover.
+func (c *CurrentPlayer) IsCurrentPlayerMove() bool {
+	return true
+}
+
 // Legal will return an error if the TargetPlayerIndex is not the
 // CurrentPlayerIndex, if the TargetPlayerIndex is not equivalent to the
 // proposer, or if the TargetPlayerIndex is not one of the players.
