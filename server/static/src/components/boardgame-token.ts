@@ -99,6 +99,24 @@ export class BoardgameToken extends BoardgameComponent {
       }
 
       /*
+       * The slotted-content overlay. See render()'s comment for why it is a
+       * sibling of #solid/#art rather than a child of either.
+       *
+       * Absolutely positioned so a caption can never grow #inner: the square
+       * box is the stack's layout contract. pointer-events: none so taps still
+       * reach #outer's handler. Centred, because a token is a small square and
+       * the only content that fits is a short label or a count.
+       */
+      #content {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+
+      /*
        * DEPTH FOR THE TWO SHAPES THAT ARE NOT SOLIDS.
        *
        * meeple and pawn keep their authored SVG because a prism over a
@@ -591,12 +609,41 @@ export class BoardgameToken extends BoardgameComponent {
     `;
   }
 
+  /**
+   * The slot the base class offers and this override used to drop.
+   *
+   * `componentView`'s `render` option writes into the host's LIGHT DOM, so a
+   * host with no `<slot>` accepts the content, mutates on every snapshot, and
+   * paints nothing. `boardgame-card` has three slots and `boardgame-component`
+   * has one; this element had none, which made `tokenView({render})`
+   * type-check, run, and silently show nothing.
+   *
+   * It goes in `#inner`, as a SIBLING of `#solid`/`#art` rather than inside
+   * either, because both of those are geometry:
+   *
+   *   - `#solid`'s children are the projected facet polygons from
+   *     src/solid/flat-facets.ts, each absolutely positioned with its own
+   *     `clip-path`. Content dropped among them would read as a seventh facet
+   *     and be clipped by whichever polygon it landed in.
+   *   - `#art` carries the edge `drop-shadow` and, for meeple and pawn, the
+   *     `scaleY` lean. Those exist to give the authored silhouette depth; a
+   *     caption is not part of that silhouette and should not be leaned.
+   *
+   * `#inner` is the token's own square box and the frame both paths are drawn
+   * into, so content there sits in the token's plane, at the token's size, over
+   * whatever shape is underneath. The overlay is absolutely positioned so it
+   * cannot push `#inner`'s box around -- the box is the stack's layout contract
+   * (see tests/animations/parity/token-box.spec.ts) and a caption may not
+   * change it -- and is `pointer-events: none` so it does not swallow the tap
+   * `#outer` is listening for.
+   */
   override render(): TemplateResult {
     const solid = this._solid();
     return html`
       <div id="outer" class="${classMap(this._computeClasses())}" @click="${(e: Event) => this.handleTap(e)}" style="${this._outerStyle}">
         <div id="inner">
           ${solid ? this._renderSolid(solid) : this._renderArt()}
+          <div id="content"><slot></slot></div>
         </div>
       </div>
     `;
