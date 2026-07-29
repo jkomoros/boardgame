@@ -497,13 +497,50 @@ type PlayerGameScorer interface {
 	GameScore() int
 }
 
+// playerMayWin reports whether the given player is a candidate for the win in
+// the default CheckGameFinished. Both of CheckGameFinished's passes -- the one
+// that finds the extreme score and the one that collects everyone who matches
+// it -- must apply the identical filter, or a player can be excluded from
+// setting the bar while still being eligible to clear it. Keeping the test in
+// one place is what makes that impossible.
+//
+// A player is a candidate only if they are still in play: neither Inactive
+// (behaviors.InactivePlayer -- skipped in turn order, e.g. a late joiner who
+// has not been activated) nor Eliminated (behaviors.PlayerElimination --
+// knocked out).
+//
+// Elimination is scope-agnostic by design (see behaviors/elimination.go), so
+// it is worth being precise about why the eliminated are excluded in every
+// scope. In turn- and round-scoped games the flag means "busted out of the
+// current turn/round" and is cleared at that boundary (examples/pig clears it
+// in ResetForTurn; examples/blackjack clears it in moveResetPlayerForNewRound),
+// so it is already false by the time a score-based end condition can fire and
+// this filter is a no-op for them. In game-scoped games the flag means "out of
+// the game permanently", and an out player winning on score is precisely the
+// bug. The only reading under which a flagged player should still be ranked is
+// a game where elimination removes you from play but not from scoring; such a
+// game does not want the generic highest-score-wins default at all, and says
+// so by overriding CheckGameFinished -- which is exactly what examples/werewolf
+// does for its team-based win.
+func playerMayWin(player boardgame.ImmutableSubState) bool {
+	if behaviors.PlayerIsInactive(player) {
+		return false
+	}
+	if behaviors.PlayerIsEliminated(player) {
+		return false
+	}
+	return true
+}
+
 // CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
 // then it fetches delegate.PlayerScore() for each player and returns all players
 // who have the highest score as winners. (If delegate.LowScoreWins() is true,
-// instead of highest score, it does lowest score.) It skips any players who are
-// Inactive (according to behaviors.PlayerIsInactive). To use this implementation
-// simply implement those methods. This is sufficient for many games, but not
-// all, so sometimes needs to be overriden.
+// instead of highest score, it does lowest score.) It skips any player who is no
+// longer in play -- that is, any player who is Inactive (according to
+// behaviors.PlayerIsInactive) or Eliminated (according to
+// behaviors.PlayerIsEliminated). To use this implementation simply implement
+// those methods. This is sufficient for many games, but not all, so sometimes
+// needs to be overriden.
 func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finished bool, winners []boardgame.PlayerIndex) {
 
 	if g.Manager() == nil {
@@ -531,7 +568,7 @@ func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 
 	for _, player := range state.ImmutablePlayerStates() {
 
-		if behaviors.PlayerIsInactive(player) {
+		if !playerMayWin(player) {
 			continue
 		}
 
@@ -551,7 +588,7 @@ func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 	//Who has the most extreme score score?
 	for i, player := range state.ImmutablePlayerStates() {
 
-		if behaviors.PlayerIsInactive(player) {
+		if !playerMayWin(player) {
 			continue
 		}
 
