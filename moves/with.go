@@ -163,8 +163,17 @@ func WithPhaseToStart(phaseToStart enum.EnumKey, optionalPhaseEnum enum.Enum) Cu
 }
 
 // WithSourceProperty returns a function configuration option suitable for being
-// passed to auto.Config. The stackPropName is assumed to be on the GameState
-// object. If it isn't, you'll need to embed the move and override SourceStack
+// passed to auto.Config. An unqualified stackPropName is a property on
+// GameState. You may also qualify it to reach player state:
+//
+//	"DrawStack"                            gameState
+//	"game.DrawStack"                       gameState
+//	"player.Hand"                          the current player's state
+//	"players[move.TargetPlayerIndex].Hand" the player named by a move field
+//
+// The spec is resolved once at NewGameManager time, so an unknown path kind or
+// a misspelled property is a boot error naming the move and the path. If the
+// grammar still isn't sufficient, embed the move and override SourceStack
 // yourself.
 func WithSourceProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
@@ -173,9 +182,10 @@ func WithSourceProperty(stackPropName string) CustomConfigurationOption {
 }
 
 // WithDestinationProperty returns a function configuration option suitable for
-// being passed to auto.Config. The stackPropName is assumed to be on the
-// GameState object. If it isn't, you'll need to embed the move and override
-// DestinationStack yourself.
+// being passed to auto.Config. It accepts the same stack path grammar as
+// [WithSourceProperty], so a component-moving move can put components into a
+// player's stack ("player.Hand") without a bespoke struct. If the grammar isn't
+// sufficient, embed the move and override DestinationStack yourself.
 func WithDestinationProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropDestinationProperty] = stackPropName

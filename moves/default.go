@@ -395,11 +395,23 @@ func (d *Default) legalWithStackConstraints(state boardgame.ImmutableState, prop
 func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
 	config := d.CustomConfiguration()
 
-	srcName, ok := config[configPropSourceProperty].(string)
+	srcSpec, ok := config[configPropSourceProperty].(string)
 	if !ok {
 		return nil
 	}
-	dstName, ok := config[configPropDestinationProperty].(string)
+	dstSpec, ok := config[configPropDestinationProperty].(string)
+	if !ok {
+		return nil
+	}
+
+	//This generic early check can only read gameState. A spec that names a
+	//player-scoped stack via the stack path grammar is simply not checkable
+	//here; the move's own Legal does the complete check.
+	srcName, ok := plainGameStackName(srcSpec)
+	if !ok {
+		return nil
+	}
+	dstName, ok := plainGameStackName(dstSpec)
 	if !ok {
 		return nil
 	}

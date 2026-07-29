@@ -44,6 +44,17 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) e
 		return errors.New("embeddingMove doesn't have Source/Destination stacker")
 	}
 
+	//Check the configured specs first so a bad path kind or a misspelled
+	//property reports WHICH path failed and why, instead of the bare "returned
+	//nil" the getters can only say.
+	if err := validateConfiguredStack(m.Info().ConcreteMove(), configPropSourceProperty, "WithSourceProperty", exampleState); err != nil {
+		return err
+	}
+
+	if err := validateConfiguredStack(m.Info().ConcreteMove(), configPropDestinationProperty, "WithDestinationProperty", exampleState); err != nil {
+		return err
+	}
+
 	if theSourceDestinationStacker.DestinationStack(exampleState) == nil {
 		return errors.New("DestinationStack returned nil")
 	}
@@ -55,58 +66,24 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) e
 	return nil
 }
 
-// SourceStack by default just returns the property on GameState with the name
-// passed to DefaultConfig by WithSourceProperty. If that is not sufficient,
-// override this in your embedding struct.
+// SourceStack by default returns the stack named by the spec passed to
+// auto.Config by WithSourceProperty. The spec may name a stack on gameState
+// ("DrawStack" or "game.DrawStack"), on the current player ("player.Hand"), or
+// on the player named by one of the move's own PlayerIndex fields
+// ("players[move.TargetPlayerIndex].Hand") -- see the stack path grammar
+// documented in stack_path.go. If that is not sufficient, override this in your
+// embedding struct.
 func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack {
-	config := m.CustomConfiguration()
-
-	stackName, ok := config[configPropSourceProperty]
-
-	if !ok {
-		return nil
-	}
-
-	strStackName, ok := stackName.(string)
-
-	if !ok {
-		return nil
-	}
-
-	stack, err := state.GameState().ReadSetter().StackProp(strStackName)
-
-	if err != nil {
-		return nil
-	}
-
-	return stack
+	return resolveConfiguredStack(m.Info().ConcreteMove(), configPropSourceProperty, state)
 }
 
-// DestinationStack by default just returns the property on GameState with the
-// name passed to DefaultConfig by WithDestinationProperty. If that is not sufficient,
-// override this in your embedding struct.
+// DestinationStack by default returns the stack named by the spec passed to
+// auto.Config by WithDestinationProperty. It understands the same stack path
+// grammar as SourceStack, so a component-moving move can put components into a
+// player's stack without a bespoke struct. If that is not sufficient, override
+// this in your embedding struct.
 func (m *MoveCountComponents) DestinationStack(state boardgame.State) boardgame.Stack {
-	config := m.CustomConfiguration()
-
-	stackName, ok := config[configPropDestinationProperty]
-
-	if !ok {
-		return nil
-	}
-
-	strStackName, ok := stackName.(string)
-
-	if !ok {
-		return nil
-	}
-
-	stack, err := state.GameState().ReadSetter().StackProp(strStackName)
-
-	if err != nil {
-		return nil
-	}
-
-	return stack
+	return resolveConfiguredStack(m.Info().ConcreteMove(), configPropDestinationProperty, state)
 }
 
 // stacks returns the source and desitnation so you don't have to do the cast.

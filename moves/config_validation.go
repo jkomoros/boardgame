@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 type consumesStartPhaseConfiguration interface{ consumesStartPhaseConfiguration() }
@@ -103,6 +104,26 @@ func validateCustomConfiguration(move boardgame.Move, config boardgame.PropertyC
 		}},
 		{configPropRecordedChoices, "WithRecordedChoice", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
 			return implementsConfigurationConsumer[consumesRecordedChoiceConfiguration](move)
+		}},
+		//WithSourceProperty and WithDestinationProperty have exactly two
+		//consumers: the move's own SourceStack()/DestinationStack(), and
+		//moves.Default's generic stack-constraints check -- which reads the
+		//PAIR and does nothing with one alone. So one of these passed to a move
+		//with no matching stacker method and no partner option is inert, which
+		//is precisely the case worth failing at boot. Testing for the interface
+		//rather than a marker on the framework base types deliberately also
+		//accepts a game's own move that implements the stacker itself.
+		{configPropSourceProperty, "WithSourceProperty", func(move boardgame.Move, config boardgame.PropertyCollection) bool {
+			if _, ok := move.(interfaces.SourceStacker); ok {
+				return true
+			}
+			return config[configPropDestinationProperty] != nil
+		}},
+		{configPropDestinationProperty, "WithDestinationProperty", func(move boardgame.Move, config boardgame.PropertyCollection) bool {
+			if _, ok := move.(interfaces.DestinationStacker); ok {
+				return true
+			}
+			return config[configPropSourceProperty] != nil
 		}},
 	}
 

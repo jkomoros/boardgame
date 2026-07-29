@@ -96,8 +96,15 @@ func (d *Default) ContributedPreconditions() []legal.Spec {
 
 	srcName, hasSrc := config[configPropSourceProperty].(string)
 	dstName, hasDst := config[configPropDestinationProperty].(string)
-	if hasSrc && hasDst {
-		specs = append(specs, legal.StackConstraints(srcName, dstName))
+	//legal.StackConstraints (and the frozen chain's legalStackConstraints)
+	//read both names off gameState. A spec that names a player-scoped stack
+	//via the stack path grammar therefore has no honest stackConstraints
+	//counterpart, so none is contributed rather than contributing one that
+	//would silently resolve to nothing.
+	srcPlain, srcIsGame := plainGameStackName(srcName)
+	dstPlain, dstIsGame := plainGameStackName(dstName)
+	if hasSrc && hasDst && srcIsGame && dstIsGame {
+		specs = append(specs, legal.StackConstraints(srcPlain, dstPlain))
 	}
 
 	return specs

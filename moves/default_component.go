@@ -179,11 +179,11 @@ func (d *DefaultComponent) LegalType() enum.EnumKey {
 	return legalTypeKey
 }
 
-// SourceStack returns the stack set in configuration by WithSourceProperty on the
-// GameState, or nil. If that is not sufficient for your needs you should
-// override SourceStack yourself.
+// SourceStack returns the stack named by the spec set in configuration by
+// WithSourceProperty, or nil. If that is not sufficient for your needs you
+// should override SourceStack yourself.
 func (d *DefaultComponent) SourceStack(state boardgame.State) boardgame.Stack {
-	return sourceStackFromConfig(d, state)
+	return sourceStackFromConfig(d.Info().ConcreteMove(), state)
 }
 
 // ValidConfiguration verifies that there's a SourceStack that returns non-nil,

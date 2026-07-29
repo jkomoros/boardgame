@@ -22,35 +22,18 @@ type moveInfoer interface {
 	CustomConfiguration() boardgame.PropertyCollection
 }
 
-func sourceStackFromConfig(m moveInfoer, state boardgame.State) boardgame.Stack {
-	config := m.CustomConfiguration()
-
-	stackName, ok := config[configPropSourceProperty]
-
-	if !ok {
-		return nil
-	}
-
-	strStackName, ok := stackName.(string)
-
-	if !ok {
-		return nil
-	}
-
-	stack, err := state.GameState().ReadSetter().StackProp(strStackName)
-
-	if err != nil {
-		return nil
-	}
-
-	return stack
+// sourceStackFromConfig resolves the WithSourceProperty spec. It understands
+// the full stack path grammar (see stack_path.go), so the same spelling works
+// here as on the component-moving moves.
+func sourceStackFromConfig(m boardgame.Move, state boardgame.State) boardgame.Stack {
+	return resolveConfiguredStack(m, configPropSourceProperty, state)
 }
 
-// SourceStack by default just returns the property on GameState with the name
-// passed to DefaultConfig by WithSourceProperty. If that is not sufficient,
-// override this in your embedding struct.
+// SourceStack by default just returns the stack named by the spec passed to
+// auto.Config by WithSourceProperty. If that is not sufficient, override this
+// in your embedding struct.
 func (s *ShuffleStack) SourceStack(state boardgame.State) boardgame.Stack {
-	return sourceStackFromConfig(s, state)
+	return sourceStackFromConfig(s.Info().ConcreteMove(), state)
 }
 
 //We don't need a Legal method because the pass-through to moves.Default is sufficient.

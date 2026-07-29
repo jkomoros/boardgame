@@ -368,6 +368,21 @@ Move-type moves, you configure these via [WithSourceProperty] and
 directly). For Deal and Collect-type moves, you use [WithGameProperty] and
 [WithPlayerProperty] (or override GameStack() and PlayerStack()).
 
+[WithSourceProperty] and [WithDestinationProperty] accept a stack path, not just
+a bare gameState property name:
+
+	"DrawStack"                            gameState (the historical spelling)
+	"game.DrawStack"                       gameState
+	"player.Hand"                          the current player's state
+	"players[move.TargetPlayerIndex].Hand" the player named by a move field
+
+That is what lets a Move-type move put components into a player's stack, or take
+them out of one, without a bespoke struct -- so the whole
+{Move,MoveComponentsUntilCountReached,MoveComponentsUntilCountLeft,MoveAllComponents}
+family reaches player state at either end. Specs are parsed and resolved against
+the example state at NewGameManager time, so a typo is a boot error naming the
+move and the path.
+
 All moves in this collection implement TargetCount() int, and all of them
 default to 1. Override this if you want a different number of components checked
 for in the end condition.
