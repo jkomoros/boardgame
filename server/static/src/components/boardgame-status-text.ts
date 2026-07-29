@@ -25,7 +25,7 @@ export class BoardgameStatusText extends BoardgameAnimatableItem {
   @property({ attribute: false })
   value: StatusTextValue = null;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'auto-message' })
   autoMessage: StatusTextAutoMessage = 'diff-up';
 
   /** Announce value changes politely by default. */

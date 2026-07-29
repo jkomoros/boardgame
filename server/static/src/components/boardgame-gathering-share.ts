@@ -31,7 +31,7 @@ export class BoardgameGatheringShare extends LitElement {
     }
   `;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: GameRoute | null = null;
 
   @state()

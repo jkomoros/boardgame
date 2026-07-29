@@ -75,8 +75,12 @@ also may perturb the exact position of the children to give a messier layout.
 animating elements when necesary. More on that later.
 
 The actual `boardgame-component` are generally either `boardgame-token` or
-`boardgame-card`. The former is way simpler; it is just a simple object whose
-appearance is defined by the attributes it has. Cards are way more
+`boardgame-card`. The former is way simpler as a state machine — it has no flip,
+no rotation and no internal animation, and its whole appearance is a pure
+function of the attributes it has — though what it *draws* is no longer a
+sprite: four of its six shapes are generated 3D solids, projected once at build
+time and emitted as flat polygons. See "The solid pipeline" below. Cards are
+way more
 complicated; they can be tall or wide, rotated or not, and flipped or not. All
 of those attributes, when changed, animate. If you select one in the DOM and
 change one of those properties, you'll see them animate smoothly. Of course,
@@ -136,6 +140,306 @@ policy. Declarative transfer, cohort, release, and effect hooks are evaluated
 once from the authoritative before/after transition rather than Lit lifecycle
 callbacks.
 
+## Motion tracks: endpoint pairs and sampled curves
+
+`src/motion/component-track.ts` is the one place a component says what it wants
+animated. `componentMotionTracks()` takes a list of *requests* and returns
+frozen, normalized `ComponentMotionTrack`s; `playMotionTracks()` on
+`BoardgameAnimatableItem` resolves each track's `target` to an element and
+plays it. Requests come in two forms, and they compile to ONE shape:
+
+- **Endpoint pair** — `{ target, property, from, to }`, on either the `host` or
+  the `visual` channel. This is what structural FLIP, fades, and card
+  face/orientation changes use.
+- **Sampled curve** — `{ target: 'visual', property, curve, resolution?,
+  resting? }`, where `curve` is a pure function of progress in `[0,1]`
+  returning a CSS value. This is how motion that is not "interpolate A→B under
+  one easing" — a baked physics trajectory, a path follow, a multi-bounce —
+  gets into the system.
+
+Both compile to `samples: readonly {offset, value}[]` plus a `timeline` of
+`'eased'` or `'sampled'`. An endpoint pair becomes two samples at offsets 0 and
+1, which is a WAAPI no-op for a two-keyframe list, so nothing about existing
+motion changes. A curve is evaluated by the COMPILER on a uniform grid it owns:
+the producer never authors offsets, and the closure is never stored (it can
+capture DOM, cannot be frozen, and cannot be diffed by a golden). `resolution`
+is clamped to `[2, 256]` (default 64) rather than rejected, matching the
+clamp-and-degrade precedent in `effect-budget.ts` — an over-budget bake
+decimates, because a 90-sample trajectory resampled to 64 is the same
+trajectory.
+
+Two things a curve track may not do, enforced in the type and at compile time:
+
+- **A sampled `host` track is forbidden.** The host channel has three
+  contracts that a sampled timeline would break — the FLIP resting write, the
+  two-point viewport contract in `StructuralMotionPath`, and trail-echo
+  synchronization, which animates echoes along a straight `fromCenter →
+  toCenter` line under the effect easing. Sampled motion belongs on `visual`.
+- **A constant curve throws.** Silently vacating a claimed channel is worse
+  than a loud failure at the producer boundary; validation lives in the bake,
+  which is pure and unit-tested, not in a runtime throw that the animator's
+  try/catch would swallow into a `console.error`.
+
+### Per-track timing, and the effect-level easing pin
+
+`playMotionTracks` used to hand ONE `timing` object to every track in a batch.
+It now derives timing per track: `componentMotionTrackEasing(track)` returns
+`'linear'` for a sampled track and `undefined` for an eased one, and the linear
+value is merged into that track's own timing.
+
+The pin is at the **effect** level, not per keyframe. Per-keyframe
+`easing: 'linear'` would be a no-op anyway (WAAPI keyframe easing already
+defaults to linear); what actually warps a sampled trajectory is the
+`ease-in-out` the kernel injects at the effect level. And the effect level is
+also what `BoardgameComponentAnimator` reads into
+`StructuralExecutedTiming` via `effect.getTiming().easing` — encoding
+character in keyframes would make that published field report `linear` for
+everything and quietly stop meaning anything.
+
+Supplying `timing.easing` yourself alongside a sampled track **throws**: two
+things claiming one channel's timeline is the same class of error as two
+owners claiming one channel.
+
+A sampled track must also be played with `{ timing: 'immediate' }`. Under the
+default `'version'` policy a multi-second bake is clamped into the companion
+cycle's slot and plays uniformly fast — geometrically faithful, physically
+absurd, and silent — and the same policy can resolve to skip outright, which
+makes `playMotionTracks` report `not-started` and takes the batch's sibling
+tracks down with it. Both are invisible in solo play, where the ambient
+animation context is null.
+
+### The resting write
+
+Animations run with `fill: 'none'`, so both natural completion and a forced
+`finish()` render the element's **resting style**, not the animation's last
+keyframe. `playAnimation` writes a resting style for the `host` channel only;
+the `visual` channel has none, which is why `boardgame-card` maintains its
+inner transform by hand. A track may therefore carry `resting` (defaulting to
+`curve(1)` for a curve track), and `playMotionTracks` writes it to the resolved
+target immediately after starting the animation. A producer whose `resting` and
+final sample disagree by one rounding digit gets a visible twitch as the
+animation is removed, so the two are generated by the same formatter.
+
+## The die: a solid rolled by physics
+
+`boardgame-die` renders a real 3D solid and rolls it by simulation. The
+pipeline is five pure modules and one component, each testable without a DOM:
+
+1. **Geometry** (`motion/die-geometry.ts`). `dieGeometry(faceCount)` returns a
+   solid: outward face normals, plane offsets, vertices, face polygons, an
+   inertia tensor, and a `ReadingRule`. Platonic counts (4, 6, 8, 12, 20) are
+   closed forms; 10 is a trapezohedron; everything else is a barrel (an N-sided
+   band with two cone caps). Solids are NOT size-normalized, so every consumer
+   divides through by a radius — and there are TWO, which is the thing to get
+   right. `boundingRadius` is the true circumsphere (1.00 to 1.90 across the
+   closed forms, and up to 2.63 for a barrel); `nominalRadius` is what a
+   consumer sizing the die by should use, and it is the same number except on a
+   barrel, where it is deliberately the SHORT axis (the ring radius, exactly 1)
+   so that the die box is the barrel's width — what its marks are bounded by —
+   rather than its length, which nothing is printed along. The simulator
+   normalizes by `boundingRadius` (its tray is measured in them); the renderer
+   sizes by `nominalRadius`. The renderer also LAYS OUT by the ratio between
+   them (`boardgame-die.ts`'s `solidExtent`): a barrel is drawn larger than
+   `--die-size` along its axis, so the component reserves a box that wide rather
+   than overlapping whatever is beside it. `finishSolid` rejects an open or
+   non-manifold surface rather than returning a silently wrong inertia tensor.
+2. **Relabeling** (`motion/die-faces.ts`). The outcome is the SERVER's and is
+   known before any pixel moves, so the simulation is never asked to produce
+   it. `presentedFaceIndex(geometry, orientation)` reads which face a resting
+   orientation turned up, and `assignFaceValues` paints the server's value onto
+   exactly that face while permuting the rest into a still-legitimate die
+   (opposite faces sum to `min + max` — 7 on a d6, 13 on a d12, 21 on a d20 —
+   and a d6 still winds 1-2-3 right-handed, so the result is not a mirrored
+   die). Re-simulating until the physics agreed would cost `sides^dice` throws
+   in expectation; this costs one, always. The visible price is that a die's
+   OTHER faces carry different numbers after each roll. `boardgame-die.ts` runs
+   the die it has NOT rolled through the same routine, so a d12 or a d20 is a
+   constant-sum die on the board before anyone touches it and does not silently
+   relabel itself on the first throw. A d4 and every odd-sided barrel have no
+   antipodal face pairs at all — a tetrahedron's normals point at its vertices —
+   so there is no sum rule to honour on them and any bijection is correct.
+   A d4 and an odd-sided barrel are read from the face they rest ON, which is
+   what `ReadingRule` records.
+3. **Simulation** (`motion/dice-sim.ts`). A seeded rigid-body throw: vertex
+   contacts against an invisible tray, an impulse solver with restitution
+   applied once after convergence (Poisson's hypothesis, capped per contact by
+   Newton's rule — applying it inside the iteration loop pumps energy at high
+   restitution), and rest detection after a continuous still-hold. It is
+   bitwise reproducible from its seed, verified across fresh processes.
+   `RollTrajectory` reports `cocked` and `restAlignment` so a caller can tell a
+   throw the simulator could not settle flat.
+4. **Bake** (`motion/dice-bake.ts`). `trajectoryCurve(die, durationMs, opts)`
+   returns the pure function of progress that the curve track wants, emitting
+   **literal `matrix3d(...)`** — never `var()`/`calc()`, so that no keyframe
+   depends on a custom property a game could change under the tumble and
+   invalidate the composited animation in mid-air — by slerping orientation and
+   lerping position between samples. (A `calc()` over a STATIC custom property
+   does composite; that was measured, and the blanket claim this file used to
+   make was too strong. The guarantee was verified directly instead: with the
+   main thread hard-blocked for 800ms the tumble rendered ~45 of 48 frames,
+   against 1–2 for a non-compositable control.)
+   `restingTransform(die, opts)` is byte-identical to `curve(1)`. The
+   physics world is +Y up and CSS screen-Y points DOWN, so the bake applies the
+   reflection `S = diag(1, −1, 1)` to the WHOLE pose (`p → Sp`, `R → S R S`) in
+   one place. It must be a reflection: the obvious-looking `(x, −y, −z)` is a
+   proper rotation into CSS's left-handed frame and renders the solid's mirror
+   image. `opts.radiusPx` converts trajectory positions, which are in die
+   BOUNDING radii, into pixels — a NUMBER read from the DOM, so the tumble does
+   not depend on a custom property that could move under it. `dice-roll.ts`
+   passes half the die's drawn box, i.e. `nominalRadius` worth of pixels, which
+   for a barrel is deliberately not the same thing.
+5. **The component** (`components/boardgame-die.ts`). It renders one element
+   per face, placed by the face's own normal and centroid and cut to the face
+   polygon with `clip-path`, on a `transform-style: preserve-3d` carrier.
+   Face content is computed, not hard-coded: an author symbol map first, then
+   generated pips on a 3×3 lattice, then numerals past SIX (`MAX_PIP_VALUE` —
+   the lattice would hold nine, but nobody counts seven dots at a glance and no
+   real d8 is pipped), all laid out inside the largest square INSCRIBED in each
+   facet's polygon (not its bounding box, which is what smears content across a
+   barrel's long faces).
+
+   A roll is triggered by `DynamicValues.RollCount`, the server-side counter
+   that `Roll()` increments and nothing else touches — a throw landing on the
+   face already showing leaves `SelectedFace` and `Value` byte-identical, so
+   the face index cannot be the trigger. That count, with the component ID, is
+   also the seed: it identifies the THROW, and unlike the state version it does
+   not move while one throw is on screen. A die whose game does not use
+   `components/dice` falls back to the face change and the state version.
+
+   The bake describes the simulator's world, not the player's, so the component
+   composes a constant scene prefix in front of every keyframe: the READING
+   POSE, aimed at the facet normals as the throw left them, plus a recentring
+   translation back to the middle of the die's own box. The reading pose is one
+   routine (`readingPose`) shared with the die that has never rolled, so a roll
+   does not change the framing — and because it points the landed face exactly
+   at the reading direction, it also squares up a cocked throw. It leans the
+   presented facet at most half the smallest angle between any two of the
+   solid's facet normals, which is what guarantees that the face carrying the
+   value is the most square-on facet on the die rather than a neighbour of it.
+   It also leans far enough for a SECOND facet to be visible where the solid's
+   normals are too far apart for the fixed tilt to manage (`companionTilt`,
+   which on this set of shapes means the d4 and nothing else) — without it a
+   tetrahedron renders as the flat triangle the 2D die it replaces was.
+
+   Aiming cannot rotate the numeral upright — its turn is about an axis
+   perpendicular to the face's normal — so a third turn does that: a roll about
+   the CAMERA axis, solved in closed form for the content direction the caller
+   hands over (`facetBasis` of the resting normal for a die that has never
+   moved, `landedContentDown` for one a throw has put down). About that axis it
+   leaves every facet's depth alone, so it can cost neither the presented face
+   its square-on lead nor the companion its visibility. It used to be a turn
+   about the presented facet's OWN normal, carried on `#orient` inside the
+   scene's pose; that kept the lead (it fixes the presented normal) but not the
+   lean, and it took a landed d4 back to a flat triangle in a quarter of throws.
+   `#orient` now carries the resting pose or nothing at all. (Only the presented
+   facet's content is corrected; the rest keep whatever orientation their
+   geometry gives them.)
+
+   A roll is played for the simulator's own duration with no dead tail: the
+   simulator ends a trajectory at the last frame in which the die was still
+   turning faster than 120°/s, rather than running its rest-detection hold out
+   as samples — that hold used to be ~300ms of every roll spent holding the
+   whole game's animation gate open on a die that had already stopped.
+   `settledTrajectory` in `dice-roll.ts` is the renderer-side backstop for the
+   same thing and currently removes zero frames from zero rolls. Rolls are
+   short: a d6 runs a few hundred ms (median ~430ms over 60 seeds), and the
+   longest throw over 4,400 seeded throws across 11 shapes is 2761ms.
+
+   The whole thing plays as ONE sampled curve track on the `visual` channel
+   with `timing: 'immediate'`, so it is an ordinary gate participant: it
+   declares its own settle budget through `will-animate`, extends the watchdog,
+   and honors reduced motion by resolving to duration 0 and landing on its
+   resting pose.
+
+## The solid pipeline (`src/solid/`), and its two consumers
+
+`src/solid/` is the shared half of the above: how a closed convex surface
+becomes DOM. Nothing in it knows what the solid *is*, and nothing in it may
+learn — it imports no module named for a die, and the vector vocabulary it
+borrows from `motion/die-geometry.ts` is nothing but arithmetic.
+
+| module | what it owns |
+|---|---|
+| `screen-frame.ts` | the ONE map from the physics frame (+Y up, right-handed) into CSS's (+Y down, left-handed). It is the reflection `S = diag(1, −1, 1)` and must be: a proper rotation renders the solid's mirror image, which is how this shipped once. `screen-frame.test.ts` pins `det(S) = −1`. |
+| `prism.ts` | a flat-capped right prism — N side walls about an axis, two flat caps — parameterized by side count and height-over-diameter. It is built about **+Z**, i.e. facing the camera, where a die is built about +Y. |
+| `reading-pose.ts` | the turns that lean a solid so a nominated facet faces the viewer, a second facet stays visible, and the nominated facet's content rolls upright. |
+| `facet-placement.ts` | one polygon → one absolutely positioned, `clip-path`ed element carrying a `matrix3d` that stands it up in a live 3D scene, plus the inscribed content square marks are laid out in. Units are `em` against the stage's `font-size`, so a solid follows a custom property with no JS remeasurement. |
+| `flat-facets.ts` | one **already-projected** polygon → one ordinary, untransformed element. No `matrix3d`, no 3D anything. |
+
+The last two rows are the fork, and **the two consumers do not differ in
+degree — they use different halves of the module.**
+
+**A die tumbles, so its pose is not a constant.** Its facets have to be
+re-projected by the browser every frame of a throw, so `boardgame-die.ts` uses
+`facet-placement.ts` and builds a real 3D context: `perspective` on the
+wrapper, `transform-style: preserve-3d` on the carrier, a `matrix3d` per facet,
+`backface-visibility: hidden` as the hidden-surface removal, and
+`will-change: transform` on every facet so promotion is in place before a roll
+starts (without it a facet crossing from back- to front-facing mid-tumble stays
+culled for a frame and tears a hole in the solid — `die-shape.spec.ts` measures
+exactly that, 13 frames of 236 with a 3,826px hole).
+
+**A token does not tumble, so its pose IS a constant** — a pure function of its
+`type` — and therefore so is its projection. `components/token-solid.ts` does
+the perspective divide **once, in JavaScript**, culls the back faces at build
+time, and hands `flat-facets.ts` polygons that are already in screen space.
+What reaches the DOM is flat, opaque, untransformed `clip-path` polygons.
+`boardgame-token.ts` has **no `perspective`, no `preserve-3d`, no per-facet
+transform and no `will-change`** — and deliberately no `.facet` CSS rule at
+all, because position, box, margin, clip-path and background are every one of
+them per-facet and all come from `flat-facets.ts`.
+
+That is not tidiness, it is the frame rate, and the mechanism is layers rather
+than arithmetic. **Chromium promotes every element inside a live `preserve-3d`
+context to its own composited layer the moment an ANCESTOR transform
+animates** — which is precisely what a stack's FLIP does to a component host on
+every move. Nothing the token authored asked for it, and declining
+`will-change` does not decline it. Measured in `pass` with 55 tokens at 14
+facets each, through CDP's `LayerTree`:
+
+| | painted layers | layer area | fps during a move |
+|---|---|---|---|
+| flat SVG art (the control) | 57 | 1.6 Mpx | 59.6 |
+| live 3D solids, at rest | nothing promoted | — | 31.0 |
+| live 3D solids, hosts animating | **1,047** | **88.6 Mpx** | **30.0** |
+| precomputed flat solids | 57 | 1.6 Mpx | **60.5** |
+
+The layers are not token-sized: a `clip-path`ed facet seen through a
+`perspective` gets conservative layer bounds ~2000px on a side, which is where
+88.6 megapixels of raster comes from. Removing any *two* of {`perspective`,
+`preserve-3d`, the facets' own 3D transforms} still left ~1,000 layers; all
+three had to go, and for a token they can.
+
+**Culling replaces `backface-visibility`, and is exactly as sufficient.** The
+same theorem underwrites both: on a closed convex surface the camera-facing
+facets tile the silhouette exactly once and every other facet is hidden. So the
+flat path decides facing itself, never builds the back faces, and paints what
+is left in any order — there is nothing to sort. A 12-side prism draws 6 or 7
+of its 14 polygons; a cube 3 of 6.
+
+**This is why non-convex shapes are not solids at all.** `meeple` and `pawn`
+keep their authored SVG and get depth from a `scaleX(-1)` (both assets are lit
+from the upper right; every solid is lit from the upper left), a hard-edged
+edge shadow along the light's own in-plane direction, and a contact shadow
+sized off the art's *drawn* width. `token-solid.ts`'s `SHADOW_DIRECTION` is
+derived from the same `LIGHT` vector the solids' Lambert shading uses, so the
+board cannot end up lit from two places.
+
+Two properties the token side must keep, both structural rather than
+incidental. The pose is a **pure function of `(type, color)` with no DOM in
+it**, which is what makes it safe on a host a stack pooled and reparented —
+nothing re-derives a pose on reuse, so a remembered one would leak the previous
+occupant's shape. And the solid is sized by **drawn extent**, not by
+circumsphere: a token's `#inner` box *is* its silhouette (`fitScale` solves for
+it), where a die's `--die-size` is a bounding-sphere diameter with a separately
+reserved footprint. Sizing a token the die's way would draw it ~40% small.
+
+Colour is shared arithmetically rather than by two lists agreeing.
+`TOKEN_COLOR_FILTERS` is the single table: `boardgame-token.ts` generates its
+`#outer.<color> img` rules from it for the flat art, and `tokenBaseColor`
+evaluates the same filter strings as colour matrices over one representative
+red to get a solid's base colour.
+
 ## Animation timing: play() / settlement / the gate
 
 The timing logic described above (computing before/after transforms) is
@@ -167,9 +471,13 @@ through a single method, `play(element, keyframes, timing, opts)`:
   without a test that pins the same-host composite case.
 - Unless `noAnimate` is set (a barrier used while the animator is measuring
   before/after layout) or `opts.gated === false`, the animation counts toward
-  the item's *gated* set: on the first gated animation to start, the item
-  fires `will-animate`; when the gated count returns to zero it fires
-  `animation-done`.
+  the item's *gated* set: **every** gated animation that starts fires
+  `will-animate`; when the gated count returns to zero it fires
+  `animation-done`. `will-animate` is a *declaration*, not a 0→1 transition —
+  each firing declares that play's own settle budget, so a long animation
+  starting alongside a short one still extends the watchdog to cover itself.
+  Listeners must therefore be idempotent; `AnimationGate.willAnimate` is, by
+  construction (a keyed write plus a strictly monotone deadline).
 - Timing resolves against the ambient `animationContext` discovered by
   climbing ancestors — crossing shadow roots and slots, and past any
   intermediate `null` context — so a wrapper element (e.g. status-text

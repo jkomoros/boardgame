@@ -25,7 +25,10 @@ test('card face motion is a planned component-owned visual track', async ({ page
         needsHostTransition: false,
       };
       const tracks = card.planMotionTracks(record) as Array<{
-        target: string; property: string; from: string; to: string;
+        target: string;
+        property: string;
+        timeline: string;
+        samples: Array<{ offset: number; value: string }>;
       }>;
       const animations = card.playAnimation({ ...record, tracks });
       const inner = card.shadowRoot?.querySelector<HTMLElement>('#inner');
@@ -49,8 +52,17 @@ test('card face motion is a planned component-owned visual track', async ({ page
       tracks: [{
         target: 'visual',
         property: 'transform',
-        from: 'scale(var(--component-effective-scale)) rotateY(0deg) rotate(0deg)',
-        to: 'scale(var(--component-effective-scale)) rotateY(180deg) rotate(0deg)',
+        timeline: 'eased',
+        samples: [
+          {
+            offset: 0,
+            value: 'scale(var(--component-effective-scale)) rotateY(0deg) rotate(0deg)',
+          },
+          {
+            offset: 1,
+            value: 'scale(var(--component-effective-scale)) rotateY(180deg) rotate(0deg)',
+          },
+        ],
       }],
       count: 1,
       targetIsVisual: true,
@@ -338,8 +350,8 @@ test('a throwing component planner degrades to framework-owned structural channe
         _planMotionTracks(component: object, input: object): ReadonlyArray<{
           target: string;
           property: string;
-          from: string;
-          to: string;
+          timeline: string;
+          samples: ReadonlyArray<{ offset: number; value: string }>;
         }>;
       };
       document.body.append(animator);
@@ -387,43 +399,72 @@ test('a throwing component planner degrades to framework-owned structural channe
   }
 });
 
-test('standalone die spin uses the shared visual-track executor', async ({ page }) => {
+test('standalone die roll uses the shared visual-track executor', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
     const result = await page.evaluate(async () => {
       await import('/src/components/boardgame-die.ts');
       const die = document.createElement('boardgame-die') as HTMLElement & {
+        item: unknown;
         faces: number[];
         selectedFace: number;
         updateComplete: Promise<unknown>;
       };
-      die.faces = [1, 2, 3, 4, 5, 6];
       die.style.setProperty('--animation-length', '80ms');
       document.body.append(die);
-      await die.updateComplete;
-      die.selectedFace = 4;
-      await die.updateComplete;
+      // Driven by `item`, the way a game drives it: assigning `.faces`
+      // directly is undone by the null-item install the first update runs, and
+      // leaves the die on its degenerate reel fallback rather than a solid.
+      const faces = [1, 2, 3, 4, 5, 6];
+      const install = async (selectedFace: number) => {
+        die.item = {
+          ID: 'renderer-fixture-die',
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: selectedFace, Value: faces[selectedFace] },
+        };
+        for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+      };
+      // The first install is the die being shown a state it was already in.
+      await install(0);
+      // ...this one is a roll: the face change plans it, and the pass after
+      // that plays it, so the render carrying its face values lands first.
+      await install(4);
       const inner = die.shadowRoot?.querySelector<HTMLElement>('#inner');
       const animations = inner?.getAnimations() ?? [];
       const animation = animations[0];
-      const frames = animation?.effect instanceof KeyframeEffect
-        ? animation.effect.getKeyframes()
-        : [];
+      const effect = animation?.effect instanceof KeyframeEffect ? animation.effect : null;
+      const frames = effect ? effect.getKeyframes() : [];
       const during = {
         count: animations.length,
-        from: frames[0]?.transform,
-        to: frames.at(-1)?.transform,
+        // A sampled physics trajectory: many keyframes, timed by the curve
+        // itself (hence linear), and running for its own duration rather than
+        // the element's --animation-length.
+        frameCount: frames.length,
+        easing: String(effect?.getTiming().easing ?? ''),
+        duration: Number(effect?.getTiming().duration ?? -1),
+        first: String(frames[0]?.transform ?? ''),
+        last: String(frames.at(-1)?.transform ?? ''),
+        usesCustomProperties: frames.some(
+          (frame) => /var\(|calc\(/.test(String(frame.transform))),
       };
-      await Promise.all(animations.map(item => item.finished));
+      await Promise.all(animations.map(item => item.finished.catch(() => undefined)));
       return during;
     });
 
-    expect(result).toEqual({
-      count: 1,
-      from: 'translateY(calc(-1 * var(--effective-die-size) * 0))',
-      to: 'translateY(calc(-1 * var(--effective-die-size) * 4))',
-    });
+    // One animation, on the one channel the die owns.
+    expect(result.count).toBe(1);
+    // The roll is a baked trajectory, not the two-endpoint reel scroll it
+    // replaced: --animation-length is 80ms and the die runs for seconds.
+    expect(result.frameCount).toBeGreaterThan(20);
+    expect(result.easing).toBe('linear');
+    expect(result.duration).toBeGreaterThan(600);
+    // Literal transforms only: a var() or calc() here forfeits compositing and
+    // drops a multi-second tumble onto the main thread.
+    expect(result.usesCustomProperties).toBe(false);
+    expect(result.first).toMatch(/matrix3d\(/);
+    expect(result.last).toMatch(/matrix3d\(/);
+    expect(result.first).not.toBe(result.last);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

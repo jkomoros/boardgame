@@ -170,10 +170,10 @@ export class BoardgameBaseGameRenderer<
   @property({ type: String })
   diagram = '';
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'current-player-index' })
   currentPlayerIndex = 0;
 
   /** Public, sanitized player labels/colors supplied by the renderer host. */
@@ -195,7 +195,7 @@ export class BoardgameBaseGameRenderer<
    * isMoveCurrentlyLegal() and isMovePossible() instead of reading this
    * directly.
    */
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'move-legality' })
   moveLegality: Record<string, MoveLegalityInfo> = {};
 
   /**
@@ -203,10 +203,10 @@ export class BoardgameBaseGameRenderer<
    * boardgame-render-game). Winners are player indexes; empty array with
    * gameFinished=true means a draw / no-winner ending.
    */
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-finished' })
   gameFinished = false;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'game-winners' })
   gameWinners: number[] = [];
 
   /**
@@ -327,7 +327,7 @@ export class BoardgameBaseGameRenderer<
    * board already grays and blocks clicks on disabled spaces. Empty by default
    * (no preview, or every candidate legal).
    */
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'preview-disabled-spaces' })
   previewDisabledSpaces: number[] = [];
 
   /**

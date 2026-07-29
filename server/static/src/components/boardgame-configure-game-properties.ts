@@ -23,19 +23,19 @@ export class BoardgameConfigureGameProperties extends connect(store)(LitElement)
     }
   `;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-visible' })
   gameVisible = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-open' })
   gameOpen = false;
 
   @property({ type: Boolean })
   admin = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'is-owner' })
   isOwner = false;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: GameRoute | null = null;
 
   @property({ type: Boolean })

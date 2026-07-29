@@ -1,6 +1,9 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { createOfflineGame, expectCleanGate, gateSnapshot, waitForAnimationCounterStability } from '../helpers.js';
-import { sampleMotionCurves, expectCurvesMatchGolden } from './geometry-helpers.js';
+import {
+  sampleMotionCurves, sampleRawMotion, fingerprintOf, expectCurvesMatchGolden,
+  sweptRotationsDegrees,
+} from './geometry-helpers.js';
 
 // Motion-curve parity: pins the TIMING SHAPE (easing + duration + keyframe
 // structure, displacement-normalized) of every animation a scenario drives.
@@ -75,11 +78,29 @@ test.describe('animation motion-curve parity', () => {
     // per-player info renderers mounting again shifted creation timing and
     // exposed exactly that race). Hold until counters are stable+balanced.
     await waitForAnimationCounterStability(page, { balance: 'plays' });
-    const curves = await sampleMotionCurves(page, async () => {
+    const sampled = await sampleRawMotion(page, async () => {
       await page.locator('boardgame-card:not([disabled])').first().click();
     });
     await waitForAnimationCounterStability(page, { balance: 'plays' });
-    expectCurvesMatchGolden(curves, 'geometry-memory-reveal');
+    // Rotation MAGNITUDE, which the curve set structurally cannot see: the
+    // normalized `rotation` channel is path-length normalized and therefore
+    // magnitude-invariant, so a flip through 90° records exactly what a flip
+    // through 180° records. Memory's reveal is always exactly a HALF TURN —
+    // a real product invariant (`_innerTransformFor` in boardgame-card.ts
+    // toggles rotateY(0deg) <-> rotateY(180deg)) — so assert it directly.
+    // This is what restores the documented rotateY(180)->rotateY(90) tooth
+    // that path-length normalization cost; a general magnitude CHANNEL
+    // cannot do the job, because curves compare as a set and the
+    // debuganimations messy-stack tilts are per-game random in magnitude.
+    // The largest swept angle in the cycle is the flip: nothing else memory
+    // animates turns anywhere near a half turn.
+    const swept = sweptRotationsDegrees(sampled);
+    expect(
+      swept[0] ?? 0,
+      `memory's reveal must sweep a half turn; swept angles (deg, desc) were ${JSON.stringify(swept.map((d) => Math.round(d * 10) / 10))}`,
+    ).toBeGreaterThan(177);
+    expect(swept[0] ?? 0).toBeLessThan(183);
+    expectCurvesMatchGolden(fingerprintOf(sampled), 'geometry-memory-reveal');
   });
 
   test('debuganimations: interrupted swap retarget curves', async ({ page }) => {

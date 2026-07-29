@@ -172,7 +172,19 @@ export async function waitForAnimationCounterStability(
     const key = `${h.gateOpens}|${h.gateCloses}|${h.plays}|${h.settles}`;
     if (key !== w.last) { w.last = key; w.since = now; return false; }
     if (bal === 'plays' && h.plays !== h.settles) return false;
-    if (bal === 'all' && (h.plays !== h.settles || h.gateOpens !== h.gateCloses)) return false;
+    // 'all' additionally means "no gate cycle is left OPEN" -- which is
+    // `gateCloses >= gateOpens`, not equality. A gate can legitimately close
+    // WITHOUT ever having opened: `AnimationGate` is constructed with
+    // `allDoneFired = false` on purpose, and `boardgame-render-game`
+    // (`_rendererLoaded`, the rAF'd `_gate.close(...)`) uses that to emit one
+    // completion signal for a renderer that mounted AFTER its state was
+    // already installed. That is a load-order race, so the extra close appears
+    // or not depending on whether the renderer module finished downloading
+    // before the first state arrived -- and when it appeared, equality could
+    // never be satisfied and this helper burned its whole timeout. Measured on
+    // debuganimations: 3 opens and 4 closes, the unmatched close first in the
+    // log and traced to that exact line.
+    if (bal === 'all' && (h.plays !== h.settles || h.gateCloses < h.gateOpens)) return false;
     return (now - w.since) >= (stable as number);
   }, [stableMs, balance] as [number, string], { timeout: timeoutMs, polling: 100 });
 }

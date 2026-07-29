@@ -43,7 +43,7 @@ export class BoardgameFadingText extends BoardgameAnimatableItem {
   @property({ type: String })
   suppress: FadingTextSuppress = 'none';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'auto-message' })
   autoMessage: FadingTextAutoMessage = 'fixed';
 
   /** Announce direct callouts; wrappers such as status-text can disable this. */

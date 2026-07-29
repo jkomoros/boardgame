@@ -143,7 +143,7 @@ class BoardgameRenderGame extends LitElement {
 
   // Scoped timing policy associated with the exact installed game version.
   // The shared animator consumes it as fly()'s default.
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'animation-context' })
   animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
 
   @property({ type: Object, attribute: false })
@@ -158,13 +158,13 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: String })
   diagram = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'game-name' })
   gameName = '';
 
   // gameId is needed to read the per-game surface cookie (surface_<gameId>)
   // for companion-mode routing. Empty string means we haven't been told the
   // gameID yet (the loader will operate as solo until it's set).
-  @property({ type: String })
+  @property({ type: String, attribute: 'game-id' })
   gameId = '';
 
   @property({ type: Number, attribute: false })
@@ -205,22 +205,22 @@ class BoardgameRenderGame extends LitElement {
   @property({ attribute: false })
   moveSubmissionGate: MoveSubmissionGate | null = null;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'companion-info' })
   companionInfo: import('../types/store').CompanionInfo | null = null;
 
   // isOwner is the doGameInfo IsOwner bool — true if the authenticated
   // user is the game's Owner. Pass-through; the surface renderer combines
   // this with its own surface-cookie check to compute isHost.
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'is-owner' })
   isOwner = false;
 
   // gameFinished/gameWinners mirror the game record's Finished/Winners so
   // renderers can show an ending (winner banner, you-won/lost) without
   // bespoke plumbing. Winners are player indexes.
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-finished' })
   gameFinished = false;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'game-winners' })
   gameWinners: number[] = [];
 
   @property({ attribute: false })
@@ -230,7 +230,7 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Object, attribute: false })
   renderer: HostedGameRenderer | null = null;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'renderer-loaded' })
   rendererLoaded = false;
 
   @property({ type: String, attribute: false })
@@ -244,10 +244,10 @@ class BoardgameRenderGame extends LitElement {
   private _rendererLoadGeneration = 0;
   private _rendererSurfaceSuffix: '' | '-table' | '-hand' = '';
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'current-player-index' })
   currentPlayerIndex = 0;
 
   // previewAsPlayer / previewAsAdmin are the SAME (player, admin) perspective the
@@ -260,13 +260,13 @@ class BoardgameRenderGame extends LitElement {
   // admin index while preview grays per the viewed player — self-consistent with
   // the displayed /info legality, and strictly better than the old wholesale
   // graying.)
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'preview-as-player' })
   previewAsPlayer = 0;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'preview-as-admin' })
   previewAsAdmin = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'socket-active' })
   socketActive = false;
 
   @property({ type: Number, attribute: false })
@@ -288,7 +288,7 @@ class BoardgameRenderGame extends LitElement {
 	@property({ type: String, attribute: false })
 	moveInputSchemaFingerprint: string | null = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'default-animation-length' })
   defaultAnimationLength = 0;
 
   private _activeMotionCycleId = 0;

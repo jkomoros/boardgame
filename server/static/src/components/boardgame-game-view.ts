@@ -316,15 +316,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean })
   selected = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'prompted-to-join' })
   promptedToJoin = false;
 
   // The current renderer, passed up from the gameRenderer, so we can pass
   // it to stateGameManager and readyForNextState.
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'active-renderer' })
   activeRenderer: HostedGameRenderer | null = null;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'socket-active' })
   socketActive = false;
 
   @property({ type: Number, attribute: false })
@@ -333,7 +333,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: String, attribute: false })
   _socketError: string | null = null;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   _firstStateBundle = true;
 
   @property({ type: Object, attribute: false })

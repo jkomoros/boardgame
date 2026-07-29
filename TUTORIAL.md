@@ -1913,6 +1913,338 @@ only when the displayed second changes; request `{ cadence: 'frame' }` only for
 continuous visuals. Controllers unsubscribe on disconnect and fail loudly when
 mounted outside a game view or given a malformed reference.
 
+##### boardgame-die
+
+`boardgame-die` draws a real three-dimensional solid and, when the server says
+the die was thrown, rolls it: a seeded rigid-body simulation throws the die into
+an invisible tray, the value the server chose is painted onto whichever face the
+physics happened to turn up, and the resulting trajectory is played as one
+animation. None of that is anything you configure. The reason to know it is
+happening is that it explains the two or three places where the component's
+behavior would otherwise look arbitrary, and they are all called out below.
+
+The minimum an author writes is two bindings. `.item` is the die's component
+from state, and `.action` is the move that rolls it:
+
+```typescript
+html`<boardgame-die
+  .item=${this.state?.Game.Die.Components[0]}
+  .action=${this.move(MoveNames.RollDice)}>
+</boardgame-die>`
+```
+
+There is no third thing. The die reads its face values, which face is showing,
+and whether it has just been thrown all out of `.item`, and `.action` gives it
+its disabled state, its pending state, its accessible explanation of why a roll
+is not currently legal, and the actual proposing of the move when it is clicked.
+A die bound to neither is inert and says so.
+
+Both halves matter, though, and the Go half is the one a client-side tutorial
+tends to skip. `examples/pig` is the worked reference; the three pieces are a
+deck that contains a die, a `DynamicComponentValuesConstructor` that gives that
+deck's components somewhere to record which face is up, and a move that calls
+`Roll()`:
+
+```go
+const diceDeckName = "dice"
+
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	diceDeck := boardgame.NewDeck()
+	diceDeck.AddComponent(dice.DefaultDie())
+	return map[string]*boardgame.Deck{diceDeckName: diceDeck}
+}
+
+// Without this the die has no per-game state at all: Faces is a property of
+// the COMPONENT and never changes, and which face is up is a property of this
+// game, so it lives in dynamic component values.
+func (g *gameDelegate) DynamicComponentValuesConstructor(
+	deck *boardgame.Deck) boardgame.ConfigurableSubState {
+	if deck.Name() == diceDeckName {
+		return &dice.DynamicValue{Value: 1}
+	}
+	return nil
+}
+
+func (m *moveRollDice) Apply(state boardgame.State) error {
+	game, _ := concreteStates(state)
+	die := game.Die.ComponentAt(0)
+	die.DynamicValues().(*dice.DynamicValue).Roll(state.Rand())
+	return nil
+}
+```
+
+`Roll()` is the whole server side of a roll. Pass `state.Rand()` rather than
+`nil` so the outcome is deterministic for the state, which is what makes a game
+replayable and testable. `Roll()` sets `Value`, sets `SelectedFace`, and
+increments `RollCount`, and it is that last one the client watches: a throw that
+lands on the face already showing leaves `Value` and `SelectedFace` byte for
+byte identical — one throw in six for a six-sided die — so a client watching
+only those would see a re-roll and a no-op as the same thing and the die would
+sit still for a roll that really happened.
+
+**The shape comes from the number of faces, and there is nothing to configure.**
+Four, six, eight, ten, twelve and twenty faces get the solids you would
+recognize on a table — the four Platonic ones, plus the pentagonal trapezohedron
+that a real d10 is. Every other face count of three or more gets a generated
+barrel: that many readable side faces around an axis, capped at both ends by
+cones rather than by flat faces, in proportions chosen so a barrel physically
+cannot come to rest on an end. So a d3 and a d7 and a d30 are all real dice that
+land on a readable face, without anybody having drawn them.
+
+The payoff is that turning a six-sided die into a twenty-sided one is a one-word
+change on the server and *no change at all* on the client:
+
+```go
+// dice.DefaultDie() is dice.BasicDie(1, 6). This is a d20.
+diceDeck.AddComponent(dice.BasicDie(1, 20))
+```
+
+The renderer above is untouched. It was never told the die was a cube; it read
+six faces out of `.item` and drew a cube, and now it reads twenty and draws an
+icosahedron, with numerals instead of pips because twenty dots is not a die face
+anybody reads. This is the single best reason to bind `.item` rather than
+setting properties by hand.
+
+**`--die-size` sizes the die, and it means something more specific than it
+looks like it does.** It takes any CSS length and defaults to `100px`:
+
+```css
+boardgame-die {
+  --die-size: 120px;
+}
+```
+
+The trap worth spelling out: `--die-size` is the diameter of the sphere the
+solid is **sized against**, not the width of a face. A cube's face spans only
+`1/sqrt(3)`, about 58%, of the number you set; a d20's triangle spans less than
+that; a barrel's side face less again. If you size a die by eye against a flat
+sprite you will get something roughly half the size you meant. When a shape's
+marks do come out too small to read, the component says so once in the console
+with the measured pixel size rather than silently drawing a smudge, but it
+cannot fix it for you: give the die a larger `--die-size`.
+
+**`--die-size` is not always the die's footprint.** For every face count with a
+closed form — 4, 6, 8, 10, 12, 20 — the sphere the die is sized against *is* its
+bounding sphere, so it fits a `--die-size` box in every orientation and the two
+numbers are the same. Every other face count (3, 5, 7, 9, 16, …) is drawn as a
+**barrel**: a band of side faces capped by two cones, 1.4 to 2.6 times longer
+than it is wide. A barrel is sized by its **width**, because its readable faces
+are the side faces and their content is bounded by that width — sizing it by its
+long diagonal instead put a d7's numerals at 4.3px on a default die, which is
+not a number, it is a smudge.
+
+So a barrel is longer than `--die-size` along its axis, and a tumble points that
+axis in every direction. The component **reserves that room itself** rather than
+overlapping its neighbours: a `d7` at `--die-size: 100px` lays out in a 242px
+box. You do not have to compensate for this, and you should not try to — but if
+you are budgeting space by hand, budget it for the shapes you actually deal, not
+for the number you set. What is guaranteed is the part that matters: whatever
+its face count, the die never draws outside the box it reserves.
+
+(`--die-scale`, a plain float defaulting to `1.0`, scales the die and the space
+it occupies together, in the same spirit as `--component-scale` on a card.)
+
+**Face content resolves in one order: your symbols, then generated pips, then
+numerals.** If you supply a glyph for a face, that glyph is drawn. Otherwise, if
+*every* face on the die is a whole number from 0 to 6, the die draws pips on the
+familiar 3×3 lattice. Otherwise every face draws its number.
+
+Six is the cutoff, and it is per die rather than per face. Nobody counts seven
+or eight dots at a glance, so past six a numeral is both faster to read and
+bigger to draw; and a die showing dots on one face and a number on the next
+reads as a mistake, so one face past the cutoff moves the whole die to numerals.
+That is why a d6 comes out pipped and a d8, or a d10 labelled 0 through 9, comes
+out numbered, without your having named either.
+
+Symbols are keyed by face NAME, and `faceNames` maps a face's value to its name:
+
+```typescript
+html`<boardgame-die
+  .item=${this.state?.Game.Die.Components[0]}
+  .faceNames=${{ 1: 'Sword', 2: 'Shield', 3: 'Star' }}
+  .symbols=${{ Sword: '⚔', Shield: '🛡', Star: '★' }}
+  .action=${this.move(MoveNames.RollDice)}>
+</boardgame-die>`
+```
+
+The two-hop form exists for enums: the framework already sends an enum's string
+names to the client, so a die whose faces are typed with one can have `faceNames`
+filled in from it and keep a symbol set written in terms of names a human wrote.
+If you have no enum, skip `faceNames` entirely and key `symbols` by the face
+value directly — a face with no name is its own value written out, so
+`.symbols=${{ 3: '★' }}` works and means what it looks like.
+
+A named face with no glyph draws its number and announces both, as `Star (3)`.
+An empty glyph is *ignored*, not honored: you cannot blank a face by mapping it
+to `''`, and the face falls back to pips or a numeral. (The one genuinely blank
+face the die draws is the pip layout for the value zero, which is zero dots.)
+
+**`selectedFace` is an INDEX into `faces`, not a face value.** This is the
+server's own convention — `DynamicValues.SelectedFace` is an index, and
+`Values.Faces` is a separate list of the values — and the component's own source
+calls reading it as a value the silent bug it invites, because the failure is so
+quiet: an index is in range, it selects a real face, and the die simply shows
+the wrong number. On a die with faces `[10, 20, 30]`, `selectedFace = 2` presents
+the face showing 30. If you bind `.item` you never touch this; it only bites
+when you drive a die by hand, and the fixtures in this framework deliberately use
+face values that are never equal to their own index for exactly that reason.
+
+**The die tells you when a roll starts and when it lands.** It dispatches two
+composed, bubbling events, `roll-start` and `roll-end`, each carrying the same
+detail: `value` (the value on the landed face), `faceIndex` (which face that is),
+`cocked` (true if the simulator could not settle the throw flat), and
+`durationMs`.
+
+`roll-end` is the one a game usually wants, and it exists for a specific reason.
+The obvious place to celebrate a roll is `effectsForTransition`, but that hook
+runs at *cycle start* — the instant the move's snapshot installs, which is the
+instant the die is thrown. A celebration planned there plays over a die that is
+still in the air, anchored at the die's layout center while the solid has
+travelled away from it, and on a 600ms version slot it can be over before the
+roll is. `roll-end` fires when the die has actually stopped, on the number the
+player can finally read:
+
+```typescript
+private _celebrateRoll(event: Event) {
+  const { value } = (event as CustomEvent<{ value: number }>).detail;
+  this.effects?.play(fx.pulse({
+    at: event.currentTarget as HTMLElement,
+    tone: value === 6 ? 'reward' : 'attention',
+    timing: 'immediate',
+  }));
+}
+
+// ...
+html`<boardgame-die
+  .item=${this.state?.Game.Die.Components[0]}
+  .action=${this.move(MoveNames.RollDice)}
+  @roll-end=${this._celebrateRoll}>
+</boardgame-die>`
+```
+
+`roll-end` fires on every path a roll can finish by, including one cut short by
+the animation cycle and one that never animated at all under reduced motion, so
+a celebration hung off it cannot be skipped. `examples/pig` does exactly this.
+
+**What you cannot do yet**, stated plainly rather than left to be discovered:
+
+- **You cannot set the roll's speed.** A throw takes as long as the simulation
+  says it takes — a few hundred milliseconds for a d6, and the longest shapes
+  under three seconds. The die declares that duration to the animation gate, so
+  the rest of the board waits for it correctly, but there is no property that
+  makes a roll slower or snappier.
+- **You cannot turn the animation off per die.** Reduced motion is honored — the
+  die lands on its result with no tumble, and still fires `roll-end` — and the
+  framework's internal `noAnimate` barrier is honored where the animator sets
+  it, but neither of those is a knob a game reaches for. There is no "this die
+  just changes its number" mode.
+- **You cannot draw a blank or purely decorative face** through `symbols`, as
+  above.
+- **You cannot choose the shape.** The face count decides it. If you want a
+  cube with twenty values on it, that is not something this component can be
+  asked for.
+
+A die with fewer than three faces has no solid to be, and falls back to the flat
+vertical reel the component used before it drew solids. Nothing else changes:
+same properties, same events, same action binding.
+
+##### boardgame-token
+
+`boardgame-token` is the small piece: a checkers counter, a poker chip, a
+worker, a pawn. Like a card it is a `BoardgameComponent`, so a stack lays it
+out, animates it, pools its host and reparents it, and the idiomatic way to
+make one is a `tokenView` bound into a stack rather than an element you
+construct yourself:
+
+```typescript
+private readonly pieces = tokenView<GameState['Spaces']>({
+  properties: ({ kind, component }) => ({
+    type: 'disc',
+    color: kind === 'visible' ? component.Values.Color : '',
+  }),
+});
+```
+
+Two properties do nearly all of the work. `type` is the shape, one of `token`,
+`chip`, `disc`, `cube`, `meeple` and `pawn`, defaulting to `token`. `color` is
+one of ten names — `red`, `blue`, `green`, `teal`, `purple`, `pink`, `yellow`,
+`orange`, `gray`, `black` — defaulting to `red`. `active` and `highlighted` are
+two independent selection styles that games use for whatever they mean locally.
+
+**Four of the six shapes are real three-dimensional solids, and two are not.
+The line is not taste; it is where CSS stops rendering correctly.**
+
+| `type` | drawn as |
+|---|---|
+| `cube` | a real solid — exactly the cube a six-sided die is |
+| `token` | a real solid — a twelve-sided prism, chunky (height 0.55 of its width) |
+| `chip` | a real solid — the same prism, thin (0.13) |
+| `disc` | a real solid — the same prism, thinnest (0.1) |
+| `meeple` | its authored SVG, tilted and given an edge and a contact shadow |
+| `pawn` | the same |
+
+The reason is worth knowing, because otherwise it looks arbitrary. The solids
+are drawn as one flat polygon per visible face, and the only thing that keeps
+the picture honest is that a **convex** solid's camera-facing faces tile its
+outline exactly once and never overlap — so the hidden faces can simply not be
+drawn and nothing is left to sort. CSS has no depth buffer. A meeple and a pawn
+are **not convex** (a pawn's neck is a genuine waist), so a prism built over
+their outline would paint its own back surface through its front, and the
+browser gives no way to make it sort correctly — explicit `z-index` was
+measured and changed nothing. The band of viewing angles where such a prism
+*does* render correctly turns out to be exactly the band where it looks like a
+tilted flat card with a thin rim, which is a picture the authored art plus a
+tilt already gives for free. So `meeple` and `pawn` keep their art.
+
+The practical consequence: a `meeple` next to a `cube` is lit from the same
+direction, sits at the same camera angle and casts a shadow the same way, so a
+mixed board reads as one set of pieces. What it does *not* get is real
+three-dimensional silhouette — turn it, and it is still a picture of a meeple.
+Nothing turns a token anyway, which is why this is a fair trade rather than a
+compromise.
+
+**Sizing.** A token's box is `--component-width` (a CSS length, default `30px`)
+times `--component-scale` (a float, default `1.0`), and it is **square**:
+
+```css
+boardgame-token {
+  --component-width: 60px;
+}
+```
+
+The box is the layout contract — the board layout clamps every component host
+to `aspect-ratio: 1`, the spatial board centres a piece on both axes, and a
+stack's spread and fan margins and the FLIP scale ratio all key off it — so a
+token, unlike a die, **cannot reserve extra space** and there is no per-shape
+aspect ratio to set. The authored art keeps its own proportions inside that
+square (a pawn's SVG is 0.43 as wide as it is tall and draws that way), and the
+solids are scaled so their *drawn outline* fills it.
+
+That last point is the one trap, and it is the opposite of `boardgame-die`'s.
+`--die-size` is the diameter of a sphere the solid is sized *against*, so a
+cube's face comes out about 58% of it. `--component-width` is the width the
+piece is actually **drawn** at. A 60px cube and a 60px disc have the same
+outline width, and both match the flat SVG they replaced. Do not try to
+compensate for a foreshortening factor here — there isn't one.
+
+**What you cannot do**, said plainly:
+
+- **You cannot choose a shape outside the six.** `type` is a closed set and an
+  unknown value is not a new shape.
+- **You cannot make a token non-square**, per the sizing contract above. A rule
+  setting `--component-aspect-ratio` from inside the token does nothing at all;
+  the property is only readable at `:host` or above.
+- **A token carries no face content.** No pips, no numerals, no symbols — that
+  is `boardgame-die`, and a token has no faces to put them on.
+- **Tokens do not tumble, and there is no physics.** The die's simulator is a
+  convex solver; two meeples would pass straight through each other. A token's
+  pose is a constant.
+- **`meeple` and `pawn` are presented, not modelled**, per above. There is no
+  option to force a mesh, and asking for one would reintroduce the sorting
+  failure the design exists to avoid.
+- **There is no inter-piece occlusion and no real cast shadow.** A piece's
+  contact shadow is its own; pieces do not shade each other.
+
 ##### boardgame-base-game-renderer
 
 Game renderers should extend the generated `GameRenderer` in
@@ -2419,6 +2751,11 @@ export class BoardgameRenderGamePig extends GameRenderer {
   }
 }
 ```
+
+Those two bindings are the whole die: it infers its shape from the number of
+faces in `.item`, rolls itself when the server says it was thrown, and reports
+its result through `roll-end`. See the `boardgame-die` section above for sizing,
+face content, and what it does not let you configure.
 
 The generated names prevent typos, generated native inputs prevent missing,
 extra, context-owned, or wrong-primitive arguments, and the action carries the
@@ -3779,7 +4116,21 @@ hold the state queue, or replace accessible outcome UI.
 
 For feedback that is genuinely local—such as acknowledging a selection before
 it proposes a move—use `this.effects?.play(fx.pulse({ at: element, ... }))`.
-Do not use that imperative path for authoritative outcomes. See
+Do not use that imperative path for authoritative outcomes.
+
+There is one instructive exception, and it is about *timing* rather than about
+authority. `effectsForTransition()` runs at cycle start, which is normally the
+moment the change becomes visible—but not for a component whose own animation
+decides when its result becomes readable. `boardgame-die` is the case that
+exists today: at cycle start the die has only just been thrown, so a
+celebration planned there plays over a solid that is still in the air. The die
+therefore publishes a `roll-end` event carrying the landed value, and
+`examples/pig` hangs its celebration off that instead. The rule this refines,
+rather than breaks, is that a component which knows when its own result lands
+should say so, and the game should listen; it is still the authoritative
+snapshot's value being celebrated. See the `boardgame-die` section above.
+
+See
 [`docs/animation-effects.md`](docs/animation-effects.md) for composition,
 themes, disappearing anchors, lifecycle results, `fx.trail()` effects that
 follow real structural travel, and advanced customization.

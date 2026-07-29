@@ -277,10 +277,10 @@ export class BoardgameComponentStack extends LitElement {
     return this._idsLastSeen;
   }
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'deck-name' })
   deckName = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'game-name' })
   gameName = '';
 
   @property({ type: Boolean })
@@ -289,20 +289,36 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   messiness = 1.0;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'no-default-spacer' })
   noDefaultSpacer = false;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'board-cols' })
   boardCols = 8;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'board-rows' })
   boardRows = 8;
 
   /** Pixel positions for spatial layout. Index i = position for component at slot i. */
   @property({ type: Array, attribute: false })
   spatialPositions: Array<{ top: number; left: number } | null> = [];
 
-  @property({ type: Number })
+  /**
+   * How many component hosts this stack shows AT MINIMUM, real ones included:
+   * the "this deck is not empty" illusion under a stack that only ever ships
+   * its top card.
+   *
+   * `attribute: 'faux-components'` is not decoration. Lit's default observed
+   * attribute is the property name LOWERCASED, so without it this listened for
+   * `fauxcomponents` and nothing has ever written that spelling.
+   * `boardgame-component-zone` declares the dashed form for its own attribute
+   * and then forwards the value down as a PROPERTY, which is why the zone path
+   * always worked and the raw-stack path never did -- including both of
+   * `debuganimations`' uses, in the one game written to exercise it. Measured
+   * before the fix: `getAttribute('faux-components')` was `"5"`, this property
+   * was `0`, and zero faux hosts existed. See
+   * `tests/animations/parity/stack-faux-components.spec.ts`.
+   */
+  @property({ type: Number, attribute: 'faux-components' })
   fauxComponents = 0;
 
   // stagger, when > 0, offsets the start of each animating child in a
@@ -1106,6 +1122,14 @@ export class BoardgameComponentStack extends LitElement {
       const spacer = this.newComponent();
       if (spacer) {
         spacer.spacer = true;
+        // Lit reflects on the SPACER's own update, which is a microtask away,
+        // and `_slotChanged` can run several times before that lands (four
+        // times during a debuganimations mount). Every one of those runs would
+        // see no `[spacer]` yet and build another host. Write the attribute
+        // synchronously so the very next run's `haveSpacer` is true; the
+        // reflection then rewrites the same value and clears it when `spacer`
+        // goes false.
+        spacer.setAttribute('spacer', '');
         spacer.id = 'spacer';
         this.container.insertBefore(spacer, fauxComponentsContainer);
       }

@@ -37,27 +37,233 @@ assert open/close balance.
 **Geometry suite** (`geometry.spec.ts`): motion-curve fingerprints. Every
 animation in a scenario (deep shadow-root walk — `document.getAnimations()`
 returns NOTHING for shadow-tree animations in this Chromium) is paused and
-seeked to fractions 0/.25/.5/.75/1 of its own delay+duration; per curve:
-displacement-normalized progress, transform-matrix (Frobenius) progress,
-opacity, declared `[duration, delay]` on a 25ms grid, and z-index. Curves
-compare as a SET under 0.08 tolerance (counts are per-game random; count
-regressions are the trace suite's job). Wave-union sampling captures chained
-cohorts. Scenarios: swap flight, reveal flip, interrupted-swap retarget, plus
-component fixtures for `fading-text` and `game-outcome` (the Phase 1
-before/after anchors — full-game flows can't drive them deterministically).
+seeked to fractions 0/.25/.5/.75/1 of its own delay+duration. Curves compare
+as a SET under 0.08 tolerance (counts are per-game random; count regressions
+are the trace suite's job). Wave-union sampling captures chained cohorts.
+Scenarios: swap flight, fan-draw relayout, reveal flip, interrupted-swap
+retarget, plus component fixtures for `fading-text` and `game-outcome` (the
+Phase 1 before/after anchors — full-game flows can't drive them
+deterministically). The die roll is deliberately NOT one of them; see the
+ledger entry below.
+
+Per curve, five channels:
+
+| Channel | What it is | Null when |
+|---|---|---|
+| `progress` | bounding-rect-center travel | net displacement ≤ 2px (not a travel animation) |
+| `rotation` | transform matrix's LINEAR part — rotation/scale/skew/perspective, every entry except the translation column | that part's path ≤ 0.01 |
+| `translation` | transform matrix's translation column (tx, ty, tz), in px | its path ≤ 0.01 |
+| `opacity` | raw measured opacity | constant within 0.01 |
+| `timing` / `zIndex` | declared `[duration, delay]` on a 25ms grid; computed z-index | z-index constant for the whole flight |
+
+The three motion channels are normalized by **cumulative path length**
+(`Σ‖pᵢ − pᵢ₋₁‖` accumulated, over the total), NOT by net displacement, so
+each is monotone non-decreasing and in `[0,1]` by construction. That matters
+for anything that does not travel monotonically from A to B — a tumbling
+die, or any out-and-back — where the old chord-over-net-displacement ratio
+produced values well past 1 on an absolute 0.08 tolerance, non-monotone
+samples, and (for a landing near the start pose) a near-zero denominator
+that either exploded the ratios or nulled the channel outright. It was not
+hypothetical: `fading-text`'s `scale(1) → scale(6)` fade snaps back to base
+on the final sample, so its whole transform channel used to record as null.
+`rotation` and `translation` are separate channels because their scales are
+incomparable — rotation entries are unitless (2.83 for a whole matrix) while
+translation is raw pixels, so one Frobenius sum over both let a 60px travel
+drown the rotation to ~5% of the norm and degenerate into a duplicate of
+`progress`. `fingerprint-normalization.spec.ts` pins these invariants twice:
+on synthetic non-monotone input, and over the recorded golden corpus itself.
+
+**A curve whose `progress`, `rotation`, `translation` AND `opacity` are all
+null is DROPPED** (sub-threshold noise — near-no-op FLIPs whose presence is
+per-game random — asserts nothing). Recording a scenario therefore fails
+loudly only if it produces NO curves at all; a scenario for a specific
+element must additionally assert that its own curve survived, or a
+regression that stops the element moving would just shrink the curve set
+inside the tolerant set comparison. Any scenario added for a specific
+element — a die roll above all, since a tumble can land near its start
+pose — must assert its own curve survived.
+
+## Solids: the specs with no golden, and why they have none
+
+`src/solid/` renders a closed convex surface as one flat polygon per face, and
+three specs here cover it. **None of the three has a golden file, and none may
+ever be given one** — each derives its expected answer from the geometry on
+every run, which is the whole point. A recorded image would freeze today's
+answer to a question that is supposed to be recomputed.
+
+**`solid-render-truth.spec.ts` — does this solid draw what a z-buffer would?**
+The only test in the repo that can answer that. Every other check asks
+something weaker: `die-shape.spec.ts` asks whether the silhouette has a HOLE,
+which cannot see two facets drawn in the wrong order because a mis-sorted solid
+is still perfectly opaque; the golden corpus compares against recorded
+behaviour, so it pins whatever shipped, correct or not.
+
+This one compares against a COMPUTED reference. It renders the solid under the
+real pipeline — the actual `solidFacets()` output, the real camera on the real
+`preserve-3d` carrier, real `backface-visibility` and `will-change` — with an
+opaque, distinguishable flat fill per facet so that every pixel names the facet
+that drew it. Then it rasterizes the SAME geometry in-page with a real z-buffer
+under an IDENTICAL camera, no culling anywhere: one ray per subsample, nearest
+fragment wins. If culling is right the nearest fragment is always front-facing
+and the two pictures agree.
+
+Antialiasing is excluded TWO ways, deliberately, so that raising a tolerance is
+never the answer. The reference is supersampled 3×3 and a pixel whose nine
+subsamples disagree is a seam the reference itself declares and is **not judged
+at all**; those seams are then **dilated by 2px** because the browser's
+compositing spreads wider than the geometric edge. What survives is differenced
+exactly and **eroded once** before measurement — a 1px hairline does not
+survive an erosion, a facet painted in front of the facet that should have
+hidden it does.
+
+**How it validates itself, which is what makes any of its other numbers
+believable:**
+
+| case | asserted |
+|---|---|
+| **d20** (negative control) | **zero wrong pixels**, not merely zero thick regions. A d20 is convex with 20 equal facets — the most nearly-equal-depth neighbours in the set — so it is necessarily rendered correctly, and any error reported on it is the harness's own (a camera that does not match CSS's, a normalization applied twice, an axis flipped). The original experiment measured 0 across 253 poses. **If this ever goes non-zero, fix the harness before believing anything it says about a shape whose rendering is actually in question.** |
+| **d6** | zero thick regions, and the 1px shared-edge hairline is measured and required NOT to survive the erosion — i.e. the erosion is doing the work, not a loose tolerance |
+| **12-side prism**, and the real `token`/`chip`/`disc` prisms unpromoted | zero thick regions |
+| **mis-painted d20** (positive control) | **>90% of the silhouette wrong** and a thick region over 1000px, on every pose. Without this the zeros above would be consistent with a harness that reports zero for everything. |
+
+**`token-flat-truth.spec.ts` — is the precomputed projection the same picture?**
+A token does not use live CSS 3D at all: its pose is a constant, so
+`token-solid.ts` does the perspective divide once and emits flat, untransformed
+`clip-path` polygons (see `ARCHITECTURE.md`). This spec renders both the live-3D
+and the precomputed rendering of each shape and requires every difference to be
+a one-pixel antialiasing band and nothing else. Its positive control is a **2%
+error injected into the projection**, which must be caught on every shape.
+
+**`token-3d.spec.ts`'s layer-count tripwire — the frame-rate test that is not a
+frame-rate test.** *promotes no layers, even while an ancestor transform
+animates* mounts 55 tokens and drives a real animating ancestor transform on
+each — exactly what a stack's FLIP does to a component host on every move, and
+the only thing that provokes the failure. **AT REST the broken version passes
+every other assertion in the file.** It then reads the browser's own layer tree
+through CDP rather than inferring it.
+
+Chromium promotes every element inside a live `preserve-3d` context to its own
+composited layer the moment an ANCESTOR transform animates. Measured in `pass`
+with 55 tokens at 14 facets: **57 painted layers at rest, 1,047 during a move,
+88.6 megapixels of layer area** (a `clip-path`ed facet under a `perspective`
+gets conservative layer bounds ~2000px on a side), 30fps against the flat SVG
+art's 59.6. The spec asserts fewer than `2 × tokens` painted layers and
+token-sized bounds — the old facets were 2062×2062 each, so the area assertion
+catches a promotion that somehow kept the count down.
+
+It is a layer assertion and not an fps assertion **deliberately**: frames per
+second on a shared machine is a coin flip, while the layer count is exact and is
+the thing that actually changed. `token-art-depth.spec.ts` carries the same
+tripwire for `meeple`/`pawn`, whose depth treatment must not reintroduce a 3D
+context either.
+
+**`src/components/property-attribute-names.test.ts` — a lint, not a spec, and
+it runs under `npm run test:unit`.** Listed here because it closes a class of
+bug this suite kept finding one instance at a time. Lit derives a reactive
+property's observed attribute by LOWERCASING the property name, not by
+dash-casing it, so `@property({ type: Number }) fauxComponents` observes
+`fauxcomponents` and the dashed `faux-components="5"` every author writes is a
+silent no-op — nothing throws, the attribute sits in the DOM, the property keeps
+its default. `fauxComponents`, `noDefaultSpacer`, `autoMessage` and five roster
+and lobby boolean bindings were all dead for exactly this reason, some for
+years. No runtime test can see a bug whose symptom is "nothing happened", so the
+rule is mechanical: every multi-word reactive property in `src/` must SAY what
+its attribute is — the dash-case name, or `attribute: false` if it is
+property-only — and a declared name must BE the dash-case one, since declaring
+the wrong one reproduces the bug with extra steps. The lint carries its own
+premise guard (it must find >100 declarations and >50 multi-word ones) so that a
+refactor cannot turn it vacuous.
+
+Note the neighbouring trap it does NOT catch, because it is a different one: a
+single-word property that needs `reflect: true`. `spacer` observed the right
+name and still could not be found, because without reflection the attribute was
+never written at all — see `stack-spacer-reflect.spec.ts`.
 
 ## Teeth (verified failure detection)
 
 - Suppressing card `play` hooks → trace suite fails debuganimations, memory,
   blackjack (pig legitimately unaffected).
 - `ease-in-out` → `linear` sabotage → geometry fails the swap scenario.
-- Flip-shape sabotage (`rotateY(180)` → `rotateY(90)`) → geometry fails the
-  memory reveal.
+  (Preserved across the path-length change by construction: pure-translation
+  curves record byte-identical values under the new normalizer.)
+- Flip-MAGNITUDE sabotage (`rotateY(180)` → `rotateY(90)` in
+  `boardgame-card.ts`'s `_innerTransformFor`) → geometry fails the memory
+  reveal. **RESTORED** (re-verified by hand 2026-07-26): the curve SET no
+  longer catches this — path-length normalization is magnitude-invariant, so
+  the sabotaged `rotation` channel is byte-identical — a separate scalar
+  assertion does. `sweptRotationDegrees()` decomposes each sampled matrix to
+  its pure rotation (Gram-Schmidt, so scale/skew divide out) and accumulates
+  the angle between successive orientations; `geometry: memory reveal flip
+  curves` asserts the largest swept angle in the cycle is 180° ± 3°. Measured
+  clean: `[180, 0, 0, …]` — only the flip rotates at all. Under the sabotage:
+  `Error: memory's reveal must sweep a half turn; swept angles (deg, desc)
+  were [90,0,0,…]`. Scope: this pins memory's half turn ONLY. The assertion
+  lives in the scenario, not in the fingerprint, deliberately — see the
+  rotation-MAGNITUDE entry below. The helper is scenario-agnostic and is
+  meant to be pointed at any scenario whose rotation magnitude is a real
+  invariant (next: a fixed-seed die roll); step-wise accumulation is what
+  makes a multi-turn tumble measurable, since a 360° roll's start-to-end
+  angle is 0.
+
+- **`will-change: transform` removed from `.facet`** (`boardgame-die.ts`) →
+  `die-shape.spec.ts`'s *a free-running roll never shows a hole in the die*
+  fails: `background showed through the solid on 13 of 236 frames`, largest hole
+  3,826px. That rule is the solid's hidden-surface removal working at all — see
+  its comment — and this is the only test in the repo that can see it, because
+  the bug exists ONLY in frames of a roll that is actually playing. The same
+  transforms applied inline, or reached by pausing the animation and seeking, all
+  render clean (2,413 such frames over ten shapes produced one 12x47px sliver).
+  The test therefore captures a CDP screencast of a free-running roll rather than
+  stepping keyframes, and measures the convex-hull deficit: every solid here is
+  convex, so any background pixel strictly inside the silhouette's convex hull is
+  a hole, and no golden is needed to say so.
+- **`--solid-extent` dropped from `#scaler`** → `die-shape.spec.ts`'s *a dN draws
+  inside its own box* fails for exactly the four BARREL shapes (d3, d7, d9, d16:
+  `12px past left`, `16px past right`, and so on) and passes for the five
+  closed-form ones, which is the right split — a d6's nominal sphere is its
+  bounding sphere, so its box never changed.
 
 ## Accepted residual blind spots (harness-critic ledger)
 
 Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
 
+- **`will-animate` DOM event VOLUME** — the trace goldens record `play`,
+  `active`, `settle`, `gate-open` and `gate-close`; they do *not* record
+  `will-animate`. So a change in how often that event fires is structurally
+  invisible to this harness. This is not hypothetical: the 3D-dice branch made
+  `will-animate` a per-gated-play *declaration* rather than a 0→1 transition,
+  which doubles its volume on an ordinary FLIP-plus-fade (two host tracks), and
+  every golden stayed byte-identical. What the goldens *do* pin is the part
+  that matters — `gateOpens`/`gateCloses` stay 1/1 and `plays`/`settles` are
+  unchanged, because `AnimationGate.willAnimate` is idempotent (a keyed write
+  plus a strictly monotone deadline). Exposure is therefore limited to a
+  NON-idempotent listener being added later. Owner: the three current
+  listeners were each traced by hand (`animation-gate.willAnimate`,
+  `boardgame-render-game._componentWillAnimate`,
+  `boardgame-game-view._rosterWillAnimate`); any new `will-animate` listener
+  must be checked for idempotence by review, because no test will catch it.
+- **Rotation MAGNITUDE — narrowed to rotations nothing pins** — the
+  path-length normalizer is magnitude-invariant by construction: a rotation
+  through 180° and one through 90° under the same easing produce the SAME
+  normalized `rotation` channel. (The previous chord-over-net-displacement
+  lens was magnitude-SENSITIVE for rotations by accident, not by design —
+  normalized chord is `sin(θ/2)/sin(Θ/2)`, which depends on the total angle
+  `Θ`. That entanglement of shape with magnitude is exactly what made the
+  lens unusable for a tumbling die, so it had to go, and the flip-shape
+  tooth went with it.) **No fingerprint CHANNEL will ever cover this**, and
+  the task-3 report's proposed `directness` scalar (`2·sin(Θ/2)/Θ`) is
+  unusable for the same reason any magnitude channel is: curves compare as a
+  SET across every animating element, and debuganimations' messy-stack tilts
+  are per-game RANDOM in magnitude, so such a channel would flake every run
+  (and would be per-ROLL random for a tumbling die besides). What covers it
+  instead is a per-scenario scalar assertion — `sweptRotationDegrees()` —
+  used where the magnitude is a genuine product invariant. Currently that is
+  memory's reveal flip and nothing else (see Teeth above). **Still
+  uncovered**: every rotation whose magnitude no invariant pins — the
+  per-game-random messy-stack tilts above all, and any future rotation added
+  to a scenario without its own swept-angle assertion; a change to how far
+  those turn is invisible here. Owner: whoever adds a rotating animation
+  adds the assertion, or accepts the gap explicitly.
 - **Absolute endpoints / raw positions** — per-game layout randomness makes
   raw-rect goldens unreproducible. Wrong-final-position bugs that preserve
   curve shape are not caught here; the existing behavioral suites
@@ -73,10 +279,88 @@ Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
   covered by `waapi-play`/`waapi-companion`.
 - **Mobile viewport** — geometry runs at 1280×900 only; curves are
   size-normalized in principle. Low value vs cost.
-- **Roster / player-info animations** — currently un-gated (the #714 gap);
-  the Phase 2 change lands with its own gate-witness test (plan Task 10).
-- **`expectedSettleMs` watchdog extension end-to-end** — no scenario is long
-  enough to need it; owned by the gate-kernel unit tests (plan Task 8).
+- ~~**Roster / player-info animations un-gated**~~ — CLOSED (the #714 gap).
+  Roster animatables now hold the gate through the game-view event pipe, with
+  `player-info-gate.spec.ts` as the witness in both directions: a roster
+  animation forwarded during a real board cycle holds the close, and one with
+  no cycle open leaves the gate untouched. The residual topology asymmetry —
+  gated but not registry-swept — is described at the end of this file.
+- ~~**`expectedSettleMs` watchdog extension end-to-end**~~ — NOW COVERED (was
+  "no scenario is long enough to need it; owned by the gate-kernel unit tests").
+  `die-roll.spec.ts`'s *a roll past the watchdog floor extends the deadline
+  instead of being cut off* mounts a die inside the LIVE renderer — real ambient
+  registry, real `will-animate` listener, real cycle opened by a real move —
+  declares a 4500ms `postAnimationDelay` on it, and throws it inside pig's own
+  cycle. Measured: with the declaration reaching `AnimationGate.willAnimate` the
+  die declares 4822ms (322ms of tumble + the hold), the gate stays open 4870ms,
+  the watchdog does not fire and the die reports itself settled at 4774ms,
+  `finished`; with `expectedSettleMs` dropped on the way into the gate
+  (`boardgame-render-game.ts:695`) the gate closes at 4000.8ms — the floor, to
+  under a millisecond — the watchdog fires once, and the die never reports
+  settling at all, still `running` when the cycle is torn down.
+
+  **The length used to come from the physics and no longer can.** The original
+  witness was a d48 seed running to `dice-sim.ts`'s own 5000ms cap. The physics
+  retune that followed cut every throw so far that the longest roll over 4,400
+  seeded throws (11 shapes × 400 seeds) is **2761ms** — a d30 — so no seed can
+  reach the 4000ms floor and the test was deterministically dead. It did not go
+  red when that landed; it just stopped exercising anything, and only its own
+  premise guard would have said so. The declared hold is both a real product
+  path (`postAnimationDelay` is a property of every animatable item and
+  `boardgame-component-stack.ts` parses it off an attribute) and a strictly
+  better fixture, because the occupancy is CHOSEN rather than sampled from a
+  distribution any physics change can move.
+
+  Note that the OTHER app-level roll test (*a multi-second roll never trips the
+  gate watchdog*) still passes under that same sabotage — a sub-second pig roll
+  never reaches the floor, which is exactly why this blind spot survived until a
+  scenario was built that does.
+- **The die's tumble has NO geometry golden** — the sampled-motion design
+  planned one, recorded from a fixed-value fixture. It was not built, and the
+  decision is recorded here rather than left as a silent omission. Why:
+  a golden fingerprint is *shape under normalization*, and the die's shape is
+  a seeded physics trajectory, so the golden would restate the simulator's
+  output rather than any product invariant, and any change to the sim,
+  the tray, the camera or the trim would rewrite it wholesale. What pins the
+  die instead is `die-roll.spec.ts`, which asserts the RENDERED KEYFRAMES
+  against a trajectory recomputed in-page from the component's own exported
+  seed derivation — a strictly tighter comparison than a 0.08-tolerance
+  normalized curve set, and one that catches a wrong seed, a wrong pixel
+  radius or a mirrored basis. What is genuinely lost: the die does not
+  participate in the cross-cutting curve SET, so a harness-wide regression in
+  how sampled motion is fingerprinted would not show up on the die. That is
+  covered instead by `fingerprint-normalization.spec.ts`, which drives the
+  normalizer with synthetic non-monotone and return-to-start tumbles — the
+  two failure modes the die was the reason to fix — and re-checks the
+  invariants over the whole recorded golden corpus. Owner: whoever adds a
+  second sampled-motion producer should reconsider, because at that point the
+  set comparison starts being worth its cost.
+- **The CARD's 3D-context probe is weaker than the token's, by construction** —
+  `component-3d-context.spec.ts` proves a `filter` on `#inner` costs the
+  component its 3D context by mounting a `translateZ`'d face and measuring its
+  perspective magnification. On a token the probe mounts ON `#inner`, so
+  flattening it takes the magnification away entirely: 20px → 10px. On a card
+  it cannot — `#inner` already carries the flip transform — so the probe hangs
+  a scene of its own off a CHILD of `#inner`, keeps its own `perspective(200px)`
+  either way, and what is at stake is only the further 1.25× that `#outer`'s
+  `perspective: 1000px` contributes through `#inner`: 25px → 20px. Both
+  numbers were measured, and the smaller signal is still deterministic and
+  still fails if the rotated alt-shadow goes back on `#inner`. What is lost is
+  headroom: a future change that cost the card its outer perspective for some
+  OTHER reason would land on the same 20 and read as the filter regression.
+  Owner: whoever gives `boardgame-card` a real 3D mode should move the probe
+  onto `#inner` and recover the 2× tooth.
+- **The 1px SEAM between facets, at small sizes** — the hull-deficit test above
+  pins that no FACET goes missing, with a 60px floor on the largest connected
+  hole. What survives under that floor is a different artifact: on a d7 or d9 at
+  `--die-size: 100px`, roughly one composited frame in 200 shows a 1px background
+  line along a shared facet edge (measured: 1/432 frames on a d7, largest
+  connected run 314px spread over a 32x31 box, i.e. a diagonal hairline and not a
+  blob). `will-change` does not touch it and neither does promoting `#orient` or
+  `#inner`; it is antialiasing on two clip-path edges that meet rather than
+  overlap. Cheap to fix if it ever matters (overlap the facets by a fraction of a
+  percent), left alone because it is a hairline and the fix would perturb every
+  facet's geometry. Owner: whoever finds it visible at a size that ships.
 - **0.08 tolerance** — validated against large-effect teeth (0.17–0.21
   midpoint deltas); a sub-tolerance easing tweak (<0.08 at every fraction)
   would pass. The midpoint sample carries most discriminative power.

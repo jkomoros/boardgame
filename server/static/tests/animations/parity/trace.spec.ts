@@ -160,9 +160,11 @@ test.describe('animation parity traces', () => {
       // pig has no "Roll" button -- rolling is driven by clicking the die
       // itself (boardgame-die), whose accessible name is "Roll die" while
       // interactive (see server/static/src/components/boardgame-die.ts).
-      // A roll landing on the SAME face animates nothing (~1-in-6), which
-      // would fail the required-kinds contract below -- re-roll (bounded)
-      // until the die visibly animates. P(4 same-face rolls) ~ 0.08%.
+      // Every roll animates now -- the tumble is triggered by the die's own
+      // `DynamicValues.RollCount`, so a throw landing on the face already
+      // showing tumbles like any other (Task 11). The bounded retry is kept
+      // only as a guard against a roll the SERVER refuses (a legality race on
+      // a freshly created game); it breaks on the first attempt in practice.
       for (let attempt = 0; attempt < 4; attempt++) {
         const logStart: number = await page.evaluate(
           () => (window as any).__bgAnimTestHooks.log.length);

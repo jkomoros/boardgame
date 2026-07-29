@@ -102,34 +102,34 @@ export class BoardgamePlayerRosterItem extends LitElement {
     }
   `;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'game-name' })
   gameName = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'is-empty' })
   isEmpty = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'is-agent' })
   isAgent = false;
 
   @property({ type: Boolean })
   active = false;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'photo-url' })
   photoUrl = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'display-name' })
   displayName = '';
 
   @property({ type: Object })
   state: unknown = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'player-index' })
   playerIndex = 0;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'current-player-index' })
   currentPlayerIndex = 0;
 
   @property({ type: Boolean })
@@ -138,21 +138,21 @@ export class BoardgamePlayerRosterItem extends LitElement {
   @property({ type: Boolean })
   winner = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'renderer-loaded' })
   rendererLoaded = false;
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'chip-text' })
   chipText = '';
 
-  @property({ type: String })
+  @property({ type: String, attribute: 'chip-color' })
   chipColor = '';
 
   // Framework-computed color from FrameworkComputedPlayerProperties.
-  @property({ type: String })
+  @property({ type: String, attribute: 'computed-color' })
   computedColor = '';
 
   // Whether this player may be active (from FrameworkComputedPlayerProperties).
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'may-be-active' })
   mayBeActive = true;
 
   // Priority: chipColor (game renderer) > computedColor (framework) > '' (chip hash fallback)

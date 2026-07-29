@@ -80,31 +80,31 @@ export class BoardgameListGamesView extends connect(store)(LitElement) {
     }
   `;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _participatingActiveGames: GameListItem[] = [];
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _participatingFinishedGames: GameListItem[] = [];
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _visibleActiveGames: GameListItem[] = [];
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _visibleJoinableGames: GameListItem[] = [];
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _allGames: GameListItem[] = [];
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _managers: ManagerInfo[] = [];
 
-  @property({ type: String })
+  @property({ type: String, attribute: false })
   private _gameTypeFilter = '';
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _loggedIn = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _admin = false;
 
   @property({ type: Boolean })

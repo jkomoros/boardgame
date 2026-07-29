@@ -278,13 +278,13 @@ export class BoardgameChatPanel extends LitElement {
     }
   `;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: GameRoute | null = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'players-info' })
   playersInfo: PlayerInfo[] = [];
 
   @state()

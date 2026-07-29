@@ -83,28 +83,28 @@ export class BoardgameGatheringPanel extends LitElement {
     }
   `;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'move-forms' })
   moveForms: MoveForm[] | null = null;
 
   @property({ type: Object })
   state: any = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'has-empty-slots' })
   hasEmptySlots = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'game-open' })
   gameOpen = false;
 
   @property({ type: Boolean })
   finished = false;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'game-route' })
   gameRoute: GameRoute | null = null;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'players-info' })
   playersInfo: PlayerInfo[] = [];
 
   // ---- Derived state (centralized detection) ----
@@ -128,7 +128,7 @@ export class BoardgameGatheringPanel extends LitElement {
    * solo-flow "Copy invite link" — companion players join by code on
    * their phones, not by account-bound URL.
    */
-  @property({ type: String })
+  @property({ type: String, attribute: 'companion-room-code' })
   companionRoomCode = '';
 
   private get _showShare(): boolean {

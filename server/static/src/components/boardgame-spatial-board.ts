@@ -218,7 +218,7 @@ class BoardgameSpatialBoard extends LitElement {
   `;
 
   /** URL to fetch the SVG board from. */
-  @property({ type: String })
+  @property({ type: String, attribute: 'svg-url' })
   svgUrl = '';
 
   /** Raster board plus normalized interactive hotspots. Mutually exclusive with svgUrl. */
@@ -226,11 +226,11 @@ class BoardgameSpatialBoard extends LitElement {
   artwork: RasterBoardArtwork<SpatialBoardKey> | null = null;
 
   /** ID prefix for space elements in the SVG (e.g., "Space-" matches "Space-0"). */
-  @property({ type: String })
+  @property({ type: String, attribute: 'space-prefix' })
   spacePrefix = 'Space-';
 
   /** Array of space indices that should be visually disabled. */
-  @property({ type: Array })
+  @property({ type: Array, attribute: 'disabled-spaces' })
   disabledSpaces: number[] = [];
 
   /** Headless legality/activation shared with grid and custom renderers. */
@@ -274,7 +274,7 @@ class BoardgameSpatialBoard extends LitElement {
   pathOverlays: readonly BoardPathOverlay<SpatialBoardKey>[] = [];
 
   /** Size of token elements in pixels. */
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'token-size' })
   tokenSize = 24;
 
   /** Explicit escape hatch for untyped child properties. Prefer bound views. */
@@ -306,7 +306,7 @@ class BoardgameSpatialBoard extends LitElement {
   maxZoom = 4;
 
   /** True after the SVG has been loaded and inserted into the DOM. */
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'svg-loaded' })
   svgLoaded = false;
 
   /** Computed pixel positions per layer. Updated on state/resize changes. */

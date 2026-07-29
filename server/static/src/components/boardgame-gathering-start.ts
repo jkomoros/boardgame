@@ -25,10 +25,10 @@ export class BoardgameGatheringStart extends LitElement {
     }
   `;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: 'move-form' })
   moveForm: MoveForm | null = null;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: 'viewing-as-player' })
   viewingAsPlayer = 0;
 
   private get _isLegal(): boolean {

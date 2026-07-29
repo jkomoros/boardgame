@@ -196,25 +196,25 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
     }
   `;
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: false })
   private _selectedManagerIndex = 0;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _managers: ManagerInfo[] = [];
 
-  @property({ type: Number })
+  @property({ type: Number, attribute: false })
   private _numPlayers = 0;
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _agents: string[] = [];
 
-  @property({ type: Array })
+  @property({ type: Array, attribute: false })
   private _variantOptions: number[] = [];
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _open = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: false })
   private _visible = false;
 
   constructor() {

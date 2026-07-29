@@ -82,8 +82,36 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       box-shadow: var(--shadow-elevation-normal);
     }
 
-    #outer.alt-shadow #inner {
+    /* The alt-shadow elevation lives on #outer, NEVER on #inner.
+       motionTrackTarget('visual') returns #inner, so #inner is where a
+       component-owned 3D scene mounts and where transform-style: preserve-3d
+       goes — and a filter forces transform-style: flat on the element carrying
+       it, collapsing any 3D context rooted there. (Same grouping-property rule
+       boardgame-die.ts's solid is built around: "Nothing from #stage down may
+       carry a grouping property".) The move is visually inert: #outer paints
+       nothing of its own, so the alpha silhouette the drop-shadows are derived
+       from is the same one #inner produced. What changes is only that the scene
+       under #inner is composited into #outer's plane — which is where a
+       self-contained solid belongs anyway.
+       Proof: tests/animations/parity/component-3d-context.spec.ts. */
+    #outer.alt-shadow {
       filter: var(--alt-shadow-elevation-normal);
+      /* The 0.28s filter transition is the one #inner used to carry (from
+         paper-styles/shadow); scoped to .alt-shadow so a plain component's
+         #outer keeps exactly the transition list it had. */
+      transition: transform 0.1s ease-in-out,
+                  filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* .disabled's saturate and the elevation now share ONE filter slot on
+       #outer, and #outer.alt-shadow outranks .disabled, so the composition must
+       be spelled out or a disabled token would silently stop looking disabled.
+       Elevation first, then saturate — that is the order the two-element
+       version painted them (drop-shadow applied to #inner, then #outer's
+       saturate applied to the result). It cannot combine with :hover:
+       interactive is false whenever disabled is true. */
+    #outer.alt-shadow.disabled {
+      filter: var(--alt-shadow-elevation-normal) saturate(60%);
     }
 
     #outer {
@@ -98,15 +126,15 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       box-shadow: var(--shadow-elevation-raised);
     }
 
-    #outer.alt-shadow.interactive:hover #inner {
+    #outer.alt-shadow.interactive:hover {
       filter: var(--alt-shadow-elevation-raised);
     }
 
     #inner {
-      /* box-shadow/filter transitions are from paper-styles/shadow; the
-         transform term is gone — flips are WAAPI-driven now. */
-      transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                  filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      /* The box-shadow transition is from paper-styles/shadow; the transform
+         term is gone — flips are WAAPI-driven now — and the filter term went
+         with the filter itself, up to #outer. */
+      transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     }
   `;
 
@@ -130,17 +158,41 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   @property({ type: Boolean, attribute: 'boardgame-component', reflect: true })
   boardgameComponent = true;
 
-  @property({ type: Boolean })
+  /**
+   * True for the placeholder host a stack keeps so an EMPTY stack still
+   * occupies space. It stands for no item, so it is `visibility: hidden`.
+   *
+   * `reflect: true` is LOAD-BEARING, for the same reason it is on `id` above.
+   * `boardgame-component-stack` finds its spacer with the ATTRIBUTE selector
+   * `#container>[boardgame-component][spacer]` in three places -- to refresh
+   * it when the view recipe changes, to tear it down when the recipe changes
+   * shape, and (twice) in `_slotChanged` to decide whether one already exists
+   * and to remove surplus ones. Without reflection the property lives only in
+   * Lit state, that attribute is never written, and all three selectors match
+   * NOTHING: the stack believes it has no spacer, builds another one every
+   * time the slot changes while empty, and can never remove one once the
+   * stack fills. Measured before the fix: a raw stack cycled empty/full six
+   * times ended with nine spacer hosts and zero selector matches, and a fresh
+   * `debuganimations` carried 60 spacer hosts across 15 stacks where 15 were
+   * intended. See `tests/animations/parity/stack-spacer-reflect.spec.ts`.
+   */
+  @property({ type: Boolean, reflect: true })
   spacer = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'no-shadow' })
   noShadow = false;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, attribute: 'alt-shadow' })
   altShadow = false;
 
   @query('#inner')
   protected innerElement!: HTMLElement;
+
+  // The elevation/desaturation wrapper. Anything that needs a `filter` belongs
+  // here rather than on #inner, which must stay free to carry a preserve-3d
+  // scene (see the styles above). Null until the first render, like #inner.
+  @query('#outer')
+  protected outerElement!: HTMLElement;
 
   protected _outerStyle = '';
 

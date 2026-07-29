@@ -15,7 +15,14 @@
         0.98,
         1
       ],
-      "transform": [
+      "rotation": [
+        0,
+        0.61,
+        0.88,
+        0.98,
+        1
+      ],
+      "translation": [
         0,
         0.61,
         0.88,
@@ -49,12 +56,19 @@
         null,
         null
       ],
-      "transform": [
+      "rotation": [
         0,
         0.38,
         0.68,
         0.91,
         1
+      ],
+      "translation": [
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "opacity": [
         0,
@@ -83,7 +97,14 @@
         null,
         null
       ],
-      "transform": [
+      "rotation": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "translation": [
         null,
         null,
         null,

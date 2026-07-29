@@ -1088,7 +1088,28 @@ func (s *Server) listGamesWithUsers(max int, list listing.Type, userID string, g
 
 	for i, game := range games {
 
-		manager := s.managers[game.Name].manager
+		//A STORED GAME MAY NAME A TYPE THIS SERVER DOES NOT MANAGE, and the
+		//list must survive it. `managers` is built from config.json's games at
+		//startup; storage is not, and it outlives every edit to that list. Drop
+		//a game from config.json -- or point a second server with a different
+		//list at the same database, which is exactly what a dev machine does --
+		//and this map returns nil for it.
+		//
+		//`s.managers[game.Name].manager` then dereferences a nil *managerInfo
+		//and panics. Not for that one game: the panic unwinds the whole
+		//handler, so /api/list/game returns HTTP 500 and the app's ENTIRE game
+		//list is replaced by an error dialog. Measured on a dev server whose
+		//bolt store held eight games of a type its config no longer listed: 190
+		//panics, and every page that lists games was dead until those records
+		//aged out of the most-recent window.
+		//
+		//gamePlayerInfo already returns nil for a nil manager, so tolerating it
+		//is what the rest of this path was written to expect -- only the lookup
+		//was unguarded. Same comma-ok shape maybeReopenGame already uses.
+		var manager *boardgame.GameManager
+		if info := s.managers[game.Name]; info != nil {
+			manager = info.manager
+		}
 
 		//When SecretSalt is empty it will be omitted from the JSON output.
 
