@@ -1,5 +1,5 @@
 import { LitElement, html, css, TemplateResult } from 'lit';
-import { property, query } from 'lit/decorators.js';
+import { property, query, state } from 'lit/decorators.js';
 import type { BoardgameComponentElement } from '../types/components';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
@@ -77,6 +77,17 @@ export class BoardgameComponentStack extends LitElement {
       margin: 1em;
     }
 
+    /*
+     * The padding is the pile's scatter radius, expressed as room to scatter
+     * into: --pile-scale is the same 0..1 multiplier _pileOffsetsForId uses to
+     * spread components over 20..50px, so a small pile is drawn tighter AND
+     * padded tighter. 3em at the floor (5 components or fewer), 6em at the
+     * ceiling (25 or more).
+     *
+     * The fallback of 1.0 is the ceiling, and for the component's entire life
+     * it was the only value that ever applied: --pile-scale was never set (see
+     * _pileScaleFactor). Every pile, however small, was padded for 25 cards.
+     */
     #container.pile {
       padding: calc(calc(var(--pile-scale, 1.0) * 3em) + 3em);
       justify-content: center;
@@ -369,10 +380,23 @@ export class BoardgameComponentStack extends LitElement {
     ariaDisabled: string | null;
     title: string | null;
   }>();
+  /**
+   * The pile's scatter multiplier, in 0..1, as computed by _pileOffsetsForId:
+   * the component count clamped to 5..25 and normalized. render() turns it
+   * into --pile-scale, which #container.pile's padding reads.
+   *
+   * REACTIVE ON PURPOSE. This was a plain field, and the only thing that ever
+   * consumed it was an `updated()` branch testing
+   * changedProperties.has('_pileScaleFactor') -- which Lit populates only for
+   * reactive properties, so the branch could never run. --pile-scale was never
+   * set and every pile in every game used the CSS fallback of 1.0, the value
+   * meant for a 25-component pile. @state is what makes assigning it schedule
+   * the render that publishes it.
+   */
+  @state()
   private _pileScaleFactor = 1.0;
   private _randomRotationOffset = 0;
   private _id = '';
-  private _style = '';
   private _boundSlotChanged?: () => void;
 
   get _sharedStackList(): BoardgameComponentStack[] {
@@ -493,10 +517,6 @@ export class BoardgameComponentStack extends LitElement {
       this._gameNameChanged();
     }
 
-    if (changedProperties.has('_pileScaleFactor')) {
-      this._style = this._computeStyle(this._pileScaleFactor);
-    }
-
     if (changedProperties.has('unsafeComponentAttrs') || changedProperties.has('componentsDisabled')) {
       this._applyComponentAttrsToChildren();
     }
@@ -512,10 +532,6 @@ export class BoardgameComponentStack extends LitElement {
       this._subscribeComponentActions();
       this._applyComponentActionState();
     }
-  }
-
-  private _computeStyle(pileScaleFactor: number): string {
-    return `--pile-scale:${pileScaleFactor}`;
   }
 
   private _gameNameChanged() {
@@ -1402,7 +1418,7 @@ export class BoardgameComponentStack extends LitElement {
   override render(): TemplateResult {
     this._validateConfiguration();
     return html`
-      <div id="container" class="${this._classes(this.layout)}" style="${this._style}">
+      <div id="container" class="${this._classes(this.layout)}" style="--pile-scale:${this._pileScaleFactor}">
         <div id="slot-holder">
           <slot id="components"></slot>
         </div>
