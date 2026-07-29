@@ -39,3 +39,65 @@ func TestForceFinishTurnEmbedsFinishTurn(t *testing.T) {
 	// If this compiles, the embedding is intact.
 	assert.For(t).ThatActual(true).IsTrue()
 }
+
+// TestForceFinishTurnRefusesToBootMisconfigured pins that the two options
+// ForceFinishTurn's own doc comment calls "load-bearing" are enforced at boot
+// rather than merely described in prose.
+//
+// Without WithIsFixUp(false) the move inherits FinishTurn's FixUp-ness, so the
+// framework's fixup pipeline auto-proposes it under AdminPlayerIndex -- the
+// exact identity its Legal() accepts -- and it advances the current player on
+// every fixup pass, forever. Without WithMoveName the auto-configurer derives
+// "Finish Turn" from the embedded parent, silently shadowing or colliding with
+// the real FinishTurn registration. Both used to boot without complaint.
+func TestForceFinishTurnRefusesToBootMisconfigured(t *testing.T) {
+
+	tests := []struct {
+		description string
+		options     []CustomConfigurationOption
+		wantErr     bool
+	}{
+		{
+			description: "neither option",
+			options:     nil,
+			wantErr:     true,
+		},
+		{
+			description: "name only, still a fixup",
+			options:     []CustomConfigurationOption{WithMoveName("Force Finish Turn")},
+			wantErr:     true,
+		},
+		{
+			description: "not a fixup, but no name override",
+			options:     []CustomConfigurationOption{WithIsFixUp(false)},
+			wantErr:     true,
+		},
+		{
+			description: "both options, as the doc comment requires",
+			options: []CustomConfigurationOption{
+				WithMoveName("Force Finish Turn"),
+				WithIsFixUp(false),
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, test := range tests {
+		options := test.options
+		moveInstaller := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+			auto := NewAutoConfigurer(manager.Delegate())
+			return []boardgame.MoveConfig{
+				auto.MustConfig(new(ForceFinishTurn), options...),
+			}
+		}
+
+		_, err := newGameManager(moveInstaller)
+
+		if test.wantErr && err == nil {
+			t.Errorf("%s: expected NewGameManager to refuse the move, but it booted", test.description)
+		}
+		if !test.wantErr && err != nil {
+			t.Errorf("%s: expected NewGameManager to succeed, got %v", test.description, err)
+		}
+	}
+}

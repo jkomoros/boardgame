@@ -46,7 +46,9 @@ moves.WithIsFixUp(false) AND moves.WithMoveName("Force Finish Turn"):
 	    moves.WithIsFixUp(false),
 	)
 
-Both options are load-bearing:
+Both options are load-bearing, and ValidConfiguration refuses to boot a
+GameManager that omits either — this used to be prose only, and a game
+that ignored it compiled and ran and misbehaved silently:
   - The name override is required because ForceFinishTurn embeds
     FinishTurn, and the auto-configurator's default name derivation
     yields "Finish Turn" which clashes with the parent move's
@@ -64,6 +66,32 @@ boardgame:codegen
 */
 type ForceFinishTurn struct {
 	FinishTurn
+}
+
+// ValidConfiguration enforces the two options this move's doc comment calls
+// load-bearing. Prose describing a required option is not an API; a boot error
+// is. Both failure modes are silent at runtime -- the game compiles, boots, and
+// then misbehaves -- so this is the only place they can be caught.
+func (f *ForceFinishTurn) ValidConfiguration(exampleState boardgame.State) error {
+
+	config := f.CustomConfiguration()
+
+	if _, hasName := config[configPropMoveName]; !hasName {
+		return errors.New("ForceFinishTurn requires moves.WithMoveName(...). It embeds " +
+			"FinishTurn, so the auto-configurer's default name derivation yields " +
+			"\"Finish Turn\", which collides with the parent move's own registration")
+	}
+
+	if f.IsFixUp() {
+		return errors.New("ForceFinishTurn requires moves.WithIsFixUp(false). It embeds " +
+			"FinishTurn, which is a FixUp, and FixUp moves are auto-proposed by the " +
+			"framework's fixup pipeline under AdminPlayerIndex -- the very proposer " +
+			"ForceFinishTurn.Legal accepts. Left a FixUp, it would advance the current " +
+			"player on every fixup pass, i.e. infinite recursion in the move loop. " +
+			"Propose it directly instead")
+	}
+
+	return f.FinishTurn.ValidConfiguration(exampleState)
 }
 
 // Legal accepts the move only when proposed by AdminPlayerIndex. We

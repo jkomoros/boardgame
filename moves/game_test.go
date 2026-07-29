@@ -1,6 +1,8 @@
 package moves
 
 import (
+	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
@@ -68,6 +70,22 @@ type playerState struct {
 	OtherHand     boardgame.Stack     `stack:"cards"`
 	TokenLocation boardgame.SizedStack `sizedstack:"tokens,4"`
 	Counter       int
+}
+
+// The three PlayerTurnFinisher methods exist so that the turn-advancing moves
+// (FinishTurn and its ForceFinishTurn subclass) pass ValidConfiguration
+// against this fixture. TurnDone always refuses, which is precisely the
+// condition ForceFinishTurn exists to bypass.
+func (p *playerState) TurnDone() error {
+	return errors.New("this fixture's turn is never done on its own")
+}
+
+func (p *playerState) ResetForTurnStart() error {
+	return nil
+}
+
+func (p *playerState) ResetForTurnEnd() error {
+	return nil
 }
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
