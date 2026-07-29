@@ -127,6 +127,7 @@ export { cardView, componentView, tokenView } from './components/component-view.
 export type { ComponentView, ComponentViewContext, ComponentViewOptions } from './components/component-view.js';
 export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';
 export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
+export type { StatStack } from './components/boardgame-stat.js';
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
 export type { TargetListLayout } from './components/boardgame-target-list.js';
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
@@ -232,6 +233,7 @@ import './components/boardgame-game-outcome.js';
 import './components/boardgame-game-surface.js';
 import './components/boardgame-player-grid.js';
 import './components/boardgame-player-panel.js';
+import './components/boardgame-stat.js';
 import './components/boardgame-status-text.js';
 import './components/boardgame-timer.js';
 import './components/boardgame-turn-status.js';

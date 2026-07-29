@@ -104,7 +104,13 @@ export class BlackjackTableView extends TableRenderer {
       <div class="seats horizontal wrap justify-center gap">
         ${players.map((p, i) => html`
           <div class=${classMap({ seat: true, active: i === this.currentPlayerIndex })}>
-            <div class="seat-name">${nameFor(i)} · ${p.Score} pts</div>
+            <!--
+              The score was string-concatenated into this line. As a stat it
+              reads the same and announces its own changes; the trailing unit
+              stays plain markup rather than becoming a component property,
+              because the component already composes with the text around it.
+            -->
+            <div class="seat-name">${nameFor(i)} · <boardgame-stat .value=${p.Score}></boardgame-stat> pts</div>
             <div class="seat-cards horizontal center justify-center gap">
               ${p.VisibleHand
                 ? html`<boardgame-component-stack .stack=${p.VisibleHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan" messy></boardgame-component-stack>`

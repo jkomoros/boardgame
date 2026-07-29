@@ -52,6 +52,7 @@ const FACADE_COMPONENT_MODULES = new Set([
   'boardgame-readiness',
   'boardgame-selection-option',
   'boardgame-spatial-board',
+  'boardgame-stat',
   'boardgame-status-text',
   'boardgame-table-view-base',
   'boardgame-target-list',

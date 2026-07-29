@@ -11,14 +11,15 @@ export class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
     if (playerState?.Stood) {
       return 'Stood';
     }
-    // Non breakable space so when the first player busts the layout doesn't jump
-    return '\xa0';
+    // No non-breaking space any more: boardgame-stat reserves a line of its
+    // own, so an empty status cannot make the tile jump when a player busts.
+    return '';
   }
 
   override render() {
     return html`
-      <div>Score <strong>${this.playerState?.Computed?.HandValue}</strong></div>
-      <div><boardgame-status-text .value=${this._calculateStatus(this.playerState)}></boardgame-status-text></div>
+      <div><boardgame-stat label="Score" .value=${this.playerState?.Computed?.HandValue}></boardgame-stat></div>
+      <div><boardgame-stat .value=${this._calculateStatus(this.playerState)}></boardgame-stat></div>
     `;
   }
 }

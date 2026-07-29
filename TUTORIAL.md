@@ -1990,6 +1990,73 @@ html`<boardgame-status-text
 </boardgame-status-text>`
 ```
 
+##### boardgame-stat
+
+Almost every value a renderer shows is *labelled* — "Score 12", "Won Cards 3",
+"Food 3/6". **Do not build that row by hand.** `boardgame-stat` is the labelled
+form of `boardgame-status-text`: it wraps one (so you keep the polite
+announcement and the change animation for free) and adds an icon, a label, and
+a capacity.
+
+```typescript
+html`<boardgame-stat label="Round Score" .value=${player.RoundScore}></boardgame-stat>`
+```
+
+###### Counts and capacities come from the stack
+
+Give it the **stack**, not a number, and it works out both halves itself:
+
+```typescript
+// "Won Cards 3" — the count of what is in the stack.
+html`<boardgame-stat label="Won Cards" .stack=${player.WonCards}></boardgame-stat>`
+
+// "Food 3/6" — the 6 is the sized stack's OWN capacity. You never type it.
+html`<boardgame-stat label="Food" .stack=${player.Food}></boardgame-stat>`
+```
+
+There is deliberately no way to pass a capacity number; passing one throws.
+That is not pedantry, it is the two traps this saves you from:
+
+* **Which field is the capacity depends on the kind of stack.** A sized stack
+  serializes its fixed slot count as `Size` and emits no `MaxSize`. A growable
+  stack with a cap does the exact opposite. Reach for one of them by hand and
+  half your stats silently render no capacity at all.
+* **`Indexes.length` is not a count.** A sized stack pads `Indexes` with `-1`
+  and `Components` with `null` at every empty slot, so its length is the
+  *capacity*. Several renderers in this repo used it as a count.
+
+Set `.value` as well as `.stack` when the number shown is computed rather than
+a plain count; the capacity still comes from the stack, so the two can never
+drift apart.
+
+###### Layout and escape hatches
+
+`stacked` puts the label above the value instead of beside it — the shape games
+were producing with a literal `<br>`.
+
+Everything is replaceable without abandoning the component:
+
+| Hatch | What it replaces |
+|---|---|
+| `<span slot="icon">` / `<span slot="label">` | the `icon` and `label` attributes |
+| `::part(icon)`, `::part(label)`, `::part(value)`, `::part(capacity)` | the styling of any single piece |
+| `--boardgame-stat-gap`, `--boardgame-stat-align`, `--boardgame-stat-{label,value,capacity}-color`, `--boardgame-stat-{label,value}-size` | spacing, alignment and type |
+
+```typescript
+html`<boardgame-stat .stack=${game.Supply} stacked>
+  <span slot="icon">⛏️</span>
+  <em slot="label">Supply</em>
+</boardgame-stat>`
+```
+
+`.autoMessage` and `.announce` pass straight through to the status-text
+underneath, so the change animation is tuned exactly as it is there.
+
+Finally: **you do not need a trailing `&nbsp;` or `'\xa0'` to stop the row
+jumping when the value is empty.** A stat with no value is exactly as tall as
+one with a value. (So was a bare `boardgame-status-text`, measured — that
+workaround never did anything.)
+
 Game timers are stable references in renderer state, not clocks that force the
 whole game snapshot to change every animation frame. Bind one to the timer
 primitive for an accessible label, countdown, smooth progress, idle hiding,

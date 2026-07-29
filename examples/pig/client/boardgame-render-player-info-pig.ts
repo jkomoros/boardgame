@@ -5,8 +5,8 @@ import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer
 export class BoardgameRenderPlayerInfoPig extends PlayerInfoRenderer {
   override render() {
     return html`
-      <div>Round Score <boardgame-status-text .value=${this.playerState?.RoundScore}></boardgame-status-text></div>
-      <div>Total Score <boardgame-status-text .value=${this.playerState?.Score}></boardgame-status-text></div>
+      <div><boardgame-stat label="Round Score" .value=${this.playerState?.RoundScore}></boardgame-stat></div>
+      <div><boardgame-stat label="Total Score" .value=${this.playerState?.Score}></boardgame-stat></div>
     `;
   }
 }

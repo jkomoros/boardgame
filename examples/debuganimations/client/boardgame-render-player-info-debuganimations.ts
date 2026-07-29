@@ -5,9 +5,7 @@ import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer
 export class BoardgameRenderPlayerInfoDebuganimations extends PlayerInfoRenderer {
   override render() {
     return html`
-      Cards
-      <boardgame-status-text .value=${this.playerState?.Hand.Indexes.length ?? 0}>
-      </boardgame-status-text>
+      <boardgame-stat label="Cards" .stack=${this.playerState?.Hand ?? null}></boardgame-stat>
     `;
   }
 }

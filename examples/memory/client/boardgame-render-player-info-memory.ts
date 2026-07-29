@@ -5,7 +5,7 @@ import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer
 export class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
   override render() {
     return html`
-      Won Cards <boardgame-status-text .value=${this.playerState?.WonCards?.Indexes?.length}></boardgame-status-text>
+      <boardgame-stat label="Won Cards" .stack=${this.playerState?.WonCards ?? null}></boardgame-stat>
     `;
   }
 }
