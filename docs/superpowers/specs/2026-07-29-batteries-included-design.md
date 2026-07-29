@@ -172,3 +172,80 @@ battery.
 
 Secondary: `darwin` should be migratable off its bespoke divs and onto components, which
 would also give it the FLIP animation it currently forfeits entirely.
+
+---
+
+## Addendum: the palette audit (2026-07-29)
+
+A full audit of `components/`, `behaviors/`, `moves/`, the state model and all 58 client
+components landed after this design was written. Its verdict reprioritizes the work:
+
+> **The framework is far better at scaffolding a game than at supplying a game's pieces or
+> its verbs.** Seating, phases, turn order, animation and layout are excellent. Components
+> and the reusable-move library are thin, and roughly 60% of the public surface is
+> reachable only by reading source.
+
+### The highest-friction gap is not a renderer — it is two missing moves
+
+**No reusable move puts a component into a player-chosen slot, and none moves game-stack →
+player-stack.** Those are "play a card" and "draw a card", the two most common verbs in the
+medium. Four of seven example games hand-roll them, at eight sites, and two of those files
+independently comment that they share the same residual shape. Root cause:
+`MoveCountComponents` reads both stacks off GameState only (`moves/move_components.go:61-83`).
+
+Every `auto.MustConfig(new(moves.X))` in every example game is a seating/turn/phase move.
+**Zero game-specific rules in any example are expressible without a bespoke struct.**
+
+### Six live bugs, each of which compiles and produces a wrong result silently
+
+1. **An eliminated player can win.** `base/game_delegate.go:534,554` filter on
+   `PlayerIsInactive` and never `PlayerIsEliminated`, while `elimination.go:21-23` says
+   elimination deliberately does not set inactive. Pig and blackjack both embed
+   `PlayerElimination` + `ScoreBehavior`.
+2. **`--pile-scale` is inert.** `_pileScaleFactor` is a plain field, not `@state`
+   (`boardgame-component-stack.ts:372`), so the `changedProperties.has` test at `:496` can
+   never fire. Every pile has rendered at the 6em fallback for the component's entire life,
+   and a whole compute chain writes a value nothing reads.
+3. **`tokenView({render})` paints nothing.** `BoardgameToken.render()` emits no `<slot>` at
+   all — card has three, the base has one. It type-checks, runs, mutates the DOM, and shows
+   nothing.
+4. **The scaffolding generates the seating deadlock.** The default stub has no multiplayer
+   seating (gated behind a prompt worded as "extra tutorial content", defaulting false), and
+   when enabled it puts `DefaultRoundSetup` in `phaseSetUp` only — so anyone joining after
+   setup is seated, inactivated, and never reactivated. A silent permanent spectator.
+5. **`ForceFinishTurn` hangs** unless two options are passed, documented in its own comment
+   and enforced nowhere.
+6. **The Seat/InactivePlayer deadlock is still live** in `../games/murdermrmonroe`, and the
+   two example games that actually deadlocked (memory, pig) have no regression test.
+
+The framework has exactly **one** behavior-pairing check in its whole surface. One
+`ValidateBehaviorPairings` in `NewGameManager` would kill bugs 4, 5 and 6 together and let
+three copy-pasted per-game tests be deleted. *Prose about a required companion move is not
+an API; a boot error is.*
+
+### Dead weight to decide about
+
+- **The entire spatial vertical has zero consumers**: ~1,700 lines of TypeScript, a Go CLI,
+  and ~360 tutorial lines — carrying a *migration adapter* for callers that do not exist. It
+  is the single largest documented-but-unused liability, and it competes for tutorial
+  attention with `fan`, which the flagship card game uses in five places and which has no
+  tutorial section at all.
+- **`Board`** has nine files of plumbing and one test-only usage.
+- **33 of 54 exported move types have zero tutorial mentions; ~25 have zero usage anywhere.**
+
+### Two client gaps this plan should absorb
+
+- **`dieView` does not exist**, `BoardgameDie` is not exported, and it has no
+  `HTMLElementTagNameMap` entry — so **a pool of five dice cannot go in a stack**, and pig
+  reaches into `Die.Components[0]` by hand.
+- **`boardgame-game-board` and `boardgame-component-stack` export zero CSS parts**, the fan
+  overlap is a hard-coded 100px that ignores `--component-scale`, and `layout="stack"` — the
+  *default* — visually caps at six via six `nth-child` rules, so a 20-card draw pile renders
+  as a 6-card pile.
+
+### The inversion worth remembering
+
+The component with the most tutorial real estate is the one no game uses
+(`boardgame-spatial-board`). The two with none are the ones every game gets
+(`boardgame-component`, `boardgame-base-player-info-renderer`, the latter subclassed by five
+of seven games).
