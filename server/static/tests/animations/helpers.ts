@@ -342,6 +342,22 @@ export async function expectCleanGate(
   // therefore means the whole client pipeline is quiescent, not merely that
   // one gate-close event has been recorded.
   await waitForClientQuiescence(page, timeoutMs);
+  // Quiescence is NOT sufficient for the cumulative play/settle assertion
+  // below. It only proves the GATE is caught up and no bundle is queued --
+  // but an UNGATED play (wait-for-animation="false", the ambient throbs and
+  // decorations) does not hold the gate, so it can still be in flight, its
+  // `plays` already counted and its `settles` not yet. Sampling right here
+  // read memory's creation deal as plays=60 / settles=40 -- exactly the 20
+  // cards of the grid -- and failed BOTH memory scenarios in the same run,
+  // because both call this helper on the same setup deal.
+  //
+  // waitForAnimationCounterStability is the primitive this file already
+  // documents for precisely this ("callers that assert on cumulative counter
+  // equality must sample only after sustained stability"). Failure to settle
+  // is deliberately swallowed: the explicit assertions below then report the
+  // real counters, which is a far better diagnostic than a timeout.
+  await waitForAnimationCounterStability(page, { timeoutMs, balance: 'plays' })
+    .catch(() => { /* fall through to the assertions, which name the numbers */ });
   const now = await gateSnapshot(page);
   // This definitive sample comes after every queued bundle drains: a later
   // bundle cannot wedge, be watchdog-closed, and disappear behind an earlier
