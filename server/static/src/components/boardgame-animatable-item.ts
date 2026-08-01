@@ -209,10 +209,10 @@ export class BoardgameAnimatableItem extends LitElement {
         const easing = componentMotionTrackEasing(track);
         if (easing !== undefined && timing?.easing !== undefined) {
           // Two time warps on one channel is the same class of producer error as
-          // two owners on one channel: the sampled trajectory and the caller's
-          // easing curve both claim the channel's timeline.
+          // two owners on one channel: the self-timed trajectory and the
+          // caller's easing curve both claim the channel's shape.
           throw new Error(
-            `component motion channel ${channel} carries its own sampled timeline; `
+            `component motion channel ${channel} is self-timed and owns its own easing; `
             + `an explicit timing.easing (${String(timing.easing)}) would warp it`,
           );
         }

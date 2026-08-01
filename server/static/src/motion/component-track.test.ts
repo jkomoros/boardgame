@@ -127,7 +127,7 @@ describe('curve tracks', () => {
       target: 'visual', property: 'transform',
       curve: (p) => `translateX(${p * 10}px)`, resolution: 5,
     }]);
-    assert.equal(track.timeline, 'sampled');
+    assert.equal(track.timeline, 'self-timed');
     assert.deepEqual(track.samples.map(s => s.offset), [0, 0.25, 0.5, 0.75, 1]);
     assert.equal(track.samples[2].value, 'translateX(5px)');
     assert.ok(Object.isFrozen(track));
@@ -160,7 +160,7 @@ describe('curve tracks', () => {
       { target: 'host', property: 'transform', curve: () => 'none' } as never,
       // Not just /host/: the generic "target must be host or visual" message
       // would satisfy that too, and this test must fail if the wrong throw wins.
-    ]), /curves are not allowed on the host channel/);
+    ]), /component motion curves are not allowed on the host channel/);
   });
 
   it('refuses a constant curve instead of silently vacating the channel', () => {
@@ -234,7 +234,7 @@ describe('curve tracks', () => {
     // The host channel stays structural whichever door the track comes in.
     assert.throws(() => componentMotionTracks([
       { ...curved, target: 'host' as const },
-    ]), /curves are not allowed on the host channel/);
+    ]), /self-timed component motion tracks are not allowed on the host channel/);
 
     // ...including a RESTING value, which is a claim to write the channel's
     // inline style after the animation. On the host channel that would stomp

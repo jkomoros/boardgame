@@ -15,15 +15,26 @@ export interface ComponentMotionSample {
  * component-owned inner presentation surface (for example a card face flip).
  *
  * Every track compiles to `samples`: at least two, uniformly spaced, spanning
- * [0,1]. An `eased` timeline is a plain two-endpoint transition whose shape the
- * animation kernel is free to ease. A `sampled` timeline already encodes its own
- * timing (a simulated trajectory, say) and must be replayed linearly.
+ * [0,1].
+ *
+ * `timeline` says WHO OWNS THE EASING, which is the only thing anything
+ * downstream needs to decide. An `eased` track is a plain two-endpoint
+ * transition and the animation kernel is free to shape it. A `self-timed` track
+ * already encodes its own timing (a simulated trajectory, say), so the kernel
+ * must pin `linear` and leave it alone; two owners for one channel's shape is
+ * the collision `componentMotionTrackEasing` exists to prevent.
+ *
+ * It is DERIVED, never authored: the compiler sets it from the shape of the
+ * input (endpoints vs a curve). It used to be spelled `sampled`, which named
+ * the mechanism -- "this has many keyframes" -- rather than the meaning, and
+ * the conflation was already visible in the validator below, which tested one
+ * vocabulary and reported the other.
  */
 export interface ComponentMotionTrack {
   readonly target: ComponentMotionTarget;
   readonly property: ComponentMotionProperty;
   readonly samples: readonly ComponentMotionSample[];
-  readonly timeline: 'eased' | 'sampled';
+  readonly timeline: 'eased' | 'self-timed';
   /** Value the channel should hold once the animation is finished. */
   readonly resting?: string;
 }
@@ -127,14 +138,14 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
     if (!Array.isArray(input.samples) || input.samples.length < 2) {
       throw new Error('component motion tracks need at least two samples');
     }
-    if (input.timeline !== 'eased' && input.timeline !== 'sampled') {
-      throw new Error('component motion timeline must be eased or sampled');
+    if (input.timeline !== 'eased' && input.timeline !== 'self-timed') {
+      throw new Error('component motion timeline must be eased or self-timed');
     }
     if (input.timeline === 'eased' && input.samples.length !== 2) {
       throw new Error('eased component motion tracks must have exactly two samples');
     }
-    if (input.timeline === 'sampled' && input.target !== 'visual') {
-      throw new Error('component motion curves are not allowed on the host channel');
+    if (input.timeline === 'self-timed' && input.target !== 'visual') {
+      throw new Error('self-timed component motion tracks are not allowed on the host channel');
     }
     // A resting value is a claim to write the channel's INLINE STYLE after the
     // animation, and on the host channel that surface is not the track's to
@@ -143,8 +154,8 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
     // it is handed equals the one it last wrote. So an inline write from here
     // would not merely race the setter -- it would win permanently, because the
     // setter believes the element already carries the value it is displaying
-    // and never writes it again. Rejected for the same reason a sampled
-    // timeline is above: the host channel is structural, and only the framework
+    // and never writes it again. Rejected for the same reason a self-timed
+    // track is above: the host channel is structural, and only the framework
     // may say where a component sits.
     if (input.resting !== undefined && input.target !== 'visual') {
       throw new Error('component motion resting values are not allowed on the host channel');
@@ -172,7 +183,7 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
         throw new Error('component motion samples must be uniformly spaced');
       }
     }
-    if (input.timeline === 'sampled' && isConstant(samples)) {
+    if (input.timeline === 'self-timed' && isConstant(samples)) {
       throw new Error('component motion curve is constant and animates nothing');
     }
     return Object.freeze({
@@ -218,7 +229,7 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
       target: input.target,
       property: input.property,
       samples: Object.freeze(samples),
-      timeline: 'sampled' as const,
+      timeline: 'self-timed' as const,
       resting: input.resting === undefined
         ? samples[samples.length - 1].value
         : normalize(input.resting),
@@ -240,13 +251,13 @@ function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
 }
 
 /**
- * Sampled tracks carry their own timing, so the kernel's default effect-level
- * easing would time-warp them. `undefined` leaves the kernel's choice alone.
+ * A self-timed track carries its own timing, so the kernel's default effect-level
+ * easing would time-warp it. `undefined` leaves the kernel's choice alone.
  */
 export function componentMotionTrackEasing(
   track: ComponentMotionTrack,
 ): 'linear' | undefined {
-  return track.timeline === 'sampled' ? 'linear' : undefined;
+  return track.timeline === 'self-timed' ? 'linear' : undefined;
 }
 
 /** Copy, deduplicate by owned channel, and discard visual no-ops. */
@@ -258,7 +269,7 @@ export function componentMotionTracks(
   for (const input of inputs) {
     const track = exactTrack(input);
     // Endpoint no-ops vacate the channel silently; the FLIP compiler relies on
-    // this to drop unchanged structural transforms. Sampled tracks never reach
+    // this to drop unchanged structural transforms. Self-timed tracks never reach
     // here constant — exactTrack already threw, on both the curve and the
     // already-compiled path.
     if (track.timeline === 'eased'
