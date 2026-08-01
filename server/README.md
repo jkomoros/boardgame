@@ -107,7 +107,10 @@ return html`<boardgame-component-zone
 
 For more complex processing, render ordinary Lit content from the view or use
 `componentView()` with a fresh registered custom element extending
-`BoardgameComponent`. Invalid factories fail loudly.
+`BoardgameComponent`, which the facade exports for exactly that. Invalid
+factories fail loudly. The class's own doc comment lists the six properties the
+framework owns and the override points a subclass may use; the tutorial's "A
+custom component host" section is the worked version.
 
 Wrap one game-owned panel per player in `boardgame-player-grid`. It supplies a
 named Players region, heading, empty state, and an auto-fitting responsive grid

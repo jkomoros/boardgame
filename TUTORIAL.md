@@ -1771,7 +1771,9 @@ generated `.Values` and optional `.DynamicValues` types. A hidden component is
 intentionally opaque; render no front content and the standard card displays
 its back. An empty sized-stack slot becomes a spacer. `cardView` and `tokenView`
 type-check standard host properties. `componentView` is the escape hatch for a
-custom element extending `BoardgameComponent`.
+custom element extending `BoardgameComponent`, which is exported from
+`src/client.js` for exactly that purpose — see "A custom component host" below
+for what a subclass owns.
 
 Create views once as renderer fields, not inside `render()`. The stable recipe
 lets the stack retain component hosts across snapshots, which preserves focus,
@@ -2004,6 +2006,55 @@ For more complex processing, render ordinary Lit content in the view callback.
 If the host itself must be custom, use `componentView()` with a factory that
 returns a fresh registered element extending `BoardgameComponent`. The framework
 checks that the factory never reuses an element or changes host type.
+
+##### A custom component host
+
+`BoardgameComponent` is the one framework class a game is meant to extend, and
+it is exported from `src/client.js` for that reason. The concrete primitives —
+card, token, die, stack — are not: the supported way to get one of those is its
+custom-element markup.
+
+```typescript
+import { BoardgameComponent, componentView } from '../../src/client.js';
+import { property } from 'lit/decorators.js';
+
+class MeeplePiece extends BoardgameComponent {
+  @property({ type: String })
+  tone = 'neutral';
+
+  // Changing `tone` is a visual transition worth animating.
+  override get animatingProperties(): string[] { return ['tone']; }
+}
+customElements.define('my-meeple-piece', MeeplePiece);
+
+private readonly meeples = componentView<GameState['Pieces'], MeeplePiece>(
+  () => document.createElement('my-meeple-piece') as MeeplePiece,
+  { properties: ({ component }) => ({ tone: component?.Values.Tone ?? 'neutral' }) },
+);
+```
+
+**Six properties belong to the framework, not to you:** `item`, `index`, `id`,
+`spacer`, `disabled` and `boardgameComponent`. The stack writes all six as it
+binds state to hosts, and setting one yourself fights the thing that owns
+component identity and animation pairing. `componentView({ properties })`
+subtracts exactly those six from what it will accept, so the compiler already
+enforces it.
+
+**Everything else has a working default**, so a subclass that adds a field and
+renders content is complete. The deliberate override points, in the order the
+animator calls them, are `animatingProperties` (which of *your* properties
+changing counts as a visual transition — the one most subclasses want),
+`animatingPropValues()` / `animatingPropDefaults(stack)`,
+`propertyMotionTracks(before, after)` (the component-owned motion for that
+change: a card's flip and a die's tumble are both this),
+`motionTrackTarget(target)`, `planMotionTracks(rec)` / `playAnimation(rec)`,
+`motionSubjectSnapshot()`, `motionEndpointOrientation(state)` /
+`animationRotates(...)`, `historicalPresentationPolicy` / `cloneContent`,
+`prepareMotionCarrier(...)` / `prepareForBeingAnimatingComponent(stack)`, and
+the render-side `_itemChanged(item)` / `_computeClasses()`. Each is documented
+at its own definition, and the class's own doc comment is the full list. If you
+override `render()`, reproduce its `#outer` / `#inner` wrappers: `visual` motion
+resolves to `#inner` and the stack measures `#outer`.
 
 For card art, rule reminders, maps, or other content that deserves a larger
 view, compose the same game-owned presentation into the inspector. The common

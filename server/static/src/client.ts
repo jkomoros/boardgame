@@ -209,10 +209,25 @@ export type {
   ProjectedMoveChoicesStatus,
 } from './moves/projected-choices.js';
 
+// THE ONE CLASS A GAME MAY EXTEND.
+//
+// `componentView()` above is the documented escape hatch for a game-owned
+// component host: its type parameter is `ElementType extends
+// BoardgameComponent`, and its runtime guard refuses anything else with
+// "create() must return a registered element extending BoardgameComponent".
+// This export is what makes that reachable. Three documents (TUTORIAL.md twice,
+// server/README.md once) had told creators to extend it while the single
+// supported entry point declined to hand it over; the class's own doc comment
+// carries the subclass contract those documents never stated.
+export { BoardgameComponent } from './components/boardgame-component.js';
+export type { FlipRecord } from './components/boardgame-component.js';
+
 // Importing the facade registers every curated renderer primitive. Game code
-// must not depend on transitive or deep component-module side effects. Their
-// classes are intentionally not exported: the supported creator contract is
+// must not depend on transitive or deep component-module side effects. The
+// CONCRETE primitives' classes -- card, token, die, stack and the rest -- are
+// intentionally not exported: the supported creator contract for those is
 // custom-element markup and the facade types, not implementation inheritance.
+// `BoardgameComponent` above is the deliberate exception, and the only one.
 import './components/boardgame-die.js';
 import './components/boardgame-card.js';
 import './components/boardgame-token.js';

@@ -32,6 +32,69 @@ export interface FlipRecord {
   tracks?: readonly ComponentMotionTrack[]; // planned once; executor consumes exactly these channels
 }
 
+/**
+ * The base class every component host in a stack is: a card, a token, a die,
+ * and whatever a game builds with `componentView()`.
+ *
+ * # This IS a supported creator entry point
+ *
+ * It is exported from `client.ts`, and deliberately: `componentView()` is the
+ * documented escape hatch for a game-owned component host, its type parameter
+ * is `ElementType extends BoardgameComponent`, and its runtime guard refuses
+ * anything that is not one — "create() must return a registered element
+ * extending BoardgameComponent". A creator cannot use the escape hatch without
+ * the class, so the class is part of the contract. Every OTHER component class
+ * in this directory stays unexported: the supported way to get a card, a token
+ * or a die is its custom-element markup and the facade's types.
+ *
+ * # What a subclass owns, and what it must not touch
+ *
+ * SIX PROPERTIES ARE THE FRAMEWORK'S, not the game's: `item`, `index`, `id`,
+ * `spacer`, `disabled` and `boardgameComponent`. The stack writes all six as it
+ * binds state to hosts, so a subclass that sets one is fighting the thing that
+ * owns component identity and FLIP pairing. `SettableComponentProperties`
+ * subtracts exactly this list from what `componentView({ properties })` will
+ * accept, so the compiler already says so.
+ *
+ * EVERYTHING ELSE HAS A WORKING DEFAULT. A subclass that adds a field and
+ * renders content is complete — the framework's fixtures do exactly that, and
+ * override nothing. The members below are the deliberate override points, in
+ * the order the animator calls them, and each is documented at its own
+ * definition:
+ *
+ *   - `animatingProperties` — which of YOUR properties, changing, is a visual
+ *     transition worth animating. Empty by default, and this is the one a
+ *     subclass with animated presentation almost always overrides.
+ *   - `animatingPropValues()` / `animatingPropDefaults(stack)` — snapshot those
+ *     properties, and supply a stack's defaults for a component with no
+ *     counterpart on the other side of the transition. Derived from
+ *     `animatingProperties`; override only for a value the plain read cannot
+ *     produce.
+ *   - `propertyMotionTracks(before, after)` — the component-owned `visual`
+ *     channel tracks for that change. THE MAIN HOOK: a card's flip is one of
+ *     these, and so is a die's tumble.
+ *   - `motionTrackTarget(target)` — which element carries the `host` and
+ *     `visual` channels. Defaults to `this` and `#inner`; override only if your
+ *     render puts the animating surface somewhere else.
+ *   - `planMotionTracks(rec)` / `playAnimation(rec)` — plan and execute the
+ *     whole channel set. Overriding either is the deep end; prefer
+ *     `propertyMotionTracks`.
+ *   - `motionSubjectSnapshot()` — the privacy-safe silhouette an effect
+ *     decorates. Return null to opt out; never return DOM or hidden state.
+ *   - `motionEndpointOrientation(state)` and `animationRotates(...)` — whether
+ *     a transition turns, and how its endpoints are posed.
+ *   - `historicalPresentationPolicy` and `cloneContent` — how a component is
+ *     presented while it is being animated out of a historical state.
+ *   - `prepareMotionCarrier(...)` / `prepareForBeingAnimatingComponent(stack)`
+ *     — last-moment setup on the element the animation is carried by.
+ *   - `_itemChanged(item)` and `_computeClasses()` — the render-side hooks.
+ *     Super-call both; `_itemChanged` is what maps a null item to `spacer`.
+ *
+ * A subclass must also keep `render()`'s `#outer` / `#inner` structure, because
+ * `motionTrackTarget` resolves `visual` to `#inner` and the stack measures
+ * `#outer`. Render into the default slot, or override `render()` and reproduce
+ * both wrappers.
+ */
 export class BoardgameComponent extends BoardgameAnimatableItem {
   static override styles: any = css`
     :host {
