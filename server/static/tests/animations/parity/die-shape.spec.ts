@@ -2457,3 +2457,122 @@ test.describe('the die stays inside the room it reserves', () => {
     });
   }
 });
+
+// The index/value seam, which is this component's most inviting silent bug.
+//
+// `selectedFaceIndex` (was `selectedFace`) is an INDEX into `faces`, and on a
+// plain [1..6] die every face VALUE is also a valid index -- so binding a value
+// where an index goes produced a die that was in range, selected a face, and
+// showed the wrong number forever with nothing in the console. The clamp is
+// what made it unfindable; these pin that it is loud now, and that a die at
+// rest can be asked what it is showing without a roll having happened.
+test.describe('the die and the index it is given', () => {
+
+  // Every mount in this block collects the page's warnings from before
+  // navigation, because mountDie navigates.
+  function collectWarnings(page: import('@playwright/test').Page): string[] {
+    const warnings: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'warning') warnings.push(message.text());
+    });
+    return warnings;
+  }
+
+  test('.value reads the face the die is showing, with no roll required', async ({ page }) => {
+    const warnings = collectWarnings(page);
+    // Faces default to 10, 20, 30, ... -- never equal to their own index.
+    await mountDie(page, { faceCount: 6, selectedFace: 2 });
+    const read = await page.evaluate(() => {
+      const die = document.getElementById('fixture-die') as any;
+      return { value: die.value, index: die.selectedFaceIndex };
+    });
+    // Index 2 selects the face WORTH 30. A component that confused the two
+    // would report 2, or 3.
+    expect(read).toEqual({ value: 30, index: 2 });
+    expect(warnings.filter((line) => line.includes('boardgame-die: '))).toEqual([]);
+  });
+
+  test('a die with no faces reports no value and does not complain', async ({ page }) => {
+    const warnings = collectWarnings(page);
+    await page.goto('/');
+    const value = await page.evaluate(async () => {
+      await import('/src/components/boardgame-die.ts');
+      const die = document.createElement('boardgame-die') as any;
+      document.body.appendChild(die);
+      await die.updateComplete;
+      await die.updateComplete;
+      return die.value;
+    });
+    // A die with no item is a normal state -- a sanitized die in a hidden
+    // stack arrives as one -- not a misconfigured one.
+    expect(value).toBeNull();
+    expect(warnings.filter((line) => line.includes('boardgame-die: '))).toEqual([]);
+  });
+
+  test('an out-of-range index warns instead of silently showing face 0', async ({ page }) => {
+    const warnings = collectWarnings(page);
+    await mountDie(page, { faceCount: 6, selectedFace: 9 });
+    const read = await page.evaluate(() => {
+      const die = document.getElementById('fixture-die') as any;
+      return { value: die.value, index: die.selectedFaceIndex };
+    });
+    // It still DRAWS something: a die has to. The face it falls back to is
+    // face 0, worth 10.
+    expect(read.index).toBe(9);
+    expect(read.value).toBe(10);
+    const complaint = warnings.filter((line) => line.includes('selectedFaceIndex is 9'));
+    expect(complaint.length,
+      `nothing warned about an index of 9 on a 6-faced die: ${JSON.stringify(warnings)}`)
+      .toBeGreaterThan(0);
+    // The warning has to name the mistake, not merely the symptom.
+    expect(complaint[0]).toContain('INDEX');
+  });
+
+  test('a SelectedFace that does not select its own reported Value warns', async ({ page }) => {
+    const warnings = collectWarnings(page);
+    await page.goto('/');
+    await page.evaluate(async () => {
+      await import('/src/components/boardgame-die.ts');
+      const die = document.createElement('boardgame-die') as any;
+      die.id = 'mismatch-die';
+      document.body.appendChild(die);
+      die.item = {
+        ID: 'mismatch-component',
+        Values: { Faces: [10, 20, 30, 40, 50, 60] },
+        // The confusion, as it arrives over the wire: the server reported a
+        // value of 30, and something wrote that value into the index field.
+        DynamicValues: { SelectedFace: 30, Value: 30 },
+      };
+      await die.updateComplete;
+      await die.updateComplete;
+    });
+    // Out of range as an index, so the range warning fires too; what this
+    // pins is that the wire's own redundancy is checked at all.
+    expect(warnings.filter((line) => line.includes('selectedFaceIndex is 30')).length,
+      `an index of 30 on a 6-faced die went unreported: ${JSON.stringify(warnings)}`)
+      .toBeGreaterThan(0);
+  });
+
+  test('an index that selects a different value than the wire reports warns', async ({ page }) => {
+    const warnings = collectWarnings(page);
+    await page.goto('/');
+    await page.evaluate(async () => {
+      await import('/src/components/boardgame-die.ts');
+      const die = document.createElement('boardgame-die') as any;
+      document.body.appendChild(die);
+      die.item = {
+        ID: 'disagree-component',
+        Values: { Faces: [10, 20, 30, 40, 50, 60] },
+        // In range as an index, so the range check has nothing to say -- and
+        // this is the only signal left that the two disagree.
+        DynamicValues: { SelectedFace: 1, Value: 30 },
+      };
+      await die.updateComplete;
+      await die.updateComplete;
+    });
+    const complaint = warnings.filter((line) => line.includes('DynamicValues.Value says 30'));
+    expect(complaint.length,
+      `an index that selects 20 while Value says 30 went unreported: ${JSON.stringify(warnings)}`)
+      .toBeGreaterThan(0);
+  });
+});

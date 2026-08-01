@@ -228,7 +228,15 @@ function dieSolid(faceCount: number): DieSolid | null {
 interface DieItem {
   readonly id: string;
   readonly faces: readonly number[];
-  readonly selectedFace: number;
+  readonly selectedFaceIndex: number;
+  /**
+   * The face VALUE the server says this die is showing, or null when it does
+   * not say. Not what anything DRAWS -- `selectedFaceIndex` picks the face and
+   * `faces` supplies its value -- but the one field on the wire that carries a
+   * value unambiguously, which is what makes it worth cross-checking against.
+   * See `readDieItem`.
+   */
+  readonly value: number | null;
   /**
    * How many times the server says this die has been thrown, or `null` when it
    * does not say.
@@ -267,20 +275,36 @@ function readDieItem(item: DieComponent | null | undefined): DieItem | null {
   const candidate = item as {
     ID?: unknown;
     Values?: { Faces?: unknown };
-    DynamicValues?: { SelectedFace?: unknown; RollCount?: unknown };
+    DynamicValues?: { SelectedFace?: unknown; Value?: unknown; RollCount?: unknown };
   };
   const faces = candidate.Values?.Faces;
   if (!Array.isArray(faces) || !faces.every((face) => typeof face === 'number')) return null;
   const selected = candidate.DynamicValues?.SelectedFace;
+  const value = candidate.DynamicValues?.Value;
   const rollCount = candidate.DynamicValues?.RollCount;
   return {
     id: typeof candidate.ID === 'string' ? candidate.ID : '',
     faces: faces as readonly number[],
-    selectedFace:
+    selectedFaceIndex:
       typeof selected === 'number' && Number.isFinite(selected) ? Math.trunc(selected) : 0,
+    value: typeof value === 'number' && Number.isFinite(value) ? value : null,
     rollCount:
       typeof rollCount === 'number' && Number.isFinite(rollCount) ? rollCount : null,
   };
+}
+
+/**
+ * Face counts and indexes already complained about, so a die that is
+ * misconfigured does not print a line on every render pass. Keyed by the whole
+ * complaint, so a die that goes from one bad index to a different bad one still
+ * says so. Module-scoped: a board full of the same mistake is one mistake.
+ */
+const WARNED_BAD_INDEX = new Set<string>();
+
+function warnOnce(key: string, message: string): void {
+  if (WARNED_BAD_INDEX.has(key)) return;
+  WARNED_BAD_INDEX.add(key);
+  console.warn(message);
 }
 
 /**
@@ -604,7 +628,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
       #inner {
         position: relative;
-        transform: translateY(calc(-1 * var(--reel-step) * var(--selected-face)));
+        transform: translateY(calc(-1 * var(--reel-step) * var(--selected-face-index)));
         /* The spin is WAAPI-driven now; no CSS transform transition. */
       }
 
@@ -868,12 +892,26 @@ class BoardgameDie extends BoardgameAnimatableItem {
    *
    * `2` on a die with faces `[10, 20, 30]` presents the face showing 30. This is
    * the server's own convention (`DynamicValues.SelectedFace` is an index
-   * alongside a separate `Values.Faces` list) and reading it as a value is the
-   * silent bug this component invites: it is in range, it selects a face, and
-   * the die shows the wrong number.
+   * alongside a separate `Values.Faces` list) and reading it as a value used to
+   * be the silent bug this component invited: on a plain `[1..6]` die a value
+   * IS in range, so it selected a face and the die showed the wrong number
+   * forever with nothing in the console. The name now says "index", and an
+   * index this die cannot use is a warning rather than a silent fallback; see
+   * `_presentedFaceIndex`. Read `value` for the number the die is showing.
+   *
+   * # This component keys three different ways, on purpose
+   *
+   *   - `selectedFaceIndex` is an INDEX into `faces`.
+   *   - `faceNames` is keyed by face VALUE (`{ 3: 'Star' }`).
+   *   - `symbols` is keyed by face NAME (`{ Star: '★' }`).
+   *
+   * That chain is deliberate — an index picks a face, the face carries a value,
+   * the value names itself, and the name draws a glyph — but it means no two of
+   * these three maps take the same key, and mixing them up is silent in two of
+   * the three cases (a wrong `faceNames` key just fails to find a name).
    */
-  @property({ type: Number, attribute: 'selected-face' })
-  selectedFace = 0;
+  @property({ type: Number, attribute: 'selected-face-index' })
+  selectedFaceIndex = 0;
 
   /**
    * Face VALUE to the name that face carries — `{ 3: 'Star' }`.
@@ -920,6 +958,33 @@ class BoardgameDie extends BoardgameAnimatableItem {
 
   @property({ attribute: false })
   action: BoundMoveAction<string, object> | null = null;
+
+  /**
+   * The face VALUE this die is showing, or null when it has no faces.
+   *
+   * THE ACCESSOR A DIE AT REST DID NOT HAVE. The component mirrored the
+   * server's `Faces` and `SelectedFace` and not its `Value` — the one field on
+   * the wire that carries a value unambiguously — so the only way to read a
+   * die's number was `roll-end.detail.value`, which requires a roll to have
+   * happened. A die that has never been thrown, or one whose page was reloaded
+   * after the throw, had no number a caller could ask for at all.
+   *
+   * Derived, not stored: it is the value on the face the die is actually
+   * SHOWING, which is the landed facet once it has rolled and the selected one
+   * before that. That is the same number `roll-end` reports, by construction,
+   * and it stays right across the face relabelling `_faceValues` does.
+   *
+   * Deliberately NOT a reactive property. It is a read of current state, and
+   * declaring it reactive would invite a game to set it — which would be a
+   * second, writable way to say what the die shows, next to the index that
+   * already says it.
+   */
+  get value(): number | null {
+    const values = this._faceValues();
+    if (!values.length) return null;
+    const shown = values[this._shownFaceIndex(values.length)];
+    return typeof shown === 'number' ? shown : null;
+  }
 
   @query('#inner')
   private _innerElement?: HTMLElement;
@@ -1029,10 +1094,10 @@ class BoardgameDie extends BoardgameAnimatableItem {
       // being shown a state it was already in when it mounted.
       const installing = this._installingFace;
       this._installingFace = false;
-      if (!installing && !pending && changedProperties.has('selectedFace')) {
+      if (!installing && !pending && changedProperties.has('selectedFaceIndex')) {
         this._selectedFaceChanged(
-          this.selectedFace,
-          changedProperties.get('selectedFace') as number | undefined
+          this.selectedFaceIndex,
+          changedProperties.get('selectedFaceIndex') as number | undefined
         );
       }
     }
@@ -1068,8 +1133,8 @@ class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   // _innerTransformForFace mirrors the CSS resting transform on #inner for
-  // a given selectedFace: translateY(-1 * reel-step * face). The #main element
-  // carries the --selected-face var that drives the CSS resting position; here
+  // a given selectedFaceIndex: translateY(-1 * reel-step * face). The #main element
+  // carries the --selected-face-index var that drives the CSS resting position; here
   // we build an explicit transform so WAAPI can interpolate the spin instead
   // of relying on a CSS transition.
   //
@@ -1120,7 +1185,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
       // A sanitized die is still a die, and a die with no item at all is not
       // one: both are drawn with no faces, and neither carries a roll.
       this.faces = [];
-      this.selectedFace = 0;
+      this.selectedFaceIndex = 0;
       this._clearRoll();
       this._componentId = '';
       this._itemInstalls = 0;
@@ -1129,7 +1194,25 @@ class BoardgameDie extends BoardgameAnimatableItem {
       return;
     }
     this.faces = [...item.faces];
-    this.selectedFace = item.selectedFace;
+    this.selectedFaceIndex = item.selectedFaceIndex;
+    // The wire carries the SAME FACT TWICE -- an index, and the value that
+    // index selects -- so when a game reports both, the pair is checkable, and
+    // a die whose index does not select its own reported value is the
+    // index/value confusion caught at the one place it is provable rather than
+    // guessed at from a wrong-looking number on screen. Only checked when both
+    // are present: a game is free to define a die deck with just one of them.
+    if (item.value !== null
+      && item.selectedFaceIndex >= 0
+      && item.selectedFaceIndex < item.faces.length
+      && item.faces[item.selectedFaceIndex] !== item.value) {
+      warnOnce(
+        `mismatch:${item.selectedFaceIndex}:${item.value}:${item.faces.join(',')}`,
+        `boardgame-die: DynamicValues.SelectedFace is ${item.selectedFaceIndex}, which `
+        + `selects the face worth ${item.faces[item.selectedFaceIndex]}, but `
+        + `DynamicValues.Value says ${item.value}. SelectedFace is an INDEX into `
+        + `Values.Faces; the die is drawing the face the index names.`,
+      );
+    }
     const componentId = item.id;
     // A DIFFERENT DIE on the same element, which is what a stack re-using a slot
     // does. The old roll's face assignment and resting pose belong to a
@@ -1655,7 +1738,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
    *
    * Recomputed rather than cached: it is O(n^2) over at most 32 faces and runs
    * a handful of times per render pass, and the alternative is a cache keyed on
-   * `faces`, `selectedFace` and the roll, which is three ways to go stale.
+   * `faces`, `selectedFaceIndex` and the roll, which is three ways to go stale.
    */
   private _faceValues(): readonly number[] {
     const faces = Array.isArray(this.faces) ? this.faces : [];
@@ -1676,14 +1759,44 @@ class BoardgameDie extends BoardgameAnimatableItem {
   /**
    * Which FACE the die presents, as an index into `faces`.
    *
-   * `selectedFace` is an index (the server sends `DynamicValues.SelectedFace`
-   * alongside a separate `Values.Faces` list of face VALUES); reading it as a
-   * value is the silent bug this component invites. Out-of-range values fall
-   * back to the first face rather than rendering nothing.
+   * THE FALLBACK IS LOUD, and that is the point of it. `selectedFaceIndex` is an
+   * index (the server sends `DynamicValues.SelectedFace` alongside a separate
+   * `Values.Faces` list of face VALUES), and binding a face VALUE here is the
+   * mistake this component invites. This used to clamp silently to `0`, which is
+   * exactly what made that mistake unfindable: on a `[1..6]` die every value is
+   * also a valid index, so the die selected a face, showed the wrong number, and
+   * said nothing — and for the values that ARE out of range the clamp turned a
+   * detectable bug into the same wrong-but-plausible die. A die still has to
+   * draw something, so the fallback stays; the silence does not.
+   *
+   * Warned once per distinct complaint (see `warnOnce`): this runs several times
+   * per render pass, and a per-call warning would bury the board's console.
    */
   private _presentedFaceIndex(faceCount: number): number {
-    const index = Math.trunc(this.selectedFace);
-    return Number.isFinite(index) && index >= 0 && index < faceCount ? index : 0;
+    // A die with NO faces is not a misconfigured die: it is a sanitized one, or
+    // one whose item has not arrived yet. Nothing to complain about, and it is
+    // the state every die passes through on its way to its first render.
+    if (!(faceCount > 0)) return 0;
+    const raw = this.selectedFaceIndex;
+    const index = Math.trunc(raw);
+    if (Number.isFinite(index) && index >= 0 && index < faceCount) {
+      if (index !== raw) {
+        warnOnce(
+          `frac:${raw}`,
+          `boardgame-die: selectedFaceIndex is ${raw}, which is not a whole number; `
+          + `using face ${index}. It is an INDEX into faces, not a face value.`,
+        );
+      }
+      return index;
+    }
+    warnOnce(
+      `range:${raw}@${faceCount}`,
+      `boardgame-die: selectedFaceIndex is ${raw}, which is not a face on a `
+      + `${faceCount}-faced die; showing face 0 instead. It is an INDEX into `
+      + `faces (0 to ${Math.max(0, faceCount - 1)}), not a face value — binding `
+      + `a value here is the mistake this warning exists for.`,
+    );
+    return 0;
   }
 
   /**
@@ -1965,7 +2078,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
           aria-busy=${String(bound && action.submission.kind === 'pending')}
           ?disabled=${effectiveDisabled}
           data-cocked=${this._roll?.cocked ? 'true' : nothing}
-          style="--selected-face:${this.selectedFace}"
+          style="--selected-face-index:${this.selectedFaceIndex}"
           class="${this._classes(effectiveDisabled, solid !== null)}">
           ${solid ? this._renderSolid(solid) : this._renderReel()}
         </button>

@@ -2334,15 +2334,28 @@ An empty glyph is *ignored*, not honored: you cannot blank a face by mapping it
 to `''`, and the face falls back to pips or a numeral. (The one genuinely blank
 face the die draws is the pip layout for the value zero, which is zero dots.)
 
-**`selectedFace` is an INDEX into `faces`, not a face value.** This is the
+**`selectedFaceIndex` is an INDEX into `faces`, not a face value.** This is the
 server's own convention — `DynamicValues.SelectedFace` is an index, and
-`Values.Faces` is a separate list of the values — and the component's own source
-calls reading it as a value the silent bug it invites, because the failure is so
-quiet: an index is in range, it selects a real face, and the die simply shows
-the wrong number. On a die with faces `[10, 20, 30]`, `selectedFace = 2` presents
-the face showing 30. If you bind `.item` you never touch this; it only bites
-when you drive a die by hand, and the fixtures in this framework deliberately use
-face values that are never equal to their own index for exactly that reason.
+`Values.Faces` is a separate list of the values. Reading it as a value used to
+be a silent bug: an index is in range, it selects a real face, and the die
+simply shows the wrong number. The name says "index" now, and an index this die
+cannot use is a console warning rather than a silent fall back to face 0. On a
+die with faces `[10, 20, 30]`, `selectedFaceIndex = 2` presents the face showing
+30. The attribute spelling is `selected-face-index`. If you bind `.item` you
+never touch this; it only bites when you drive a die by hand, and the fixtures in
+this framework deliberately use face values that are never equal to their own
+index for exactly that reason.
+
+Three of the die's inputs are keyed three different ways, and it is worth
+holding them apart: `selectedFaceIndex` is keyed by *index*, `faceNames` by face
+*value*, and `symbols` by face *name*. That is the chain — an index picks a
+face, the face carries a value, the value names itself, the name draws a glyph.
+
+**To read the number a die is showing, use `.value`.** It is the value on the
+face currently presented, or `null` on a die with no faces, and it is the same
+number `roll-end` reports. Unlike `roll-end` it does not require a roll to have
+happened, so it answers for a die at rest and for one whose page was reloaded
+after the throw.
 
 **The die tells you when a roll starts and when it lands.** It dispatches two
 composed, bubbling events, `roll-start` and `roll-end`, each carrying the same

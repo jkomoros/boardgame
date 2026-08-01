@@ -408,7 +408,7 @@ test('standalone die roll uses the shared visual-track executor', async ({ page 
       const die = document.createElement('boardgame-die') as HTMLElement & {
         item: unknown;
         faces: number[];
-        selectedFace: number;
+        selectedFaceIndex: number;
         updateComplete: Promise<unknown>;
       };
       die.style.setProperty('--animation-length', '80ms');
