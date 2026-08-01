@@ -352,7 +352,7 @@ interface DieRoll {
   readonly resting: string;
 }
 
-class BoardgameDie extends BoardgameAnimatableItem {
+export class BoardgameDie extends BoardgameAnimatableItem {
   static override styles = [
     ...(BoardgameAnimatableItem.styles ? [BoardgameAnimatableItem.styles] : []),
     css`
@@ -2119,3 +2119,9 @@ class BoardgameDie extends BoardgameAnimatableItem {
 }
 
 customElements.define('boardgame-die', BoardgameDie);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-die': BoardgameDie;
+  }
+}

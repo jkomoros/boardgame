@@ -387,3 +387,9 @@ class BoardgameBoardViewport extends LitElement {
 customElements.define('boardgame-board-viewport', BoardgameBoardViewport);
 
 export { BoardgameBoardViewport };
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-board-viewport': BoardgameBoardViewport;
+  }
+}

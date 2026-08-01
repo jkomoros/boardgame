@@ -534,3 +534,9 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 }
 
 customElements.define('boardgame-component', BoardgameComponent);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-component': BoardgameComponent;
+  }
+}
