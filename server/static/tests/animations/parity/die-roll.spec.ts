@@ -1125,12 +1125,12 @@ test.describe('boardgame-die physics roll, in the app', () => {
         // this test's own: the declared hold below is what carries the cycle
         // past the floor.
         const wrapper = document.createElement('div') as any;
-        // pointer-events:none because this die is a d48, i.e. a BARREL, and a
-        // barrel reserves a box its long axis fits in -- 2.63 die-sizes, so 263px
-        // at the default. Laid over the board at (0, 0) that covers pig's own
-        // "Roll die" button, and the click below would land on the fixture
-        // instead. Nothing here clicks this die: it is thrown by installing an
-        // item on `__watchdogDie`, so it has no use for pointer events at all.
+        // pointer-events:none because a die reserves its whole --die-size box as
+        // a hit target -- 100px at the default. Laid over the board at (0, 0)
+        // that covers pig's own "Roll die" button, and the click below would land
+        // on the fixture instead. Nothing here clicks this die: it is thrown by
+        // installing an item on `__watchdogDie`, so it has no use for pointer
+        // events at all.
         wrapper.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
         const die = document.createElement('boardgame-die') as any;
         die.id = 'watchdog-die';

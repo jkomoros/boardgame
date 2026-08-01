@@ -285,8 +285,10 @@ describe('die geometry', () => {
           ...geometry.vertices.map((vertex) => Math.hypot(vertex[0], vertex[1])),
         );
         close(geometry.nominalRadius, shortAxis, 1e-12, 'barrel nominal radius');
-        // Strictly smaller than the circumsphere, which is the whole point: at
-        // a fixed `--die-size` every length on the solid grows by this ratio.
+        // Strictly smaller than the circumsphere, which is the whole point:
+        // this ratio is how much longer a barrel is than it is wide, and it is
+        // exactly what `boardgame-die.ts`'s `solidExtent` scales the solid down
+        // by so a barrel fits the `--die-size` box a game laid out for it.
         assert.ok(
           geometry.boundingRadius / geometry.nominalRadius >= (faceCount === 3 ? 1.35 : 2.1),
           `d${faceCount} only gains ${geometry.boundingRadius / geometry.nominalRadius}x from short-axis normalization`,

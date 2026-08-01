@@ -233,16 +233,17 @@ pipeline is five pure modules and one component, each testable without a DOM:
    divides through by a radius — and there are TWO, which is the thing to get
    right. `boundingRadius` is the true circumsphere (1.00 to 1.90 across the
    closed forms, and up to 2.63 for a barrel); `nominalRadius` is what a
-   consumer sizing the die by should use, and it is the same number except on a
-   barrel, where it is deliberately the SHORT axis (the ring radius, exactly 1)
-   so that the die box is the barrel's width — what its marks are bounded by —
-   rather than its length, which nothing is printed along. The simulator
+   consumer BUILDING the solid should divide by, and it is the same number except
+   on a barrel, where it is deliberately the SHORT axis (the ring radius, exactly
+   1) so that the solid's proportions stay honest — its marks are bounded by its
+   width, not by its length, which nothing is printed along. The simulator
    normalizes by `boundingRadius` (its tray is measured in them); the renderer
-   sizes by `nominalRadius`. The renderer also LAYS OUT by the ratio between
-   them (`boardgame-die.ts`'s `solidExtent`): a barrel is drawn larger than
-   `--die-size` along its axis, so the component reserves a box that wide rather
-   than overlapping whatever is beside it. `finishSolid` rejects an open or
-   non-manifold surface rather than returning a silently wrong inertia tensor.
+   builds by `nominalRadius`. The renderer then SCALES by the ratio between them
+   (`boardgame-die.ts`'s `solidExtent`): a barrel's bounding sphere is up to
+   2.63x its nominal one, so the whole solid is drawn at `--die-size / extent`
+   and fits inside the footprint the author asked for whatever a tumble does to
+   it. `finishSolid` rejects an open or non-manifold surface rather than
+   returning a silently wrong inertia tensor.
 2. **Relabeling** (`motion/die-faces.ts`). The outcome is the SERVER's and is
    known before any pixel moves, so the simulation is never asked to produce
    it. `presentedFaceIndex(geometry, orientation)` reads which face a resting
@@ -431,8 +432,10 @@ it**, which is what makes it safe on a host a stack pooled and reparented —
 nothing re-derives a pose on reuse, so a remembered one would leak the previous
 occupant's shape. And the solid is sized by **drawn extent**, not by
 circumsphere: a token's `#inner` box *is* its silhouette (`fitScale` solves for
-it), where a die's `--die-size` is a bounding-sphere diameter with a separately
-reserved footprint. Sizing a token the die's way would draw it ~40% small.
+it). That is the same convention `--die-size` follows — the author's number is
+the box the piece occupies — with the one difference a tumbling piece forces: a
+token holds one pose and can fill its box exactly, where a die is sized for the
+widest pose it can reach and rests a little inside it.
 
 Colour is shared arithmetically rather than by two lists agreeing.
 `TOKEN_COLOR_FILTERS` is the single table: `boardgame-token.ts` generates its

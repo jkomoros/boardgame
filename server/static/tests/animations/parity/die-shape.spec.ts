@@ -344,7 +344,19 @@ test.describe('boardgame-die solid', () => {
       await mountDie(page, { faceCount, dieSize: '200px' });
       const { rows, emPx, facetCount, surfaceCount } = await facetBoxes(page, faceCount);
 
-      expect(emPx).toBe(200);
+      // 1em is the SOLID's own size, which is --die-size divided by the shape's
+      // extent -- 199.3px for a closed form, 82.7 for a d7 -- because --die-size
+      // is the box the solid has to fit inside rather than the solid's own
+      // diameter. Derived from the component's own solidExtent so this cannot
+      // drift from what the CSS does; asserted at all because everything below
+      // scales the geometry by it, and an em of zero would make every extent
+      // check below trivially true.
+      const expectedEm = await page.evaluate(async (count) => {
+        const geometryModule: any = await import('/src/motion/die-geometry.ts');
+        const dieModule: any = await import('/src/components/boardgame-die.ts');
+        return 200 / dieModule.solidExtent(geometryModule.dieGeometry(count));
+      }, faceCount);
+      expect(emPx).toBeCloseTo(expectedEm, 2);
       expect(facetCount).toBe(surfaceCount);
       // DOM order is surface order -- `[...faces, ...capFaces]` -- and the
       // readable prefix of it carries the face indices. Everything below pairs
@@ -1812,13 +1824,93 @@ test.describe('boardgame-die prominence', () => {
     // the thing an author has actually got wrong.
     expect(result.afterSmall[0]).toContain('d7');
     expect(result.afterSmall[0]).toMatch(/\d+(\.\d+)?px, which is too small to read/);
-    // The trap the message exists to name: --die-size is the die's own sphere,
-    // NOT a face's width. It deliberately no longer says "bounding sphere",
-    // because for a barrel -- the shape this warning fires on most -- the sphere
-    // it is sized against is its WIDTH and its bounding sphere is 2.4x larger.
-    expect(result.afterSmall[0]).toContain('SPHERE THE SOLID IS SIZED AGAINST');
+    // THE MESSAGE HAS TO END IN AN INSTRUCTION, because this warning is the
+    // whole price of --die-size meaning the footprint: a barrel is drawn at a
+    // fraction of the box it sits in, so its marks are smaller than the same
+    // box would give a cube, and the only fix is a bigger box. It says which
+    // shape, what the author set, how small the marks came out, WHY (the
+    // barrel's own aspect ratio, named), and the number to set instead.
+    expect(result.afterSmall[0], 'names the barrel ratio').toMatch(/barrel \d+\.\d+x longer/);
+    const instruction = result.afterSmall[0].match(/Give it --die-size: (\d+)px or more\./);
+    expect(instruction, `ends in an instruction: ${result.afterSmall[0]}`).not.toBeNull();
+    // ...and the number it names has to be one that actually works. It is
+    // derived from what the die drew, so a wrong derivation is a wrong number
+    // and nothing else in the suite would notice.
+    expect(Number(instruction![1]),
+      'the size it recommends is larger than the one that failed')
+      .toBeGreaterThan(result.illegible);
+    expect(Number(instruction![1]),
+      'and is not absurdly larger than a size known to be legible')
+      .toBeLessThanOrEqual(result.legible);
     expect(result.afterRepeat, 'and does not repeat itself for the same shape').toBe(1);
     expect(result.afterLegibleCube, 'a legible shape says nothing').toBe(1);
+  });
+
+  // ...AND THE SIZE IT NAMES HAS TO WORK.
+  //
+  // The recommendation is arithmetic over what the die actually drew, and a
+  // wrong derivation is a wrong number that nothing else in this suite would
+  // notice: the warning is emitted once per face count, so re-mounting the same
+  // shape at the recommended size proves nothing by staying silent. So the marks
+  // are MEASURED at that size instead.
+  //
+  // A d9 rather than a d7, and not only to get an unwarned face count: a d9 is
+  // the shape the footprint contract actually costs something on. At the
+  // component's own 100px default its corner marks come out at 4.8px, under the
+  // 6px floor, where the same footprint on a d6 draws 8.3px pips. This is the
+  // trade being made, and this is the escape hatch from it.
+  test('the size a warning recommends is a size that reads', async ({ page }) => {
+    await page.goto('/');
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-die.ts');
+      const marks = await import('/src/components/die-face-marks.ts');
+      const warnings: string[] = [];
+      const original = console.warn;
+      console.warn = (...args: unknown[]) => {
+        const line = args.map(String).join(' ');
+        if (line.startsWith('boardgame-die:')) warnings.push(line);
+      };
+      const mount = async (faceCount: number, sizePx: number) => {
+        const die = document.createElement('boardgame-die') as any;
+        die.style.setProperty('--die-size', `${sizePx}px`);
+        die.item = {
+          ID: `recommend-${faceCount}-${sizePx}`,
+          Values: { Faces: Array.from({ length: faceCount }, (_, i) => i + 1) },
+          DynamicValues: { SelectedFace: 0, Value: 1, RollCount: 0 },
+        };
+        document.body.appendChild(die);
+        await die.updateComplete;
+        await die.updateComplete;
+        const root = die.shadowRoot as ShadowRoot;
+        const spans = Array.from(root.querySelectorAll('.content > span, .corner > span'));
+        const smallest = spans.reduce(
+          (best, span) => Math.min(best, parseFloat(getComputedStyle(span as HTMLElement).fontSize)),
+          Infinity);
+        die.remove();
+        return smallest;
+      };
+      // The component's own default, which is where an author meets this.
+      const atDefault = await mount(9, 100);
+      const warned = warnings.slice();
+      const recommended = Number((warned[0] ?? '').match(/--die-size: (\d+)px/)?.[1] ?? 0);
+      const atRecommended = recommended ? await mount(9, recommended) : 0;
+      console.warn = original;
+      return {
+        atDefault, warned, recommended, atRecommended,
+        floor: marks.MIN_LEGIBLE_GLYPH_PX,
+      };
+    });
+    // The premise: a d9 at the default really is under the floor, which is the
+    // cost this contract is paying and the reason the warning exists.
+    expect(result.atDefault, 'a d9 at the 100px default is under the floor')
+      .toBeLessThan(result.floor);
+    expect(result.warned.length, 'and it warns').toBe(1);
+    expect(result.recommended, `names a size: ${result.warned[0]}`).toBeGreaterThan(100);
+    // The payoff. Nothing about this is a fixed number: it is the die's own
+    // arithmetic, checked against the die's own pixels.
+    expect(result.atRecommended,
+      `a d9 at the recommended ${result.recommended}px reads`)
+      .toBeGreaterThanOrEqual(result.floor);
   });
 });
 
@@ -2105,12 +2197,167 @@ test.describe('the solid stays closed while it tumbles', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// THE SIZING CONTRACT: --die-size IS THE FOOTPRINT.
+//
+// One number, one meaning, and the same meaning <boardgame-token>'s
+// --component-width has: the box the component occupies and never draws
+// outside of. It used to be the diameter of the sphere the solid is sized
+// AGAINST, which is the same number as the footprint for a d4/d6/d8/d10/d12/d20
+// and is not for anything else -- a barrel's footprint was --die-size times
+// solidExtent(), up to 2.63x. So a `dice.BasicDie(1, 6)` changed to
+// `dice.BasicDie(1, 7)` -- the tutorial's headline "one-word change on the
+// server and no change at all on the client" -- silently took a die from a
+// 100px box to a 242px one.
+//
+// What moves instead is the SOLID inside that box: a barrel is drawn at
+// footprint / extent, so its marks come out smaller. That is a legibility cost
+// with a detector (`_checkLegibility` warns, and the floors below pin it) where
+// the alternative is a layout cost with none.
+test.describe('--die-size is the footprint', () => {
+  const FOOTPRINT_PX = 100;
+
+  // Every shape the component can be handed: the six closed forms, whose
+  // extent is ~1.0035, and four barrels, whose extent runs 1.375 (d3) to 2.64
+  // (d16). Before this, the barrels reserved 137 to 264px for a --die-size of
+  // 100 and every one of these failed.
+  for (const faceCount of [3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20]) {
+    test(`a d${faceCount} reserves exactly --die-size`, async ({ page }) => {
+      await mountDie(page, { faceCount, dieSize: `${FOOTPRINT_PX}px` });
+      const measured = await page.evaluate(async () => {
+        const die = document.getElementById('fixture-die') as any;
+        const root = die.shadowRoot as ShadowRoot;
+        const scaler = root.querySelector('#scaler') as HTMLElement;
+        const stage = root.querySelector('#stage') as HTMLElement;
+        return {
+          scaler: scaler.getBoundingClientRect().width,
+          scalerHeight: scaler.getBoundingClientRect().height,
+          // #stage's font-size IS the solid's nominal size -- the sphere the
+          // solid is built at 1em across -- so this is what the marks scale
+          // from, and it is now a DERIVED number rather than the author's.
+          nominalPx: parseFloat(getComputedStyle(stage).fontSize),
+        };
+      });
+      // The box the die asks the layout for, which is the whole contract.
+      expect(measured.scaler, `d${faceCount} reserved width`).toBeCloseTo(FOOTPRINT_PX, 1);
+      expect(measured.scalerHeight, `d${faceCount} reserved height`).toBeCloseTo(FOOTPRINT_PX, 1);
+
+      // ...and the solid really is scaled down to fit it, rather than the box
+      // merely being clipped to the number. Derived from the component's own
+      // solidExtent so that a change to how a barrel is proportioned moves both
+      // sides of this together; a hard-coded pixel size would go stale exactly
+      // when it mattered.
+      const expectedNominal = await page.evaluate(async (count) => {
+        const geometryModule: any = await import('/src/motion/die-geometry.ts');
+        const dieModule: any = await import('/src/components/boardgame-die.ts');
+        return 100 / dieModule.solidExtent(geometryModule.dieGeometry(count));
+      }, faceCount);
+      expect(measured.nominalPx, `d${faceCount} nominal size`).toBeCloseTo(expectedNominal, 1);
+    });
+  }
+
+  // THE TUTORIAL'S HEADLINE PROMISE, as a measurement.
+  //
+  // "Turning a six-sided die into a twenty-sided one is a one-word change on
+  // the server and no change at all on the client" -- and the counterexample
+  // that used to sit forty lines below it in TUTORIAL.md was a seven-sided one,
+  // which went from a 100px box to a 242px one with no client change and no
+  // warning. Same element, same CSS, only the server's face list differs.
+  test('changing a die\'s face count does not move its layout footprint', async ({ page }) => {
+    await mountDie(page, { faceCount: 6, dieSize: `${FOOTPRINT_PX}px` });
+    const footprints = await page.evaluate(async () => {
+      const die = document.getElementById('fixture-die') as any;
+      const scaler = () => (die.shadowRoot as ShadowRoot)
+        .querySelector('#scaler') as HTMLElement;
+      const out: Record<string, number> = {};
+      for (const count of [6, 7, 9, 16, 20]) {
+        die.item = {
+          ID: 'fixture-component',
+          Values: { Faces: Array.from({ length: count }, (_, i) => (i + 1) * 10) },
+          DynamicValues: { SelectedFace: 0, Value: 10 },
+        };
+        await die.updateComplete;
+        await die.updateComplete;
+        out[`d${count}`] = scaler().getBoundingClientRect().width;
+        // The premise: the die really did become the other shape.
+        out[`d${count}facets`] = (die.shadowRoot as ShadowRoot)
+          .querySelectorAll('.facet').length;
+      }
+      return out;
+    });
+    expect(footprints.d6facets).toBe(6);
+    expect(footprints.d7facets).toBeGreaterThan(7);
+    for (const count of [6, 7, 9, 16, 20]) {
+      expect(footprints[`d${count}`], `d${count} footprint`).toBeCloseTo(FOOTPRINT_PX, 1);
+    }
+  });
+
+  // The extent is the component's own arithmetic, not a knob, and an ancestor
+  // must not be able to reach into it. It used to be written as a bare
+  // `--solid-extent` read with `var(--solid-extent, 1)`, and on the REEL
+  // fallback path -- a die with fewer than three faces, which has no solid --
+  // the component wrote nothing at all, so the fallback took whatever an
+  // ancestor happened to have declared. Measured before: an ancestor
+  // `--solid-extent: 3` reserved 300px for a die set to 100.
+  //
+  // BOTH numbers are checked, because which one a leak moves depends on where
+  // the extent is used and that has already changed once: it used to MULTIPLY
+  // the reserved box and it now DIVIDES the solid's own size. A test that
+  // watched only the box would have gone quiet the moment the arithmetic moved,
+  // while a stray ancestor could still shrink every die on the board to a third.
+  for (const [label, faceCount] of [['a solid', 6], ['the reel fallback', 2]] as const) {
+    test(`a stray ancestor --solid-extent cannot resize ${label}`, async ({ page }) => {
+      await mountDie(page, { faceCount, dieSize: `${FOOTPRINT_PX}px` });
+      const measured = await page.evaluate(async () => {
+        const die = document.getElementById('fixture-die') as any;
+        const root = die.shadowRoot as ShadowRoot;
+        const scaler = () => root.querySelector('#scaler') as HTMLElement;
+        // The box the layout sees, and the size the die is actually DRAWN at.
+        // Both paths take the latter from --die-nominal-size, but read off the
+        // element rather than off the property: getComputedStyle hands back an
+        // unregistered custom property's token stream ("calc(100px / 1)"), so
+        // reading the property itself would measure the CSS text and not the
+        // pixels. A solid puts it on #stage's font-size (1em is the solid); the
+        // reel puts it on a face's box.
+        const drawn = () => {
+          const stage = root.querySelector('#stage') as HTMLElement | null;
+          if (stage) return parseFloat(getComputedStyle(stage).fontSize);
+          return (root.querySelector('.face') as HTMLElement).getBoundingClientRect().height;
+        };
+        const snap = () => ({ box: scaler().getBoundingClientRect().width, drawn: drawn() });
+        const before = snap();
+        // Every name the component has used or could plausibly collide on,
+        // declared above the die where a custom property inherits from.
+        for (const name of ['--solid-extent', '--die-solid-extent', '--extent']) {
+          document.documentElement.style.setProperty(name, '3');
+        }
+        await die.updateComplete;
+        const after = snap();
+        const isReel = !!root.querySelector('#inner.reel');
+        for (const name of ['--solid-extent', '--die-solid-extent', '--extent']) {
+          document.documentElement.style.removeProperty(name);
+        }
+        return { before, after, isReel };
+      });
+      // The premise: this really is the path the label says it is, and the
+      // property really did resolve to a length rather than to nothing.
+      expect(measured.isReel, `${label} renders the path it claims`).toBe(faceCount === 2);
+      expect(measured.before.box).toBeCloseTo(FOOTPRINT_PX, 1);
+      expect(measured.before.drawn, `${label} draws at a real size`).toBeGreaterThan(1);
+      expect(measured.after.box, `${label}'s box with an ancestor --solid-extent: 3`)
+        .toBeCloseTo(FOOTPRINT_PX, 1);
+      expect(measured.after.drawn, `${label}'s drawn size with an ancestor --solid-extent: 3`)
+        .toBeCloseTo(measured.before.drawn, 1);
+    });
+  }
+});
+
 test.describe('the die stays inside the room it reserves', () => {
-  // --die-size sizes the solid's NOMINAL sphere, which for every closed-form
-  // die is also its bounding sphere and for a barrel is its WIDTH -- a d7 is
-  // 2.37x longer than it is wide. So the component reserves --die-size *
-  // --solid-extent (see solidExtent), and THIS is the contract a layout can
-  // rely on: whatever shape it is, the die draws inside the box it asks for.
+  // --die-size IS the box the die reserves, whatever its face count: for a
+  // closed-form die the solid's own sphere is that box, and a barrel -- 1.37x
+  // (d3) to 2.64x (d16) longer than it is wide -- is scaled DOWN by that ratio
+  // so its long axis still fits. THIS is the contract a layout can rely on:
+  // whatever shape it is, the die draws inside the box it asks for.
   //
   // Measured before #scaler reserved that room: a d7 at --die-size 100px drew
   // 243px wide inside a 100px box, i.e. 78px past its left edge and 76px past

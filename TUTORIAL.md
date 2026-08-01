@@ -2232,8 +2232,9 @@ icosahedron, with numerals instead of pips because twenty dots is not a die face
 anybody reads. This is the single best reason to bind `.item` rather than
 setting properties by hand.
 
-**`--die-size` sizes the die, and it means something more specific than it
-looks like it does.** It takes any CSS length and defaults to `100px`:
+**`--die-size` is the die's footprint.** It takes any CSS length, defaults to
+`100px`, and means the box the die occupies in your layout and never draws
+outside of — whatever its face count, and whatever a tumble is doing to it:
 
 ```css
 boardgame-die {
@@ -2241,32 +2242,40 @@ boardgame-die {
 }
 ```
 
-The trap worth spelling out: `--die-size` is the diameter of the sphere the
-solid is **sized against**, not the width of a face. A cube's face spans only
-`1/sqrt(3)`, about 58%, of the number you set; a d20's triangle spans less than
-that; a barrel's side face less again. If you size a die by eye against a flat
-sprite you will get something roughly half the size you meant. When a shape's
-marks do come out too small to read, the component says so once in the console
-with the measured pixel size rather than silently drawing a smudge, but it
-cannot fix it for you: give the die a larger `--die-size`.
+That is the *same* thing `--component-width` means on a `<boardgame-token>`, and
+it is the reason the promise above holds: a row of five dice at `--die-size:
+100px` is five hundred pixels wide whether you dealt d6s, d7s or d20s, so
+changing the server's face count really does need no client change. Budget space
+for the number you set; there is no per-shape correction to apply.
 
-**`--die-size` is not always the die's footprint.** For every face count with a
-closed form — 4, 6, 8, 10, 12, 20 — the sphere the die is sized against *is* its
-bounding sphere, so it fits a `--die-size` box in every orientation and the two
-numbers are the same. Every other face count (3, 5, 7, 9, 16, …) is drawn as a
-**barrel**: a band of side faces capped by two cones, 1.4 to 2.6 times longer
-than it is wide. A barrel is sized by its **width**, because its readable faces
-are the side faces and their content is bounded by that width — sizing it by its
-long diagonal instead put a d7's numerals at 4.3px on a default die, which is
-not a number, it is a smudge.
+What the die does *not* promise is to fill that box. A solid drawn inside a
+square box never quite does — a cube's face spans `1/sqrt(3)`, about 58%, of it
+— and the shapes with no closed form give up more than that. Every face count
+outside 4, 6, 8, 10, 12 and 20 is drawn as a **barrel**: a band of readable side
+faces capped by two cones, 1.4 to 2.6 times longer than it is wide. A tumble
+points that long axis in every direction, so a barrel has to be scaled down to
+fit its box, and its marks come out correspondingly smaller. A `d7` in a 100px
+box draws 6.4px numerals where a `d6` in the same box draws 8.3px pips, and a
+`d9` draws 4.8px, which is under what a digit needs.
 
-So a barrel is longer than `--die-size` along its axis, and a tumble points that
-axis in every direction. The component **reserves that room itself** rather than
-overlapping its neighbours: a `d7` at `--die-size: 100px` lays out in a 242px
-box. You do not have to compensate for this, and you should not try to — but if
-you are budgeting space by hand, budget it for the shapes you actually deal, not
-for the number you set. What is guaranteed is the part that matters: whatever
-its face count, the die never draws outside the box it reserves.
+**When that happens the component tells you, and tells you what to set.** It
+measures its own marks against a legibility floor and says so once in the
+console, naming the shape, the size you set, the pixels it actually drew and the
+`--die-size` that would fix it:
+
+```
+boardgame-die: a d9 at --die-size 100px draws the corner "2" at 4.8px, which is
+too small to read. A d9 is a barrel 2.53x longer than it is wide, and --die-size
+is the box it must fit INSIDE, so the die itself is drawn at 40px. Give it
+--die-size: 126px or more.
+```
+
+This is the one real cost of the footprint rule and it is deliberately a loud
+one. The alternative — sizing each shape by its own width so its marks stay big
+— is what this component used to do, and it meant a `d7` set to `100px` quietly
+laid out in a 242px box and overlapped its neighbours, with nothing in the
+console at all. A mark that is too small is a problem you can see and a message
+you can act on. A footprint that is 2.4× what you asked for is neither.
 
 (`--die-scale`, a plain float defaulting to `1.0`, scales the die and the space
 it occupies together, in the same spirit as `--component-scale` on a card.)
@@ -2441,18 +2450,20 @@ boardgame-token {
 
 The box is the layout contract — the board layout clamps every component host
 to `aspect-ratio: 1`, the spatial board centres a piece on both axes, and a
-stack's spread and fan margins and the FLIP scale ratio all key off it — so a
-token, unlike a die, **cannot reserve extra space** and there is no per-shape
-aspect ratio to set. The authored art keeps its own proportions inside that
-square (a pawn's SVG is 0.43 as wide as it is tall and draws that way), and the
-solids are scaled so their *drawn outline* fills it.
+stack's spread and fan margins and the FLIP scale ratio all key off it — so
+there is no per-shape aspect ratio to set. The authored art keeps its own
+proportions inside that square (a pawn's SVG is 0.43 as wide as it is tall and
+draws that way), and the solids are scaled so their *drawn outline* fills it.
 
-That last point is the one trap, and it is the opposite of `boardgame-die`'s.
-`--die-size` is the diameter of a sphere the solid is sized *against*, so a
-cube's face comes out about 58% of it. `--component-width` is the width the
-piece is actually **drawn** at. A 60px cube and a 60px disc have the same
-outline width, and both match the flat SVG they replaced. Do not try to
-compensate for a foreshortening factor here — there isn't one.
+`--component-width` and `--die-size` mean **the same thing**: the box the piece
+occupies and never draws outside of. That is the whole sizing convention for
+both 3D components, and it is worth stating because there is exactly one
+difference between them and it follows from the pieces themselves. A token holds
+one pose, so its outline can *fill* its box — a 60px cube and a 60px disc have
+the same outline width, and both match the flat SVG they replaced, so do not
+compensate for a foreshortening factor here; there isn't one. A die tumbles
+through every pose, so its box is sized for the widest of them and the resting
+die sits a little inside it.
 
 **What you cannot do**, said plainly:
 

@@ -274,17 +274,17 @@ test('solidFacets covers the whole surface and marks caps with faceIndex -1', ()
  *
  * Every solid renders at `0.5em` per NOMINAL radius whatever its own natural
  * scale, or a d20 (nominal 1.902) would draw nearly twice the size of a d8
- * (1.000) at the same `--die-size`.
+ * (1.000) at the same `1em`.
  *
- * Nominal is not bounding, and the gap is load-bearing rather than incidental.
- * For a closed-form solid the two are the same number, the bounding sphere is
- * `1em` across and the die never leaves the box a game laid out for it. A
- * BARREL is normalized by its short axis instead, so its length deliberately
- * overflows: that overflow is what doubles the size of every mark on it, and a
- * barrel quietly becoming spherical again would take a d7's numeral back to the
- * 4.3px that could not be read from a screenshot at all. So the barrel case
- * pins BOTH ends — its width is exactly the box, and its length is out of it by
- * about the aspect ratio — and a change in either direction fails here.
+ * Nominal is not bounding, and the gap is what `boardgame-die.ts`'s `solidExtent`
+ * divides the author's `--die-size` by to get this `1em`. For a closed-form
+ * solid the two radii are the same number and the bounding sphere is `1em`
+ * across. A BARREL is normalized by its short axis instead, so its length
+ * deliberately overflows `1em` — and the die then scales the whole solid down by
+ * that same overflow so it still fits the footprint the author asked for. The
+ * two are inverses, which is why this test pins BOTH ends of the barrel case:
+ * its width is exactly `1em` and its length is out of it by about the aspect
+ * ratio. A change in either direction rescales every barrel on screen.
  */
 test('solidFacets renders every solid at 0.5em per nominal radius', () => {
   for (const faceCount of FACE_COUNTS) {

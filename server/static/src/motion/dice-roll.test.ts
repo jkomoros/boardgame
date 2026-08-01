@@ -283,7 +283,7 @@ function travelOf(transform: string): Vec3 {
  */
 const ENTRY_SHAPES = [3, 4, 6, 7, 10, 12, 20] as const;
 const ENTRY_SEEDS = 30;
-const ENTRY_RADIUS_PX = 50; // A 100px die: `--die-size` on pig's board.
+const ENTRY_RADIUS_PX = 50; // A 100px SOLID: pig's `--die-size` on a d6.
 /**
  * Emitted lengths are rounded to five decimals (`cssNumber`), so a bound read
  * back off a transform string is only ever exact to about that. Far below a

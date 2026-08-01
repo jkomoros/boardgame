@@ -217,11 +217,16 @@ never written at all — see `stack-spacer-reflect.spec.ts`.
   stepping keyframes, and measures the convex-hull deficit: every solid here is
   convex, so any background pixel strictly inside the silhouette's convex hull is
   a hole, and no golden is needed to say so.
-- **`--solid-extent` dropped from `#scaler`** → `die-shape.spec.ts`'s *a dN draws
-  inside its own box* fails for exactly the four BARREL shapes (d3, d7, d9, d16:
-  `12px past left`, `16px past right`, and so on) and passes for the five
-  closed-form ones, which is the right split — a d6's nominal sphere is its
-  bounding sphere, so its box never changed.
+- **`--die-solid-extent` dropped from `#scaler`'s divisor** → `die-shape.spec.ts`'s
+  *a dN draws inside its own box* fails for exactly the four BARREL shapes (d3,
+  d7, d9, d16: `12px past left`, `16px past right`, and so on) and passes for the
+  five closed-form ones, which is the right split — a d6's nominal sphere is its
+  bounding sphere, so nothing about it changed.
+- **`--die-size` made anything other than the reserved box** → `die-shape.spec.ts`'s
+  *a dN reserves exactly --die-size* fails on every barrel, and *changing a die's
+  face count does not move its layout footprint* fails outright. That pair is the
+  tutorial's headline promise (a d6 → d7 server change needs no client change)
+  written as a measurement.
 
 ## Accepted residual blind spots (harness-critic ledger)
 

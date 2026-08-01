@@ -24,10 +24,14 @@
  * natural scale (nominal radius 1.000 for a d8, 1.902 for a d20) and documents
  * that consumers must normalize themselves.
  *
- * Nominal, not bounding: for every closed-form solid the two are the same
- * number and `1em` is also the bounding sphere, but a barrel is nominally its
- * WIDTH and its length deliberately overflows the box by up to 2.63x, which is
- * what makes a d7's numerals legible. See `DieGeometry.nominalRadius`.
+ * Nominal, not bounding: for every closed-form solid the two are the same number
+ * and `1em` is also the bounding sphere, but a barrel is nominally its WIDTH and
+ * its length overflows `1em` by up to 2.63x. `1em` is therefore the solid's own
+ * size and NOT the box its caller reserves — `boardgame-die.ts` divides the
+ * author's `--die-size` by exactly that overflow to get the `1em` it sets, so
+ * the solid fits the footprint whatever a tumble does to it. See
+ * `DieGeometry.nominalRadius` for why the two radii cancel and what the field is
+ * still for.
  *
  * ## The content square, which is what makes one code path enough
  *

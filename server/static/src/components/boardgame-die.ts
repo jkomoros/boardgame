@@ -59,10 +59,16 @@ import {
  * faces, and the reactive glue that notices a throw and plays it.
  *
  * Units. The solid's lengths are `em`, and `#stage` sets `font-size:
- * var(--effective-die-size)`, so `1em` is the die's size and the whole solid
+ * var(--die-nominal-size)`, so `1em` is the solid's own size and the whole solid
  * scales with the custom property with no JavaScript remeasurement. That is the
  * only reason a caller can set `--die-size` to anything (`120px`, `6rem`,
  * `10vmin`) and have the solid follow.
+ *
+ * Sizing. `--die-size` is the die's FOOTPRINT — the box it occupies and never
+ * draws outside of — which is the same thing `--component-width` means on
+ * `<boardgame-token>`. `--die-nominal-size` is the derived size the solid is
+ * actually drawn at, which differs only on a barrel. `#scaler`'s comment is
+ * where that lives and why.
  */
 
 /** The face VALUES a die's deck publishes. */
@@ -139,26 +145,35 @@ interface DieSolid {
 }
 
 /**
- * How much room the drawn solid needs, as a multiple of `--die-size`.
+ * How much wider the drawn solid is than the sphere it is built against — i.e.
+ * the number the die is scaled DOWN by so that `--die-size` is its footprint.
  *
- * `--die-size` sizes the solid's NOMINAL sphere (see `DieGeometry.nominalRadius`),
- * and for every closed-form die that is also its bounding sphere, so this is
- * 1.00 and the die's box is `--die-size`. A barrel is normalized by its SHORT
- * axis instead — which is what makes a d7's numerals legible rather than a 4.3px
- * smudge — so its bounding sphere is `boundingRadius / nominalRadius` times
- * larger: 1.37x for a d3, 2.37x for a d7, up to 2.63x. A tumble points that long
- * axis in every direction, so the room to reserve is the BOUNDING SPHERE's box,
- * not the resting silhouette's.
+ * The solid is built at 1em across its NOMINAL sphere (see
+ * `DieGeometry.nominalRadius`), and for every closed-form die that is also its
+ * bounding sphere, so this is 1.00 and the solid is drawn at `--die-size`. A
+ * barrel is normalized by its SHORT axis instead — which is what keeps its
+ * proportions honest, since its readable faces are its side faces and their
+ * content is bounded by the width — so its bounding sphere is
+ * `boundingRadius / nominalRadius` times larger: 1.37x for a d3, 2.37x for a d7,
+ * up to 2.63x. A tumble points that long axis in every direction, so the box the
+ * die must fit is the BOUNDING SPHERE's, not the resting silhouette's.
  *
  * The `d / sqrt(d^2 - r^2)` term is the camera: `#inner` projects the solid from
  * `PERSPECTIVE_DEPTH_DIE_SIZES` die-sizes away, which magnifies whatever is
  * nearest. `r` is the bounding radius in die-sizes, and the factor is the widest
  * a sphere of that radius can project to — 1.0035 for a closed-form solid (a
- * third of a percent, and the reason a d6's box is not exactly `--die-size` to
- * the last decimal), 1.020 for a d7. Without it a d7 at 100px reserves 237px and
- * draws 243, which is a 6px overlap that no test would ever explain.
+ * third of a percent, and the reason a d6's solid is drawn at 99.65px rather
+ * than 100 in a 100px box) and 1.020 for a d7. Without it a d7 sized to a 100px
+ * box would draw 102, which is a 2px overlap that no test would ever explain.
  *
- * Returns the box's SIDE, not its half-width.
+ * THE DIRECTION THIS IS USED IN IS THE WHOLE OF THIS BRANCH'S SIZING API. It
+ * used to MULTIPLY the author's number to get the reserved box, which made a
+ * `--die-size` of 100 mean a 100px box on six face counts and a 242px box on all
+ * the others. It now DIVIDES it to get the solid's own size, so the author's
+ * number is the box on every face count and what varies is how big the die is
+ * drawn inside it. See `:host`'s comment for why that trade is the right one.
+ *
+ * Returns a ratio of lengths, not a box.
  */
 export function solidExtent(geometry: DieGeometry): number {
   const radius = 0.5 * (geometry.boundingRadius / geometry.nominalRadius);
@@ -274,11 +289,10 @@ function readDieItem(item: DieComponent | null | undefined): DieItem | null {
  * 100, which is pig's -- the only shipping game with dice, and the size every
  * legibility number in this component and in `die-shape.spec.ts` is measured
  * at. It was 50, inherited from the flat die, and that number stopped being
- * right the moment `--die-size` became a bounding-SPHERE diameter rather than a
- * face's width: at 50 a d6 draws a 29px cube in a 50px box, and a d7's corner
- * numerals come out at 4.3px, which is a smudge. Both of the tutorial's
- * `<boardgame-die>` snippets set nothing, so copied verbatim they used to
- * produce exactly that.
+ * right the moment the flat die became a solid: a solid does not fill its own
+ * box, so at 50 a d6 draws a 29px cube and a d7's corner numerals come out at
+ * 3.2px, which is a smudge. Both of the tutorial's `<boardgame-die>` snippets
+ * set nothing, so copied verbatim they used to produce exactly that.
  *
  * A default cannot be right for every board, and this one is deliberately at
  * the large end: a die is a game's primary button, an author who wants a
@@ -320,81 +334,83 @@ class BoardgameDie extends BoardgameAnimatableItem {
     css`
       :host {
         --effective-die-scale: var(--die-scale, 1.0);
-        /*
-         * --die-size IS THE DIAMETER OF THE SPHERE THE SOLID IS SIZED AGAINST,
-         * and is the property a caller sets: any CSS length ('120px', '6rem',
-         * '10vmin').
-         *
-         * IT IS NOT ALWAYS THE DIE'S FOOTPRINT, and that is the one thing about
-         * it worth reading twice. For every solid with a closed form -- a d6, a
-         * d20, a d12 -- the sphere it is sized against IS its bounding sphere,
-         * so the die fits a --die-size box in every orientation and the two
-         * numbers are the same. A BARREL (a d3, d5, d7, d9, d16, ... -- every
-         * face count with no closed form) is 1.37 to 2.63 times longer than it
-         * is wide, and it is deliberately sized by its WIDTH, because its
-         * readable faces are its side faces and their content is bounded by the
-         * width: sizing a d7 by its long diagonal instead put its numerals at
-         * 4.3px on a default die, which cannot be read at all.
-         *
-         * So a barrel is LARGER than --die-size along its axis, and the
-         * component reserves the room for it rather than overlapping whatever
-         * is beside it: #scaler's box is --die-size * --solid-extent, which the
-         * render pass computes per shape (see solidExtent). What a caller can
-         * still rely on is that the die never draws outside the box it reserves
-         * -- die-shape.spec.ts pins exactly that, for every shape -- and that
-         * --die-size is the number every mark on the die is scaled from.
-         *
-         * A SPHERE, NOT A FACE. This is the one thing about the property worth
-         * saying twice, because it changed meaning when the flat die became a
-         * solid and nothing in the name says so: on the reel, --die-size was a
-         * face's own width. It is not any more. A cube's face spans 1/sqrt(3) =
-         * 57.7% of it, a d20's triangle less, a barrel's side face less again,
-         * so a die set to 50px draws a 29px cube inside a 50px box. Sizing a
-         * die by eye off the old number therefore produces something about
-         * half the size the author meant. The default below is what a caller
-         * who sets nothing gets, and it is chosen so that "nothing" is a
-         * reasonable answer rather than a smudge.
-         *
-         * --effective-die-size is the resolved value everything in here
-         * measures against; it is not part of the component's API.
-         */
-        --effective-die-size: var(--die-size, ${DEFAULT_DIE_SIZE_PX}px);
-        /*
-         * How far #inner scrolls per face of the REEL. One die-size, which is
-         * a reel face's height -- except on a solid, which has no reel to
-         * scroll and sets it to zero (see #inner.solid). It is a variable of
-         * its own rather than a re-definition of --effective-die-size so that
-         * zeroing it cannot silently zero anything else below #inner that
-         * measures against the die's size.
-         */
-        --reel-step: var(--effective-die-size);
       }
 
       /*
-       * THE SPACE THE DIE RESERVES, which is not always --die-size.
+       * THE DIE'S SIZING CONTRACT, IN ONE PLACE.
        *
-       * --solid-extent is how wide the drawn solid's own bounding box is, as a
-       * multiple of --die-size, and the component sets it per shape (see
-       * solidExtent). For every solid whose nominal sphere IS its bounding
-       * sphere -- a d6, a d20, every closed form -- it is 1.00, and this box is
-       * --die-size exactly, as it always was. For a BARREL it is not: a d7 is
-       * 2.37 times longer than it is wide, and since the barrel is deliberately
-       * sized by its WIDTH so its numerals are legible, the solid is larger than
-       * --die-size along its axis and can point that axis anywhere.
+       * --die-size IS THE DIE'S FOOTPRINT: the box it occupies in a layout and
+       * never draws outside of, whatever its face count and whatever a tumble
+       * is doing to it. It is the property a caller sets, it takes any CSS
+       * length ('120px', '6rem', '10vmin'), and it means exactly what
+       * <boardgame-token>'s --component-width means. ONE convention for both 3D
+       * components: the number you set is the room the piece takes.
        *
-       * So the barrel's box is the box its bounding SPHERE needs, and the die
-       * takes that much room in a layout. That is the whole point: before this,
-       * a d7 at --die-size 100px drew 243px wide inside a 100px box and simply
-       * overlapped whatever was beside it, silently. #main -- the hit target,
-       * the contact shadow's anchor and the 3D scene's positioning context --
-       * stays --die-size and stays centred here, so nothing about how the die
-       * LOOKS changes; only how much room it asks for.
+       * It did not used to. It was the diameter of the sphere the solid is
+       * sized AGAINST, which is the same number as the footprint for the six
+       * face counts with a closed form (4, 6, 8, 10, 12, 20) and is NOT for any
+       * other, because every other face count is drawn as a BARREL 1.37x (d3)
+       * to 2.63x (d16) longer than it is wide. So the reserved box was
+       * --die-size * solidExtent(), and dice.BasicDie(1, 6) changed to
+       * dice.BasicDie(1, 7) -- the tutorial's own headline example of a
+       * one-word server change with no client change at all -- silently took a
+       * die from a 100px box to a 242px one. One property name meant two
+       * different lengths, discriminated by a value (the face count) that
+       * arrives from the SERVER and that the author writing the CSS never chose.
+       *
+       * WHAT MOVES INSTEAD IS THE SOLID. The die is scaled to fit its box, so a
+       * barrel is drawn at --die-size / extent and its marks come out smaller:
+       * a d7 sized to a 100px box draws its corner numerals at 6.4px against
+       * 15.4px before. That is the real cost of this choice and it is not
+       * hidden -- _checkLegibility measures every mark against
+       * MIN_LEGIBLE_GLYPH_PX / MIN_LEGIBLE_PIP_PX and says so in the console,
+       * with the shape, the size and the pixel measurement. Measured at a 100px
+       * footprint: a d3, d4, d5, d6, d7, d8, d10, d12 and d20 all clear the
+       * floor; a d9's corner marks land at 4.8px and a d16's numerals at 3.5px,
+       * and both now get a warning naming the fix (a bigger --die-size).
+       *
+       * The trade is a legibility cost WITH a detector against a layout cost
+       * with none. An author who sets 100px and gets small marks is told, in a
+       * message that names the number to change. An author who set 100px and
+       * got a 242px die was told nothing at all and found out when the board
+       * overlapped.
+       *
+       * Everything below is derived and none of it is API:
+       *
+       *   --die-solid-extent  how much longer the solid is than its own nominal
+       *                       sphere; the render pass writes it inline per
+       *                       shape, ALWAYS (see render()), so an ancestor's
+       *                       stray declaration cannot reach it.
+       *   --die-footprint     --die-size resolved against its default. The box.
+       *   --die-nominal-size  what 1em is on the solid: the sphere it is built
+       *                       against, which is the footprint divided by the
+       *                       extent. Every mark on the die scales from THIS,
+       *                       which is why it has a name of its own and why the
+       *                       name no longer says "die size".
+       *
+       * These are declared HERE and not on :host deliberately. A custom
+       * property that references another is substituted where it is DECLARED,
+       * and --die-solid-extent is written on #scaler; declared at :host,
+       * --die-nominal-size would always have been substituted with the fallback
+       * and every barrel would have drawn at full size inside a footprint-sized
+       * box. (boardgame-token.ts's --component-aspect-ratio comment is the same
+       * bug, found the hard way.) Everything under #scaler inherits the
+       * resolved values.
        */
       #scaler {
-        height: calc(var(--effective-die-size) * var(--effective-die-scale)
-                     * var(--solid-extent, 1));
-        width: calc(var(--effective-die-size) * var(--effective-die-scale)
-                    * var(--solid-extent, 1));
+        --die-footprint: var(--die-size, ${DEFAULT_DIE_SIZE_PX}px);
+        --die-nominal-size: calc(var(--die-footprint) / var(--die-solid-extent, 1));
+        /*
+         * How far #inner scrolls per face of the REEL. One nominal size, which
+         * is a reel face's height -- except on a solid, which has no reel to
+         * scroll and sets it to zero (see #inner.solid). It is a variable of
+         * its own rather than a re-definition of --die-nominal-size so that
+         * zeroing it cannot silently zero anything else below #inner that
+         * measures against the die's size.
+         */
+        --reel-step: var(--die-nominal-size);
+        height: calc(var(--die-footprint) * var(--effective-die-scale));
+        width: calc(var(--die-footprint) * var(--effective-die-scale));
         position: relative;
         display: flex;
         flex-direction: column;
@@ -406,9 +422,18 @@ class BoardgameDie extends BoardgameAnimatableItem {
         cursor: default;
       }
 
+      /*
+       * The hit target, the contact shadow's anchor, the 3D scene's positioning
+       * context and (on the reel) the clipper. It is THE FOOTPRINT, not the
+       * solid's own size: a barrel drawn at --die-size / 2.4 still occupies its
+       * whole box as it tumbles, and a 41px click target under a 100px die is
+       * not the thing the player is aiming at. #main and #scaler are concentric
+       * and the solid is centred in both, so widening this moves no pixel of
+       * the die -- #stage below keeps the solid's OWN size as its font-size.
+       */
       #main {
-        height: var(--effective-die-size);
-        width: var(--effective-die-size);
+        height: var(--die-footprint);
+        width: var(--die-footprint);
         border-radius: 6px;
         background: linear-gradient(135deg, #F5F0E8 0%, #E0D9CE 100%);
         overflow: hidden;
@@ -567,11 +592,14 @@ class BoardgameDie extends BoardgameAnimatableItem {
         position: absolute;
         inset: 0;
         /*
-         * The one place the die's size becomes a font-size, so that every
+         * The one place the SOLID's own size becomes a font-size, so that every
          * generated length below can be an em unit and the whole solid follows
-         * --die-size with no JavaScript remeasurement.
+         * --die-size with no JavaScript remeasurement. Not the footprint: this
+         * is the sphere the solid is built 1em across, so on a barrel it is the
+         * footprint divided down by the extent, which is what fits the die
+         * inside the box the author asked for.
          */
-        font-size: var(--effective-die-size);
+        font-size: var(--die-nominal-size);
       }
 
       #inner {
@@ -611,7 +639,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
          * both read --reel-step, so zeroing it here makes the face-change spin
          * a no-op on the solid without touching either -- the roll is a real
          * tumble in a later task, and until then the die must not slide.
-         * Scoped to --reel-step and NOT to --effective-die-size, which
+         * Scoped to --reel-step and NOT to --die-nominal-size, which
          * everything under here still needs at its true value.
          */
         --reel-step: 0px;
@@ -739,16 +767,20 @@ class BoardgameDie extends BoardgameAnimatableItem {
        * centred fraction of it. 63% reproduces the flat die's original pip
        * geometry: on a 50px face a dot lands 10.5px off centre, exactly where
        * it used to, and measures 6.3px across where it used to be 7.
+       *
+       * The reel has no solid, so its extent is 1 and its nominal size IS the
+       * footprint: a flat square die draws exactly the box it reserves, which
+       * is the same contract the solid keeps.
        */
       #inner.reel .face {
-        height: var(--effective-die-size);
-        width: var(--effective-die-size);
+        height: var(--die-nominal-size);
+        width: var(--die-nominal-size);
         position: relative;
         --content-left: 18.5%;
         --content-top: 18.5%;
         --content-width: 63%;
         --content-height: 63%;
-        --content-size: calc(var(--effective-die-size) * 0.63);
+        --content-size: calc(var(--die-nominal-size) * 0.63);
       }
 
       /*
@@ -1284,12 +1316,13 @@ class BoardgameDie extends BoardgameAnimatableItem {
     const faces = this.faces;
     const desired = faces[this._presentedFaceIndex(geometry.faceCount)];
     if (!Number.isFinite(desired)) return null;
-    // HALF THE DIE'S BOX on screen, i.e. one `nominalRadius` in px — not one
-    // bounding radius, which for a barrel is up to 2.63x larger; `dice-roll.ts`
-    // documents on `posedPosition` why the travel is scaled by this one. Read
-    // from #stage's font-size because that IS the die's size (the solid is built
-    // at 1em across), and it is resolved to a NUMBER of pixels here rather than
-    // left as a `calc()` over `--effective-die-size` in the keyframes.
+    // HALF THE SOLID'S OWN SPHERE on screen, i.e. one `nominalRadius` in px —
+    // not one bounding radius, which for a barrel is up to 2.63x larger, and not
+    // the footprint either; `dice-roll.ts` documents on `posedPosition` why the
+    // travel is scaled by this one. Read from #stage's font-size because that IS
+    // the solid's size (it is built at 1em across), and it is resolved to a
+    // NUMBER of pixels here rather than left as a `calc()` over
+    // `--die-nominal-size` in the keyframes.
     //
     // NOT because a `calc()` cannot composite — measured, a control animating
     // `translate3d(calc(var(--probe) * 80px), ...)` kept compositing and still
@@ -1484,8 +1517,15 @@ class BoardgameDie extends BoardgameAnimatableItem {
    * perfectly by drawing nothing at all. `die-shape.spec.ts` pins a floor for
    * the shapes that ship; this is the same floor applied to the shapes nobody
    * tested, at whatever size a game actually drew them. A game author who drops
-   * a `d7` in at the default should not get silent 3px marks and be left to
+   * a `d9` in at the default should not get silent 4.8px marks and be left to
    * guess why the die is a smudge.
+   *
+   * THIS IS THE DETECTOR THE SIZING CONTRACT IS BOUGHT AGAINST. `--die-size` is
+   * the footprint, so a barrel is drawn at a fraction of it and its marks come
+   * out smaller than the same footprint would give a cube — the price of the
+   * author's number meaning one thing on every face count. The price is only
+   * acceptable because it is measurable and this says so, with the shape, the
+   * ratio, the measured pixels and the footprint to set instead.
    *
    * The size is DERIVED, from the facet's own content square times the die's
    * measured pixel size, never from a table of face counts: a change to how a
@@ -1511,34 +1551,57 @@ class BoardgameDie extends BoardgameAnimatableItem {
     this._legibilityCheckedFor = key;
     const values = this._faceValues();
     const usePips = this._usesPips(solid);
-    let worst: { what: string; px: number } | null = null;
-    const note = (what: string, px: number) => {
-      if (!worst || px < worst.px) worst = { what, px };
+    // The shortfall, not the absolute size, is what orders these: a 4px pip
+    // (floor 3.5) is closer to legible than a 5px numeral (floor 6), and the
+    // size the die needs is driven by whichever mark is furthest under its own
+    // floor. Carrying the floor is also what lets the message end in a number.
+    let worst: { what: string; px: number; floor: number } | null = null;
+    const note = (what: string, px: number, floor: number) => {
+      if (!worst || px / floor < worst.px / worst.floor) worst = { what, px, floor };
     };
     for (const facet of solid.facets) {
       if (facet.faceIndex < 0 || facet.faceIndex >= values.length) continue;
       const content = this._resolveFace(values[facet.faceIndex], usePips);
       if (content.kind === 'pips') {
         const px = facet.contentSize * sizePx * PIP_DIAMETER;
-        if (px < MIN_LEGIBLE_PIP_PX) note(`a pip on face ${values[facet.faceIndex]}`, px);
+        if (px < MIN_LEGIBLE_PIP_PX) {
+          note(`a pip on face ${values[facet.faceIndex]}`, px, MIN_LEGIBLE_PIP_PX);
+        }
       } else {
         const px = facet.contentSize * sizePx * glyphScale(content.text, GLYPH_HEIGHT);
-        if (px < MIN_LEGIBLE_GLYPH_PX) note(`"${content.text}" on face ${values[facet.faceIndex]}`, px);
+        if (px < MIN_LEGIBLE_GLYPH_PX) {
+          note(`"${content.text}" on face ${values[facet.faceIndex]}`, px, MIN_LEGIBLE_GLYPH_PX);
+        }
       }
       for (const corner of facet.corners) {
         const mark = this._resolveFace(values[corner.faceIndex], false);
         const px = corner.size * sizePx * glyphScale(mark.text, CORNER_GLYPH_HEIGHT);
-        if (px < MIN_LEGIBLE_GLYPH_PX) note(`the corner "${mark.text}"`, px);
+        if (px < MIN_LEGIBLE_GLYPH_PX) note(`the corner "${mark.text}"`, px, MIN_LEGIBLE_GLYPH_PX);
       }
     }
     if (!worst) return;
     WARNED_ILLEGIBLE.add(faceCount);
-    const { what, px } = worst as { what: string; px: number };
+    const { what, px, floor } = worst as { what: string; px: number; floor: number };
+    // The message reports the FOOTPRINT, because that is the number the author
+    // wrote and the number they can change; `sizePx` is the solid's derived
+    // size, which is not any property they set. The needed footprint is the one
+    // that would put the worst mark exactly on the floor, rounded up, so the
+    // line ends in an instruction rather than in a diagnosis.
+    const extent = solidExtent(solid.geometry);
+    const footprintPx = sizePx * extent;
+    const needed = Math.ceil((footprintPx * floor) / px);
+    // Only a barrel is drawn smaller than the box it sits in, and it is the
+    // only shape whose author has any reason to be surprised. Naming the ratio
+    // is what turns "make it bigger" into an explanation.
+    const why = extent > 1.05
+      ? `A d${faceCount} is a barrel ${extent.toFixed(2)}x longer than it is wide, and `
+        + `--die-size is the box it must fit INSIDE, so the die itself is drawn at `
+        + `${Math.round(sizePx)}px. `
+      : '';
     console.warn(
-      `boardgame-die: a d${faceCount} at --die-size ${Math.round(sizePx)}px draws ${what} at `
-      + `${px.toFixed(1)}px, which is too small to read. --die-size is the diameter of the `
-      + `SPHERE THE SOLID IS SIZED AGAINST, not a face's width, so a shape with small or `
-      + `elongated faces needs a larger one than its face size suggests.`);
+      `boardgame-die: a d${faceCount} at --die-size ${Math.round(footprintPx)}px draws ${what} at `
+      + `${px.toFixed(1)}px, which is too small to read. ${why}`
+      + `Give it --die-size: ${needed}px or more.`);
   }
 
   private _classes(disabled: boolean, solid: boolean): string {
@@ -1881,9 +1944,18 @@ class BoardgameDie extends BoardgameAnimatableItem {
     const status = this._statusMessage();
     const shown = status.loud ? status.text : null;
     const solid = this._solid();
+    // The extent is written UNCONDITIONALLY, including on the reel fallback path
+    // where it is 1. It used to be an un-namespaced `--solid-extent` written
+    // only when there WAS a solid and read as `var(--solid-extent, 1)`, so a die
+    // with fewer than three faces took whatever an ancestor happened to have
+    // declared under that name and silently reserved that multiple of its own
+    // size — measured, an ancestor `--solid-extent: 3` put a 100px die in a
+    // 300px box. Writing it always makes the CSS fallback unreachable except
+    // through a bug in this line, and the name is die-scoped so nothing outside
+    // the component is plausibly declaring it either.
     return html`
       <div id="scaler"
-        style=${solid ? `--solid-extent:${num(solidExtent(solid.geometry))}` : nothing}>
+        style="--die-solid-extent:${num(solid ? solidExtent(solid.geometry) : 1)}">
         <button
           id="main"
           type="button"

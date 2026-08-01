@@ -114,12 +114,26 @@ export interface DieGeometry {
    * For every solid with a closed form this IS the circumradius, and
    * `nominalRadius === boundingRadius`. For a BARREL it is deliberately not: a
    * barrel is 2.1 to 2.6 times longer than it is wide, so normalizing it by its
-   * circumsphere spends the whole die box on a diagonal nobody reads and leaves
-   * the readable side faces — whose content is bounded by the barrel's WIDTH —
-   * at a bit over 0.4 of the box. A d7's numeral measured 4.3px on a 50px die
-   * and could not be read from a screenshot at all. So a barrel is normalized
-   * by its SHORT axis instead (see `barrelSolid`): the die box is its width,
-   * its length overflows the box, and every mark on it roughly doubles.
+   * circumsphere spends the whole solid on a diagonal nobody reads. So a barrel
+   * is normalized by its SHORT axis instead (see `barrelSolid`), which is what
+   * keeps the solid's own proportions stated in terms of the dimension its
+   * marks are actually bounded by.
+   *
+   * WHAT THIS NO LONGER DOES IS CHANGE THE RENDERED SIZE OF ANYTHING. It used
+   * to: `--die-size` was the nominal sphere's diameter, so normalizing a barrel
+   * by its width doubled every mark on it and overflowed the layout box by up to
+   * 2.63x. `--die-size` is the FOOTPRINT now, so `boardgame-die.ts`'s
+   * `solidExtent` divides the drawn size back down by `boundingRadius /
+   * nominalRadius` — and that ratio is exactly the one the build scale
+   * (`facet-placement.ts`'s `0.5 / nominalRadius`) multiplied in. The two cancel
+   * exactly, leaving only the perspective term, which depends on the ratio and
+   * so does not: a d7 normalized by its width rather than its circumsphere draws
+   * 1.65% smaller in the same box, and that is the whole of the difference.
+   *
+   * The field therefore earns its keep as a statement of PROPORTION rather than
+   * of size, and collapsing the two radii into one is a live simplification
+   * nobody has taken. Do not "fix" one of the two uses without the other: they
+   * are inverses, and changing either alone rescales every solid.
    *
    * `boundingRadius` is the honest circumsphere and is what the PHYSICS
    * normalizes by, so the two are not interchangeable — see `dice-sim.ts`. The
@@ -503,18 +517,18 @@ function trapezohedronVertices(): readonly Vec3[] {
  * bind for. A factor of 1.2 removes most of that (d3 1.21, d5 1.77, d100 2.19)
  * and it was measured, rendered and REJECTED, for three reasons:
  *
- *   1. It buys nothing legible. A side face's glyphs are sized by the largest
- *      square inscribed in that face, and for N >= 5 that square is bounded by
- *      the face's WIDTH (the ring chord, 2 sin(pi/N)), which the aspect ratio
- *      does not touch. All 1.2 changes is the barrel's LENGTH, and since a
- *      barrel is normalized by its short axis (`nominalRadius`, the ring
- *      radius, which 1.2 leaves at exactly 1) that length is not the die box:
- *      at a fixed `--die-size` a shorter barrel's marks come out the same size,
- *      not larger. The 17% this doc once claimed was measured back when a
- *      barrel was normalized by its circumsphere, so shortening it shrank the
- *      normalizing radius; that is no longer how a barrel is sized. Rendered
- *      side by side at 160px, a d7's and a d16's numerals are the same size to
- *      the eye in both; the die is simply stubbier.
+ *   1. It buys legibility, and this is the one of the three that has FLIPPED.
+ *      A side face's glyphs are sized by the largest square inscribed in that
+ *      face, and for N >= 5 that square is bounded by the face's WIDTH (the ring
+ *      chord, 2 sin(pi/N)), which the aspect ratio does not touch — so the
+ *      shorter barrel's marks are the same fraction of the SOLID. What changed
+ *      is what the solid is scaled to: `--die-size` is now the die's FOOTPRINT
+ *      (see `boardgame-die.ts`), so the whole solid is drawn at
+ *      `--die-size / (boundingRadius / nominalRadius)` and a shorter barrel is
+ *      drawn LARGER in the same box. At 1.2 a d16 would go from 2.63 long to
+ *      about 2.19, i.e. roughly 20% bigger marks at a fixed `--die-size`. That
+ *      is a real gain and it is being declined, not overlooked; the two reasons
+ *      below outweigh it.
  *   2. It costs most of the safety margin the factor exists for: cap facets go
  *      from unstable by 0.168 of a bounding radius to unstable by 0.062, which
  *      is below the 0.1 bound `never has a stable cap facet, from the d3 to the
