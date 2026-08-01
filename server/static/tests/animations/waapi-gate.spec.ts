@@ -139,8 +139,20 @@ test.describe('animation completion gate', () => {
     await waitForAnimationCounterStability(page, { balance: 'all' });
     const snapshot = await gateSnapshot(page);
     expect(snapshot.gateOpens, 'the creation deal must open at least one gate').toBeGreaterThan(0);
-    expect(snapshot.gateCloses, 'every gate-open (including interrupted cycles) must be matched by a close')
-      .toBe(snapshot.gateOpens);
+    // The invariant this test exists for is "no gate-open is ever left
+    // unmatched" -- i.e. closes must never LAG opens. It is deliberately not
+    // equality: a gate can legitimately close without ever having opened.
+    // AnimationGate is constructed with allDoneFired = false on purpose, and
+    // boardgame-render-game's _rendererLoaded rAFs a _gate.close() so a
+    // renderer that mounted AFTER its state was installed still emits one
+    // completion signal (see the comment at that call site). Whether that
+    // extra close appears depends on whether the renderer module finished
+    // downloading before the first state arrived -- a load-order race, so it
+    // appears only on some runs and made this assertion flake. helpers.ts's
+    // waitForAnimationCounterStability already encodes the same `>=` rule
+    // (balance: 'all') for exactly this reason.
+    expect(snapshot.gateCloses, 'no gate-open may be left unmatched (closes must never lag opens)')
+      .toBeGreaterThanOrEqual(snapshot.gateOpens);
     expect(snapshot.watchdogFirings, 'animation watchdog must never fire').toBe(0);
   });
 
@@ -197,10 +209,19 @@ test.describe('animation completion gate', () => {
       () => renderGame.evaluate((element) => (element as any).isAnimating === false),
       { timeout: 20_000 },
     ).toBe(true);
+    // isAnimating going false is point-in-time: a queued successor bundle can
+    // open the next cycle immediately after it, which would sample as a false
+    // "closes lag opens" imbalance. Hold until the counters are stable and
+    // balanced first, exactly as the creation test above does.
+    await waitForAnimationCounterStability(page, { balance: 'all' });
     const after = await gateSnapshot(page);
     expect(after.watchdogFirings, 'animation watchdog must never fire').toBe(0);
+    // `>=`, not equality -- see the creation test above for why an unmatched
+    // gate CLOSE (boardgame-render-game's _rendererLoaded rAF) is legitimate
+    // and load-order dependent. The regression this guards is the opposite
+    // direction: a reinstall leaving a gate-open that never closes.
     expect(after.gateCloses, 'a same-cycle reinstall must not leave an unmatched gate-open')
-      .toBe(after.gateOpens);
+      .toBeGreaterThanOrEqual(after.gateOpens);
   });
 
   test('memory: card reveal completes cleanly', async ({ page }) => {
