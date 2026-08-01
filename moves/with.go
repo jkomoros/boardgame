@@ -175,6 +175,27 @@ func WithPhaseToStart(phaseToStart enum.EnumKey, optionalPhaseEnum enum.Enum) Cu
 // a misspelled property is a boot error naming the move and the path. If the
 // grammar still isn't sufficient, embed the move and override SourceStack
 // yourself.
+//
+// # Qualifying a path COSTS you the automatic stack-constraints check
+//
+// A move configured with a source and a destination normally gets a
+// "stackConstraints" legality check for free -- see [PreconditionStackConstraints]
+// -- which asks at Legal() time whether the source's first component would be
+// accepted by the destination's constraints, so an impossible move is reported
+// before Apply() rather than as an apply error on a move already called legal.
+//
+// That check can only read gameState. The moment EITHER end names a
+// player-scoped stack ("player.Hand", "players[move.Field].Hand"), it is
+// dropped: no atom is contributed and the frozen chain's equivalent returns
+// early. This is deliberate -- contributing an atom that silently resolved to
+// nothing would be worse -- but it is a real loss of coverage, and the only
+// signal is its absence. Two things still hold the line: the destination
+// stack's own constraints are enforced by ComponentInstance.MoveTo during
+// Apply, and the component-moving verbs ([MoveComponentToSlot], [DrawToPlayer])
+// contribute their own slot-aware atom, which is the honest version of the same
+// question and works at every path kind. If you want the early check on a
+// player-scoped move that has no such atom, author it yourself with
+// [WithLegalPreconditions].
 func WithSourceProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropSourceProperty] = stackPropName
@@ -185,7 +206,9 @@ func WithSourceProperty(stackPropName string) CustomConfigurationOption {
 // being passed to auto.Config. It accepts the same stack path grammar as
 // [WithSourceProperty], so a component-moving move can put components into a
 // player's stack ("player.Hand") without a bespoke struct. If the grammar isn't
-// sufficient, embed the move and override DestinationStack yourself.
+// sufficient, embed the move and override DestinationStack yourself. Qualifying
+// this end costs the automatic stack-constraints check exactly as qualifying
+// the source does; see [WithSourceProperty].
 func WithDestinationProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropDestinationProperty] = stackPropName

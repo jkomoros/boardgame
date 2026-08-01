@@ -228,3 +228,58 @@ func err2string(v interface{}) string {
 	}
 	return ""
 }
+
+// TestQualifiedStackPathDropsTheStackConstraintsAtom pins the consequence of
+// the path grammar that WithSourceProperty's doc now spells out, and that used
+// to live only in unexported comments: a move whose two stacks are both plain
+// gameState names gets a "stackConstraints" legality atom contributed for free,
+// and QUALIFYING either end silently takes it away. That is the right call --
+// the check can only read gameState, so a contributed atom would resolve to
+// nothing -- but the only signal is its absence, which is exactly why the loss
+// has to be documented and pinned rather than discovered.
+func TestQualifiedStackPathDropsTheStackConstraintsAtom(t *testing.T) {
+
+	contributes := func(t *testing.T, source, destination string) bool {
+		t.Helper()
+		manager, err := newGameManager(playerScopedTransferInstaller(source, destination, 1))
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		move := game.MoveByName("Move To Player Stack")
+		if move == nil {
+			t.Fatal("move was not installed")
+		}
+		provider, ok := boardgame.Move(move).(PreconditionsProvider)
+		if !ok {
+			t.Fatal("the move did not implement PreconditionsProvider")
+		}
+		for _, spec := range provider.ContributedPreconditions() {
+			if spec.Name == string(PreconditionStackConstraints) {
+				return true
+			}
+		}
+		return false
+	}
+
+	t.Run("two gameState stacks contribute it", func(t *testing.T) {
+		if !contributes(t, "game.DrawStack", "game.DiscardStack") {
+			t.Fatal("two plain gameState stacks did not contribute the stackConstraints atom")
+		}
+	})
+
+	t.Run("a qualified destination drops it", func(t *testing.T) {
+		if contributes(t, "game.DrawStack", "player.Hand") {
+			t.Fatal("a player-scoped destination contributed a stackConstraints atom that cannot resolve")
+		}
+	})
+
+	t.Run("a qualified source drops it", func(t *testing.T) {
+		if contributes(t, "player.Hand", "game.DiscardStack") {
+			t.Fatal("a player-scoped source contributed a stackConstraints atom that cannot resolve")
+		}
+	})
+}
