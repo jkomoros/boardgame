@@ -15,14 +15,20 @@ func TestLegalCatalogVersionIsPositive(t *testing.T) {
 	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion > 0).Equals(true)
 }
 
-// TestLegalCatalogVersionIncludesAdminPolicy pins the exact v4 value. See
-// legal_types.go for the full version history. Unlike
+// TestLegalCatalogVersionIncludesFirstComponentPredicates pins the exact v5
+// value. See legal_types.go for the full version history. Unlike
 // TestLegalCatalogVersionIsPositive
 // (which stays true forever), this test is DELIBERATELY exact: it must be
 // updated by hand on any future bump, forcing a conscious decision rather
 // than a silent drift.
-func TestLegalCatalogVersionIncludesAdminPolicy(t *testing.T) {
-	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(4)
+//
+// This pin alone was not enough: it says nothing about WHY the number is what
+// it is, so mayMoveFirstTo and mayMoveFirstToSlot were added to the catalog
+// while it happily kept pinning 4. legal/catalog_version_test.go closes that
+// by freezing the predicate vocabulary each version stamps, which is the thing
+// the number is actually about.
+func TestLegalCatalogVersionIncludesFirstComponentPredicates(t *testing.T) {
+	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(5)
 }
 
 // TestComponentChestMarshalIncludesLegalTemplates pins that the chest JSON

@@ -35,7 +35,16 @@ import (
 // v3 -> v4 adds LegalSpec.adminPolicy and tightens the ledger's evaluable
 // contract to require a generic client implementation, not merely a
 // serializable predicate with viewer-visible reads.
-const LegalCatalogVersion = 4
+//
+// v4 -> v5 adds the mayMoveFirstTo and mayMoveFirstToSlot predicate names,
+// which name "the first component of this stack" so moves.MoveComponentToSlot
+// and moves.DrawToPlayer can contribute legality declaratively. Same reason as
+// v1 -> v2: new predicate NAMES. No wire shape changed, but a v4 client's
+// evaluator has no implementation for either name, and the stamp is how it
+// learns to defer to server verdicts rather than silently mis-evaluating. The
+// vocabulary each version stamps is frozen in legal/catalog_version_test.go, so
+// a future predicate cannot ship without this decision being made again.
+const LegalCatalogVersion = 5
 
 // LegalOutcome is the three-valued verdict returned by legality evaluation.
 // The zero value is deliberately invalid (neither LegalPass, LegalFail, nor
