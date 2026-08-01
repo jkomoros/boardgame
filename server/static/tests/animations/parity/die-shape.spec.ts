@@ -271,7 +271,7 @@ async function visibleFacets(
     );
     return {
       distinctFacetsVisible: [...hits.values()].filter((value) => value / total >= opts.minShare).length,
-      presentedShare: total ? (hits.get(String(die.selectedFace)) ?? 0) / total : 0,
+      presentedShare: total ? (hits.get(String(die.selectedFaceIndex)) ?? 0) / total : 0,
       shares,
     };
   }, options);
@@ -293,7 +293,7 @@ async function presentedFacetPose(page: import('@playwright/test').Page) {
     const die = document.getElementById('fixture-die') as any;
     const root = die.shadowRoot as ShadowRoot;
     const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
-    const element = facets[die.selectedFace] as HTMLElement;
+    const element = facets[die.selectedFaceIndex] as HTMLElement;
     const chain: HTMLElement[] = [];
     for (let node: HTMLElement | null = element; node && node.id !== 'stage'; node = node.parentElement) {
       chain.unshift(node);
@@ -741,7 +741,7 @@ test.describe('boardgame-die solid', () => {
         box.top + box.height / 2,
       ) as Element | null;
       const facet = hit?.closest?.('.facet') as HTMLElement | null;
-      const selectedFace = (die as any).selectedFace;
+      const selectedFace = (die as any).selectedFaceIndex;
       // Ancestors that flatten a 3D context do so by carrying a grouping
       // property; report the chain so a failure names the culprit.
       const flatteners: string[] = [];
@@ -934,7 +934,7 @@ async function faceContent(page: import('@playwright/test').Page, faceCount: num
     return {
       readingRule,
       ariaLabel: button.getAttribute('aria-label'),
-      selectedFace: die.selectedFace,
+      selectedFace: die.selectedFaceIndex,
       capsWithContent: facets.slice(geometry.faces.length)
         .filter((el) => el.querySelector('.content, .corner')).length,
       rows,
@@ -1163,7 +1163,7 @@ test.describe('boardgame-die face content', () => {
             paired: pairs !== null,
             values,
             sums: pairs === null ? [] : values.map((v, i) => (v ?? NaN) + (values[pairs[i]] ?? NaN)),
-            presentedValue: values[die.selectedFace],
+            presentedValue: values[die.selectedFaceIndex],
           };
         }, faceCount);
 
@@ -1209,7 +1209,7 @@ test.describe('boardgame-die face content', () => {
         return {
           paired: facesModule.antipodalFacePairs(geometry) !== null,
           values,
-          presentedValue: values[die.selectedFace],
+          presentedValue: values[die.selectedFaceIndex],
         };
       }, faceCount);
       expect(result.paired, `d${faceCount} must have no antipodal pairing`).toBe(false);
