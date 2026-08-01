@@ -92,8 +92,18 @@ test.describe('cross-screen synced auto-fly', () => {
         slotDurationMs: 800,
         maxAnimationDurationMs: 600,
       };
+      // Bracket the play() call in wall clock. resolveMotionTiming computes
+      // the inherited delay as (startAtMs - Date.now()) + localDelay, sampling
+      // Date.now() ITSELF at some instant inside this call -- so the only
+      // load-independent statement about the result is that it falls between
+      // the values implied by the instants either side of it. Asserting a
+      // fixed window instead (the previous 250..450) silently encoded "this
+      // element upgrade and play() take under 100ms", which a busy machine
+      // breaks.
+      const beforePlay = Date.now();
       const inherited = item.play(item, [{ opacity: '0' }, { opacity: '1' }],
         { duration: 200, delay: 50 });
+      const afterPlay = Date.now();
       const inheritedTiming = inherited.effect.getTiming();
       inherited.cancel();
       const local = item.play(item, [{ opacity: '0' }, { opacity: '1' }],
@@ -125,6 +135,10 @@ test.describe('cross-screen synced auto-fly', () => {
       provider.remove();
       return {
         inheritedDelay: Number(inheritedTiming.delay),
+        // The exact bounds resolveMotionTiming's own Date.now() must lie
+        // between: startAtMs is now+300 and the local delay is 50.
+        inheritedDelayMax: (now + 300) - beforePlay + 50,
+        inheritedDelayMin: (now + 300) - afterPlay + 50,
         inheritedDuration: Number(inheritedTiming.duration),
         localDelay: Number(localTiming.delay),
         skipped: skipped === null,
@@ -132,8 +146,16 @@ test.describe('cross-screen synced auto-fly', () => {
         heldEndDelay: Number(heldTiming.endDelay),
       };
     });
-    expect(result.inheritedDelay).toBeGreaterThan(250);
-    expect(result.inheritedDelay).toBeLessThan(450);
+    // The inherited delay must be exactly (startAtMs - now) + localDelay, for
+    // the `now` resolveMotionTiming sampled during play(). Pinning it to the
+    // bracket measured around that call asserts the identity itself rather
+    // than a wall-clock budget, so a slow machine cannot flake it -- and it is
+    // strictly tighter than the old 200ms-wide window.
+    expect(result.inheritedDelay).toBeLessThanOrEqual(result.inheritedDelayMax);
+    expect(result.inheritedDelay).toBeGreaterThanOrEqual(result.inheritedDelayMin);
+    // The context must still be far enough in the future to be a real wait,
+    // which is what made this scenario worth pinning in the first place.
+    expect(result.inheritedDelayMin).toBeGreaterThan(0);
     expect(result.inheritedDuration).toBe(200);
     expect(result.localDelay).toBe(0);
     expect(result.skipped).toBe(true);
