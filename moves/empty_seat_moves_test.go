@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/storage/memory"
 )
 
@@ -163,14 +164,14 @@ func TestActivateEmptySeatIsLegalOnAnInactiveEmptySeat(t *testing.T) {
 
 	//Legal's FixUpMulti/Default half needs real move info to check the phase,
 	//so only the seat reasoning is exercised here, directly.
-	if err := move.legalTarget(state); err != nil {
+	if err := activateEmptySeatTarget.legalTarget(state, move.TargetPlayerIndex); err != nil {
 		t.Fatalf("ActivateEmptySeat rejected the very seat its own DefaultsForState chose: %v", err)
 	}
 
 	//A filled seat is not this move's business, even when inactive.
 	state.PlayerStates()[0].(*dropInPlayerState).SetPlayerInactive()
 	move.TargetPlayerIndex = 0
-	if err := move.legalTarget(state); err == nil {
+	if err := activateEmptySeatTarget.legalTarget(state, move.TargetPlayerIndex); err == nil {
 		t.Fatal("ActivateEmptySeat accepted a FILLED seat; that is ActivateFilledSeat's job")
 	}
 }
@@ -238,5 +239,75 @@ func TestCloseEmptySeatClosesAnInactivatedSeat(t *testing.T) {
 	if !players[2].SeatClosed || !players[3].SeatClosed {
 		t.Fatalf("CloseEmptySeat never closed the inactivated empty seats: seat 2 closed=%v, seat 3 closed=%v",
 			players[2].SeatClosed, players[3].SeatClosed)
+	}
+}
+
+/*
+The three activation moves are one verb with three seat filters, and the two
+facts below are what "one verb" has to mean if the taxonomy is to be honest.
+
+The first is that ActivateInactivePlayer really is the UNION: for every
+(seat filled?, player inactive?) combination it accepts a target exactly when
+one of the two specific moves would. If that ever stops being true, the three
+types have started drifting into three different rules wearing similar names,
+which is the thing the shared activationTarget exists to prevent.
+
+The second is that the marker interface names a CAPABILITY, not a type.
+ActivateFilledSeat implements it because it genuinely undoes SeatPlayer's
+inactivation of a real player; ActivateEmptySeat must NOT, because reopening an
+empty seat undoes nothing SeatPlayer did to anyone.
+*/
+func TestActivateInactivePlayerIsTheUnionOfTheOtherTwo(t *testing.T) {
+
+	manager, err := boardgame.NewGameManager(&dropInDelegate{}, memory.NewStorageManager())
+	if err != nil {
+		t.Fatalf("new manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("new game: %v", err)
+	}
+	state := game.CurrentState().(boardgame.State)
+
+	//Player 0 is the one whose seat/activity we vary; every combination is
+	//reachable because both flags are plain behavior fields.
+	player := state.PlayerStates()[0].(*dropInPlayerState)
+
+	for _, filled := range []bool{false, true} {
+		for _, inactive := range []bool{false, true} {
+			player.SeatFilled = filled
+			if inactive {
+				player.SetPlayerInactive()
+			} else {
+				player.SetPlayerActive()
+			}
+
+			unionAccepts := activateAnySeat.legalTarget(state, 0) == nil
+			emptyAccepts := activateEmptySeatTarget.legalTarget(state, 0) == nil
+			filledAccepts := activateFilledSeatTarget.legalTarget(state, 0) == nil
+
+			if unionAccepts != (emptyAccepts || filledAccepts) {
+				t.Errorf("filled=%v inactive=%v: ActivateInactivePlayer accepts=%v but ActivateEmptySeat=%v / ActivateFilledSeat=%v; the union has drifted from its two halves",
+					filled, inactive, unionAccepts, emptyAccepts, filledAccepts)
+			}
+			if emptyAccepts && filledAccepts {
+				t.Errorf("filled=%v inactive=%v: both specific moves accepted the same seat, so they are no longer complements", filled, inactive)
+			}
+		}
+	}
+}
+
+func TestSeatedPlayerActivatorNamesACapabilityNotAType(t *testing.T) {
+
+	if activator, ok := interface{}(new(ActivateInactivePlayer)).(interfaces.SeatedPlayerActivator); !ok || !activator.ActivatesSeatedPlayers() {
+		t.Error("ActivateInactivePlayer should satisfy the boot-time pairing check: it activates filled seats among others")
+	}
+
+	if activator, ok := interface{}(new(ActivateFilledSeat)).(interfaces.SeatedPlayerActivator); !ok || !activator.ActivatesSeatedPlayers() {
+		t.Error("ActivateFilledSeat should satisfy the boot-time pairing check: undoing SeatPlayer's inactivation is its whole job")
+	}
+
+	if _, ok := interface{}(new(ActivateEmptySeat)).(interfaces.SeatedPlayerActivator); ok {
+		t.Error("ActivateEmptySeat must NOT satisfy the pairing check: it never activates a seat anyone is sitting in, so accepting it would let a game boot with no way to activate the players it seats")
 	}
 }

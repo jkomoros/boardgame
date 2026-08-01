@@ -498,7 +498,7 @@ func (r *RoundRobinNumRounds) FallbackName(m *boardgame.GameManager) string {
 	numRounds, ok := r.Info().ConcreteMove().(numRoundser)
 
 	if !ok {
-		return "Round Robin Round Count"
+		return "Round Robin Num Rounds"
 	}
 
 	return "Round Robin " + strconv.Itoa(numRounds.NumRounds(m.ExampleState())) + " Rounds"

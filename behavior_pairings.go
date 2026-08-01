@@ -34,10 +34,11 @@ type seatPlayerMover interface {
 	IsSeatPlayerMove() bool
 }
 
-// activateInactivePlayerMover matches moves.ActivateInactivePlayer
-// (interfaces.ActivateInactivePlayerMover).
-type activateInactivePlayerMover interface {
-	IsActivateInactivePlayerMove() bool
+// seatedPlayerActivator matches any move that can activate an inactive player
+// in a FILLED seat -- moves.ActivateInactivePlayer and moves.ActivateFilledSeat
+// both do (interfaces.SeatedPlayerActivator).
+type seatedPlayerActivator interface {
+	ActivatesSeatedPlayers() bool
 }
 
 // currentPlayerMover matches moves.CurrentPlayer (interfaces.CurrentPlayerMover).
@@ -56,15 +57,15 @@ func validateBehaviorPairings(exampleState ImmutableState, moveTypes []*moveType
 	_, playerIsSeater := examplePlayer.(seater)
 	_, playerIsInactiver := examplePlayer.(playerInactiver)
 
-	var hasSeatPlayerMove, hasActivateInactivePlayerMove, hasCurrentPlayerMove bool
+	var hasSeatPlayerMove, hasSeatedPlayerActivator, hasCurrentPlayerMove bool
 
 	for _, mt := range moveTypes {
 		testMove := mt.NewMove(exampleState)
 		if m, ok := testMove.(seatPlayerMover); ok && m.IsSeatPlayerMove() {
 			hasSeatPlayerMove = true
 		}
-		if m, ok := testMove.(activateInactivePlayerMover); ok && m.IsActivateInactivePlayerMove() {
-			hasActivateInactivePlayerMove = true
+		if m, ok := testMove.(seatedPlayerActivator); ok && m.ActivatesSeatedPlayers() {
+			hasSeatedPlayerActivator = true
 		}
 		if m, ok := testMove.(currentPlayerMover); ok && m.IsCurrentPlayerMove() {
 			hasCurrentPlayerMove = true
@@ -77,12 +78,12 @@ func validateBehaviorPairings(exampleState ImmutableState, moveTypes []*moveType
 		return errors.New("PlayerState implements Seater (e.g. embeds behaviors.Seat) but no move implements IsSeatPlayerMove (e.g. moves.SeatPlayer). Without it, the server cannot seat players and NumSeatedActivePlayers() will always return 0")
 	}
 
-	// Seating + inactivating + current-player-gated play implies an
-	// ActivateInactivePlayer move.
+	// Seating + inactivating + current-player-gated play implies a move that
+	// activates seated players.
 	//
 	// moves.SeatPlayer.Apply unconditionally calls SetPlayerInactive on whoever
 	// it seats, on the theory that someone arriving mid-round should not join
-	// that round. Only moves.ActivateInactivePlayer ever clears the flag. An
+	// that round. Only an activation move ever clears the flag. An
 	// inactive player fails PlayerMayBeActive, which makes PlayerIndex.Valid
 	// false, which makes moves.CurrentPlayer.Legal fail with "The specified
 	// target player is not valid" -- permanently. So every seated player is a
@@ -99,8 +100,8 @@ func validateBehaviorPairings(exampleState ImmutableState, moveTypes []*moveType
 	// manager.NewDefaultGame() leaves players unseated, because SeatPlayer needs
 	// the server's rendezvous injection, so nothing is ever marked inactive and
 	// every move stays legal.
-	if playerIsInactiver && hasSeatPlayerMove && hasCurrentPlayerMove && !hasActivateInactivePlayerMove {
-		return errors.New("PlayerState implements PlayerInactiver (e.g. embeds behaviors.InactivePlayer) and the game configures a SeatPlayer move and at least one move gated on moves.CurrentPlayer, but no move implements IsActivateInactivePlayerMove (e.g. moves.ActivateInactivePlayer). moves.SeatPlayer marks every player it seats as inactive and only ActivateInactivePlayer undoes that, so every seated player would be permanently ineligible to be the current player and those moves permanently illegal. Add moves.ActivateInactivePlayer -- always legal if the game has no rounds, or legal in whatever phase ends a round")
+	if playerIsInactiver && hasSeatPlayerMove && hasCurrentPlayerMove && !hasSeatedPlayerActivator {
+		return errors.New("PlayerState implements PlayerInactiver (e.g. embeds behaviors.InactivePlayer) and the game configures a SeatPlayer move and at least one move gated on moves.CurrentPlayer, but no move implements ActivatesSeatedPlayers (e.g. moves.ActivateFilledSeat or moves.ActivateInactivePlayer). moves.SeatPlayer marks every player it seats as inactive and only an activation move undoes that, so every seated player would be permanently ineligible to be the current player and those moves permanently illegal. Add moves.ActivateFilledSeat, which activates only the seats a real player is in and is therefore safe to leave always legal even alongside moves.InactivateEmptySeat/moves.DefaultRoundSetup. moves.ActivateInactivePlayer is the alternative for a game that closes no seats, or inside a round-setup phase where reopening the empty ones is the point -- do not leave THAT one always legal in a game that inactivates its empty seats, because it reopens them and the round waits on players who do not exist")
 	}
 
 	return nil

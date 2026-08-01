@@ -190,16 +190,21 @@ type SeatPlayerMover interface {
 	IsSeatPlayerMove() bool
 }
 
-// ActivateInactivePlayerMover should be implemented for moves that are
-// [moves.ActivateInactivePlayer] moves, returning true from
-// IsActivateInactivePlayerMove(). Typically you use
-// [moves.ActivateInactivePlayer] directly, which implements this interface, but
-// you might also embed it in another move. The framework looks for this
-// interface at boot: a game whose seating move inactivates the players it seats
-// and whose moves are current-player-gated has no way out of that state without
-// one of these.
-type ActivateInactivePlayerMover interface {
-	IsActivateInactivePlayerMove() bool
+// SeatedPlayerActivator should be implemented for moves that can activate an
+// inactive player whose seat is FILLED -- the players [moves.SeatPlayer]
+// inactivates. Both [moves.ActivateInactivePlayer] (which activates every
+// inactive player) and [moves.ActivateFilledSeat] (which activates only the
+// seats a real player is in) implement it, which is why the method is named
+// for the capability rather than for either type: a method named after one
+// concrete move would be lying at the other's call site.
+// [moves.ActivateEmptySeat] deliberately does NOT implement it -- reopening an
+// empty seat undoes nothing SeatPlayer did to a real player.
+//
+// The framework looks for this interface at boot: a game whose seating move
+// inactivates the players it seats, and whose play is current-player-gated,
+// has no way out of that state without one of these.
+type SeatedPlayerActivator interface {
+	ActivatesSeatedPlayers() bool
 }
 
 // CurrentPlayerMover should be implemented for moves that are gated on the

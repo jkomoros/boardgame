@@ -33,7 +33,7 @@
 			}
 		},
 		{
-			"Name": "Activate Inactive Players - Gathering",
+			"Name": "Activate Inactive Player - Gathering",
 			"Version": -1,
 			"Initiator": -1,
 			"Phase": 0,
@@ -55,7 +55,7 @@
 			}
 		},
 		{
-			"Name": "Activate Inactive Players - Gathering",
+			"Name": "Activate Inactive Player - Gathering",
 			"Version": -1,
 			"Initiator": -1,
 			"Phase": 0,
@@ -106,7 +106,7 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Activate Inactive Players",
+			"Name": "Activate Inactive Player",
 			"Version": -1,
 			"Initiator": -6,
 			"Phase": 1,
@@ -117,7 +117,7 @@
 			}
 		},
 		{
-			"Name": "Activate Inactive Players",
+			"Name": "Activate Inactive Player",
 			"Version": -1,
 			"Initiator": -7,
 			"Phase": 1,
@@ -333,7 +333,7 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Activate Inactive Players",
+			"Name": "Activate Inactive Player",
 			"Version": -1,
 			"Initiator": -7,
 			"Phase": 1,
@@ -344,7 +344,7 @@
 			}
 		},
 		{
-			"Name": "Activate Inactive Players",
+			"Name": "Activate Inactive Player",
 			"Version": -1,
 			"Initiator": -8,
 			"Phase": 1,

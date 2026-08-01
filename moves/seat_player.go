@@ -226,10 +226,10 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 
 // Apply sets the targeted player to be Filled. If the player state also
 // implements interfaces.Inactiver (for example because it implements
-// behaviors.PlayerInactive), then it will also set the player to inactive. This
+// behaviors.InactivePlayer), then it will also set the player to inactive. This
 // is often the behavior you want; if you're in the middle of a round you
 // typically don't want a new player to be active in the middle of it. But if you
-// do use behaviors.PlayerInactive, remember to implement ActivateInactivePlayer
+// do use behaviors.InactivePlayer, remember to configure an activation move
 // at the beginning of rounds to activate any new seated players.
 func (s *SeatPlayer) Apply(state boardgame.State) error {
 
@@ -489,7 +489,7 @@ func (i *InactivateEmptySeat) ValidConfiguration(exampleState boardgame.State) e
 	}
 	_, ok = player.(interfaces.PlayerInactiver)
 	if !ok {
-		return errors.New("Player state didn't implement interfaces.PlayerInactiver. behaviors.PlayerInactiveBehavior implements it for free")
+		return errors.New("Player state didn't implement interfaces.PlayerInactiver. behaviors.InactivePlayer implements it for free")
 	}
 	return nil
 }
@@ -518,52 +518,20 @@ type ActivateEmptySeat struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+// activateEmptySeatTarget is this move's seat filter; everything else about it
+// is activationTarget's shared implementation (moves/inactive_player.go).
+var activateEmptySeatTarget = activationTarget{
+	requirement:      seatMustBeEmpty,
+	wrongSeatErr:     "The selected player seat is filled; only empty seats should be activated by this move",
+	alreadyActiveErr: "Player is already active. There must not be any empty inactive seats left to apply to",
+}
+
 // DefaultsForState sets TargetPlayerIndex to the next player who is currently
 // not filled and also inactive.
 func (a *ActivateEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
-	for i, p := range state.ImmutablePlayerStates() {
-		if seat, ok := p.(interfaces.Seater); ok {
-			if seat.SeatIsFilled() {
-				continue
-			}
-			if !behaviors.PlayerIsInactive(p) {
-				continue
-			}
-			a.TargetPlayerIndex = boardgame.PlayerIndex(i)
-			return
-		}
+	if target := activateEmptySeatTarget.defaultTarget(state); target >= 0 {
+		a.TargetPlayerIndex = target
 	}
-}
-
-// legalTarget is the seat half of Legal, split out so it can be exercised
-// without a phase or move info -- and so Apply resolves the target exactly the
-// way Legal just checked it, rather than resolving it a second, different way.
-//
-// Deliberately no EnsureValid. EnsureValid advances past any player
-// GameDelegate.PlayerMayBeActive rejects, and an INACTIVE seat is precisely
-// such a player -- which is the only kind of seat this move exists to touch.
-// Running the target through it walked away from the seat DefaultsForState had
-// just chosen and onto some active player, so Legal's own inactive check then
-// failed with "Player is already active" and the move could never apply in any
-// game where at least one player may be active. See SeatPlayer's playerIndex
-// comment and ActivateFilledSeat.Legal for the same hazard, same reason.
-func (a *ActivateEmptySeat) legalTarget(state boardgame.ImmutableState) error {
-	targetPlayerIndex := a.TargetPlayerIndex
-	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
-		return errors.New("Invalid TargetPlayerIndex")
-	}
-	player := state.ImmutablePlayerStates()[targetPlayerIndex]
-	seat, ok := player.(interfaces.Seater)
-	if !ok {
-		return errors.New("Player state didn't implement interfaces.Seater")
-	}
-	if seat.SeatIsFilled() {
-		return errors.New("The selected player seat is filled; only empty seats should be activated by this move")
-	}
-	if !behaviors.PlayerIsInactive(player) {
-		return errors.New("Player is already active. There must not be any empty inactive seats left to apply to")
-	}
-	return nil
 }
 
 // Legal verifies that TargetPlayerIndex is set to a player that is currently
@@ -572,36 +540,25 @@ func (a *ActivateEmptySeat) Legal(state boardgame.ImmutableState, proposer board
 	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
-	return a.legalTarget(state)
+	return activateEmptySeatTarget.legalTarget(state, a.TargetPlayerIndex)
 }
 
 // Apply sets the TargetPlayerIndex to be active via interfaces.PlayerInactiver.
 func (a *ActivateEmptySeat) Apply(state boardgame.State) error {
-	if err := a.legalTarget(state); err != nil {
+	if err := activateEmptySeatTarget.legalTarget(state, a.TargetPlayerIndex); err != nil {
 		return err
 	}
-	player := state.ImmutablePlayerStates()[a.TargetPlayerIndex]
-	inactiver, ok := player.(interfaces.PlayerInactiver)
-	if !ok {
-		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
-	}
-	inactiver.SetPlayerActive()
-	return nil
+	return applyActivation(state, a.TargetPlayerIndex)
 }
 
 // ValidConfiguration checks that player states implement interfaces.Seater and
 // interfaces.PlayerInactiver.
 func (a *ActivateEmptySeat) ValidConfiguration(exampleState boardgame.State) error {
 	player := exampleState.ImmutablePlayerStates()[0]
-	_, ok := player.(interfaces.Seater)
-	if !ok {
+	if _, ok := player.(interfaces.Seater); !ok {
 		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
 	}
-	_, ok = player.(interfaces.PlayerInactiver)
-	if !ok {
-		return errors.New("Player state didn't implement interfaces.PlayerInactiver. behaviors.PlayerInactiveBehavior implements it for free")
-	}
-	return nil
+	return requirePlayerInactiver(exampleState)
 }
 
 // FallbackHelpText returns a description of the move.
@@ -615,21 +572,17 @@ func (a *ActivateEmptySeat) FallbackName(m *boardgame.GameManager) string {
 }
 
 // ActivateFilledSeat is a FixUpMulti move that activates inactive players whose
-// seat is FILLED, and only those. It is the complement of [ActivateEmptySeat]
-// and the safe always-legal activation for a game that also uses
-// [InactivateEmptySeat].
-//
-// [ActivateInactivePlayer] cannot play that role. It activates ALL inactive
-// players, including the empty seats InactivateEmptySeat has just closed, so a
-// game that makes it legal outside its round-setup phase immediately undoes
-// that closing and the round waits on seats nobody is sitting in. That is why a
-// game which inactivates empty seats had no always-legal activation at all, and
-// why the scaffolding gave up drop-in joining: there was no move that let a
-// player seated mid-game start playing without also reopening the empty seats.
+// seat is FILLED, and only those. It is the complement of [ActivateEmptySeat],
+// the other half of [ActivateInactivePlayer]'s union, and -- because it touches
+// no empty seat -- the safe always-legal activation for a game that also uses
+// [InactivateEmptySeat] or [DefaultRoundSetup].
 //
 // The idiomatic use is exactly that: make [SeatPlayer] legal in your normal
 // play phase, and this move legal alongside it, so someone who joins after the
 // game has started is activated on the next fix-up pass and can take a turn.
+// That is what makes drop-in joining possible; before this move existed, a game
+// which inactivated its empty seats had to choose between drop-in joining and
+// correct round setup.
 //
 //	moves.AddForPhase(phaseNormal,
 //	    auto.MustConfig(new(moves.SeatPlayer)),
@@ -645,31 +598,27 @@ type ActivateFilledSeat struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
-// IsActivateInactivePlayerMove returns true. This move genuinely undoes
+// ActivatesSeatedPlayers returns true. This move genuinely undoes
 // SeatPlayer's inactivation for the players SeatPlayer actually seats, so it
 // satisfies the boot-time pairing check that a game which seats players has
-// some way of activating them. Implements
-// interfaces.ActivateInactivePlayerMover.
-func (a *ActivateFilledSeat) IsActivateInactivePlayerMove() bool {
+// some way of activating them. Implements interfaces.SeatedPlayerActivator.
+func (a *ActivateFilledSeat) ActivatesSeatedPlayers() bool {
 	return true
+}
+
+// activateFilledSeatTarget is this move's seat filter; everything else about
+// it is activationTarget's shared implementation (moves/inactive_player.go).
+var activateFilledSeatTarget = activationTarget{
+	requirement:      seatMustBeFilled,
+	wrongSeatErr:     "The selected player seat is empty; only filled seats should be activated by this move",
+	alreadyActiveErr: "Player is already active. There must not be any filled inactive seats left to apply to",
 }
 
 // DefaultsForState sets TargetPlayerIndex to the next player who is filled and
 // currently inactive.
 func (a *ActivateFilledSeat) DefaultsForState(state boardgame.ImmutableState) {
-	for i, p := range state.ImmutablePlayerStates() {
-		seat, ok := p.(interfaces.Seater)
-		if !ok {
-			continue
-		}
-		if !seat.SeatIsFilled() {
-			continue
-		}
-		if !behaviors.PlayerIsInactive(p) {
-			continue
-		}
-		a.TargetPlayerIndex = boardgame.PlayerIndex(i)
-		return
+	if target := activateFilledSeatTarget.defaultTarget(state); target >= 0 {
+		a.TargetPlayerIndex = target
 	}
 }
 
@@ -679,35 +628,15 @@ func (a *ActivateFilledSeat) Legal(state boardgame.ImmutableState, proposer boar
 	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
-	//Deliberately no EnsureValid: we WANT to select an inactive player, and
-	//EnsureValid skips them.
-	targetPlayerIndex := a.TargetPlayerIndex
-	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
-		return errors.New("Invalid TargetPlayerIndex")
-	}
-	player := state.ImmutablePlayerStates()[targetPlayerIndex]
-	seat, ok := player.(interfaces.Seater)
-	if !ok {
-		return errors.New("Player state didn't implement interfaces.Seater")
-	}
-	if !seat.SeatIsFilled() {
-		return errors.New("The selected player seat is empty; only filled seats should be activated by this move")
-	}
-	if !behaviors.PlayerIsInactive(player) {
-		return errors.New("Player is already active. There must not be any filled inactive seats left to apply to")
-	}
-	return nil
+	return activateFilledSeatTarget.legalTarget(state, a.TargetPlayerIndex)
 }
 
 // Apply sets the TargetPlayerIndex to be active via interfaces.PlayerInactiver.
 func (a *ActivateFilledSeat) Apply(state boardgame.State) error {
-	player := state.ImmutablePlayerStates()[a.TargetPlayerIndex]
-	inactiver, ok := player.(interfaces.PlayerInactiver)
-	if !ok {
-		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
+	if err := activateFilledSeatTarget.legalTarget(state, a.TargetPlayerIndex); err != nil {
+		return err
 	}
-	inactiver.SetPlayerActive()
-	return nil
+	return applyActivation(state, a.TargetPlayerIndex)
 }
 
 // ValidConfiguration checks that player states implement interfaces.Seater and
@@ -717,10 +646,7 @@ func (a *ActivateFilledSeat) ValidConfiguration(exampleState boardgame.State) er
 	if _, ok := player.(interfaces.Seater); !ok {
 		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
 	}
-	if _, ok := player.(interfaces.PlayerInactiver); !ok {
-		return errors.New("Player state didn't implement interfaces.PlayerInactiver. behaviors.InactivePlayer implements it for free")
-	}
-	return nil
+	return requirePlayerInactiver(exampleState)
 }
 
 // FallbackHelpText returns a description of the move.
@@ -886,7 +812,7 @@ type numSeatedActivePlayerser interface {
 // WaitForEnoughPlayers is a move that is useful to include in your phase
 // progressions where you want to wait until there are enough players to start a
 // round. Typically the logic in your SetUpRound game phase will have an
-// Optional(ActivateInactivePlayers) (if your game includes
+// Optional([ActivateInactivePlayer]) (if your game includes
 // behaviors.InactivePlayer), then a non-optional call to this move, and then the
 // rest of the logic to set up the round. This move will apply as a no-op as long
 // as GameDelegate.NumSeatedActivePlayers is greater than its TargetCount. By

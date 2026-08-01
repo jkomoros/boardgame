@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -115,4 +116,96 @@ func assignedMoveTypes(fn *ast.FuncDecl) map[string]bool {
 		return true
 	})
 	return result
+}
+
+/*
+Nothing in this repo checked a moves-package FallbackName against the type that
+returns it, and the same class of bug has now bitten twice: ActivateInactivePlayer
+returned the plural "Activate Inactive Players", which made TUTORIAL.md print
+moves.ActivateInactivePlayers -- a symbol that does not compile -- and made a
+test that filtered moves by display name into a test that could silently stop
+filtering anything.
+
+A FallbackName is prose, so it cannot be derived mechanically in every case
+(half the moves in this package build theirs out of the stacks they were
+configured with). But when it IS a plain string literal, it is a rendering of
+the type's own name, and any drift between the two is a bug in one of them.
+This test asserts exactly that, and only for the literal cases.
+*/
+func TestLiteralFallbackNamesMatchTheirTypeName(t *testing.T) {
+
+	fset := token.NewFileSet()
+
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatalf("couldn't list package dir: %v", err)
+	}
+
+	checked := 0
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(fset, filepath.Join(".", name), nil, 0)
+		if err != nil {
+			t.Fatalf("couldn't parse %v: %v", name, err)
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil || len(fn.Recv.List) != 1 || fn.Name.Name != "FallbackName" {
+				continue
+			}
+			receiver := receiverTypeName(fn.Recv.List[0].Type)
+			if receiver == "" {
+				continue
+			}
+			for _, literal := range returnedStringLiterals(fn) {
+				checked++
+				if collapseFallbackName(literal) != receiver {
+					t.Errorf("%v.FallbackName returns the literal %q, which does not render the type name %v (%v). One of the two is wrong -- and a name nobody can guess from the type is a name the docs will get wrong",
+						receiver, literal, receiver, name)
+				}
+			}
+		}
+	}
+
+	if checked == 0 {
+		t.Fatal("found no literal FallbackName returns, so this test is asserting nothing")
+	}
+}
+
+// returnedStringLiterals collects every `return "..."` in fn whose returned
+// expression is a lone string literal. Computed names (a literal concatenated
+// with a configured stack name, say) are skipped: they are prose about the
+// configuration, not about the type.
+func returnedStringLiterals(fn *ast.FuncDecl) []string {
+	var result []string
+	ast.Inspect(fn, func(node ast.Node) bool {
+		ret, ok := node.(*ast.ReturnStmt)
+		if !ok || len(ret.Results) != 1 {
+			return true
+		}
+		lit, ok := ret.Results[0].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return true
+		}
+		unquoted, err := strconv.Unquote(lit.Value)
+		if err != nil {
+			return true
+		}
+		result = append(result, unquoted)
+		return true
+	})
+	return result
+}
+
+// collapseFallbackName turns a display name back into the type name it should
+// render: spaces removed, and a trailing "Move" (as in Default's "Default
+// Move") dropped, since that suffix is a disambiguator for the base types
+// rather than part of the type's name.
+func collapseFallbackName(display string) string {
+	collapsed := strings.ReplaceAll(display, " ", "")
+	return strings.TrimSuffix(collapsed, "Move")
 }

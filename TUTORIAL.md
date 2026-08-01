@@ -3994,7 +3994,9 @@ the next round to deal them in. For that reason there's also a
 behaviors.InactivePlayer. If that's embedded, then when a player is seated
 they'll immediately be marked as "Inactive", meaning the rest of the game logic
 will pretend they aren't there. You then need to choose when to activate those
-players, typically by having moves.ActivateInactivePlayers fire.
+players, typically by having `moves.ActivateInactivePlayer` fire during round
+setup, or `moves.ActivateFilledSeat` if you want the activation to be safe to
+leave always legal (see "Drop-in joining" below).
 
 Typically at the setup phase before a round, you want to activate any inactive
 players, pause to wait until we have at least the necessary number of players,
