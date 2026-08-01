@@ -555,3 +555,35 @@ func TestBuildLegalRegistryAndTemplatesOverlaysDelegate(t *testing.T) {
 	assert.For(t).ThatActual(gameRegistered["gameSpecificPred"]).Equals(true)
 	assert.For(t).ThatActual(gameRegistered["defaultPred"]).Equals(false)
 }
+
+// TestSeamAllowlistErrorsNameEveryAllowedBase pins the drift this test exists
+// to prevent: the three boot errors that report the seam used to hand-copy the
+// allowlist as a literal, and all three had gone stale at five entries against
+// an allowlist of eight -- omitting exactly MoveComponentToSlot and
+// DrawToPlayer, the two reusable verbs a creator is most likely to embed. Every
+// one of them now renders legalSupportedMovesBaseTypes, and this asserts it.
+func TestSeamAllowlistErrorsNameEveryAllowedBase(t *testing.T) {
+
+	messages := map[string]string{
+		"unsupported base seam": legalUnsupportedBaseSeamError("aMove", "FinishTurn").Error(),
+		"LegalCustom base":      legalCustomUnsupportedBaseError("aMove").Error(),
+		"probe unreachable":     legalProbeUnreachableError("aMove").Error(),
+	}
+
+	for label, message := range messages {
+		for name := range legalSupportedMovesBaseTypes {
+			if !strings.Contains(message, "moves."+name) {
+				t.Errorf("the %v boot error does not name allowlisted base %q: %v", label, name, message)
+			}
+		}
+	}
+
+	// And it must not name a type that is NOT on the allowlist, which is the
+	// other way the prose could lie.
+	prose := legalSupportedMovesBaseTypesProse()
+	for _, absent := range []string{"moves.FinishTurn", "moves.DealCountComponents", "moves.RoundRobin"} {
+		if strings.Contains(prose, absent) {
+			t.Errorf("the seam prose names %q, which is not on the allowlist: %v", absent, prose)
+		}
+	}
+}

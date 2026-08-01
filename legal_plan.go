@@ -4,6 +4,7 @@ import (
 	stderrors "errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/jkomoros/boardgame/enum"
@@ -375,11 +376,17 @@ func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
 	return err.Error()
 }
 
+// legalUnsupportedBaseSeamError reports a move that declares preconditions but
+// embeds a framework moves-package base outside the seam allowlist.
+func legalUnsupportedBaseSeamError(moveName, base string) error {
+	return fmt.Errorf("move %q declares preconditions but embeds unsupported framework move type %q: only %v support declarative legality (the seam allowlist is legalSupportedMovesBaseTypes in legal_plan.go, enforced structurally by moves/seam_source_test.go — widening it requires that type to declare no Legal() override of its own)", moveName, base, legalSupportedMovesBaseTypesProse())
+}
+
 // legalCustomUnsupportedBaseError reports a LegalCustom method that cannot be
 // attached to a declarative plan because the move does not embed a supported
 // moves-package base. LegalCustom automatically opts supported moves in.
 func legalCustomUnsupportedBaseError(moveName string) error {
-	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom), which automatically opts into declarative legality, but its base type does not support declarative legality (only moves.Default, moves.CurrentPlayer, moves.RecordCurrentPlayerChoice, moves.FixUp, moves.FixUpMulti, and moves.StartPhase do); switch to one of those base types or move the LegalCustom logic into a Legal() override", moveName)
+	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom), which automatically opts into declarative legality, but its base type does not support declarative legality (only %v do); switch to one of those base types or move the LegalCustom logic into a Legal() override", moveName, legalSupportedMovesBaseTypesProse())
 }
 
 // assembleLegalPlans is called once at the end of NewGameManager (after moves
@@ -434,7 +441,7 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		// type outside legalSupportedMovesBaseTypes cannot opt in — its
 		// imperative Legal() would interleave wrongly with plan evaluation.
 		if base := legalUnsupportedMovesBaseType(move); base != "" {
-			return fmt.Errorf("move %q declares preconditions but embeds unsupported framework move type %q: only moves.Default, moves.CurrentPlayer, moves.RecordCurrentPlayerChoice, moves.FixUp, moves.FixUpMulti, and moves.StartPhase support declarative legality (the seam allowlist is legalSupportedMovesBaseTypes in legal_plan.go, enforced structurally by moves/seam_source_test.go — widening it requires that type to declare no Legal() override of its own)", mType.Name(), base)
+			return legalUnsupportedBaseSeamError(mType.Name(), base)
 		}
 
 		var contributed []LegalSpec
@@ -704,9 +711,15 @@ func (g *GameManager) probeLegalReachable(mType *moveType, exampleState Immutabl
 	g.legalProbeReached = false
 
 	if !reached {
-		return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it; only moves embedding a base type from the seam allowlist (legalSupportedMovesBaseTypes in legal_plan.go: Default, CurrentPlayer, RecordCurrentPlayerChoice, FixUp, FixUpMulti, StartPhase) can opt in at all; the bases beyond the original Default/CurrentPlayer seam declare no Legal() override, so this probe should only ever fire on a move's OWN override, never on those embedded bases", mType.Name())
+		return legalProbeUnreachableError(mType.Name())
 	}
 	return nil
+}
+
+// legalProbeUnreachableError reports a move whose own Legal() override never
+// super-calls into moves.Default.Legal, so its declarations would be dead.
+func legalProbeUnreachableError(moveName string) error {
+	return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it; only moves embedding a base type from the seam allowlist (legalSupportedMovesBaseTypes in legal_plan.go: %v) can opt in at all; the bases beyond the original Default/CurrentPlayer seam declare no Legal() override, so this probe should only ever fire on a move's OWN override, never on those embedded bases", moveName, legalSupportedMovesBaseTypesProse())
 }
 
 /*
@@ -940,6 +953,30 @@ var legalSupportedMovesBaseTypes = map[string]bool{
 	"StartPhase":                true,
 	"MoveComponentToSlot":       true,
 	"DrawToPlayer":              true,
+}
+
+// legalSupportedMovesBaseTypesProse renders legalSupportedMovesBaseTypes as
+// the "only moves.X, moves.Y, and moves.Z support declarative legality" clause
+// that every boot error reporting the seam has to say.
+//
+// DERIVED, NOT HAND-COPIED, and that is the whole point of it. Three boot
+// errors used to spell the list out as a literal, and all three had drifted:
+// they named five types against an allowlist of eight, omitting exactly
+// MoveComponentToSlot and DrawToPlayer -- the two reusable verbs a creator is
+// most likely to want to embed, so the error told them the one thing that
+// would have unblocked them was impossible. The allowlist is the single source
+// of truth for the test (LegalSupportedMovesBaseTypeNames, below) and now for
+// the prose too.
+func legalSupportedMovesBaseTypesProse() string {
+	names := make([]string, 0, len(legalSupportedMovesBaseTypes))
+	for name := range legalSupportedMovesBaseTypes {
+		names = append(names, "moves."+name)
+	}
+	sort.Strings(names)
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + ", and " + names[len(names)-1]
 }
 
 // LegalSupportedMovesBaseTypeNames is engine-internal plumbing exposing the

@@ -366,8 +366,10 @@ respectively — and widened the composition seam. What's left, honestly:
     population counter — always needs LegalCustom. Across every game
     surveyed so far, this is the single most common reason a real move
     stays partially opaque.
-  - **The composition seam is moves.Default, moves.CurrentPlayer,
-    moves.FixUp, moves.FixUpMulti, and moves.StartPhase.** All five declare
+  - **The composition seam is moves.CurrentPlayer, moves.Default,
+    moves.DrawToPlayer, moves.FixUp, moves.FixUpMulti,
+    moves.MoveComponentToSlot, moves.RecordCurrentPlayerChoice and
+    moves.StartPhase.** All eight declare
     no Legal() override of their own (a source-parse test enforces this
     invariant, so a future override is a boot-red test forcing a conscious
     seam decision). Every other framework move type in package moves —

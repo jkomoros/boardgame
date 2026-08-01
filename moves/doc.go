@@ -221,8 +221,9 @@ path — arithmetic, graph walks, anything with real Go logic —
 [boardgame.CustomLegaler]'s LegalCustom method runs as imperative residue
 after every declared precondition passes; see the [legal] package doc for the
 full authoring guide, the catalog's rules of growth, and its honest limits
-(the supported seam is [Default], [CurrentPlayer], [FixUp], [FixUpMulti],
-and [StartPhase]; other framework move bases remain opaque).
+(the supported seam is [CurrentPlayer], [Default], [DrawToPlayer], [FixUp],
+[FixUpMulti], [MoveComponentToSlot], [RecordCurrentPlayerChoice] and
+[StartPhase]; other framework move bases remain opaque).
 See the tutorial's "Declarative Move Legality" section for a complete worked
 example.
 
