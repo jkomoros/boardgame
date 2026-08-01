@@ -105,6 +105,93 @@ func TestStackPathReachesPlayerState(t *testing.T) {
 	})
 }
 
+// playCardFromTargetPlayerInstaller configures the reusable "play a card" verb
+// with a players[move.<Field>] SOURCE, which is the one path kind whose player
+// is named by the move rather than by the state.
+func playCardFromTargetPlayerInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(manager.Delegate())
+	return AddForPhase(phaseSetUp,
+		auto.MustConfig(
+			new(movePlayCardToSlot),
+			WithMoveName("Play Card From Target Player"),
+			WithSourceProperty("players[move.TargetPlayerIndex].Hand"),
+			WithDestinationProperty("game.DiscardStack"),
+		),
+	)
+}
+
+// TestStackPathMoveFieldPlayerIsNotRetargeted pins the fourth instance of the
+// EnsureValid class this branch has now found four times (SeatPlayer,
+// ActivateEmptySeat, CloseEmptySeat, and here).
+//
+// A players[move.<Field>] path is resolved TWICE per move, by two different
+// resolvers: at Legal() time by core's own path grammar
+// (resolveLegalPlayerReader in legal_path.go, which MoveComponentToSlot's
+// contributed legal.MayMoveToSlot atom goes through) and at Apply() time by
+// this package's parsedStackPath.resolve. They must agree on WHICH PLAYER the
+// field names, or Legal() judges one player's stacks and Apply() moves another
+// player's components. They did not: core rejects an index that is not a
+// concrete in-bounds player, while this package ran it through EnsureValid
+// first, which silently advances to the next player who may be active.
+func TestStackPathMoveFieldPlayerIsNotRetargeted(t *testing.T) {
+
+	manager, err := newGameManager(playCardFromTargetPlayerInstaller)
+	if err != nil {
+		t.Fatalf("new manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("new game: %v", err)
+	}
+
+	state := game.CurrentState().(boardgame.State)
+
+	stackFor := func(target boardgame.PlayerIndex) boardgame.Stack {
+		move := game.MoveByName("Play Card From Target Player")
+		if move == nil {
+			t.Fatal("move was not installed")
+		}
+		concrete, ok := move.(*movePlayCardToSlot)
+		if !ok {
+			t.Fatalf("move was a %T, not the configured type", move)
+		}
+		concrete.TargetPlayerIndex = target
+		return concrete.SourceStack(state)
+	}
+
+	t.Run("a concrete player resolves to that player", func(t *testing.T) {
+		_, players := concreteStates(state)
+		got := stackFor(2)
+		if got == nil {
+			t.Fatal("a valid target player resolved to no stack")
+		}
+		if got != players[2].Hand {
+			t.Fatal("the path resolved to some player other than the one the field named")
+		}
+	})
+
+	//The retarget case: 9 is not a player at all in a four-player game, and
+	//EnsureValid's Next() wraps it around to player 0 -- a player the move
+	//never named, whose hand Apply would then have emptied.
+	t.Run("an out-of-range player resolves to nothing", func(t *testing.T) {
+		if got := stackFor(9); got != nil {
+			t.Fatal("an out-of-range target player silently retargeted onto a real player's stack")
+		}
+	})
+
+	t.Run("Admin resolves to nothing", func(t *testing.T) {
+		if got := stackFor(boardgame.AdminPlayerIndex); got != nil {
+			t.Fatal("AdminPlayerIndex resolved to a player's stack")
+		}
+	})
+
+	t.Run("Observer resolves to nothing", func(t *testing.T) {
+		if got := stackFor(boardgame.ObserverPlayerIndex); got != nil {
+			t.Fatal("ObserverPlayerIndex resolved to a player's stack")
+		}
+	})
+}
+
 // TestUnconsumedStackPropertyOptionIsBootError covers the config-validation
 // hole this task found: WithSourceProperty and WithDestinationProperty were the
 // only stack-shaped options with no entry in validateCustomConfiguration, so

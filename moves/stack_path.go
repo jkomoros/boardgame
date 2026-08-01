@@ -156,6 +156,24 @@ func (p parsedStackPath) resolve(move boardgame.Move, state boardgame.State) (bo
 	return stack, nil
 }
 
+// moveFieldPlayerState resolves the players[move.<Field>] kind: the player
+// state the move's own PlayerIndex field names.
+//
+// THIS MUST AGREE WITH CORE, index for index. The same path is resolved twice
+// per move by two different resolvers -- at Legal() time by core's path grammar
+// (resolveLegalPlayerReader in legal_path.go, which the contributed
+// legal.MayMoveToSlot / legal.MayMoveFirstToSlot atoms go through) and at
+// Apply() time by this one -- so any disagreement means Legal() judged one
+// player's stacks while Apply() moved another player's components. Core's rule
+// is "a concrete, in-bounds player, or an error", and this is that rule.
+//
+// Deliberately no EnsureValid, for the same reason SeatPlayer, ActivateEmptySeat
+// and CloseEmptySeat say so in their own comments. EnsureValid advances past an
+// index that is not Valid() -- out of bounds, or a player the delegate says may
+// not be active -- onto the NEXT player who may be, so a move naming a player
+// who is not there silently became a move against whoever happened to be next.
+// Core rejects that index outright; before this, moves retargeted it, and on a
+// four-player game a TargetPlayerIndex of 9 resolved to player 0's hand.
 func (p parsedStackPath) moveFieldPlayerState(move boardgame.Move, state boardgame.State) (boardgame.SubState, error) {
 
 	if move == nil {
@@ -168,12 +186,10 @@ func (p parsedStackPath) moveFieldPlayerState(move boardgame.Move, state boardga
 		return nil, fmt.Errorf("stack property %q: move has no PlayerIndex property %q: %w", p.raw, p.moveField, err)
 	}
 
-	index = index.EnsureValid(state)
-
 	players := state.PlayerStates()
 
 	if index < 0 || int(index) >= len(players) {
-		return nil, fmt.Errorf("stack property %q: move field %q was not a valid player index", p.raw, p.moveField)
+		return nil, fmt.Errorf("stack property %q: move field %q was %d, which is not a concrete player (Observer, Admin, Any, or out of bounds)", p.raw, p.moveField, index)
 	}
 
 	return players[index], nil
