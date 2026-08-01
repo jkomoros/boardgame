@@ -1818,14 +1818,17 @@ test.describe('boardgame-die roll aftermath', () => {
     const [start, end] = observed.log;
     expect(start.animating).toBe(1);
     expect(end.animating).toBe(0);
-    // Both carry what a game needs to celebrate the number: the value on the
-    // landed face, which face that is, whether the throw was cocked, and how
-    // long the tumble runs.
-    expect(start.detail.value).toBe(50);
-    expect(start.detail.faceIndex).toBeGreaterThanOrEqual(0);
-    expect(start.detail.cocked).toBe(false);
-    expect(start.detail.durationMs).toBeGreaterThan(100);
-    expect(end.detail).toEqual(start.detail);
+    // roll-start says a tumble is in the air and NOTHING ELSE. Its detail used
+    // to be byte-identical to roll-end's, which handed a listener the answer
+    // before the die had run a frame -- undercutting the whole reason roll-end
+    // exists.
+    expect(start.detail, 'roll-start must not carry the result').toBeNull();
+    // roll-end carries the result, and only the result. No durationMs: it was
+    // the PLANNED tumble length reported as a fact, and under reduced motion
+    // the die snaps while the number still claimed the full throw.
+    expect(end.detail).toEqual({ value: 50, faceIndex: end.detail.faceIndex, cocked: false });
+    expect(end.detail.faceIndex).toBeGreaterThanOrEqual(0);
+    expect(Object.keys(end.detail).sort()).toEqual(['cocked', 'faceIndex', 'value']);
 
     // THE ANNOUNCEMENT. A button's aria-label changing is not announced, so the
     // result never reached a screen reader; the live region is what carries it,
@@ -1833,6 +1836,39 @@ test.describe('boardgame-die roll aftermath', () => {
     expect(start.announcement).toBe('');
     expect(observed.announcement).toBe('Rolled 50');
   });
+
+  // A roll whose playback never starts is not a roll in the air, and
+  // `roll-start` used to be dispatched before the check that finds that out.
+  // The event a game hangs an ANTICIPATION effect off would therefore fire for
+  // a die that had already landed -- and it fired for a reduced-motion player,
+  // who has asked for exactly the opposite.
+  test('a roll that never leaves the ground fires roll-end without roll-start',
+    async ({ page }) => {
+      await mountDie(page, { faceCount: 6, selectedFace: 0, rollCount: 0 });
+      const observed = await page.evaluate(async () => {
+        const die = document.getElementById('fixture-die') as any;
+        // noAnimate is the reachable route to playMotionTracks' 'not-started';
+        // reduced motion arrives at the same place through a duration of 0.
+        die.noAnimate = true;
+        const log: { name: string; detail: unknown }[] = [];
+        for (const name of ['roll-start', 'roll-end']) {
+          die.addEventListener(name, (event: Event) =>
+            log.push({ name, detail: (event as CustomEvent).detail }));
+        }
+        const faces = [10, 20, 30, 40, 50, 60];
+        die.item = {
+          ID: 'fixture-component',
+          Values: { Faces: faces },
+          DynamicValues: { SelectedFace: 4, Value: faces[4], RollCount: 1 },
+        };
+        for (let pass = 0; pass < 4; pass++) await die.updateComplete;
+        return log;
+      });
+
+      // The die really did land on a number, so the result is still reported.
+      expect(observed.map((entry) => entry.name)).toEqual(['roll-end']);
+      expect((observed[0].detail as { value: number }).value).toBe(50);
+    });
 
   // THE LANDING BEAT.
   //

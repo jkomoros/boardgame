@@ -1382,13 +1382,27 @@ class BoardgameDie extends BoardgameAnimatableItem {
     if (this._innerElement) this._innerElement.style.transform = '';
   }
 
-  /** What a `roll-start`/`roll-end` event carries. */
+  /**
+   * What a `roll-end` event carries: the RESULT, and only the result.
+   *
+   * `roll-start` deliberately carries no detail at all — see `_playRoll`. This
+   * is the shape the whole `<verb>-start`/`<verb>-end` family is expected to
+   * hold to, because the second member will inherit whatever the first one
+   * freezes: the start says a thing began, the end says how it came out.
+   *
+   * NO `durationMs`. It used to be here, and it was the roll's PLANNED length,
+   * taken from bake time — reported as a fact on both events. Under reduced
+   * motion the kernel resolves the effect to `duration: 0` and the die snaps,
+   * and the detail still claimed the eight hundred milliseconds it did not
+   * take, so a game scheduling anything from it was wrong exactly in the
+   * accessibility case. `roll-end` fires WHEN the die has stopped, which is
+   * the honest form of the same information and needs no number.
+   */
   private _rollDetail(roll: DieRoll) {
     return {
       value: roll.faces[roll.presented],
       faceIndex: roll.presented,
       cocked: roll.cocked,
-      durationMs: roll.durationMs,
     };
   }
 
@@ -1501,16 +1515,30 @@ class BoardgameDie extends BoardgameAnimatableItem {
     // Announced once the tumble is on screen -- or, below, once the die has
     // been put where the tumble would have left it.
     this._announcement = '';
-    this.dispatchEvent(new CustomEvent('roll-start', {
-      bubbles: true,
-      composed: true,
-      detail: this._rollDetail(roll),
-    }));
     if (result?.status !== 'started') {
+      // NO `roll-start` HERE. Nothing is in the air: reduced motion resolved
+      // the effect to zero, or `noAnimate` is set, or playback refused -- and
+      // in every one of those the die is placed at its landed pose on this
+      // same tick. An event that says "a tumble has begun" would be false, and
+      // it is the event a game uses to start an anticipation effect, which is
+      // exactly the thing a reduced-motion player asked not to see. `roll-end`
+      // still fires, below, because the die really did land on a number.
       if (this._innerElement) this._innerElement.style.transform = roll.resting;
       this._finishRoll(roll, generation);
       return;
     }
+    // A THROW IS IN THE AIR, and that is the entire content of this event.
+    //
+    // Its detail used to be identical to `roll-end`'s, which handed a listener
+    // `value` before the tumble had run a frame -- undercutting the whole
+    // reason `roll-end` exists. A game that needs the number before the die
+    // shows it already has it, from the state the server sent; what it cannot
+    // get anywhere else is the moment the solid started moving.
+    this.dispatchEvent(new CustomEvent('roll-start', {
+      bubbles: true,
+      composed: true,
+      detail: null,
+    }));
     // The animation's own settlement is the ground truth for "the die has
     // stopped", and it resolves for a tumble finished early by the cycle sweep
     // exactly as for one that ran to its end. A cancelled animation rejects; the

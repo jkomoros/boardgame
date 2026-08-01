@@ -2358,10 +2358,24 @@ happened, so it answers for a die at rest and for one whose page was reloaded
 after the throw.
 
 **The die tells you when a roll starts and when it lands.** It dispatches two
-composed, bubbling events, `roll-start` and `roll-end`, each carrying the same
-detail: `value` (the value on the landed face), `faceIndex` (which face that is),
-`cocked` (true if the simulator could not settle the throw flat), and
-`durationMs`.
+composed, bubbling events:
+
+- `roll-start` says a tumble is in the air, and carries **no detail** (`null`).
+  It fires only when a solid actually starts moving — not under reduced motion,
+  not under `noAnimate`, and not when playback is refused, because in each of
+  those the die is already at its landed pose and nothing is in flight.
+- `roll-end` says the die has stopped, and carries the result: `value` (the
+  value on the landed face), `faceIndex` (which face that is), and `cocked`
+  (true if the simulator could not settle the throw flat). It fires on **every**
+  path a roll can finish by, including the ones `roll-start` skips.
+
+This is the shape the whole `<verb>-start`/`<verb>-end` family holds to, and
+a later `flip-start`/`flip-end` will inherit it: the start event says a thing
+began and carries nothing about how it will come out; the end event carries the
+outcome. Neither reports a duration. The die's *planned* tumble length used to
+be on both, and it was a lie exactly where it mattered — under reduced motion
+the die snaps and the number still claimed eight hundred milliseconds — so
+schedule from `roll-end` firing rather than from a number.
 
 `roll-end` is the one a game usually wants, and it exists for a specific reason.
 The obvious place to celebrate a roll is `effectsForTransition`, but that hook
