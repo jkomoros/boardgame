@@ -869,51 +869,32 @@ describe('die geometry', () => {
     });
   });
 
-  describe('author-ordered loops', () => {
+  describe('extruded prisms, against an analytic oracle', () => {
     /**
-     * `RawSolid.oriented` is the opt-in that lets a NON-CONVEX solid through.
+     * `finishSolid` measures volume, centroid and inertia by hanging tetrahedra
+     * off an interior point. These check that machinery against the shoelace
+     * formulas, which share no code with it, on a prism whose analytic answer
+     * is exact.
      *
-     * The three shapes below are prisms over simple, non-convex polygons, and
-     * every one of them is rejected without the flag — not because anything
-     * downstream cannot handle them, but because `orientLoop` rederives a
-     * winding it can only derive for a convex-ish solid, and the half-edge
-     * check then correctly rejects the permuted loops it produced. The tests
-     * pin both halves: the rejection without the flag (so the flag is provably
-     * load-bearing) and the analytically correct solid with it.
+     * They also pin the module's ONE convexity limit, which is real and worth
+     * stating: `orientLoop` rederives every loop's order and winding, and that
+     * rederivation is only correct for a face star-shaped about its own vertex
+     * mean. A prism over a non-convex polygon therefore comes back permuted and
+     * is refused by the half-edge check. There was once an opt-in
+     * (`RawSolid.oriented`) that let an author skip the rederivation and hand
+     * such a solid over; it was deleted, because in the whole tree nothing ever
+     * set it -- `src/solid/prism.ts`, the hand-built surface it was written
+     * for, builds a `SolidSurface` directly and never calls `finishSolid` at
+     * all. The limit below is what shipped.
      */
     type Point2 = readonly [number, number];
 
+    /** A plain square: convex, so `orientLoop` rederives it correctly. */
+    const SQUARE: Point2[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    /** A regular-ish convex pentagon with no two edges the same length. */
+    const PENTAGON: Point2[] = [[0, 2], [-1.9, 0.6], [-1.2, -1.6], [1.2, -1.6], [1.9, 0.6]];
     /** An L: a 2x2 square missing its top-right quadrant. Area 3, one reflex corner. */
     const L_SHAPE: Point2[] = [[0, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2]];
-    /** A U: a 3x3 square with a 1x2 notch cut down from the top. Area 7. */
-    const U_SHAPE: Point2[] = [[0, 0], [3, 0], [3, 3], [2, 3], [2, 1], [1, 1], [1, 3], [0, 3]];
-    /**
-     * A meeple silhouette: 27 vertices, 10 of them reflex — splayed legs with a
-     * notch between them, arms out with an underarm indent, and a head on a
-     * neck. This is the shape the whole opt-in is for, and nothing about it is
-     * star-shaped: the notch between the legs faces straight back at the
-     * vertex mean.
-     */
-    const MEEPLE: Point2[] = [
-      [-4.0, 0.0], [-1.4, 0.0], [-0.9, 2.0], [-0.35, 2.9], [0.35, 2.9], [0.9, 2.0],
-      [1.4, 0.0], [4.0, 0.0], [4.4, 1.6], [3.4, 3.6], [4.8, 4.0], [5.0, 5.0],
-      [4.4, 5.8], [2.6, 5.4], [2.0, 6.6], [1.5, 7.2], [0.9, 9.0], [0.0, 9.6],
-      [-0.9, 9.0], [-1.5, 7.2], [-2.0, 6.6], [-2.6, 5.4], [-4.4, 5.8], [-5.0, 5.0],
-      [-4.8, 4.0], [-3.4, 3.6], [-4.4, 1.6],
-    ];
-
-    /** How many corners turn the wrong way: 0 for a convex polygon. */
-    function reflexCorners(polygon: Point2[]): number {
-      const n = polygon.length;
-      let count = 0;
-      for (let i = 0; i < n; i++) {
-        const a = polygon[(i + n - 1) % n];
-        const b = polygon[i];
-        const c = polygon[(i + 1) % n];
-        if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) < 0) count++;
-      }
-      return count;
-    }
 
     /**
      * Area, centroid and second moments of a simple polygon, straight from the
@@ -957,7 +938,7 @@ describe('die geometry', () => {
      * `bottom_i -> bottom_j -> top_j -> top_i`, whose winding is outward
      * exactly because the polygon is CCW.
      */
-    function extrude(polygon: Point2[], height: number, oriented: boolean): RawSolid {
+    function extrude(polygon: Point2[], height: number): RawSolid {
       const n = polygon.length;
       const half = height / 2;
       const vertices: Vec3[] = [
@@ -977,7 +958,6 @@ describe('die geometry', () => {
         surface,
         readable: surface.map((_, i) => i),
         readingRule: 'up-face',
-        ...(oriented ? { oriented: true } : {}),
       };
     }
 
@@ -989,35 +969,13 @@ describe('die geometry', () => {
     }
 
     const SHAPES = [
-      { name: 'L-shape', polygon: L_SHAPE, height: 1, corners: 6, reflex: 1, area: 3 },
-      { name: 'U-shape', polygon: U_SHAPE, height: 2, corners: 8, reflex: 2, area: 7 },
-      { name: 'meeple silhouette', polygon: MEEPLE, height: 3, corners: 27, reflex: 10, area: 53.595 },
+      { name: 'square', polygon: SQUARE, height: 3 },
+      { name: 'pentagon', polygon: PENTAGON, height: 1.4 },
     ] as const;
 
-    for (const { name, polygon, height, corners, reflex, area } of SHAPES) {
+    for (const { name, polygon, height } of SHAPES) {
       describe(`a prism over the ${name}`, () => {
-        it('is genuinely non-convex, which is the whole point of the case', () => {
-          assert.equal(polygon.length, corners);
-          assert.equal(reflexCorners([...polygon]), reflex);
-          const measured = polygonMoments([...polygon]).area;
-          assert.ok(measured > 0, 'polygon is wound counter-clockwise');
-          close(measured, area, 1e-12, `${name} area`);
-        });
-
-        it('is REJECTED without the opt-in, because the winding gets rederived', () => {
-          // Not a nice-to-have: this is the error a caller sees today. The
-          // rederived loops are permuted, so two of them claim the same
-          // directed edge and the half-edge check refuses the surface.
-          assert.throws(
-            () => finishSolid(extrude([...polygon], height, false)),
-            /surface is not a manifold: directed edge \d+->\d+ is used twice/,
-          );
-        });
-
-        // Built per test rather than once for the suite: if the opt-in ever
-        // stops working the throw belongs to the test that needed it, not to
-        // the whole `describe` body.
-        const build = () => finishSolid(extrude([...polygon], height, true));
+        const build = () => finishSolid(extrude([...polygon], height));
         const moments = polygonMoments([...polygon]);
 
         it('encloses the analytic prism volume', () => {
@@ -1077,70 +1035,19 @@ describe('die geometry', () => {
             }
           });
         });
-
-        it('keeps the author\'s vertex order rather than re-sorting it', () => {
-          const geometry = build();
-          // The +z cap was handed over as the polygon itself, in order. An
-          // angular re-sort about its own vertex mean does not give an L, a U
-          // or a meeple back — which is exactly why the unflagged build above
-          // throws — so seeing the loop come back verbatim is the assertion
-          // that step is skipped and not merely harmless.
-          const n = polygon.length;
-          const cap = geometry.faces[0].polygon;
-          assert.equal(cap.length, n);
-          for (let i = 0; i < n; i++) {
-            assert.deepStrictEqual(cap[i], geometry.vertices[n + i], `cap vertex ${i}`);
-          }
-        });
       });
     }
 
-    it('still rejects a claimed winding that is not true', () => {
-      // The opt-in skips DERIVATION, not VALIDATION. An author who reverses one
-      // wall and says the surface is oriented gets the manifold error, not a
-      // silently inside-out solid.
-      const raw = extrude([...L_SHAPE], 1, true);
-      const broken = raw.surface.map((loop, index) => (index === 3 ? [...loop].reverse() : loop));
+    it('refuses a prism over a non-convex polygon, which is the shipped limit', () => {
+      // Not a nice-to-have: this is the error a caller sees. `orientLoop`
+      // re-sorts the L-shaped cap by angle about its own vertex mean, which
+      // does not give an L back, so two loops end up claiming the same directed
+      // edge and the half-edge check refuses the surface. Refused, never
+      // measured wrongly.
       assert.throws(
-        () => finishSolid({ ...raw, surface: broken }),
-        /not a manifold|not closed/,
+        () => finishSolid(extrude([...L_SHAPE], 1)),
+        /surface is not a manifold: directed edge \d+->\d+ is used twice/,
       );
-    });
-
-    it('measures a convex solid identically whether the winding is declared or derived', () => {
-      // The regression guarantee in miniature. Hand the same already-correct
-      // surface in twice, once flagged and once not: every measured number must
-      // come back identical BIT FOR BIT, because on a convex solid the flag has
-      // nothing to change. `deepStrictEqual` compares numbers with `Object.is`,
-      // so a -0 or a one-ULP drift fails here.
-      //
-      // The one thing that legitimately differs is where each loop STARTS:
-      // `orientLoop` re-sorts by angle measured from `points[0]`, which rotates
-      // the loop to begin at its own smallest angle rather than at the vertex
-      // the author wrote first. A cyclic rotation is the same polygon, and the
-      // normals and centroids below are computed identically either way.
-      const square: Point2[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-      const derived = finishSolid(extrude(square, 3, false));
-      const declared = finishSolid(extrude(square, 3, true));
-
-      assert.deepStrictEqual(declared.inertiaTensor, derived.inertiaTensor);
-      assert.deepStrictEqual(declared.vertices, derived.vertices);
-      assert.deepStrictEqual(declared.nominalRadius, derived.nominalRadius);
-      assert.deepStrictEqual(declared.boundingRadius, derived.boundingRadius);
-      assert.equal(declared.faceCount, derived.faceCount);
-      declared.faces.forEach((face, index) => {
-        assert.deepStrictEqual(face.normal, derived.faces[index].normal, `face ${index} normal`);
-        assert.deepStrictEqual(face.centroid, derived.faces[index].centroid, `face ${index} centroid`);
-        // Same cycle, possibly started elsewhere.
-        const other = derived.faces[index].polygon;
-        assert.equal(face.polygon.length, other.length);
-        const first = face.polygon[0];
-        const offset = other.findIndex((point) => point.every((v, k) => Object.is(v, first[k])));
-        assert.ok(offset >= 0, `face ${index} does not share a vertex with the derived loop`);
-        face.polygon.forEach((point, i) => {
-          assert.deepStrictEqual(point, other[(offset + i) % other.length], `face ${index} vertex ${i}`);
-        });
-      });
     });
   });
 

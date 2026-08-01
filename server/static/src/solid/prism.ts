@@ -144,8 +144,9 @@ export function prismSurface(sides: number, heightRatio: number): PrismSurface {
   // +Z, so the +Z cap keeps that order and the -Z cap reverses it, and a wall
   // taken bottom-edge-then-up is counter-clockwise seen from outside. Nothing
   // here is rederived from a centroid, which is why a non-convex cross-section
-  // would work the same way (see `RawSolid.oriented` in the die geometry, the
-  // seam that had to learn the same lesson).
+  // would work the same way -- and is the reason this module builds its surface
+  // directly rather than through the die geometry's `finishSolid`, whose
+  // `orientLoop` rederives both and can only do so for a convex-ish solid.
   const faces: SolidFace[] = [
     faceOf(top),
     faceOf([...bottom].reverse()),
