@@ -36,7 +36,13 @@ type autoConfigFallbackMoveType interface {
 	FallbackHelpText() string
 }
 
-// A func that will fail to compile if all of the moves don't have a valid fallback.
+// A func that will fail to compile if all of the moves don't have a valid
+// fallback.
+//
+// Every move type in this package that declares FallbackName must be listed
+// here; TestEveryFallbackMoveIsInTheCompletenessNet reads the package source
+// and fails if one is not. A compile-time check only covers the types somebody
+// remembered to list, and a hole here is how ActivateEmptySeat went unnoticed.
 func ensureAllMovesSatisfyFallBack() {
 	var m autoConfigFallbackMoveType
 	m = new(ApplyUntil)
@@ -79,6 +85,15 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(SelectTeam)
 	m = new(SelectRole)
 	m = new(SelectColor)
+	m = new(ActivateEmptySeat)
+	m = new(ActivateFilledSeat)
+	m = new(DrawToPlayer)
+	m = new(MoveComponentToSlot)
+	m = new(ReplenishMarket)
+	m = new(ShuffleDiscardIntoDraw)
+	m = new(NoOp)
+	m = new(Done)
+	m = new(FixUp)
 	if m != nil {
 		return
 	}

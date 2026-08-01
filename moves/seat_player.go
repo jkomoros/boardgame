@@ -321,13 +321,16 @@ func (c *CloseEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
 	}
 }
 
-// Legal verifies that TargetPlayerIndex is set to a player that is currently
-// empty and not currently closed.
-func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := c.FixUpMulti.Legal(state, proposer); err != nil {
-		return err
-	}
-	targetPlayerIndex := c.TargetPlayerIndex.EnsureValid(state)
+// legalTarget is the seat half of Legal.
+//
+// Deliberately no EnsureValid: see ActivateEmptySeat.legalTarget. An empty seat
+// that InactivateEmptySeat has already closed is inactive, and closing exactly
+// that seat is the point of this move -- but EnsureValid advanced off it onto
+// the next player who may be active, which in a partly-seated game is a FILLED
+// seat, so Legal then failed with "already filled, not empty" and the move
+// never applied at all.
+func (c *CloseEmptySeat) legalTarget(state boardgame.ImmutableState) error {
+	targetPlayerIndex := c.TargetPlayerIndex
 	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("Invalid TargetPlayerIndex")
 	}
@@ -345,10 +348,21 @@ func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgam
 	return nil
 }
 
+// Legal verifies that TargetPlayerIndex is set to a player that is currently
+// empty and not currently closed.
+func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := c.FixUpMulti.Legal(state, proposer); err != nil {
+		return err
+	}
+	return c.legalTarget(state)
+}
+
 // Apply sets the TargetPlayerIndex to be closed via interfaces.Seater
 func (c *CloseEmptySeat) Apply(state boardgame.State) error {
-	targetPlayerIndex := c.TargetPlayerIndex.EnsureValid(state)
-	player := state.ImmutablePlayerStates()[targetPlayerIndex]
+	if err := c.legalTarget(state); err != nil {
+		return err
+	}
+	player := state.ImmutablePlayerStates()[c.TargetPlayerIndex]
 	seat, ok := player.(interfaces.Seater)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater")
@@ -421,7 +435,19 @@ func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boa
 		return errors.New("Game will never seat players, so we shouldn't inactivate any, or we'd inactivate all of them")
 	}
 
-	targetPlayerIndex := i.TargetPlayerIndex.EnsureValid(state)
+	return i.legalTarget(state)
+}
+
+// legalTarget is the seat half of Legal.
+//
+// Deliberately no EnsureValid, for consistency with its two siblings -- though
+// unlike them this one is not a behavior change on any reachable path. This
+// move wants an ACTIVE seat, so EnsureValid was a no-op on every target
+// DefaultsForState can produce; it could only differ for a target that this
+// move should reject, where it silently substituted a different seat and
+// reported success for a seat the caller never named.
+func (i *InactivateEmptySeat) legalTarget(state boardgame.ImmutableState) error {
+	targetPlayerIndex := i.TargetPlayerIndex
 	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("Invalid TargetPlayerIndex")
 	}
@@ -441,8 +467,10 @@ func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boa
 
 // Apply sets the TargetPlayerIndex to be inactive via interfaces.PlayerInactiver.
 func (i *InactivateEmptySeat) Apply(state boardgame.State) error {
-	targetPlayerIndex := i.TargetPlayerIndex.EnsureValid(state)
-	player := state.ImmutablePlayerStates()[targetPlayerIndex]
+	if err := i.legalTarget(state); err != nil {
+		return err
+	}
+	player := state.ImmutablePlayerStates()[i.TargetPlayerIndex]
 	inactiver, ok := player.(interfaces.PlayerInactiver)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
@@ -507,13 +535,20 @@ func (a *ActivateEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
 	}
 }
 
-// Legal verifies that TargetPlayerIndex is set to a player that is currently
-// unfilled and inactive.
-func (a *ActivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
-		return err
-	}
-	targetPlayerIndex := a.TargetPlayerIndex.EnsureValid(state)
+// legalTarget is the seat half of Legal, split out so it can be exercised
+// without a phase or move info -- and so Apply resolves the target exactly the
+// way Legal just checked it, rather than resolving it a second, different way.
+//
+// Deliberately no EnsureValid. EnsureValid advances past any player
+// GameDelegate.PlayerMayBeActive rejects, and an INACTIVE seat is precisely
+// such a player -- which is the only kind of seat this move exists to touch.
+// Running the target through it walked away from the seat DefaultsForState had
+// just chosen and onto some active player, so Legal's own inactive check then
+// failed with "Player is already active" and the move could never apply in any
+// game where at least one player may be active. See SeatPlayer's playerIndex
+// comment and ActivateFilledSeat.Legal for the same hazard, same reason.
+func (a *ActivateEmptySeat) legalTarget(state boardgame.ImmutableState) error {
+	targetPlayerIndex := a.TargetPlayerIndex
 	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("Invalid TargetPlayerIndex")
 	}
@@ -531,10 +566,21 @@ func (a *ActivateEmptySeat) Legal(state boardgame.ImmutableState, proposer board
 	return nil
 }
 
+// Legal verifies that TargetPlayerIndex is set to a player that is currently
+// unfilled and inactive.
+func (a *ActivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
+		return err
+	}
+	return a.legalTarget(state)
+}
+
 // Apply sets the TargetPlayerIndex to be active via interfaces.PlayerInactiver.
 func (a *ActivateEmptySeat) Apply(state boardgame.State) error {
-	targetPlayerIndex := a.TargetPlayerIndex.EnsureValid(state)
-	player := state.ImmutablePlayerStates()[targetPlayerIndex]
+	if err := a.legalTarget(state); err != nil {
+		return err
+	}
+	player := state.ImmutablePlayerStates()[a.TargetPlayerIndex]
 	inactiver, ok := player.(interfaces.PlayerInactiver)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
