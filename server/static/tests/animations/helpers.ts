@@ -356,7 +356,14 @@ export async function expectCleanGate(
   // equality must sample only after sustained stability"). Failure to settle
   // is deliberately swallowed: the explicit assertions below then report the
   // real counters, which is a far better diagnostic than a timeout.
-  await waitForAnimationCounterStability(page, { timeoutMs, balance: 'plays' })
+  // Bounded deliberately, and far below `timeoutMs`. This only needs to ride
+  // out a TRAILING settle -- the tail of an animation already in flight, which
+  // is milliseconds. It must NOT wait the full timeout, because `plays` can
+  // legitimately exceed `settles` forever: boardgame-token's highlight throb
+  // is ungated AND infinite (iterations: Infinity), so whenever one is alive
+  // the balance can never be reached and a full-timeout wait would just burn
+  // 20s per call. Measured: unbounded, it added ~100s to a full run.
+  await waitForAnimationCounterStability(page, { timeoutMs: 3000, balance: 'plays' })
     .catch(() => { /* fall through to the assertions, which name the numbers */ });
   const now = await gateSnapshot(page);
   // This definitive sample comes after every queued bundle drains: a later
