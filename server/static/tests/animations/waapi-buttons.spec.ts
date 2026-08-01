@@ -45,15 +45,38 @@ test('move buttons disable during animation and re-enable after', async ({ page 
   // Before clicking anything, the gate should be closed (no animation in flight).
   expect(await isAnimatingAttr()).toBe(false);
 
+  // is-animating being TRUE is a TRANSIENT state, and polling for a transient
+  // is a race the test can only lose: expect.poll samples on an interval, so a
+  // cycle that opens and closes between two samples is never observed and the
+  // test fails with nothing actually wrong. Record the attribute's transitions
+  // with a MutationObserver installed BEFORE the click instead, so the
+  // observation cannot be missed no matter how briefly the attribute is set.
+  await page.evaluate((fnSrc: string) => {
+    // eslint-disable-next-line no-eval
+    const deepQueryFirst = eval(`(${fnSrc})`);
+    const rg = deepQueryFirst(document, 'boardgame-render-game') as Element | null;
+    const w = window as any;
+    w.__isAnimatingLog = [] as boolean[];
+    if (!rg) return;
+    w.__isAnimatingLog.push(rg.hasAttribute('is-animating'));
+    w.__isAnimatingObserver = new MutationObserver(() => {
+      const now = rg.hasAttribute('is-animating');
+      const log: boolean[] = w.__isAnimatingLog;
+      if (log[log.length - 1] !== now) log.push(now);
+    });
+    w.__isAnimatingObserver.observe(rg, { attributes: true, attributeFilter: ['is-animating'] });
+  }, `(${deepQueryFirstScript.toString()})()`);
+
   await page.getByRole('button', { name: 'To Hidden' }).click();
 
-  // Immediately after the click, the render-game should reflect is-animating.
   // The click -> propose-move -> server round-trip -> gate-open is
-  // asynchronous, so poll rather than sampling exactly once. Use the same
-  // generous timeout as the gate-open wait elsewhere in this suite (see
-  // helpers.ts's expectCleanGate) -- this round-trip can take noticeably
-  // longer than a few ms under load.
-  await expect.poll(isAnimatingAttr, { timeout: 20000 }).toBe(true);
+  // asynchronous, so wait for the observer to have RECORDED a true rather than
+  // for the attribute to currently BE true.
+  await page.waitForFunction(
+    () => ((window as any).__isAnimatingLog as boolean[]).includes(true),
+    undefined,
+    { timeout: 20000 },
+  );
 
   // Wait for the gate to fully close (animation cycle complete).
   await page.waitForFunction(() => {
@@ -62,6 +85,19 @@ test('move buttons disable during animation and re-enable after', async ({ page 
   }, undefined, { timeout: 20000 });
 
   await expect.poll(isAnimatingAttr, { timeout: 20000 }).toBe(false);
+
+  // The full contract this test's name promises: the attribute went ON and
+  // then OFF again, in that order -- not merely that it is off now (which was
+  // also true before the click).
+  const log = await page.evaluate(() => {
+    const w = window as any;
+    w.__isAnimatingObserver?.disconnect();
+    return w.__isAnimatingLog as boolean[];
+  });
+  expect(log.indexOf(true), `is-animating must turn on after the click; log was ${JSON.stringify(log)}`)
+    .toBeGreaterThanOrEqual(0);
+  expect(log.lastIndexOf(false), `is-animating must turn back off; log was ${JSON.stringify(log)}`)
+    .toBeGreaterThan(log.indexOf(true));
 });
 
 test('a move proposed while isAnimating is true is swallowed, not enqueued', async ({ page }) => {

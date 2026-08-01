@@ -9,47 +9,6 @@
   "curves": [
     {
       "progress": [
-        0,
-        0.61,
-        0.88,
-        0.98,
-        1
-      ],
-      "rotation": [
-        0,
-        0.61,
-        0.88,
-        0.98,
-        1
-      ],
-      "translation": [
-        0,
-        0.61,
-        0.88,
-        0.98,
-        1
-      ],
-      "opacity": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "timing": [
-        150,
-        0
-      ],
-      "zIndex": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    {
-      "progress": [
         null,
         null,
         null,
@@ -80,47 +39,6 @@
       "timing": [
         225,
         0
-      ],
-      "zIndex": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    {
-      "progress": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "rotation": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "translation": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "opacity": [
-        0,
-        0,
-        0.14,
-        0.91,
-        1
-      ],
-      "timing": [
-        75,
-        75
       ],
       "zIndex": [
         null,

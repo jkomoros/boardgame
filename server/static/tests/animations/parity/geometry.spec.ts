@@ -153,15 +153,28 @@ test.describe('animation motion-curve parity', () => {
   // match; outcomes require finishing a game), so mount the components
   // directly in the served app page and trigger their animations at the
   // component contract.
+  //
+  // Both fixtures scope the sample to the mounted component (FIXTURE_ID).
+  // Without that the document-wide walk also collects the HOST PAGE's
+  // Material chrome -- measured on `/`, an md-filled-field (the sign-in
+  // field) contributes a 150ms label Animation and an 83ms/67ms opacity
+  // CSSTransition. Those two were baked into the game-outcome golden, and
+  // whether they were still alive when the wave loop first probed was a
+  // page-load race, so the fixture passed or failed by luck.
+  //
+  // Deliberately NOT pinned with pinAnimationContext: a bare component
+  // mounted on `/` has no ambient version context at all, so its timing is
+  // already resolved verbatim from what the component asked for.
+  const FIXTURE_ID = 'parity-fixture';
+
   test('fixture: fading-text fade curve', async ({ page }) => {
     test.setTimeout(PARITY_TIMEOUT_MS);
     await page.goto('/');
-    await page.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined,
-      undefined, { timeout: 30000 }).catch(() => { /* hooks only exist on game pages; fixture works without them */ });
     const curves = await sampleMotionCurves(page, async () => {
-      await page.evaluate(async () => {
+      await page.evaluate(async (id) => {
         await import('/src/components/boardgame-fading-text.ts');
         const el = document.createElement('boardgame-fading-text') as any;
+        el.id = id;
         el.style.cssText = 'position:fixed;top:200px;left:200px;width:120px;height:40px;';
         el.autoMessage = 'fixed';
         el.message = 'Parity!';
@@ -171,8 +184,8 @@ test.describe('animation motion-curve parity', () => {
         await el.updateComplete;
         el.trigger = 2;
         await el.updateComplete;
-      });
-    });
+      }, FIXTURE_ID);
+    }, { rootSelector: `#${FIXTURE_ID}` });
     expectCurvesMatchGolden(curves, 'geometry-fixture-fading-text');
   });
 
@@ -180,16 +193,17 @@ test.describe('animation motion-curve parity', () => {
     test.setTimeout(PARITY_TIMEOUT_MS);
     await page.goto('/');
     const curves = await sampleMotionCurves(page, async () => {
-      await page.evaluate(async () => {
+      await page.evaluate(async (id) => {
         await import('/src/components/boardgame-game-outcome.ts');
         const el = document.createElement('boardgame-game-outcome') as any;
+        el.id = id;
         el.style.cssText = 'position:fixed;top:100px;left:100px;width:400px;';
         el.finished = true;
         el.winners = [0];
         document.body.appendChild(el);
         await el.updateComplete;
-      });
-    });
+      }, FIXTURE_ID);
+    }, { rootSelector: `#${FIXTURE_ID}` });
     expectCurvesMatchGolden(curves, 'geometry-fixture-game-outcome');
   });
 });

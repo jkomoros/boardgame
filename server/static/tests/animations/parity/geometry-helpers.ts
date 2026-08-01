@@ -275,9 +275,26 @@ export function fingerprintFromSamples(
 // sample fractions of its own (delay + activeDuration), measuring targets'
 // positions and opacity, then finishes everything so the gate settles
 // normally. Total paused wall-time stays well under the 4s watchdog floor.
+// Restricts which part of the page a sample is allowed to see.
+//
+// `rootSelector` exists for the COMPONENT FIXTURE scenarios. Those mount a
+// single component onto the app's own page and then sample -- and the walk
+// below is document-wide and also collects CSSTransitions, so it happily
+// captured the host page's Material chrome alongside the component under
+// test. Measured on `/`: an md-filled-field (the sign-in field) contributes a
+// 150ms label Animation and an 83ms/67ms opacity CSSTransition, which are
+// exactly the two spurious curves that were baked into the game-outcome
+// golden. Whether they are still alive when the wave loop first probes is a
+// page-load race, so the fixture passed or failed by luck. Full-game
+// scenarios legitimately animate all over the page and pass no selector.
+export interface MotionSampleOptions {
+  rootSelector?: string;
+}
+
 export async function sampleRawMotion(
   page: Page,
   trigger: () => Promise<void>,
+  options: MotionSampleOptions = {},
 ): Promise<SampledAnimation[]> {
   await trigger();
   // One atomic in-page pass: find animations, wait for their population to
@@ -286,19 +303,30 @@ export async function sampleRawMotion(
   // 0 at document level while 141 ran inside component shadow roots), so
   // every step walks the shadow trees and collects per-element
   // getAnimations() instead.
-  const sampledAnimations: SampledAnimation[] = await page.evaluate(async (fractions) => {
+  const sampledAnimations: SampledAnimation[] = await page.evaluate(async ([fractions, rootSelector]) => {
     const deepAnimations = (): Animation[] => {
       const out: Animation[] = [];
-      const walk = (root: Document | ShadowRoot) => {
-        for (const el of Array.from(root.querySelectorAll('*'))) {
-          const anims = (el as Element & { getAnimations?: (o?: object) => Animation[] })
-            .getAnimations?.({ subtree: false });
-          if (anims) out.push(...anims);
-          const sr = (el as Element & { shadowRoot: ShadowRoot | null }).shadowRoot;
-          if (sr) walk(sr);
-        }
+      const collect = (el: Element) => {
+        const anims = (el as Element & { getAnimations?: (o?: object) => Animation[] })
+          .getAnimations?.({ subtree: false });
+        if (anims) out.push(...anims);
+        const sr = (el as Element & { shadowRoot: ShadowRoot | null }).shadowRoot;
+        if (sr) walk(sr);
       };
-      walk(document);
+      const walk = (root: Document | ShadowRoot | Element) => {
+        for (const el of Array.from(root.querySelectorAll('*'))) collect(el);
+      };
+      if (rootSelector) {
+        const rootEl = document.querySelector(rootSelector as string);
+        // A missing root means the scenario never mounted its subject; return
+        // nothing so the loop's "no animations appeared" guard reports it
+        // rather than silently sampling the whole page instead.
+        if (!rootEl) return out;
+        collect(rootEl);
+        walk(rootEl);
+      } else {
+        walk(document);
+      }
       return out;
     };
     const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -383,7 +411,7 @@ export async function sampleRawMotion(
       quietSince = performance.now();
     }
     return samplesAll;
-  }, FRACTIONS);
+  }, [FRACTIONS, options.rootSelector ?? null] as [number[], string | null]);
   return sampledAnimations;
 }
 
@@ -398,8 +426,9 @@ export function fingerprintOf(sampled: SampledAnimation[]): GeometryFingerprint 
 export async function sampleMotionCurves(
   page: Page,
   trigger: () => Promise<void>,
+  options: MotionSampleOptions = {},
 ): Promise<GeometryFingerprint> {
-  return fingerprintOf(await sampleRawMotion(page, trigger));
+  return fingerprintOf(await sampleRawMotion(page, trigger, options));
 }
 
 // Compares (or with PARITY_RECORD=1, rewrites) the golden. Each golden
