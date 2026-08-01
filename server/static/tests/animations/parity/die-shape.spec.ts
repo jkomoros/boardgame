@@ -714,6 +714,31 @@ test.describe('boardgame-die solid', () => {
   test('the solid survives mounted in the real app (pig)', async ({ page }) => {
     test.setTimeout(120000);
     await createOfflineGame(page, 'pig');
+    // WAIT FOR THE SECOND RENDER PASS, or this test measures the reel.
+    //
+    // `_itemChanged` runs from `updated()`, so a die mounted with no item yet
+    // renders the REEL first and its SOLID on the pass after the item lands.
+    // `transform-style: preserve-3d` is on `#inner.solid` only -- the reel's
+    // #inner is legitimately `flat` -- and this test used to measure with no
+    // synchronisation at all, so under a loaded parallel run it caught the reel
+    // and failed with "expected preserve-3d, received flat", reporting a
+    // collapsed 3D context that had simply not been built yet. Nothing below
+    // is weakened: the same facet count, clipping, depth sort and 3D context
+    // are still asserted, on a die that has actually drawn.
+    await expect.poll(async () => await page.evaluate(() => {
+      const deepCount = (root: Document | ShadowRoot | Element): number | null => {
+        const direct = root.querySelector('boardgame-die');
+        if (direct) return (direct as any).shadowRoot?.querySelectorAll('.facet').length ?? 0;
+        for (const el of Array.from(root.querySelectorAll('*'))) {
+          if ((el as any).shadowRoot) {
+            const found = deepCount((el as any).shadowRoot);
+            if (found !== null) return found;
+          }
+        }
+        return null;
+      };
+      return deepCount(document);
+    }), { timeout: 30_000 }).toBe(6);
     const result = await page.evaluate(() => {
       const deepQueryFirst = (root: Document | ShadowRoot | Element, selector: string): Element | null => {
         const direct = root.querySelector(selector);
