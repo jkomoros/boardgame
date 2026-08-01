@@ -16,15 +16,21 @@ const hideCardsDuration = 4 * time.Second
  *
  **************************************************/
 
+// moveRevealCard is moves.MoveComponentToSlot -- "move the card at CardIndex
+// out of HiddenCards and into the same slot of VisibleCards" -- plus this
+// game's own bookkeeping. main.go's ConfigureMoves names both stacks and
+// declares the mirrored layout; the verb discovers CardIndex as the slot field
+// because it is the move's only int property.
+//
 //boardgame:codegen
 type moveRevealCard struct {
-	moves.CurrentPlayer
+	moves.MoveComponentToSlot
 	CardIndex int
 }
 
 func (m *moveRevealCard) DefaultsForState(state boardgame.ImmutableState) {
 
-	m.CurrentPlayer.DefaultsForState(state)
+	m.MoveComponentToSlot.DefaultsForState(state)
 
 	game, _ := concreteStates(state)
 
@@ -61,13 +67,17 @@ func (m *moveRevealCard) DefaultsForState(state boardgame.ImmutableState) {
 //	}
 //	return c.MayMoveToSlot(game.VisibleCards, m.CardIndex)
 
+// Apply super-calls moves.MoveComponentToSlot.Apply for the transfer itself,
+// then does this game's own bookkeeping.
 func (m *moveRevealCard) Apply(state boardgame.State) error {
+
+	if err := m.MoveComponentToSlot.Apply(state); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer.EnsureValid(state)]
-
-	p.CardsLeftToReveal--
-	game.HiddenCards.ComponentAt(m.CardIndex).MoveTo(game.VisibleCards, m.CardIndex)
+	players[game.CurrentPlayer.EnsureValid(state)].CardsLeftToReveal--
 
 	//If the cards are the same, the FixUpMove CaptureCards will fire after this.
 

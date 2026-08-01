@@ -373,8 +373,27 @@ embedding move keeps its full declarative surface -- its own
 [WithLegalPreconditions] and its own LegalCustom residue for the rules the
 catalog cannot express. Contributed specs are evaluated base-first, so the
 verb's own "may this component go there" check runs BEFORE any spec the game
-authored; a game whose own message must win over that one should keep its
-bespoke move.
+authored. A game whose own message must win over that one suppresses the
+verb's defining atom by name and re-authors it in the position it wants:
+
+	moves.WithSourceProperty("game.HiddenCards"),
+	moves.WithDestinationProperty("game.VisibleCards"),
+	moves.WithSourceSlotField("CardIndex"),
+	moves.WithoutLegalPrecondition(moves.PreconditionMayMoveToSlot),
+	moves.WithLegalPreconditions(
+	    legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("reveal.no_cards_left"),
+	    legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+	    legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+	)
+
+That is examples/memory's real Reveal Card configuration: its "that card has
+already been revealed" beats the verb's generic message, and the verb's check
+still runs, last. The defining atom is named by
+[PreconditionMayMoveFirstToSlot], [PreconditionMayMoveToSlot] (when
+[WithSourceSlotField] is configured) or [PreconditionMayMoveFirstTo] (for
+[DrawToPlayer]). Re-authoring it is required, not optional: neither verb's
+Apply re-checks that atom, so suppressing it and putting nothing back is a boot
+error.
 
 An embedding move that has bookkeeping of its own overrides Apply and
 super-calls:

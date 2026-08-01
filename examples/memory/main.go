@@ -311,6 +311,23 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	revealCardConfig := auto.MustConfig(
 		new(moveRevealCard),
 		moves.WithHelpText("Reveals the card at the specified location"),
+		// Reveal Card IS moves.MoveComponentToSlot -- "move the card the
+		// player named out of HiddenCards and into the mirrored slot of
+		// VisibleCards" -- so the verb supplies both stacks, the transfer, and
+		// the slot check. The mirrored layout (one index means both "this card
+		// here" and "that slot there") is what WithSourceSlotField names.
+		moves.WithSourceProperty("game.HiddenCards"),
+		moves.WithDestinationProperty("game.VisibleCards"),
+		moves.WithSourceSlotField("CardIndex"),
+		// Contributed atoms run base-first, so the verb's own mayMoveToSlot
+		// check would otherwise run BEFORE this game's gates and its generic
+		// message would replace "that card has already been revealed". This
+		// pair is the framework's remedy for exactly that: suppress the
+		// defining atom so it stops running first, then re-author it (here as
+		// its mirrored-layout spelling, MayMoveToSameSlot, which carries the
+		// same "mayMoveToSlot" name) in the position this game wants. Boot
+		// refuses a suppression that never puts the atom back.
+		moves.WithoutLegalPrecondition(moves.PreconditionMayMoveToSlot),
 		// Declarative migration (design spec §8's flagship acid test):
 		// Legal() is deleted (see moves.go); this plan replaces it exactly,
 		// in the same order the old imperative chain ran (CurrentPlayer's

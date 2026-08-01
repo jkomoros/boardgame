@@ -20,9 +20,10 @@ illustrative rather than lifted from one exact call site: the catalog
 predicate builder cheat-sheet (every constructor signature the tutorial's
 table claims exists, called for real) and the WithoutLegalPrecondition
 escape-from-inheritance pattern (design spec §2's "ForceFinishTurn, now
-expressible declaratively" -- there is no in-repo game that actually calls
-WithoutLegalPrecondition yet, so the tutorial's example is necessarily
-synthetic and must be proven to compile and Config() cleanly here).
+expressible declaratively"). That last one is synthetic -- this game's own
+ConfigureMoves now calls WithoutLegalPrecondition for real, but in its
+reordering flavor rather than its inherit-nothing flavor -- so it must be
+proven to compile and Config() cleanly here.
 */
 
 // TestTutorialSnippetCatalogPredicates proves every catalog builder call

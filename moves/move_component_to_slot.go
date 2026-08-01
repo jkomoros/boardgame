@@ -200,12 +200,34 @@ func (p parsedStackPath) legalPath() string {
 	return "game." + p.prop
 }
 
+// definingPrecondition returns the PreconditionName of the one atom that IS
+// this move, which depends on whether a source slot field is configured.
+func (m *MoveComponentToSlot) definingPrecondition() PreconditionName {
+	plan, err := slotPlanFor(m.Info().ConcreteMove())
+	if err == nil && plan.sourceSlotField != "" {
+		return PreconditionMayMoveToSlot
+	}
+	return PreconditionMayMoveFirstToSlot
+}
+
 // ContributedPreconditions returns CurrentPlayer's phase and proposer checks
 // plus the one atom that IS this move: may the selected component go into the
 // selected slot.
 func (m *MoveComponentToSlot) ContributedPreconditions() []legal.Spec {
 
 	specs := m.CurrentPlayer.ContributedPreconditions()
+
+	//Default derives a generic "stackConstraints" atom from
+	//WithSourceProperty+WithDestinationProperty whenever both name gameState
+	//stacks. That atom asks whether the FIRST component of the source would be
+	//accepted ANYWHERE in the destination -- neither the component nor the
+	//slot this move is about. The slot-aware atom appended below is the honest
+	//version of the same question, so keeping both would only add a way to
+	//reject a move this move's own check (and its own Apply) considers legal,
+	//ahead of the proposer check and of anything the game authored. See
+	//examples/memory's Reveal Card, where the generic atom would have taken
+	//over the endgame message the slot-aware one and the game's own gates own.
+	specs = specsWithout(specs, string(PreconditionStackConstraints))
 
 	plan, err := slotPlanFor(m.Info().ConcreteMove())
 
@@ -224,6 +246,18 @@ func (m *MoveComponentToSlot) ContributedPreconditions() []legal.Spec {
 	}
 
 	return append(specs, legal.MayMoveFirstToSlot(source, destination, slot))
+}
+
+// specsWithout returns specs minus every spec named name.
+func specsWithout(specs []legal.Spec, name string) []legal.Spec {
+	result := make([]legal.Spec, 0, len(specs))
+	for _, spec := range specs {
+		if spec.Name == name {
+			continue
+		}
+		result = append(result, spec)
+	}
+	return result
 }
 
 // LegalPlanEnabled always returns true: this move type's legality IS its
@@ -315,6 +349,10 @@ func (m *MoveComponentToSlot) ValidConfiguration(exampleState boardgame.State) e
 	}
 
 	if _, err := slotPlanFor(concrete); err != nil {
+		return err
+	}
+
+	if err := requireDefiningPreconditionReauthored(m, "MoveComponentToSlot", m.definingPrecondition(), "legal."+reauthorConstructorFor(m.definingPrecondition())); err != nil {
 		return err
 	}
 

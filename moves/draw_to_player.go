@@ -295,6 +295,10 @@ func (d *DrawToPlayer) ValidConfiguration(exampleState boardgame.State) error {
 	config[configPropResolvedDrawSource] = plan.gameStackName
 	config[configPropResolvedDrawDestination] = plan.playerStackName
 
+	if err := requireDefiningPreconditionReauthored(d, "DrawToPlayer", PreconditionMayMoveFirstTo, "legal."+reauthorConstructorFor(PreconditionMayMoveFirstTo)); err != nil {
+		return err
+	}
+
 	concrete := d.Info().ConcreteMove()
 
 	gameStacker, ok := concrete.(interfaces.GameStacker)

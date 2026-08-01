@@ -311,3 +311,207 @@ func TestDrawToPlayer(t *testing.T) {
 		}
 	})
 }
+
+// movePlayCardReordered is the suppress-then-reauthor recipe: the verb's own
+// defining atom is suppressed so that a gate the GAME authored runs first and
+// owns the message, then re-authored behind it so the check itself survives.
+//
+//boardgame:codegen
+type movePlayCardReordered struct {
+	MoveComponentToSlot
+	Slot int
+}
+
+// movePlayCardSuppressedOnly suppresses the defining atom and never puts it
+// back, which the boot guard must refuse.
+//
+//boardgame:codegen
+type movePlayCardSuppressedOnly struct {
+	MoveComponentToSlot
+	Slot int
+}
+
+// moveDrawSuppressedOnly is the DrawToPlayer flavor of the same mistake.
+//
+//boardgame:codegen
+type moveDrawSuppressedOnly struct {
+	DrawToPlayer
+}
+
+// reorderedGateMessage is legal.StackNotEmpty's default rendering
+// (legal/templates.go's TemplateStackNotEmpty), which is what the game's own
+// gate says when it wins the message.
+const reorderedGateMessage = "requires the stack to not be empty"
+
+func playCardReorderedInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(manager.Delegate())
+	return AddForPhase(phaseSetUp,
+		auto.MustConfig(
+			new(movePlayCardReordered),
+			WithMoveName("Play Card Reordered"),
+			WithSourceProperty("game.DrawStack"),
+			WithDestinationProperty("player.Hand"),
+			//Suppress the verb's defining atom so it no longer runs first...
+			WithoutLegalPrecondition(PreconditionMayMoveFirstToSlot),
+			WithLegalPreconditions(
+				//...let this game's own gate own the message...
+				legal.StackNotEmpty("game.DiscardStack"),
+				//...and put the verb's check back, behind it.
+				legal.MayMoveFirstToSlot("game.DrawStack", "player.Hand", "move.Slot"),
+			),
+		),
+	)
+}
+
+// TestSuppressThenReauthorPreservesTheCheck pins the documented remedy for the
+// base-first ordering rule (TUTORIAL.md's "reordering the verb's own check"
+// recipe, moves/doc.go's same paragraph). Before this existed the library's
+// own documentation told creators to keep their bespoke move instead, so this
+// test is what makes the advice it replaced safe to delete: the recipe must
+// both hand the message to the game's gate AND keep the verb's check running.
+func TestSuppressThenReauthorPreservesTheCheck(t *testing.T) {
+
+	newReorderedGame := func(t *testing.T) *boardgame.Game {
+		t.Helper()
+		manager, err := newGameManager(playCardReorderedInstaller)
+		if err != nil {
+			t.Fatalf("new manager: %v", err)
+		}
+		game, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("new game: %v", err)
+		}
+		return game
+	}
+
+	t.Run("the game's own gate now owns the message", func(t *testing.T) {
+		game := newReorderedGame(t)
+		move := game.MoveByName("Play Card Reordered").(*movePlayCardReordered)
+		//Slot 3 is out of range for an empty hand, so before the suppression
+		//the verb's own atom would have failed FIRST and its message would
+		//have won. DiscardStack is empty too, so the game's gate also fails.
+		move.Slot = 3
+		err := move.Legal(game.CurrentState(), 0)
+		if err == nil {
+			t.Fatal("expected the move to be illegal")
+		}
+		if !strings.Contains(err.Error(), reorderedGateMessage) {
+			t.Fatalf("the game's own gate did not win the message: %v", err)
+		}
+	})
+
+	t.Run("the re-authored check still runs", func(t *testing.T) {
+		game := newReorderedGame(t)
+		gameState, _ := concreteStates(game.CurrentState())
+		//Satisfy the game's own gate, so only the re-authored atom can object.
+		if err := gameState.DrawStack.First().MoveToFirstSlot(gameState.DiscardStack); err != nil {
+			t.Fatalf("filling discard stack: %v", err)
+		}
+		move := game.MoveByName("Play Card Reordered").(*movePlayCardReordered)
+		move.Slot = 3
+		err := move.Legal(game.CurrentState(), 0)
+		if err == nil {
+			t.Fatal("suppress-then-reauthor lost the verb's own check entirely")
+		}
+		if strings.Contains(err.Error(), reorderedGateMessage) {
+			t.Fatalf("the game's gate should be satisfied now: %v", err)
+		}
+	})
+
+	t.Run("and a legal move is still legal", func(t *testing.T) {
+		game := newReorderedGame(t)
+		gameState, _ := concreteStates(game.CurrentState())
+		if err := gameState.DrawStack.First().MoveToFirstSlot(gameState.DiscardStack); err != nil {
+			t.Fatalf("filling discard stack: %v", err)
+		}
+		move := game.MoveByName("Play Card Reordered").(*movePlayCardReordered)
+		move.Slot = 0
+		if err := move.Legal(game.CurrentState(), 0); err != nil {
+			t.Fatalf("the move should be legal: %v", err)
+		}
+	})
+}
+
+// TestSuppressingTheDefiningAtomWithoutReauthoringIsABootError pins the hazard
+// half of the recipe. Neither verb's Apply re-checks its own defining atom --
+// both lean on ComponentInstance.MoveTo's internal net -- so a suppression
+// with nothing put back publishes a legality verdict Apply can then refuse.
+func TestSuppressingTheDefiningAtomWithoutReauthoringIsABootError(t *testing.T) {
+
+	t.Run("MoveComponentToSlot", func(t *testing.T) {
+		installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+			auto := NewAutoConfigurer(manager.Delegate())
+			return AddForPhase(phaseSetUp,
+				auto.MustConfig(
+					new(movePlayCardSuppressedOnly),
+					WithMoveName("Play Card Suppressed Only"),
+					WithSourceProperty("game.DrawStack"),
+					WithDestinationProperty("player.Hand"),
+					WithoutLegalPrecondition(PreconditionMayMoveFirstToSlot),
+				),
+			)
+		}
+		_, err := newGameManager(installer)
+		if err == nil {
+			t.Fatal("expected suppressing the defining atom with nothing put back to be a boot error")
+		}
+		if !strings.Contains(err.Error(), "mayMoveFirstToSlot") || !strings.Contains(err.Error(), "MayMoveFirstToSlot") {
+			t.Fatalf("boot error did not name the suppressed atom and the constructor that restores it: %v", err)
+		}
+	})
+
+	t.Run("DrawToPlayer", func(t *testing.T) {
+		_, err := newGameManager(drawToPlayerInstaller(
+			new(moveDrawSuppressedOnly),
+			"Draw Suppressed Only",
+			WithPlayerProperty("Hand"),
+			WithoutLegalPrecondition(PreconditionMayMoveFirstTo),
+		))
+		if err == nil {
+			t.Fatal("expected suppressing the defining atom with nothing put back to be a boot error")
+		}
+		if !strings.Contains(err.Error(), "mayMoveFirstTo") {
+			t.Fatalf("boot error did not name the suppressed atom: %v", err)
+		}
+	})
+}
+
+// TestMoveComponentToSlotDoesNotContributeStackConstraints pins the reason
+// examples/memory can name two gameState stacks and still keep its own
+// endgame messages: Default derives a generic "stackConstraints" atom from
+// WithSourceProperty+WithDestinationProperty, which asks whether the FIRST
+// component would be accepted ANYWHERE in the destination. That is neither the
+// component nor the slot this move is about, and it would run ahead of both
+// the proposer check and everything the game authored.
+func TestMoveComponentToSlotDoesNotContributeStackConstraints(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return AddForPhase(phaseSetUp,
+			auto.MustConfig(
+				new(movePlayCardToSlot),
+				WithMoveName("Play Card Between Game Stacks"),
+				WithSourceProperty("game.DrawStack"),
+				WithDestinationProperty("game.DiscardStack"),
+			),
+		)
+	}
+	manager, err := newGameManager(installer)
+	if err != nil {
+		t.Fatalf("new manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("new game: %v", err)
+	}
+	move := game.MoveByName("Play Card Between Game Stacks").(*movePlayCardToSlot)
+
+	provider, ok := boardgame.Move(move).(PreconditionsProvider)
+	if !ok {
+		t.Fatal("the move did not implement PreconditionsProvider")
+	}
+	for _, spec := range provider.ContributedPreconditions() {
+		if spec.Name == string(PreconditionStackConstraints) {
+			t.Fatalf("MoveComponentToSlot contributed the generic %q atom alongside its own slot-aware one", spec.Name)
+		}
+	}
+}

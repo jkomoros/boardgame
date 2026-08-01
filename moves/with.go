@@ -306,14 +306,27 @@ func WithLegalPreconditions(specs ...legal.Spec) CustomConfigurationOption {
 // being passed to auto.Config. It suppresses one CONTRIBUTED precondition
 // (one of the framework's own stable names — pass the exported constants
 // [PreconditionInPhase], [PreconditionInProgression],
-// [PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer]
-// rather than raw strings — design spec §2) by name, for a move type that
+// [PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer],
+// [PreconditionMayMoveFirstToSlot], [PreconditionMayMoveToSlot],
+// [PreconditionMayMoveFirstTo] rather than raw strings — design spec §2) by
+// name, for a move type that
 // wants to opt out of an inherited check entirely (the
 // moves.ForceFinishTurn "inherit nothing" pattern, now expressible
 // declaratively). Suppression names accumulate across multiple calls, like
 // WithLegalPreconditions accumulates specs. It does not remove an AUTHORED spec
 // passed via WithLegalPreconditions; those are simply not passed in the first
 // place.
+//
+// Its other use is REORDERING rather than removing. Contributed atoms are
+// evaluated base-first, so [MoveComponentToSlot]'s and [DrawToPlayer]'s own
+// defining check runs ahead of everything the game authored, and its generic
+// message wins. Suppress that atom by name and re-author it inside
+// WithLegalPreconditions, in the position you want, and the game's own gate
+// speaks first while the check itself survives (examples/memory's Reveal Card
+// is the worked example). For those two verbs re-authoring is enforced: their
+// Apply methods do not re-check the defining atom, so suppressing it and
+// putting nothing back is a boot error naming the constructor that restores
+// it.
 //
 // Suppressions are validated by NewGameManager's boot gauntlet, so a
 // WithoutLegalPrecondition call can never silently do nothing: a name that

@@ -1,6 +1,8 @@
 package moves
 
 import (
+	"fmt"
+
 	"github.com/jkomoros/boardgame/legal"
 )
 
@@ -48,7 +50,62 @@ const (
 	// instead), and on a Default-embedding move it is never contributed at
 	// all, so suppressing it there is an unmatched-name boot error too.
 	PreconditionProposerIsCurrentPlayer PreconditionName = "proposerIsCurrentPlayer"
+	// PreconditionMayMoveFirstToSlot is the DEFINING atom
+	// [MoveComponentToSlot] contributes when no [WithSourceSlotField] is
+	// configured: "the first component of the source may go into the slot the
+	// player chose". See [WithoutLegalPrecondition]'s doc for the
+	// suppress-then-reauthor recipe these three constants exist for.
+	PreconditionMayMoveFirstToSlot PreconditionName = "mayMoveFirstToSlot"
+	// PreconditionMayMoveToSlot is the DEFINING atom [MoveComponentToSlot]
+	// contributes when [WithSourceSlotField] IS configured: "the component the
+	// player chose may go into the slot the player chose".
+	PreconditionMayMoveToSlot PreconditionName = "mayMoveToSlot"
+	// PreconditionMayMoveFirstTo is the DEFINING atom [DrawToPlayer]
+	// contributes: "the first component of the draw stack may go into the
+	// current player's stack".
+	PreconditionMayMoveFirstTo PreconditionName = "mayMoveFirstTo"
 )
+
+// declaredPreconditioner is the slice of Default every suppression-aware boot
+// guard needs: what the move type was configured to author and to suppress.
+type declaredPreconditioner interface {
+	DeclaredPreconditions() ([]legal.Spec, []string)
+}
+
+// requireDefiningPreconditionReauthored is the boot guard for the
+// suppress-then-reauthor recipe (see [WithoutLegalPrecondition]).
+//
+// The component-moving verbs' Apply methods do not re-check their own defining
+// atom imperatively; they lean on ComponentInstance.MoveTo's internal net,
+// which surfaces the failure as an APPLY error on a move the framework already
+// judged legal. Suppressing the defining atom exists so a game can REORDER it
+// behind a gate of its own whose message should win -- not so a game can
+// delete it -- so suppressing without re-authoring is a boot error naming the
+// fix rather than a silently load-bearing hole.
+func requireDefiningPreconditionReauthored(move declaredPreconditioner, moveTypeName string, name PreconditionName, reauthorHint string) error {
+
+	specs, suppressions := move.DeclaredPreconditions()
+
+	suppressed := false
+	for _, suppression := range suppressions {
+		if suppression == string(name) {
+			suppressed = true
+			break
+		}
+	}
+
+	if !suppressed {
+		return nil
+	}
+
+	for _, spec := range specs {
+		if spec.Name == string(name) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("this move suppresses %q, which is %v's defining legality check, but never re-authors it. That suppression is how you REORDER the check behind a gate of your own whose message should win; it is not a way to remove it, because %v.Apply does not re-check it and would report the failure as an apply error on a move already called legal. Add %v to WithLegalPreconditions, in whatever position you want it evaluated", string(name), moveTypeName, moveTypeName, reauthorHint)
+}
 
 // PreconditionsProvider is the optional interface core consults (design spec
 // §2/§3) to derive a move type's declarative precondition plan. Default
@@ -143,3 +200,18 @@ func (c *CurrentPlayer) ContributedPreconditions() []legal.Spec {
 // Compile-time interface satisfaction checks.
 var _ PreconditionsProvider = (*Default)(nil)
 var _ PreconditionsProvider = (*CurrentPlayer)(nil)
+
+// reauthorConstructorFor names the legal-package constructor that produces a
+// spec with the given defining atom's name, so the boot guard's message can
+// tell an author exactly what to paste back into WithLegalPreconditions.
+func reauthorConstructorFor(name PreconditionName) string {
+	switch name {
+	case PreconditionMayMoveToSlot:
+		return "MayMoveToSlot (or MayMoveToSameSlot for a mirrored layout)"
+	case PreconditionMayMoveFirstToSlot:
+		return "MayMoveFirstToSlot"
+	case PreconditionMayMoveFirstTo:
+		return "MayMoveFirstTo"
+	}
+	return string(name)
+}

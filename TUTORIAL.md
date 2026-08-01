@@ -910,7 +910,7 @@ func (m *moveMoveToken) LegalCustom(state boardgame.ImmutableState, proposer boa
 
 `legal.Errorf(templateKey, bindings)` returns an `error` that carries a structured, template-rendered message, exactly like a declarative Fail — use it instead of `errors.New` inside `LegalCustom` when you want the same explainability the catalog gets for free. A plain `errors.New` still works; it's wrapped as a one-off template. Implementing `LegalCustom` automatically opts a supported move into declarative legality, so a custom-only move needs no ceremonial constructor option. `LegalCustom` on an unsupported base or on a move that also wholesale-overrides `Legal()` is a boot error, since no safe plan seam could reach it.
 
-**`WithoutLegalPrecondition(name moves.PreconditionName)`** suppresses one *contributed* check by its stable name — pass one of the exported constants `moves.PreconditionInPhase`, `moves.PreconditionInProgression`, `moves.PreconditionStackConstraints`, or `moves.PreconditionProposerIsCurrentPlayer` — for a move that wants to opt out of something it would otherwise inherit. Calling it also opts the move in; requiring a separate marker would make an explicit suppression silently inert:
+**`WithoutLegalPrecondition(name moves.PreconditionName)`** suppresses one *contributed* check by its stable name — pass one of the exported constants `moves.PreconditionInPhase`, `moves.PreconditionInProgression`, `moves.PreconditionStackConstraints`, `moves.PreconditionProposerIsCurrentPlayer`, `moves.PreconditionMayMoveFirstToSlot`, `moves.PreconditionMayMoveToSlot`, or `moves.PreconditionMayMoveFirstTo` — for a move that wants to opt out of something it would otherwise inherit, or (for the last three) to *reorder* the component-moving verbs' own check behind a gate of its own. Calling it also opts the move in; requiring a separate marker would make an explicit suppression silently inert:
 
 ```go
 // synthetic example, compile-checked in
@@ -1002,7 +1002,24 @@ Otherwise name them with `WithGameProperty` and `WithPlayerProperty`. blackjack'
 
 Neither move declares a `Legal()` of its own. Their legality is *contributed* declaratively — `legal.MayMoveFirstToSlot`, `legal.MayMoveToSlot`, or `legal.MayMoveFirstTo` — on top of `moves.CurrentPlayer`'s phase and proposer checks. That means embedding one costs you nothing: your move may still pass `WithLegalPreconditions` of its own and still implement `LegalCustom` for rules the catalog cannot express. blackjack's hit move keeps a `LegalCustom` for its hand-value arithmetic and two authored preconditions besides.
 
-One ordering rule matters. Contributed specs are evaluated base-first, so the verb's own "may this component go there" check runs *before* any spec your game authored. If your game has a gate whose message must win over that one — memory's "that card has already been revealed", for instance — keep your bespoke move rather than reordering what the player sees.
+One ordering rule matters. Contributed specs are evaluated base-first, so the verb's own "may this component go there" check runs *before* any spec your game authored. When your game has a gate whose message must win over that one, suppress the verb's defining atom by name and re-author it in the position you want:
+
+```go
+// <!-- examples/memory/main.go ConfigureMoves, verbatim -->
+moves.WithSourceProperty("game.HiddenCards"),
+moves.WithDestinationProperty("game.VisibleCards"),
+moves.WithSourceSlotField("CardIndex"),
+moves.WithoutLegalPrecondition(moves.PreconditionMayMoveToSlot),
+moves.WithLegalPreconditions(
+    legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("reveal.no_cards_left"),
+    legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+    legal.MayMoveToSameSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+),
+```
+
+That is memory's real `Reveal Card` configuration. Its "that card has already been revealed" message beats the verb's generic one, and the verb's check still runs — last, where the game put it. The defining atom's name is `moves.PreconditionMayMoveFirstToSlot`, `moves.PreconditionMayMoveToSlot` (when `WithSourceSlotField` is configured, as here), or `moves.PreconditionMayMoveFirstTo` for `moves.DrawToPlayer`; `legal.MayMoveToSameSlot` is just the mirrored-layout spelling of `legal.MayMoveToSlot`, so it carries the same name and satisfies the re-authoring requirement.
+
+Re-authoring is not optional. Neither verb's `Apply` re-checks its own defining atom — both lean on the component's internal net, which would report the failure as an *apply* error on a move the framework had already called legal — so suppressing it and putting nothing back is a boot error naming the constructor that restores it.
 
 When your move has bookkeeping of its own, override `Apply` and super-call:
 
