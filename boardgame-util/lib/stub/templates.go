@@ -822,9 +822,16 @@ export class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
       : null,
   });
 {{- end}}
-  static override styles = css[[BACKTICK]]
-    :host { display: block; }
-  [[BACKTICK]];
+  //Spreading GameRenderer.styles first is what brings in the shared
+  //layout/state vocabulary (.horizontal, .vertical, .center, .flex, .active,
+  //.responding, .selected, .targetable, .disabled, .eliminated) -- assigning
+  //css[[BACKTICK]][[BACKTICK]] directly to static styles would REPLACE it.
+  static override styles = [
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
+    css[[BACKTICK]]
+      :host { display: block; }
+    [[BACKTICK]],
+  ];
 
   override render() {
     {{- if .EnableExampleClient }}
@@ -891,9 +898,11 @@ import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer
 export class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PlayerInfoRenderer {
   override render() {
     {{- if .EnableExampleClient }}
+    //boardgame-stat asks the stack for its own count (and capacity, if it has
+    //one). Never count Indexes: a sized stack pads it with a -1 sentinel at
+    //every empty slot, so its length is the capacity, not the count.
     return html[[BACKTICK]]
-      Number of cards:
-      <boardgame-status-text .value=${this.playerState?.Hand.Indexes.length ?? 0}></boardgame-status-text>
+      <boardgame-stat label="Cards" .stack=${this.playerState?.Hand ?? null}></boardgame-stat>
     [[BACKTICK]];
     {{- else }}
     return html[[BACKTICK]]<p>Render player summary information here.</p>[[BACKTICK]];

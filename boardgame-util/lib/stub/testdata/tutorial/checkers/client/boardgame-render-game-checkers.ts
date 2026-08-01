@@ -10,9 +10,16 @@ export class BoardgameRenderGameCheckers extends GameRenderer {
       ? html`<strong>${component.Values.Value}</strong>`
       : null,
   });
-  static override styles = css`
-    :host { display: block; }
-  `;
+  //Spreading GameRenderer.styles first is what brings in the shared
+  //layout/state vocabulary (.horizontal, .vertical, .center, .flex, .active,
+  //.responding, .selected, .targetable, .disabled, .eliminated) -- assigning
+  //css`` directly to static styles would REPLACE it.
+  static override styles = [
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
+    css`
+      :host { display: block; }
+    `,
+  ];
 
   override render() {
     return html`

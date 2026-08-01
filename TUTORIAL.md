@@ -3031,10 +3031,9 @@ import {
 @registerPlayerInfoRenderer
 export class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
   override render() {
-    return html`Won Cards
-      <boardgame-status-text
-        .value=${this.playerState?.WonCards.Indexes.length ?? 0}>
-      </boardgame-status-text>`;
+    return html`
+      <boardgame-stat label="Won Cards" .stack=${this.playerState?.WonCards ?? null}></boardgame-stat>
+    `;
   }
 }
 ```

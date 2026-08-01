@@ -44,11 +44,13 @@ import { css, type CSSResultGroup } from 'lit';
  *      stylesheets are shared between every instance rather than re-parsed.
  *
  * So: rules ship as `CSSResult`s, the colours inside them ship as custom
- * properties, and both are wired into the renderer base classes so that the
- * generated `...(GameRenderer.styles ? [GameRenderer.styles] : [])` idiom every
- * renderer already writes picks them up with no import at all. They are also
- * re-exported from `src/client.js` for a renderer that replaces `styles`
- * outright instead of composing it.
+ * properties, and both are wired into the renderer base classes. A renderer
+ * picks them up with no import at all as long as it COMPOSES `static styles`
+ * rather than replacing it — `...(GameRenderer.styles ? [GameRenderer.styles] :
+ * [])` first, which is what every example renderer writes and what the stub
+ * generator emits, so a scaffolded game gets the vocabulary by default. They
+ * are also re-exported from `src/client.js` for a renderer that replaces
+ * `styles` outright instead of composing it.
  *
  * ## Why classes and not attribute selectors
  *

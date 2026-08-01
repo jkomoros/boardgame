@@ -75,12 +75,22 @@ export class BoardgameBaseGameRenderer<
   /**
    * The shared layout/state vocabulary, so a renderer gets it without asking.
    *
-   * Every generated renderer already opens its `static styles` with
-   * `...(GameRenderer.styles ? [GameRenderer.styles] : [])`, and that guard
-   * exists precisely because this used to be undefined. Now it is not, and the
-   * idiom every renderer already writes picks the vocabulary up for free —
-   * which is the point, because the audit's finding was that nobody
-   * experienced hand-rolling `.horizontal` as friction worth an import.
+   * A renderer that writes `static override styles = css\`...\`` REPLACES this
+   * rather than composing it — spread `GameRenderer.styles` first, or import
+   * `layoutStyles` / `stateStyles` from `src/client.js`, to keep it:
+   *
+   * ```ts
+   * static override styles = [
+   *   ...(GameRenderer.styles ? [GameRenderer.styles] : []),
+   *   css`…`,
+   * ];
+   * ```
+   *
+   * That is the idiom every example renderer writes, and the one the stub
+   * generator now emits, so a freshly scaffolded game gets the vocabulary
+   * without asking — which is the point, because the audit's finding was that
+   * nobody experienced hand-rolling `.horizontal` as friction worth an import.
+   * The guard exists because this used to be undefined.
    *
    * It comes FIRST, so a renderer's own rules win any specificity tie.
    */
