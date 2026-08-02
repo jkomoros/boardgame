@@ -508,11 +508,54 @@ export async function sampleMotionCurves(
 // (which shifts mid-fraction progress by far more than the tolerance)
 // always fails.
 //
-// Deliberate non-goal: HOW MANY elements animate. Set semantics mean one
-// member of a near-duplicate curve family disappearing is invisible here
-// (element counts are per-game random). Count regressions are owned by the
-// trace suite: memory's exact gateDelta.plays/settles and per-element event
-// sequences, and debuganimations' exact cycle counts.
+// PLUS a per-CLASS cardinality check, which is what stops the set semantics
+// from hiding loss. A curve's class is its null pattern (which of progress /
+// rotation / translation / opacity / zIndex are active at all) together with
+// its declared timing -- the two things `matches` already compares EXACTLY,
+// so no observed curve can ever satisfy a golden curve of a different class.
+// Measured: the "minimum number of observed curves that satisfies the whole
+// golden" reported by the harness critic (6 for fan-draw's 14, 5 for
+// interrupted-swap's 13, 5 for swap's 7) is in every case exactly the number
+// of CLASSES. All of the redundancy is within one class.
+//
+// So the classes are pinned by count, and how tightly depends on what four
+// fresh runs of each scenario actually did:
+//
+//   * A class the golden records ONCE must be observed EXACTLY once. These
+//     are the distinguished animations -- the flight, the z-lift, the fade --
+//     and all of them held at exactly one across 24 measured samples (six
+//     scenarios x four runs). What this adds over the existential check is
+//     the "at most" half: two curves of the SAME class but different shapes,
+//     both within 0.08 of the one golden curve, used to satisfy it together
+//     and now do not.
+//
+//     It does NOT make this harness able to see an exact double-motion.
+//     `fingerprintFromSamples` keys its curves into a Map by JSON identity
+//     before anything compares them, so two byte-identical animations on the
+//     same element are ONE curve by the time they get here -- verified by
+//     playing `boardgame-fading-text`'s fade twice, which changes nothing in
+//     the fixture's fingerprint. `composite: 'replace'` remains structurally
+//     uncatchable here; see the README's ledger.
+//   * A class the golden records MORE THAN ONCE is a fleet whose size is
+//     per-game random -- the FLIP over however many stack survivors moved --
+//     and it gets a floor only. Measured over the same 24 samples the fleet
+//     class ran 8-10 against a golden of 9 (fan-draw), 6-8 against 9
+//     (interrupted-swap) and 7-9 against 3 (swap): it goes both above and
+//     below its own golden, so the floor is a third of the recorded count
+//     (minimum 2), which is a 2x margin under the smallest fleet observed.
+//
+// A BIJECTION WAS CONSIDERED AND REJECTED ON THE MEASUREMENT. A maximum
+// bipartite matching between golden and observed curves is not perfect on
+// this data: one of four fan-draw runs produced 13 curves against a 14-curve
+// golden, and interrupted-swap never matched (10-12 observed against 13).
+// Requiring one would have flaked on the first run, which is worse than a
+// tolerant check that does not.
+//
+// Still deliberate non-goals: the size of a fleet class beyond its floor, and
+// therefore HOW MANY elements took part in a relayout (per-game random; the
+// trace suite pins distinct animating elements per kind instead); and any
+// count of ANIMATIONS as opposed to distinct curve SHAPES, for the dedup
+// reason above.
 export function expectCurvesMatchGolden(
   actual: GeometryFingerprint,
   name: string,
@@ -562,4 +605,39 @@ export function expectCurvesMatchGolden(
       `observed curve ${JSON.stringify(a)} has no tolerant match among golden curves`,
     ).toBe(true);
   }
+  const goldenClasses = curveClassCounts(golden.curves);
+  const actualClasses = curveClassCounts(actual.curves);
+  for (const [curveClass, recorded] of [...goldenClasses].sort(
+    (x, y) => x[0].localeCompare(y[0]))) {
+    const observed = actualClasses.get(curveClass) ?? 0;
+    if (recorded === 1) {
+      expect(observed,
+        `exactly one "${curveClass}" curve is expected; the golden records one and `
+        + `${observed} were observed`)
+        .toBe(1);
+    } else {
+      const floor = Math.max(2, Math.floor(recorded / 3));
+      expect(observed,
+        `"${curveClass}" is a fleet the golden recorded ${recorded} of; its size is `
+        + `per-game random but it may not collapse (floor ${floor})`)
+        .toBeGreaterThanOrEqual(floor);
+    }
+  }
+}
+
+// A curve's CLASS: which channels are active at all, plus its declared
+// timing. Both are compared exactly by `matches`, so class membership is
+// exactly the partition within which the tolerant set comparison is allowed
+// to be ambiguous -- and therefore the level at which counting is worth
+// anything. Rendered readably because it appears verbatim in failures.
+function curveClassCounts(curves: MotionCurve[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const curve of curves) {
+    const active = (['progress', 'rotation', 'translation', 'opacity', 'zIndex'] as const)
+      .filter((channel) => curve[channel].some((value) => value !== null));
+    const key = `${active.length ? active.join('+') : 'no channel'}`
+      + ` @${curve.timing[0]}ms+${curve.timing[1]}ms`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
 }

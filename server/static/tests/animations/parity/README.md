@@ -70,8 +70,32 @@ that way rather than forcing a re-record.
 animation in a scenario (deep shadow-root walk — `document.getAnimations()`
 returns NOTHING for shadow-tree animations in this Chromium) is paused and
 seeked to fractions 0/.25/.5/.75/1 of its own delay+duration. Curves compare
-as a SET under 0.08 tolerance (counts are per-game random; count regressions
-are the trace suite's job). Wave-union sampling captures chained cohorts.
+as a SET under 0.08 tolerance, **plus a per-class cardinality check**. Wave-union
+sampling captures chained cohorts.
+
+A curve's CLASS is its null pattern (which channels are active at all) plus its
+declared timing — the two things the comparison already treats exactly, so no
+observed curve can satisfy a golden curve of a different class. That matters
+because all of the measured redundancy is *within* one class: the harness
+critic's "minimum observed curves that satisfy the whole golden" (6 of
+fan-draw's 14, 5 of interrupted-swap's 13, 5 of swap's 7) is in every case
+exactly the number of classes. So classes are now counted: one the golden
+records ONCE must appear exactly once, and one it records many of is a
+per-game-random fleet that gets a floor of a third of the recorded count
+(minimum 2). Measured over six scenarios × four runs, every singleton class
+held at exactly one, and the fleet class ran 8–10 against a golden of 9
+(fan-draw), 6–8 against 9 (interrupted-swap) and 7–9 against 3 (swap).
+
+**A bijection was measured and rejected.** A maximum bipartite matching between
+golden and observed curves is not perfect on real data — one of four fan-draw
+runs produced 13 curves against the 14-curve golden, and interrupted-swap
+never matched (10–12 observed against 13). Requiring one would have flaked on
+the first run.
+
+Witness for the floor: raising the FLIP's no-op threshold in `motion/geometry.ts`
+from 0.5px to 40px — a plausible "optimization" that drops every small-
+displacement survivor — leaves fan-draw's fleet at 2 distinct curves. That
+passed before and now fails at `Expected: >= 3 / Received: 2`.
 Scenarios: swap flight, fan-draw relayout, reveal flip, interrupted-swap
 retarget, plus component fixtures for `fading-text` and `game-outcome` (the
 Phase 1 before/after anchors — full-game flows can't drive them
@@ -280,6 +304,23 @@ never written at all — see `stack-spacer-reflect.spec.ts`.
 
 Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
 
+- **An EXACT double-motion is invisible to the geometry suite, structurally**
+  — `fingerprintFromSamples` keys its curves into a `Map` by JSON identity
+  before anything compares them, so two byte-identical animations on the same
+  element are ONE curve by the time the comparison runs. Verified rather than
+  assumed: playing `boardgame-fading-text`'s fade twice changes nothing in the
+  fixture's fingerprint, and dropping the retarget's `cancel()` in
+  `boardgame-component.ts`'s `layoutTransform` setter leaves the
+  interrupted-swap golden green. `composite: 'replace'` is the load-bearing
+  no-double-motion invariant and no cardinality rule at this layer can guard
+  it, because the deduplication is upstream of every rule. The per-class
+  counts added above see only DISTINCT curve shapes. Owner: additive-composite
+  violations need a check on the animations themselves (a count off
+  `getAnimations()` per element), not on their fingerprints.
+- **`zIndex` records nothing about today's behavior** — the channel is null in
+  all 40 curves of all six goldens, so no golden pins any z-lift that exists.
+  It is still compared exactly, so a NEWLY appearing z change fails; a z change
+  that stops happening in a scenario that never had one cannot.
 - **Pig's play VOLUME cannot be pinned at all** — the other three trace
   scenarios now carry either an exact play count or a floor derived from the
   golden. Pig has neither, and this is a measurement, not an oversight: four
