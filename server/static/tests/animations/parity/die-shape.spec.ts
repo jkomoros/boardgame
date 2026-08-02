@@ -284,26 +284,56 @@ async function visibleFacets(
 // facet and #stage (#orient's resting pose, and #inner, which the animation
 // kernel owns). So this walks the chain and multiplies it out.
 //
-// `rollDegrees` is the angle the facet's local +y -- the direction its content
+// `rollDegrees` is the angle the INK's local +y -- the direction the mark
 // reads DOWNWARDS in, since CSS y points down -- makes with screen-down after
 // that composition. Zero means the numeral on the presented face is upright;
 // 180 means it is upside down.
+//
+// THE CHAIN STARTS AT THE INK, NOT AT THE FACET, AND THAT IS THE WHOLE POINT.
+// It used to start at `.facet`, so anything applied BELOW the facet was
+// invisible to it: rendering every centre numeral with `transform:
+// rotate(37deg)` inside its own facet left all 22 upright and legibility
+// assertions in this file and `die-roll.spec.ts` GREEN. A die whose landed
+// numerals all read at 37 degrees on screen is the exact defect class these
+// tests were written to prevent ("across 8 landed d20s showing 13, ZERO were
+// upright"), and it passed. The facet's frame is not what a player reads; the
+// mark inside it is.
+//
+// `projectedLength` and `towardsCamera` stay on the FACET's matrix: they
+// describe how square-on the facet plane is to the camera, which is a
+// property of the plane and not of what is drawn on it.
 async function presentedFacetPose(page: import('@playwright/test').Page) {
   return await page.evaluate(() => {
     const die = document.getElementById('fixture-die') as any;
     const root = die.shadowRoot as ShadowRoot;
     const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
     const element = facets[die.selectedFaceIndex] as HTMLElement;
-    const chain: HTMLElement[] = [];
-    for (let node: HTMLElement | null = element; node && node.id !== 'stage'; node = node.parentElement) {
-      chain.unshift(node);
-    }
-    let matrix = new DOMMatrix();
-    for (const node of chain) matrix = matrix.multiply(new DOMMatrix(getComputedStyle(node).transform));
-    const v = [matrix.m21, matrix.m22, matrix.m23];
-    const w = [matrix.m31, matrix.m32, matrix.m33];
+    const composed = (from: HTMLElement) => {
+      const chain: HTMLElement[] = [];
+      for (let node: HTMLElement | null = from; node && node.id !== 'stage'; node = node.parentElement) {
+        chain.unshift(node);
+      }
+      let matrix = new DOMMatrix();
+      for (const node of chain) {
+        const value = getComputedStyle(node).transform;
+        // 'none' is not parseable as a DOMMatrix, and the ink nodes usually
+        // have no transform at all -- which is exactly the state a rotated
+        // numeral would leave.
+        if (value && value !== 'none') matrix = matrix.multiply(new DOMMatrix(value));
+      }
+      return { matrix, chain };
+    };
+    // The deepest thing that carries the mark: the glyph's own span, or the
+    // content square for a pip face (rotating that rotates the pip lattice).
+    const ink = (element.querySelector('.content > span')
+      ?? element.querySelector('.content')
+      ?? element) as HTMLElement;
+    const facetPose = composed(element);
+    const inkPose = composed(ink);
+    const v = [inkPose.matrix.m21, inkPose.matrix.m22, inkPose.matrix.m23];
+    const w = [facetPose.matrix.m31, facetPose.matrix.m32, facetPose.matrix.m33];
     return {
-      chain: chain.map((node) => node.id || node.className),
+      chain: inkPose.chain.map((node) => node.id || node.className || node.tagName.toLowerCase()),
       // atan2(x, y): measured from screen-down (0, +1), positive clockwise.
       rollDegrees: (Math.atan2(v[0], v[1]) * 180) / Math.PI,
       projectedLength: Math.hypot(v[0], v[1]),

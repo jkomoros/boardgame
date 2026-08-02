@@ -120,6 +120,55 @@ import { test, expect, type Page } from '@playwright/test';
  * all — which is precisely why a spec like this is needed rather than an eyeball
  * check on a cube: the shape whose rendering is easiest to look at is the shape
  * least able to tell you anything. The d20 carries the sensitivity here.
+ *
+ * ## WHAT THIS SPEC IS NOT, AND WHERE THAT IS COVERED INSTEAD
+ *
+ * The question above is the ONLY one this file answers. Its honest scope is
+ * hidden-surface removal: given this geometry under this camera, does
+ * `backface-visibility: hidden` reproduce a z-buffer? It is NOT a check that
+ * the solid is the right solid, at the right size, under the right camera —
+ * and it cannot be, because the reference imports `dieGeometry`,
+ * `nominalRadius` and `PERSPECTIVE_DEPTH_DIE_SIZES` from the same `src/` it is
+ * checking. Whatever those say, both renderers say. Two sabotages measured, at
+ * ZERO wrong pixels on all eight poses each:
+ *
+ *   `PERSPECTIVE_DEPTH_DIE_SIZES` 6 -> 2.2   a 2.7x camera change; the
+ *                                            reference silhouette moved
+ *                                            12,856 -> 13,572 px. PASSES.
+ *   d20 vertices scaled 0.62 on Y            the solid becomes a squashed
+ *                                            lozenge, silhouette 12,856 ->
+ *                                            7,828 px (-39%). PASSES.
+ *
+ * (The second came within 12% of tripping `MIN_JUDGED_SILHOUETTE_PX = 4000` by
+ * accident, which is not coverage.) The only independent statement this file
+ * makes about geometry is `expect(facetCount).toBe(20)`, which counts polygons.
+ *
+ * Both of those ARE pinned, just not here, and the division is deliberate —
+ * a second geometric oracle in this file would be a duplicate of one that
+ * already exists and is stronger:
+ *
+ *   - THE SOLID'S SHAPE, by `src/motion/die-geometry.test.ts`, against
+ *     closed-form mathematics rather than against a recording: the published
+ *     inertia of a unit-circumradius Platonic solid, `m*s^2/6` for the cube,
+ *     `m*a^2/20` for the tetrahedron, `m*R^2/5` for the octahedron, and an
+ *     isotropic inertia tensor for every face-transitive solid. Verified, not
+ *     assumed: the 0.62-on-Y squash above fails TEN unit tests, including
+ *     "gives every face-transitive solid an isotropic inertia tensor" and
+ *     "matches the published inertia of a unit-circumradius Platonic solid".
+ *   - THE CAMERA, by `src/motion/dice-roll.test.ts`, which now asserts
+ *     `PERSPECTIVE_DEPTH_DIE_SIZES` against its literal value. Every other
+ *     reference to it, in `src/` and in the tests alike, DERIVES from it, so
+ *     none of them can disagree with it; what guarded it before was an
+ *     accident, a "the depth term is doing work" threshold that happens to
+ *     trip at a camera far enough forward. Measured against the whole
+ *     751-test unit suite: 6 -> 2.2 fails through that threshold, but 6 -> 5
+ *     — a 17% camera change, and one this spec cannot see either — PASSED
+ *     EVERYTHING. It fails now.
+ *
+ * A genuinely missing facet is still caught here, and that is not a
+ * shared-input case: the reference sees the interior through the hole while
+ * the browser culls it, so the two pictures disagree. The hidden-surface
+ * question really is covered end to end.
  */
 
 // ---------------------------------------------------------------------------

@@ -220,6 +220,26 @@ test('a roll travels outside its camera and falls toward it inside', () => {
   const camera = /perspective\(([\d.]+)px\)/.exec(frame);
   assert.ok(camera, frame);
   assert.equal(Number(camera[1]), PERSPECTIVE_DEPTH_DIE_SIZES * 2 * radiusPx);
+  // AND THE CONSTANT ITSELF, against its literal value. Everything else that
+  // mentions this depth -- `rollScene`, `boardgame-die.ts`'s resting pose,
+  // `token-solid.ts`'s projection, `solid-render-truth.spec.ts`'s computed
+  // z-buffer reference, and the line directly above -- DERIVES from it, so
+  // none of them can disagree with it.
+  //
+  // What DID guard it, until this line, was an accident: the `depth term is
+  // doing work` threshold below happens to trip at a camera far enough
+  // forward. Measured against the whole 751-test unit suite: 6 -> 2.2 fails
+  // (via that threshold, not via any statement about the camera), and
+  // 6 -> 5 -- a 17% camera change, and one `solid-render-truth.spec.ts`
+  // cannot see either, because its reference imports this same constant --
+  // PASSED EVERYTHING. It now fails here.
+  //
+  // Yes, this is a change-detector, deliberately. Six die-sizes is a CHOICE
+  // (see the constant's own docs: near enough to read as a solid, far enough
+  // that the near facet is not grotesque), not something derivable, and the
+  // only honest guard on a chosen number that everything else is measured
+  // against is to write it down twice and notice when they differ.
+  assert.equal(PERSPECTIVE_DEPTH_DIE_SIZES, 6);
   // The lateral travel is outside the projection and the depth inside it: the
   // die really did start off-centre AND off the screen plane, so neither term
   // is vacuously zero here.

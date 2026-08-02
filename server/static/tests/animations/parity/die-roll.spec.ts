@@ -1341,10 +1341,26 @@ async function facetAngles(
       }
       return matrix;
     };
+    // The deepest thing that carries the mark: the glyph's own span, or the
+    // content square for a pip face (rotating that rotates the pip lattice).
+    // `contentRoll` is measured from HERE, not from the facet.
+    //
+    // Anything applied below the facet used to be invisible: rendering every
+    // centre numeral with `transform: rotate(37deg)` inside its own facet left
+    // all 22 upright and legibility assertions in this file and
+    // `die-shape.spec.ts` green. A die whose landed numerals all read at 37
+    // degrees on screen is the exact defect this test was written to prevent,
+    // and it passed. `offAxis` stays on the facet, because how square-on a
+    // plane is to the camera is a property of the plane.
+    const inkOf = (facet: HTMLElement): HTMLElement =>
+      (facet.querySelector('.content > span')
+        ?? facet.querySelector('.content')
+        ?? facet) as HTMLElement;
     const readPose = (presented: number) => {
       const facets = Array.from(root.querySelectorAll('.facet')) as HTMLElement[];
       const rows = facets.map((el) => {
         const m = composed(el);
+        const ink = composed(inkOf(el));
         const length = Math.hypot(m.m31, m.m32, m.m33) || 1;
         return {
           faceIndex: el.dataset.faceIndex === undefined ? -1 : Number(el.dataset.faceIndex),
@@ -1352,8 +1368,9 @@ async function facetAngles(
           // The facet's outward normal after the whole chain; its angle off the
           // camera axis (+Z) is how square-on it is.
           offAxis: (Math.acos(Math.min(1, Math.max(-1, m.m33 / length))) * 180) / Math.PI,
-          // The facet's local +y on screen: how far the CONTENT is from upright.
-          contentRoll: (Math.atan2(m.m21, m.m22) * 180) / Math.PI,
+          // The INK's local +y on screen: how far what a player reads is from
+          // upright.
+          contentRoll: (Math.atan2(ink.m21, ink.m22) * 180) / Math.PI,
         };
       });
       const shown = rows.find((row) => row.faceIndex === presented)!;
