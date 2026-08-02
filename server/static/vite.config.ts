@@ -9,12 +9,51 @@ const apiPort = Number(process.env.BOARDGAME_API_PORT || 8888);
 
 export default defineConfig({
   root: '.',
-  // Game renderers are discovered dynamically, so Vite's initial crawl cannot
-  // see all of their dependencies. Prebundle the known dynamic Lit directive
-  // to prevent a mid-test dependency-optimization reload from erasing runtime
-  // animation evidence.
+  // Game renderers are discovered dynamically, so Vite's initial crawl (which
+  // follows STATIC imports from index.html) cannot see their dependencies.
+  // Whatever it misses is discovered when a game page first loads, and Vite
+  // answers that with `optimized dependencies changed. reloading` -- a full
+  // page reload, mid-test, that erases every animation counter the parity
+  // suite is in the middle of collecting.
+  //
+  // That is not hypothetical and it is not only a test problem: measured
+  // against a freshly started `boardgame-util serve --offline-dev-mode`, the
+  // debuganimations trace scenario died during its setup drain with
+  //   [vite] ✨ new dependencies optimized: lit/async-directive.js
+  //   [vite] ✨ optimized dependencies changed. reloading
+  // and the test reported `Cannot read properties of undefined (reading
+  // 'gateCloses')` -- the hooks object had gone with the page. One entry
+  // (style-map) was already listed here for exactly this reason; the list was
+  // just incomplete, which is the failure mode of any hand-maintained
+  // allowlist.
+  //
+  // So this is now the WHOLE set of bare specifiers imported anywhere under
+  // `src/` or `examples/*/client/`, not the subset someone happened to hit.
+  // Listing a specifier the crawl would have found anyway costs nothing.
+  // Regenerate with:
+  //   grep -rhoE "from '(lit[^']*|@material/web[^']*|redux[^']*|pwa-helpers[^']*)'" \
+  //     examples/*/client/ server/static/src/ | sort -u
   optimizeDeps: {
-    include: ['lit/directives/style-map.js'],
+    include: [
+      'lit',
+      'lit/async-directive.js',
+      'lit/decorators.js',
+      'lit/directives/class-map.js',
+      'lit/directives/repeat.js',
+      'lit/directives/style-map.js',
+      'lit/directives/when.js',
+      '@material/web/checkbox/checkbox.js',
+      '@material/web/dialog/dialog.js',
+      '@material/web/radio/radio.js',
+      '@material/web/select/filled-select.js',
+      '@material/web/slider/slider.js',
+      '@material/web/switch/switch.js',
+      'pwa-helpers/connect-mixin.js',
+      'pwa-helpers/lazy-reducer-enhancer.js',
+      'pwa-helpers/router.js',
+      'redux',
+      'redux-thunk',
+    ],
   },
   build: {
     outDir: 'dist',

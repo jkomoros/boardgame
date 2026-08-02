@@ -75,19 +75,59 @@ export async function createOfflineGame(
   // accepts for moves.Default-based moves. Player-scoped moves should be
   // exercised through a real seated-player surface instead.
   await enableAdminMode(page);
-  await page.getByText('Admin', { exact: true }).click();
+  await selectAdminViewAndProposer(page);
+}
 
-  // Uncheck "Make Moves As ViewingAsPlayer" (id="move-as-player") so
-  // subsequent move proposals use AdminPlayerIndex instead of player 0.
-  // md-checkbox's `checked` also does not reflect to an attribute (same
-  // issue as md-switch's `selected`, see enableAdminMode) -- read the
-  // live property.
-  const makeMovesCheckbox = page.locator('md-checkbox#move-as-player');
-  await expect(makeMovesCheckbox).toBeVisible();
-  const isChecked = await makeMovesCheckbox.evaluate((el) => (el as any).checked === true);
-  if (isChecked) {
-    await makeMovesCheckbox.click();
-  }
+// Puts the admin panel into "view as Admin, propose as AdminPlayerIndex" and
+// PROVES it took effect.
+//
+// This used to pointer-click the "Admin" radio label and the "Make Moves As
+// ViewingAsPlayer" md-checkbox. Against a freshly started dev server that is
+// reproducibly broken, and it is worth writing down why, because the failure
+// looked like a product bug and is not one. The admin panel is the last block
+// on a game page that is still laying itself out -- fonts swapping, the
+// creation deal's FLIP running, `<pre>${JSON.stringify(currentState)}</pre>`
+// growing by kilobytes as each bundle installs. Playwright's click
+// actionability requires the target's box to be identical across two
+// consecutive frames; on a cold Vite server that page churns for longer than
+// the 10s actionTimeout, so the click never fires. Measured, cold, 3/3:
+// `locator.click: Timeout 5000ms exceeded ... element is not stable`, then
+// `element was detached from the DOM, retrying`, then `element is not
+// visible`. On a warm server the same code passes in ~200ms, which is exactly
+// the "works on my already-configured machine" liability.
+//
+// `viewAs` and `makeMovesAsViewingAsPlayer` are plain public reactive
+// properties of `boardgame-admin-controls`, and writing them runs the very
+// same `updated()` hook (and so dispatches the same `requested-player-changed`
+// / `move-as-player-changed` events) that the widgets' change handlers reach.
+// So this drives the component's public contract instead of its Material
+// widgetry -- the same choice, for the same reason, that `enableAdminMode`
+// already documents for md-switch. Nothing here is under test: which pixels a
+// Material checkbox responds to is the subject of no spec in this suite.
+//
+// The poll at the end is the point. The previous version could complete
+// having changed NOTHING -- if the panel had gone away, or the click had
+// landed on the wrong element, every later assertion would run as player 0
+// instead of admin and fail somewhere far from the cause (observed: pig's
+// die stuck disabled with "it's not your turn" for the full 30s wait).
+async function selectAdminViewAndProposer(page: Page): Promise<void> {
+  const controls = page.locator('boardgame-admin-controls#admin');
+  await expect(controls).toBeAttached({ timeout: 20000 });
+  await controls.evaluate((element) => {
+    const admin = element as unknown as {
+      viewAs: string;
+      makeMovesAsViewingAsPlayer: boolean;
+    };
+    admin.viewAs = 'admin';
+    admin.makeMovesAsViewingAsPlayer = false;
+  });
+  // ADMIN_PLAYER_INDEX. Read off the game view, i.e. the value that actually
+  // reaches every move proposal, not off the panel we just wrote to.
+  await expect.poll(
+    () => page.locator('boardgame-game-view').first()
+      .evaluate((element) => (element as unknown as { _proposingAsPlayer: number })._proposingAsPlayer),
+    { timeout: 20000, message: 'admin panel must make moves propose as AdminPlayerIndex' },
+  ).toBe(-2);
 }
 
 // Authenticates the current page as the stable offline-dev test identity.
@@ -329,13 +369,26 @@ export async function expectCleanGate(
     if (allowSettled && h.gateOpens > 0 && h.gateCloses >= h.gateOpens) return 'settled';
     return false;
   }, [since.gateOpens, allowAlreadySettled] as [number, boolean], { timeout: timeoutMs }).then((h) => h.jsonValue());
-  await page.waitForFunction(() => {
-    const h = (window as any).__bgAnimTestHooks;
-    return h.gateCloses >= h.gateOpens;
-  }, undefined, { timeout: timeoutMs });
+  // The reload check MUST come before anything else dereferences the hooks.
+  // It used to sit after the gate-catch-up wait below, and that made it dead
+  // code in the one case it exists for: a reload takes `__bgAnimTestHooks`
+  // with it, so `h.gateCloses` threw first and the diagnostic below could
+  // never be reached. Observed verbatim against a cold dev server, where a
+  // Vite dependency re-optimization reloads the page mid-scenario:
+  // `page.waitForFunction: TypeError: Cannot read properties of undefined
+  // (reading 'gateCloses')`, pointing at the wrong line, naming the wrong
+  // problem. (The reload itself is now prevented -- see vite.config.ts's
+  // optimizeDeps.include -- but a check whose failure message is unreachable
+  // is worth fixing on its own.)
   if (openedOrReset === 'reset') {
     throw new Error('page reloaded while waiting for animation completion; gate evidence was lost');
   }
+  await page.waitForFunction(() => {
+    const h = (window as any).__bgAnimTestHooks;
+    // Same reason: a reload between the check above and this poll must read as
+    // "not yet", never as a crash and never as success.
+    return h !== undefined && h.gateCloses >= h.gateOpens;
+  }, undefined, { timeout: timeoutMs });
   // A gate can close while a later server bundle is still queued. Returning
   // before that queue drains lets a caller's next click race the next
   // animation and be intentionally swallowed by game-view (#721). "Clean"
