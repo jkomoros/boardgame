@@ -164,6 +164,19 @@ test.describe('a token that is a solid', () => {
    * through the browser's own LayerTree via CDP rather than inferring them, and
    * it animates a real ancestor transform, because AT REST the broken version
    * passes every assertion here.
+   *
+   * WHICH IS WHY THE MEASUREMENT ITSELF IS GUARDED. The layer bound used to be
+   * one-sided, read off `snapshots.at(-1)` inside a fixed window, with nothing
+   * asking whether the animation under test was alive. Replacing `__drive`
+   * with `() => []` -- so no ancestor ever animates and the scene never
+   * reaches the state above -- left this test GREEN, measuring 2 painted
+   * layers against a bound of 110. Load cannot move the threshold, but it can
+   * move WHICH STATE gets measured, and the at-rest state is the one the
+   * paragraph above says the broken version passes in. So now: the snapshot
+   * buffer is cleared before the drive, `__drive` must return 55 animations,
+   * all 55 must be `running` with an advancing `currentTime` at measurement
+   * time, and the layer count is bounded from BELOW at one per token as well
+   * as from above at two.
    */
   test('promotes no layers, even while an ancestor transform animates', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'CDP LayerTree is Chromium-only');
@@ -189,10 +202,14 @@ test.describe('a token that is a solid', () => {
       (window as any).__tokens = tokens;
       // Exactly what a stack's FLIP does to a host, and the only thing that
       // provokes the promotion: an ANIMATING ANCESTOR TRANSFORM.
-      (window as any).__drive = () => tokens.map((t) => t.animate(
-        [{ transform: 'translate(0px,0px)' }, { transform: 'translate(8px,5px)' }],
-        { duration: 900, iterations: Infinity, direction: 'alternate', composite: 'add' },
-      ));
+      (window as any).__drive = () => {
+        const driven = tokens.map((t) => t.animate(
+          [{ transform: 'translate(0px,0px)' }, { transform: 'translate(8px,5px)' }],
+          { duration: 900, iterations: Infinity, direction: 'alternate', composite: 'add' },
+        ));
+        (window as any).__driven = driven;
+        return driven;
+      };
     }, TOKENS);
 
     const facets = await page.evaluate(() => (window as any).__tokens
@@ -207,24 +224,72 @@ test.describe('a token that is a solid', () => {
     });
     await client.send('LayerTree.enable');
     await page.waitForTimeout(500);
-    await page.evaluate(() => (window as any).__drive());
+    // Only what the browser reports while the ancestors are ANIMATING counts.
+    // The at-rest tree gets sampled during the settle above and is exactly the
+    // state the docstring says the BROKEN version passes in, so it must not be
+    // allowed anywhere near the assertions.
+    snapshots.length = 0;
+    const drivenCount = await page.evaluate(() => (window as any).__drive().length);
+    expect(drivenCount, 'every token must be driven by its own ancestor animation')
+      .toBe(TOKENS);
     await page.waitForTimeout(1200);
+
+    // LIVENESS, sampled while LayerTree is still enabled and before anything
+    // is read. Without this the whole measurement can be of a scene that never
+    // reached the state under test: replacing __drive with `() => []` left
+    // this test GREEN at 2 painted layers against its 110 bound, because the
+    // bound was one-sided and nothing asked whether the animation existed.
+    const liveness = await page.evaluate(async () => {
+      const driven: Animation[] = (window as any).__driven ?? [];
+      const timeOf = (a: Animation): number =>
+        typeof a.currentTime === 'number' ? a.currentTime : Number.NaN;
+      const first = driven.map(timeOf);
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      const second = driven.map(timeOf);
+      return {
+        count: driven.length,
+        running: driven.filter((a) => a.playState === 'running').length,
+        advanced: first.filter((t, i) => Number.isFinite(t) && second[i] > t).length,
+      };
+    });
+    expect(liveness, 'all 55 ancestor animations must be running and advancing '
+      + 'at the moment the layer tree is measured')
+      .toEqual({ count: TOKENS, running: TOKENS, advanced: TOKENS });
+
     await client.send('LayerTree.disable');
     await client.detach();
 
-    const layers = snapshots[snapshots.length - 1] ?? [];
-    const painted = layers.filter((layer) => layer.drawsContent);
-    const megapixels = painted.reduce((sum, l) => sum + l.width * l.height, 0) / 1e6;
+    expect(snapshots.length, 'no layer tree arrived while the ancestors animated')
+      .toBeGreaterThan(0);
+    // The WORST snapshot in the window, not the last one. `snapshots.at(-1)`
+    // reads whatever the browser happened to report most recently, so a
+    // promotion spike that subsides could be missed from above -- and if no
+    // post-animation event landed at all it used to read the AT-REST tree,
+    // which is precisely the state this file records the broken version as
+    // passing in.
+    const paintedPerSnapshot = snapshots.map(
+      (layers) => layers.filter((layer) => layer.drawsContent));
+    const worst = paintedPerSnapshot.reduce((a, b) => (b.length > a.length ? b : a));
+    const megapixels = worst.reduce((sum, l) => sum + l.width * l.height, 0) / 1e6;
 
     // The animating hosts themselves are promoted, and should be: that is one
     // layer per token plus the document's own, which is what the flat SVG art
     // took too (57 painted layers, 1.6 megapixels, measured). A facet that took
     // a layer of its own would put this in four figures.
-    expect(layers.length, `the layer tree did not arrive (${snapshots.length} snapshots)`)
-      .toBeGreaterThan(0);
-    expect(painted.length,
+    //
+    // BOUNDED FROM BOTH SIDES. "About one layer each" is a claim with a floor
+    // in it, and the floor is the half that catches a measurement of nothing:
+    // 55 animating hosts that promote FEWER than 55 layers are not the scene
+    // this test describes, whatever their facets are doing. Measured 57
+    // painted / 59 total in every one of ~73 snapshots on each of three
+    // consecutive runs; the broken-ancestor case measures 2.
+    expect(worst.length,
       `55 animating tokens must promote about one layer each, not one per facet`)
       .toBeLessThan(TOKENS * 2);
+    expect(worst.length,
+      `55 animating tokens must each promote a layer; ${worst.length} painted layers `
+      + 'means the scene under test never animated')
+      .toBeGreaterThanOrEqual(TOKENS);
     // And the layers that do exist must be token-sized. The old version's
     // facets were 2062x2062 each; this catches a promotion that somehow kept
     // the count down but not the area.
