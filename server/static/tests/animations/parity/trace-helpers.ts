@@ -84,23 +84,63 @@ export async function captureTrace(
 // `structural` relaxes the comparison for scenarios whose animation COUNT is
 // inherently randomized by game logic the test cannot control (blackjack's
 // deal length depends on the shuffled deck; pig's post-roll cycles depend on
-// the rolled value). Structural mode still enforces the invariants that
-// catch real regressions -- every open matched by a close, zero watchdogs,
-// every play settled (asserted for every mode above), at least one gated
-// cycle -- plus that every kind named in `requiredKinds` actually animated.
-// Exact kind-set equality is deliberately NOT asserted: branch-dependent
-// extras (a score fade that only happens on a scoring roll) would make it
-// flaky for exactly the scenarios structural mode exists for. The golden is
-// still recorded for human inspection/debugging.
+// the rolled value).
+//
+// STRUCTURAL MODE USED TO READ NOTHING OUT OF THE GOLDEN. Without
+// `exactCycles` -- which is exactly blackjack and pig -- `golden` was parsed
+// and never dereferenced; `existsSync` was the only use the file's contents
+// got. `blackjack-deal.json`'s 3,214 recorded events and `pig-roll.json`'s 37
+// pinned four scalars between them, and a run that opened the gate once and
+// animated a single card satisfied every blackjack assertion: 1,057 of 1,058
+// plays could vanish silently.
+//
+// What the golden now supplies, chosen by measuring what survives a reshuffle
+// (four fresh randomized games per scenario, plus the goldens themselves):
+//
+//   * ITS OWN ELEMENT KINDS. Every tag the golden recorded must animate --
+//     `requiredKinds` generalized, and read off the file instead of retyped.
+//     Extra kinds are still allowed (pig's fade only happens on a scoring
+//     roll), so this is one-directional on purpose.
+//   * PER-KIND DISTINCT-ELEMENT FLOOR. At least as many DISTINCT elements of
+//     each recorded kind must animate as the golden recorded. This is the
+//     invariant a shuffled deal cannot move: blackjack relayouts the whole
+//     deck, so exactly 52 distinct `boardgame-card`s animate in the golden
+//     AND in all four fresh deals measured, while their play counts ranged
+//     1,058-1,523. A floor rather than equality because the recorded goldens
+//     are behind current behavior in the OTHER direction (debuganimations
+//     records 54 distinct cards where four consecutive runs now produce 55),
+//     and the hole being closed is elements DISAPPEARING.
+//   * A VOLUME FLOOR where the scenario has one (`minPlayFraction`), as a
+//     fraction of the golden's own play count.
+//
+// Not asserted, with reasons: exact kind-set equality (branch-dependent
+// extras would flake it); exact play counts (that is what structural mode
+// exists for); a volume floor for pig (its post-roll cycle count genuinely
+// branches on the rolled value -- measured 3 plays on three runs and 11 on a
+// fourth, so no fraction of the golden's 11 is both safe and meaningful).
+//
+// `assertPerElementCycleGrammar` runs for EVERY mode; see its own note.
 export function expectTraceMatchesGolden(
   trace: ParityTrace,
   name: string,
-  opts: { structural?: { requiredKinds: string[]; exactCycles?: boolean } } = {},
+  opts: {
+    structural?: {
+      requiredKinds: string[];
+      exactCycles?: boolean;
+      /**
+       * Floor on `plays`, as a fraction of the golden's. Omit for scenarios
+       * whose volume genuinely branches. Set it from a MEASURED spread, and
+       * say what was measured at the call site.
+       */
+      minPlayFraction?: number;
+    };
+  } = {},
 ): void {
   const goldenPath = join(GOLDEN_DIR, `${name}.json`);
   expect(trace.gateDelta.watchdogFirings, 'watchdog must never fire').toBe(0);
   expect(trace.gateDelta.settles, 'every play must settle inside the capture window')
     .toBe(trace.gateDelta.plays);
+  assertPerElementCycleGrammar(trace.events);
   if (!opts.structural) {
     // Not asserted in structural mode: those scenarios' windows contain
     // whole-game setup whose cycle traffic is game-randomness-dependent;
@@ -135,10 +175,79 @@ export function expectTraceMatchesGolden(
     for (const required of opts.structural.requiredKinds) {
       expect(kinds, `required element kind "${required}" must animate`).toContain(required);
     }
+    // Everything below reads the golden. See the note above this function for
+    // why each of these, and only these, survives a reshuffle.
+    const observed = distinctElementsPerKind(trace.events);
+    const recorded = distinctElementsPerKind(golden.events);
+    for (const [kind, goldenCount] of [...recorded].sort((a, b) => a[0].localeCompare(b[0]))) {
+      expect(observed.get(kind) ?? 0,
+        `the golden recorded ${goldenCount} distinct "${kind}" element(s) animating; `
+        + 'at least that many must still animate')
+        .toBeGreaterThanOrEqual(goldenCount);
+    }
+    if (opts.structural.minPlayFraction !== undefined) {
+      const floor = Math.ceil(golden.gateDelta.plays * opts.structural.minPlayFraction);
+      expect(trace.gateDelta.plays,
+        `scenario must play at least ${opts.structural.minPlayFraction} of the golden's `
+        + `${golden.gateDelta.plays} animations`)
+        .toBeGreaterThanOrEqual(floor);
+    }
     return;
   }
   expect(trace.gateDelta).toEqual(golden.gateDelta);
   expect(perElement(canonicalize(trace.events))).toEqual(perElement(canonicalize(golden.events)));
+}
+
+// How many DISTINCT elements of each kind appear in a trace. Not how many
+// times they played -- that is the number game randomness moves. WHICH
+// components take part in a relayout is a property of the board, not of the
+// shuffle: blackjack's deal relayouts the whole 52-card deck whatever order it
+// comes out in.
+function distinctElementsPerKind(events: ParityEvent[]): Map<string, number> {
+  const perKind = new Map<string, Set<string>>();
+  for (const event of events) {
+    if (event.kind === 'gate-open' || event.kind === 'gate-close') continue;
+    const hashIdx = event.detail.indexOf('#');
+    const kind = hashIdx < 0 ? event.detail : event.detail.slice(0, hashIdx);
+    if (kind === '') continue;
+    let seen = perKind.get(kind);
+    if (seen === undefined) perKind.set(kind, (seen = new Set()));
+    seen.add(event.detail);
+  }
+  return new Map([...perKind].map(([kind, seen]) => [kind, seen.size]));
+}
+
+// Every element's own play/active/settle traffic must balance, and its
+// sequence must open with a play and close with a settle.
+//
+// This is an invariant of the OBSERVED stream rather than a golden, and it is
+// asserted for every mode deliberately -- including the exact ones, where the
+// per-element sequence comparison already implies it. The point is that
+// `active` was previously compared NOWHERE, in any mode: the gate counters
+// only track plays and settles, so an element that announced itself and then
+// never became active (or became active twice) was invisible to the whole
+// harness. Aggregate `settles === plays` cannot see it either, because it
+// sums across elements -- one element's missing settle hides behind another's
+// extra.
+//
+// Measured across the four goldens and twelve fresh scenario runs: zero
+// violations, so this is a floor rather than a guess about how much slack the
+// capture window needs. If a window ever does slice an element mid-flight,
+// the aggregate `settles === plays` above fails first.
+function assertPerElementCycleGrammar(events: ParityEvent[]): void {
+  const perEl = perElement(events.filter((e) => e.detail !== ''));
+  for (const [detail, sequence] of Object.entries(perEl).sort(
+    (a, b) => a[0].localeCompare(b[0]))) {
+    const kinds = sequence.map((e) => e.kind);
+    const count = (kind: string): number => kinds.filter((k) => k === kind).length;
+    expect(
+      { plays: count('play'), actives: count('active'), settles: count('settle') },
+      `${detail}: every play must have exactly one active and one settle`,
+    ).toEqual({ plays: count('play'), actives: count('play'), settles: count('play') });
+    expect(kinds[0], `${detail}: an element's first event must be its play`).toBe('play');
+    expect(kinds[kinds.length - 1], `${detail}: an element's last event must be its settle`)
+      .toBe('settle');
+  }
 }
 
 // The sorted set of tag names (id suffixes stripped) that appear in a

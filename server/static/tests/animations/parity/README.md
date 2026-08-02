@@ -27,12 +27,44 @@ contracts, matched to what each game can promise deterministically:
 | Golden | Contract | Why not stricter |
 |---|---|---|
 | `memory-reveal-one` | exact counters + per-element event sequences (ids canonicalized by first appearance) | deck shuffle renames ids; everything else is deterministic |
-| `debuganimations-card-move` | exact gated-cycle counts + required kinds | FLIP skips no-op transforms and messy rotations hash per-game random ids, so play counts vary (observed 92–138 for the same action) |
-| `blackjack-deal` | structural invariants + required kinds | deal length depends on the shuffled deck |
-| `pig-roll` | structural invariants + required kinds | post-roll cycles depend on the rolled value |
+| `debuganimations-card-move` | exact gated-cycle counts + structural invariants | FLIP skips no-op transforms and messy rotations hash per-game random ids, so play counts vary (observed 92–154 for the same action) |
+| `blackjack-deal` | structural invariants + a play-volume floor at half the golden's | deal length depends on the shuffled deck |
+| `pig-roll` | structural invariants | post-roll cycles depend on the rolled value |
 
-All modes assert: watchdog 0, every play settles in-window; exact modes also
+All modes assert: watchdog 0, every play settles in-window, and the
+**per-element cycle grammar** — for every element, one `active` and one
+`settle` per `play`, first event a play, last a settle. Exact modes also
 assert open/close balance.
+
+"Structural invariants" means, per scenario, all of:
+
+- at least one gated cycle;
+- every kind named in the spec's `requiredKinds` animated;
+- **every element kind the golden itself recorded animated**;
+- **at least as many DISTINCT elements of each recorded kind animated as the
+  golden recorded** — for blackjack that is 52 `boardgame-card`s, the whole
+  deck, which is stable across a reshuffle even though the play count is not
+  (measured 1,058 in the golden against 1,300/1,352/1,519/1,523 over four
+  fresh deals);
+- where the scenario has a volume floor, `plays` at or above a stated
+  fraction of the golden's.
+
+**Structural mode used to dereference the golden only in `exactCycles`
+mode.** Blackjack's 3,214 recorded events and pig's 37 were parsed and thrown
+away; `existsSync` was the only use the files got, and a blackjack run that
+opened the gate once and animated a single card satisfied every assertion.
+The distinct-element floor is what closes that: with 51 of 52 cards silenced
+in the kernel, the old comparison passed and the current one fails at
+`Expected: >= 52 / Received: 1`.
+
+The floors are one-directional on purpose. Extra kinds are allowed (pig's
+score fade only happens on a scoring roll), and extra elements are allowed
+because the recorded goldens sit slightly BEHIND current behavior in that
+direction — `debuganimations-card-move` records 54 distinct cards where four
+consecutive runs now produce 55, and `blackjack-deal` records 1,058 plays
+where the smallest of four fresh deals was 1,300. The hole being closed is
+things DISAPPEARING; growth is the trace suite's weaker direction and stays
+that way rather than forcing a re-record.
 
 **Geometry suite** (`geometry.spec.ts`): motion-curve fingerprints. Every
 animation in a scenario (deep shadow-root walk — `document.getAnimations()`
@@ -248,6 +280,28 @@ never written at all — see `stack-spacer-reflect.spec.ts`.
 
 Reviewed adversarially at Phase 0 close; these are ACCEPTED, with owners:
 
+- **Pig's play VOLUME cannot be pinned at all** — the other three trace
+  scenarios now carry either an exact play count or a floor derived from the
+  golden. Pig has neither, and this is a measurement, not an oversight: four
+  fresh rolls produced 3, 3, 3 and 11 plays against the golden's recorded 11,
+  because the score runner replays itself a branch-dependent number of times.
+  Any fraction of 11 that a 3-play roll satisfies is below 0.28, which
+  separates nothing worth separating. What pig pins instead is that all three
+  of its recorded element kinds — die, score runner, fading text — animate at
+  least once each, and the per-element cycle grammar. A regression that cut
+  pig's roll to a single play of each would still pass. Owner: whoever makes
+  pig's post-roll cycle count deterministic gets to add the floor.
+- **Trace event TIME** — no trace event records a timestamp in the golden, so
+  a cycle that took ten times as long records identically. Duration is the
+  geometry suite's `timing` channel and the gate watchdog's business; the
+  trace suite is about what happened and in what order, never how long.
+- **Kind-set EQUALITY, and element-count equality** — both floors above are
+  one-directional (see "What each suite pins"). A NEW element kind, or more
+  elements of a recorded kind than the golden has, passes silently. Making
+  either exact would flake on the branch-dependent extras structural mode
+  exists for, and would require re-recording goldens that are otherwise
+  correct. Owner: a re-record is the answer when the drift becomes
+  interesting; today it is 54→55 cards on one scenario.
 - **`will-animate` DOM event VOLUME** — the trace goldens record `play`,
   `active`, `settle`, `gate-open` and `gate-close`; they do *not* record
   `will-animate`. So a change in how often that event fires is structurally
