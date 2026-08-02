@@ -51,8 +51,20 @@ export default defineConfig({
     // Maximum time each action such as `click()` can take
     actionTimeout: 10000,
 
-    // Maximum time for navigation
-    navigationTimeout: 30000,
+    // Maximum time for navigation.
+    //
+    // Deliberately generous, and NOT covered by `test.setTimeout()`. Twenty-three
+    // animation specs raise their own timeout to 180s because a full-game scenario
+    // legitimately takes minutes -- but `test.setTimeout` governs the TEST clock and
+    // leaves navigation on this one, so a `page.goto('/')` still had 30s no matter
+    // what the spec asked for. Under a ten-minute suite run the dev server is warm
+    // but busy, and that was enough to lose one test per five full runs to a bare
+    // navigation timeout with no assertion involved.
+    //
+    // Raising it cannot mask a product regression: a navigation timeout is not an
+    // assertion about behavior, and every real check in these specs runs after the
+    // page is up. A genuinely hung page still fails, just later.
+    navigationTimeout: 60000,
   },
 
   // Configure web server that tests will connect to
