@@ -303,7 +303,7 @@ export async function sampleRawMotion(
   // 0 at document level while 141 ran inside component shadow roots), so
   // every step walks the shadow trees and collects per-element
   // getAnimations() instead.
-  const sampledAnimations: SampledAnimation[] = await page.evaluate(async ([fractions, rootSelector]) => {
+  const sampledAnimations: { samples: SampledAnimation[]; excluded: { props: string; kind: string; tag: string; host: string; durationMs: number }[] } = await page.evaluate(async ([fractions, rootSelector]) => {
     const deepAnimations = (): Animation[] => {
       const out: Animation[] = [];
       const collect = (el: Element) => {
@@ -330,6 +330,48 @@ export async function sampleRawMotion(
       return out;
     };
     const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    // MOTION FILTER. This suite fingerprints MOTION: its channels are
+    // progress, rotation, translation and opacity -- where a thing is and how
+    // visible it is. An animation that touches none of those contributes
+    // nothing to any channel, and was only ever captured because
+    // getAnimations() also returns CSSTransitions and the walk did not
+    // discriminate. Measured: a 280ms `box-shadow` CSSTransition on
+    // boardgame-card's #inner (280 -> 275 on the 25ms grid) was baked into
+    // three debuganimations goldens, and because a transition only exists
+    // when its property actually changed, its presence was a race -- the
+    // single largest source of instability left in this suite.
+    //
+    // The filter is on WHAT IS ANIMATED, never on the animation's class: a
+    // CSSTransition on transform or opacity is real motion and is kept.
+    const MOTION_PROPS = new Set(['transform', 'opacity', 'translate', 'rotate', 'scale']);
+    // getKeyframes() reports properties in camelCase IDL form (boxShadow);
+    // transitionProperty reports CSS form (box-shadow). Normalize to CSS.
+    const toCss = (k: string) => k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+    const animatedProps = (a: Animation): string[] => {
+      // A CSSTransition names exactly the one property it animates.
+      const tp = (a as Animation & { transitionProperty?: string }).transitionProperty;
+      if (typeof tp === 'string' && tp) return [toCss(tp)];
+      // CSSAnimations and script-created animations: read the keyframes.
+      const kfs = (a.effect as KeyframeEffect | null)?.getKeyframes?.() ?? [];
+      const out = new Set<string>();
+      for (const kf of kfs) {
+        for (const k of Object.keys(kf)) {
+          if (k === 'offset' || k === 'computedOffset' || k === 'easing' || k === 'composite') continue;
+          out.add(toCss(k));
+        }
+      }
+      return Array.from(out);
+    };
+    const isMotion = (a: Animation): boolean => {
+      const props = animatedProps(a);
+      // UNCLASSIFIABLE => KEEP. Never widen the filter on a guess: dropping a
+      // real curve silently weakens the golden, whereas keeping an extra one
+      // fails loudly and visibly. Anything landing here is reported below.
+      if (props.length === 0) return true;
+      return props.some((p) => MOTION_PROPS.has(p));
+    };
+
     const targetOf = (a: Animation): HTMLElement | null => {
       const t = (a.effect as KeyframeEffect | null)?.target;
       return t instanceof HTMLElement ? t : null;
@@ -354,6 +396,9 @@ export async function sampleRawMotion(
     // to the next wave), and accumulate the UNION of curves until no new
     // animations appear for ~1s. Requires at least one wave overall.
     const samplesAll: WaveEntry[] = [];
+    // Non-motion animations dropped by the filter, reported to the caller so
+    // an exclusion is always visible rather than silent.
+    const excluded: { props: string; kind: string; tag: string; host: string; durationMs: number }[] = [];
     const sampled = new Set<Animation>();
     const overallDeadline = performance.now() + 20000;
     let sawAny = false;
@@ -377,8 +422,27 @@ export async function sampleRawMotion(
       const wave = deepAnimations().filter((a) => !sampled.has(a));
       if (wave.length === 0) { await frame(); continue; }
       sawAny = true;
+      // Bookkeeping (`sampled`), pause and finish stay over the FULL wave.
+      // Filtering at discovery instead would make every excluded animation
+      // look fresh on each iteration, so the quiet window would never close
+      // and the loop would spin until its 20s deadline; and not finishing
+      // them would change which later cohorts the choreography chains to.
+      // Only the SAMPLED set is narrowed.
       for (const a of wave) { sampled.add(a); a.pause(); }
-      const waveEntries: WaveEntry[] = wave.map((a) => {
+      for (const a of wave) {
+        if (!isMotion(a)) {
+          const el = targetOf(a);
+          excluded.push({
+            props: animatedProps(a).join(',') || '(unclassifiable)',
+            kind: a.constructor?.name ?? '?',
+            tag: el?.tagName?.toLowerCase() ?? '?',
+            host: (el?.getRootNode?.() as ShadowRoot | null)?.host?.tagName?.toLowerCase() ?? 'document',
+            durationMs: Number(a.effect?.getComputedTiming()?.activeDuration ?? 0),
+          });
+        }
+      }
+      const motionWave = wave.filter(isMotion);
+      const waveEntries: WaveEntry[] = motionWave.map((a) => {
         const t = a.effect?.getComputedTiming();
         return {
           samples: [],
@@ -387,12 +451,12 @@ export async function sampleRawMotion(
         };
       });
       for (const frac of fractions) {
-        for (const a of wave) {
+        for (const a of motionWave) {
           const t = a.effect?.getComputedTiming();
           const total = Number(t?.delay ?? 0) + Number(t?.activeDuration ?? 0);
           try { a.currentTime = frac * total; } catch { /* infinite or detached */ }
         }
-        wave.forEach((a, i) => {
+        motionWave.forEach((a, i) => {
           const el = targetOf(a);
           if (!el) return;
           const r = el.getBoundingClientRect();
@@ -410,9 +474,15 @@ export async function sampleRawMotion(
       samplesAll.push(...waveEntries);
       quietSince = performance.now();
     }
-    return samplesAll;
+    return { samples: samplesAll, excluded };
   }, [FRACTIONS, options.rootSelector ?? null] as [number[], string | null]);
-  return sampledAnimations;
+  // Set PARITY_DEBUG_EXCLUDED=1 to see exactly what the motion filter
+  // dropped -- the first thing to check if a golden is missing a curve.
+  if (process.env.PARITY_DEBUG_EXCLUDED && sampledAnimations.excluded.length) {
+    console.log('[geometry] motion filter excluded:',
+      JSON.stringify(sampledAnimations.excluded, null, 1));
+  }
+  return sampledAnimations.samples;
 }
 
 // The fingerprint of an already-sampled run, at the harness's fractions.

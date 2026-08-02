@@ -46,6 +46,22 @@ Phase 1 before/after anchors — full-game flows can't drive them
 deterministically). The die roll is deliberately NOT one of them; see the
 ledger entry below.
 
+**The sampler captures MOTION ONLY, on purpose.** `getAnimations()` also
+returns `CSSTransition`s for purely cosmetic properties, and this suite's
+channels are progress/rotation/translation/opacity — where a thing is and how
+visible it is. An animation touching none of those contributes nothing to any
+channel, so `sampleRawMotion` keeps an animation only if it animates
+`transform`, `opacity`, `translate`, `rotate` or `scale`. The filter is on
+WHAT IS ANIMATED, never on the animation's class: a `CSSTransition` on
+`transform` or `opacity` is real motion and IS captured. This is not a
+coverage gap to be "fixed" by deleting the filter — a `box-shadow` transition
+on `boardgame-card` used to be captured, and because a transition only exists
+when its property actually changed, its presence was a race that destabilized
+three goldens. If a curve you expect is missing, run with
+`PARITY_DEBUG_EXCLUDED=1` to see exactly what the filter dropped and why,
+before changing anything. An animation whose properties cannot be determined
+is KEPT, never dropped on a guess.
+
 Per curve, five channels:
 
 | Channel | What it is | Null when |
