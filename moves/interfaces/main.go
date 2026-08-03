@@ -207,6 +207,32 @@ type SeatedPlayerActivator interface {
 	ActivatesSeatedPlayers() bool
 }
 
+// EmptySeatActivator should be implemented for moves that clear the inactive
+// flag on a seat that NOBODY IS SITTING IN. [moves.ActivateEmptySeat] does that
+// by definition, and [moves.ActivateInactivePlayer] does it as a side effect of
+// activating every inactive player. [moves.ActivateFilledSeat] deliberately
+// does not: it is the always-legal activation that is safe to pair with
+// [moves.InactivateEmptySeat].
+//
+// The framework looks for this interface at boot, paired with
+// [EmptySeatInactivator]: a game that configures both capabilities with either
+// one always legal has an infinite fix-up loop, because each undoes the other
+// and both are auto-proposed. See moves.InactivateEmptySeat's
+// ValidConfiguration.
+type EmptySeatActivator interface {
+	ActivatesEmptySeats() bool
+}
+
+// EmptySeatInactivator should be implemented for moves that set the inactive
+// flag on a seat that nobody is sitting in, so the round does not wait on a
+// player who does not exist. [moves.InactivateEmptySeat] implements it, and so
+// does any move embedding it.
+//
+// This is the other half of the boot check described on [EmptySeatActivator].
+type EmptySeatInactivator interface {
+	InactivatesEmptySeats() bool
+}
+
 // CurrentPlayerMover should be implemented for moves that are gated on the
 // game's current player, returning true from IsCurrentPlayerMove().
 // [moves.CurrentPlayer] implements it, so any move embedding it -- at any depth

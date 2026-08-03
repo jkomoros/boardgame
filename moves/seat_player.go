@@ -479,6 +479,12 @@ func (i *InactivateEmptySeat) Apply(state boardgame.State) error {
 	return nil
 }
 
+// InactivatesEmptySeats returns true: closing empty seats for the round is the
+// entire point of this move. Implements interfaces.EmptySeatInactivator.
+func (i *InactivateEmptySeat) InactivatesEmptySeats() bool {
+	return true
+}
+
 // ValidConfiguration checks that player states implement interfaces.Seater and
 // interfaces.PlayerInactiver.
 func (i *InactivateEmptySeat) ValidConfiguration(exampleState boardgame.State) error {
@@ -559,6 +565,13 @@ func (a *ActivateEmptySeat) ValidConfiguration(exampleState boardgame.State) err
 		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
 	}
 	return requirePlayerInactiver(exampleState)
+}
+
+// ActivatesEmptySeats returns true: activating empty seats is the entire point
+// of this move. Implements interfaces.EmptySeatActivator, which pairs with
+// InactivateEmptySeat's boot check.
+func (a *ActivateEmptySeat) ActivatesEmptySeats() bool {
+	return true
 }
 
 // FallbackHelpText returns a description of the move.

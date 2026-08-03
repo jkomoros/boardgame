@@ -190,6 +190,16 @@ func (a *ActivateInactivePlayer) ActivatesSeatedPlayers() bool {
 	return true
 }
 
+// ActivatesEmptySeats returns true: this move is the union of
+// ActivateFilledSeat and ActivateEmptySeat, so it reopens empty seats as a side
+// effect of activating everyone. That is precisely the property this move's own
+// doc comment warns about, and implementing
+// interfaces.EmptySeatActivator is what turns that warning into
+// InactivateEmptySeat's boot check.
+func (a *ActivateInactivePlayer) ActivatesEmptySeats() bool {
+	return true
+}
+
 // DefaultsForState sets TargetPlayerIndex to the next player who is currently
 // marked as inactive, according to interfaces.PlayerInactiver.
 func (a *ActivateInactivePlayer) DefaultsForState(state boardgame.ImmutableState) {

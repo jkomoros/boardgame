@@ -438,6 +438,34 @@ func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
 	return boardgame.LegalStackConstraintsCheck(state, srcName, dstName)
 }
 
+/*
+InstalledUnrestricted reports whether this move was installed with neither a
+legal-phase restriction (WithLegalPhases, AddForPhase) nor a move progression
+(WithLegalMoveProgression, AddOrderedForPhase). Such a move is a candidate at
+every point of every phase, because neither of the two clauses of Default.Legal
+that narrow WHEN a move applies can ever reject it.
+
+This is NOT "this move is always legal": Default.Legal also runs the stack
+constraint check, subclasses add their own conditions, and declared
+preconditions may reject it. It answers the narrower question of installed
+SCOPE, which is what framework code needs when it has to reason about whether
+two moves can be candidates at the same moment.
+
+Exported because the core boardgame package consults it structurally at boot --
+it cannot import moves -- in exactly the way base.IsFixUp consults IsFixUp. See
+validateEmptySeatActivationLoop in behavior_pairings.go, the one caller.
+*/
+func (d *Default) InstalledUnrestricted() bool {
+	if len(d.legalPhases()) > 0 {
+		return false
+	}
+	progressioner, ok := d.Info().ConcreteMove().(legalMoveProgressioner)
+	if ok && progressioner.legalMoveProgression() != nil {
+		return false
+	}
+	return true
+}
+
 func (d *Default) legalPhases() []enum.EnumKey {
 	val := d.CustomConfiguration()[configPropLegalPhases]
 	keys, ok := val.([]enum.EnumKey)
