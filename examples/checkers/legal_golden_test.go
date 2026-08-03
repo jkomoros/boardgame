@@ -72,18 +72,18 @@ func legacyLegalMoveMoveToken(m *moveMoveToken, state boardgame.ImmutableState, 
 	}
 
 	currentPlayer := state.CurrentPlayerIndex()
-	targetPlayerIndex := m.TargetPlayerIndex.EnsureValid(state)
+	targetPlayerIndex := legacyEnsureValid(m.TargetPlayerIndex, state)
 
-	if !targetPlayerIndex.Valid(state) {
+	if !legacyValid(targetPlayerIndex, state) {
 		return errors.New("The specified target player is not valid")
 	}
 	if targetPlayerIndex < 0 {
 		return errors.New("The specified target player is not valid")
 	}
-	if !targetPlayerIndex.Equivalent(currentPlayer) {
+	if !legacyEquivalent(targetPlayerIndex, currentPlayer) {
 		return errors.New("it's not your turn")
 	}
-	if !targetPlayerIndex.Equivalent(proposer) {
+	if !legacyEquivalent(targetPlayerIndex, proposer) {
 		return errors.New("it's not your turn")
 	}
 
@@ -751,4 +751,74 @@ func TestGoldenLegalMovePlaceToken(t *testing.T) {
 			})
 		}
 	}
+}
+
+
+/**************************************************
+ *
+ * The framework primitives, RESTATED rather than called
+ *
+ **************************************************/
+
+/*
+A mutation pass found this file blind to exactly the bug class it was written
+to guard against. Sabotaging `PlayerIndex.EnsureValid` so that it ALWAYS
+retargets -- the failure mode found four times on this branch, where a helper
+quietly answers about a different player rather than rejecting -- left the
+legal-golden tests here GREEN, along with blackjack's and checkers'. Only
+memory's and tictactoe's failed.
+
+The reason is structural. The legacy oracle is meant to be an INDEPENDENT
+statement of what the move used to do, and it called `EnsureValid`,
+`Equivalent` and `Valid` -- the framework's own primitives, the same ones the
+migrated move calls. A mutation of any of them moves the oracle and the
+subject in lockstep, so the comparison stays true no matter what either says.
+That is "expected value derived from the same expression the implementation
+uses", in the one place the branch could least afford it.
+
+So the oracle now restates them, from the doc comments on state.go. `Next` is
+still borrowed, because it is not what the oracle is comparing against and
+writing out the active-player skip would be a second implementation to keep
+correct; if it ever becomes the thing under test it needs the same treatment.
+*/
+
+// legacyValid restates PlayerIndex.Valid.
+func legacyValid(p boardgame.PlayerIndex, state boardgame.ImmutableState) bool {
+	if p == boardgame.AdminPlayerIndex || p == boardgame.ObserverPlayerIndex || p == boardgame.AnyPlayerIndex {
+		return true
+	}
+	if state == nil {
+		return false
+	}
+	if p < 0 || int(p) >= len(state.ImmutablePlayerStates()) {
+		return false
+	}
+	return state.Manager().Delegate().PlayerMayBeActive(state.ImmutablePlayerStates()[p])
+}
+
+// legacyEnsureValid restates PlayerIndex.EnsureValid: a valid index is kept,
+// and an invalid one is replaced by the NEXT valid player -- which is the
+// silent retargeting that makes this helper worth restating.
+func legacyEnsureValid(p boardgame.PlayerIndex, state boardgame.ImmutableState) boardgame.PlayerIndex {
+	if legacyValid(p, state) {
+		return p
+	}
+	return p.Next(state)
+}
+
+// legacyEquivalent restates PlayerIndex.Equivalent.
+func legacyEquivalent(p boardgame.PlayerIndex, other boardgame.PlayerIndex) bool {
+	if p < boardgame.AnyPlayerIndex || other < boardgame.AnyPlayerIndex {
+		return false
+	}
+	if p == boardgame.ObserverPlayerIndex || other == boardgame.ObserverPlayerIndex {
+		return false
+	}
+	if p == boardgame.AdminPlayerIndex || other == boardgame.AdminPlayerIndex {
+		return true
+	}
+	if p == boardgame.AnyPlayerIndex || other == boardgame.AnyPlayerIndex {
+		return true
+	}
+	return p == other
 }
