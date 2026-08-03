@@ -930,6 +930,10 @@ describe('simulateRoll retries the die that landed badly, not the throw', () => 
     }
   });
 
+  // ~18.5s on an idle machine, and the only test in the repo over three
+  // seconds. It is named in SLOW_TESTS in `scripts/test-budget.mjs` with a
+  // 60s budget; every other test gets 10s. Renaming it without updating that
+  // map will fail it, which is the direction to fail in.
   it('stops throwing a tray that is not getting any better', () => {
     // The cost assertion, in throws and physics steps rather than milliseconds
     // so it says the same thing on every machine. Twenty-five d20 in this tray
