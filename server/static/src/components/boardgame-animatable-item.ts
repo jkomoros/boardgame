@@ -111,8 +111,13 @@ export class BoardgameAnimatableItem extends LitElement {
   // Unregisters from the SAME registry found at connect time (never
   // re-walks here: at disconnect this element may already be unparented,
   // so the walk could no longer reach the ancestor that registered it).
-  // Always call super, and always last, mirroring other overrides in this
-  // codebase that release resources before yielding to the base class.
+  // Always call super. It goes last HERE because the unregister above needs
+  // the registry this element found at connect time -- not because that is the
+  // house style: a scan of the thirteen disconnectedCallback overrides in src/
+  // found ten that super-call first, so the claim this comment used to make
+  // about "mirroring other overrides in this codebase" was simply false.
+  // lifecycle-super-calls.test.ts enforces THAT super is called, in both
+  // callbacks, and deliberately does not pick a side on where it goes here.
   //
   // Orphan-settle safety net (#714 Phase 2 gate finding): a BOARD/stack
   // component gets beforeOrphaned() (force-settle) from the animator before
