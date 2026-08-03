@@ -69,14 +69,41 @@ const defaultBudget = Number.isFinite(configured) && configured > 0
 const scaleRaw = Number.parseFloat(process.env.UNIT_TEST_BUDGET_SCALE ?? '');
 const scale = Number.isFinite(scaleRaw) && scaleRaw > 0 ? scaleRaw : 1;
 
-let startedAt = 0;
+/**
+ * Proof that this module was actually loaded, asserted by
+ * `src/test-budget-installed.test.ts`.
+ *
+ * The budget is installed by a single `--import` in one npm script, so deleting
+ * eleven characters from package.json silently stops every check in this file
+ * without failing anything. Every other guard on this branch carries a premise
+ * check; this one is the guard, and it had none. The marker is set at load, so
+ * the assertion reads the runtime state rather than parsing package.json --
+ * a flag can be present in the text and still not be in effect.
+ */
+globalThis.__unitTestBudgetInstalled = true;
 
-beforeEach(() => {
-  startedAt = performance.now();
+/**
+ * Start time per test, keyed by the test's own context object.
+ *
+ * This was a single module-level variable until 2026-08-03, which any test with
+ * subtests silently defeated: node runs a parent's `afterEach` AFTER all its
+ * children, so the last child's `beforeEach` had already overwritten the shared
+ * variable and the parent was measured from the child's start. Verified with a
+ * parent that slept twelve seconds around its subtests -- it passed a ten-second
+ * budget, while an identical test without subtests failed correctly.
+ */
+const startedAt = new WeakMap();
+
+beforeEach((t) => {
+  startedAt.set(t, performance.now());
 });
 
 afterEach((t) => {
-  const elapsed = performance.now() - startedAt;
+  const began = startedAt.get(t);
+  // A test whose `beforeEach` never ran cannot be measured. Skip rather than
+  // report a nonsense elapsed time computed against NaN or zero.
+  if (began === undefined) return;
+  const elapsed = performance.now() - began;
   const budget = (SLOW_TESTS.get(t.name) ?? defaultBudget) * scale;
   if (elapsed <= budget) return;
   throw new Error(

@@ -44,7 +44,7 @@ jobs:
       - name: Reject reachable Go vulnerabilities
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
 
-  focused-go:
+  go:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -61,8 +61,14 @@ jobs:
       - name: Install pinned client dependencies used by static-build tests
         working-directory: server/static
         run: npm ci
-      - name: Test generators, static assembly, scaffold, API, and move contracts
-        run: go test ./boardgame-util/... ./server/api . ./moves
+      # This ran a hand-picked list of four package trees until 2026-08-03,
+      # which left 22 test-bearing packages -- behaviors, legal, constraints,
+      # enum, every storage backend, and all eight example games -- running
+      # only when a human remembered to. The whole suite is 18 seconds; the
+      # narrow list was not buying anything, and it was silently excluding the
+      # boot-error and legality tests this branch added.
+      - name: Test everything
+        run: go test ./...
 
   strict-client:
     runs-on: ubuntu-latest
