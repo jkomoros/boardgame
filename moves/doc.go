@@ -186,7 +186,9 @@ best way to do it. See the tutorial in the main package for more.
 
 # Declarative Legality
 
-[Default], [CurrentPlayer], [FixUp], [FixUpMulti], and [StartPhase] support an additional, optional way to express
+[CurrentPlayer], [Default], [DrawToPlayer], [FixUp], [FixUpMulti],
+[MoveComponentToSlot], [RecordCurrentPlayerChoice] and [StartPhase] support an
+additional, optional way to express
 a move's legality: instead of (or alongside) overriding Legal(), pass
 [WithLegalPreconditions] to auto.Config with one or more legal.Spec values built
 from the [legal] package's predicate catalog:
