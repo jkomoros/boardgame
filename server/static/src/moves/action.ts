@@ -309,7 +309,13 @@ export class MoveSubmissionGate {
   }
 }
 
-type InputFor<K extends string, Inputs extends Record<string, object>> =
+/**
+ * The input object a given move name carries, falling back to an open record
+ * for names the game's input map does not describe. Exported because
+ * `createMoveAction`'s return type is written in terms of it: without it, no
+ * generic wrapper around `createMoveAction` can name what it returns.
+ */
+export type InputFor<K extends string, Inputs extends Record<string, object>> =
   K extends keyof Inputs ? Inputs[K] : Record<string, unknown>;
 
 type ExactInput<Expected extends object, Actual extends Expected> = Actual &

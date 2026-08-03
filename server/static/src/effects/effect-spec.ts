@@ -178,9 +178,14 @@ export type EffectTransitionContext<S, MN extends string = string> =
   }>);
 
 type CommonOptions = Omit<EffectBase, 'kind'>;
-type BurstOptions = CommonOptions & Pick<BurstEffectSpec, 'at'>;
-type PulseOptions = CommonOptions & Pick<PulseEffectSpec, 'at'>;
-type TravelOptions = CommonOptions & Pick<TravelEffectSpec, 'from' | 'to'>;
+// Each recipe widens `advanced` with its own knobs, so its options have to be
+// the spec minus `kind` -- composing `CommonOptions` with just the positional
+// fields silently narrowed `advanced` back to the base palette/durationMs and
+// made the per-recipe knobs (count, spreadPx, scale, arcPx, sizePx) impossible
+// to pass, even though the returned spec type promises them.
+type BurstOptions = Omit<BurstEffectSpec, 'kind'>;
+type PulseOptions = Omit<PulseEffectSpec, 'kind'>;
+type TravelOptions = Omit<TravelEffectSpec, 'kind'>;
 type TrailOptions = Omit<TrailEffectSpec, 'kind'>;
 type DecorateMotionOptions = Omit<DecorateMotionEffectSpec, 'kind' | 'effects'> & Readonly<{
   trail?: Omit<TrailOptions, 'subject'> | true;
