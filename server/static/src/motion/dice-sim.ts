@@ -615,7 +615,7 @@ const SEED_BITS = new DataView(new ArrayBuffer(8));
  * in nearly the same direction. Every seed-dependent quantity in this module is
  * drawn in the first dozen outputs, so that is exactly the regime that matters.
  */
-function createRandom(seed: number): () => number {
+export function createRandom(seed: number): () => number {
   SEED_BITS.setFloat64(0, seed + 0, true);
   let state = mix32(SEED_BITS.getUint32(0, true) ^ 0x9e3779b9);
   state = mix32(state ^ SEED_BITS.getUint32(4, true));
@@ -678,7 +678,19 @@ function randomUnitQuat(random: () => number, out: Float64Array): void {
 // Matrices (row-major 3x3) and quaternions (x, y, z, w)
 // ---------------------------------------------------------------------------
 
-function invertMatrix(m: readonly number[]): number[] {
+/**
+ * The inverse of a row-major 3x3, by cofactors.
+ *
+ * Exported for its own test. Every die this module builds has a DIAGONAL
+ * inertia tensor -- a d20's principal axes are the coordinate axes -- so
+ * running this through `simulationSolid` exercises three of its nine entries
+ * and none of the off-diagonal cofactors at all. A mutation pass confirmed
+ * that: flipping the sign inside `m[2] * m[7] - m[1] * m[8]` changes no die's
+ * behaviour whatsoever. The general case is reachable (any solid whose
+ * principal axes are not the coordinate axes) and the routine is written for
+ * it, so it is tested for it, directly.
+ */
+export function invertMatrix(m: readonly number[]): number[] {
   const c00 = m[4] * m[8] - m[5] * m[7];
   const c01 = m[5] * m[6] - m[3] * m[8];
   const c02 = m[3] * m[7] - m[4] * m[6];

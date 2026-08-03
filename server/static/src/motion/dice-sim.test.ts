@@ -4,6 +4,8 @@ import { describe, it } from 'node:test';
 import { dieGeometry, type DieGeometry, type Quat, type Vec3 } from './die-geometry.ts';
 import { presentedFaceIndex, resolveReadingRule, WORLD_UP } from './die-faces.ts';
 import {
+  createRandom,
+  invertMatrix,
   simulateRoll,
   simulateRollWithDiagnostics,
   simulationSolid,
@@ -210,6 +212,55 @@ describe('simulateRoll determinism', () => {
         simulateRoll(config(6, a)),
         `seeds ${a} and ${b} produced the same roll`,
       );
+    }
+  });
+
+  /**
+   * THE ONLY GOLDEN IN THIS FILE, and the only kind of assertion that can pin
+   * what this module promises.
+   *
+   * Everything else here is self-consistency: the same seed gives the same
+   * roll, different seeds give different rolls. A mutation pass showed what
+   * that misses -- flipping `SEED_BITS.setFloat64(0, seed, true)` to
+   * big-endian, and both of splitmix32's mixing constants, all survive the
+   * whole suite. The simulator stays perfectly deterministic under every one
+   * of them; it just gives a different roll for every seed in existence.
+   *
+   * That is not a cosmetic difference. `SEED_BITS`'s own doc comment says the
+   * contract is that a seed reproduces the same throw on ANY engine, which is
+   * what makes a mid-roll remount replay the throw the player was already
+   * watching rather than re-throwing the die in front of them. A promise about
+   * exact values can only be checked against exact values.
+   *
+   * These are recorded output, not derived: run `createRandom(seed)` and read
+   * off the first four draws. If a deliberate change to the hash or the
+   * generator moves them, re-record them -- and understand that every existing
+   * (component, roll count) pair now animates differently.
+   */
+  it('draws the same numbers for a seed on every engine, not merely the same twice', () => {
+    const recorded: readonly (readonly [number, readonly number[]])[] = [
+      [0, [
+        0.37798238825052977, 0.46722195693291724,
+        0.59038596227765083, 0.14082617964595556]],
+      [1, [
+        0.84180420963093638, 0.19428353826515377,
+        0.18770713079720736, 0.63653368689119816]],
+      // Above 2^32 and negative-fractional: the two halves of the double and
+      // the sign bit all have to reach the hash for these to be right.
+      [2 ** 32 + 1, [
+        0.08893075492233038, 0.97322338935919106,
+        0.81797412713058293, 0.68580845557153225]],
+      [-1.5, [
+        0.51497101550921798, 0.59633277123793960,
+        0.65631084423512220, 0.98455903423018754]],
+    ];
+    for (const [seed, expected] of recorded) {
+      const random = createRandom(seed);
+      const drawn = expected.map(() => random());
+      // Exactly equal, not within a tolerance: mulberry32 is all integer ops
+      // and one final divide, so a conforming engine reproduces these bit for
+      // bit or the contract is not being kept.
+      assert.deepStrictEqual(drawn, [...expected], `seed ${seed}`);
     }
   });
 
@@ -428,6 +479,82 @@ describe('simulationSolid', () => {
     }
   });
 
+  /**
+   * `inverseInertia` is what turns every torque in the solver into an angular
+   * acceleration, so an inverse that is quietly wrong makes every die tumble
+   * wrongly -- and a mutation pass found the whole 3x3 inverse unpinned: ten
+   * survivors across every cofactor, the determinant, and two `* inverse` ->
+   * `/ inverse`. Nothing failed, because the end-state invariants this file
+   * asserts (the dice stay in the tray, they come to rest, they land on a
+   * face) are all satisfied by a physically wrong but still-convergent solver.
+   *
+   * The pin is the definition, which needs no fixture and no tolerance
+   * argument: M M^-1 = I. Both matrices are already public on
+   * `SimulationSolid`, so this asks the module for its own answer and checks
+   * it against arithmetic written out here.
+   */
+  it('hands back an inverse inertia tensor that really is the inverse', () => {
+    for (const faceCount of SHAPES) {
+      const { inertia, inverseInertia } = simulationSolid(dieGeometry(faceCount));
+      assert.equal(inertia.length, 9);
+      assert.equal(inverseInertia.length, 9);
+      // Both orders: M M^-1 and M^-1 M. A single cofactor sign error can leave
+      // one of the two looking like the identity along the diagonal.
+      for (const [left, right, order] of [
+        [inertia, inverseInertia, 'M M^-1'],
+        [inverseInertia, inertia, 'M^-1 M'],
+      ] as const) {
+        for (let row = 0; row < 3; row++) {
+          for (let column = 0; column < 3; column++) {
+            let sum = 0;
+            for (let k = 0; k < 3; k++) sum += left[row * 3 + k] * right[k * 3 + column];
+            const wanted = row === column ? 1 : 0;
+            assert.ok(
+              Math.abs(sum - wanted) < 1e-9,
+              `d${faceCount} ${order}[${row}][${column}] = ${sum}, expected ${wanted}`,
+            );
+          }
+        }
+      }
+    }
+
+    // ...AND THE GENERAL CASE, which no die reaches. Every die's inertia
+    // tensor is diagonal, so the loop above exercises three of the routine's
+    // nine entries and not one off-diagonal cofactor: a mutation pass found
+    // that flipping the sign inside `m[2] * m[7] - m[1] * m[8]`, or dropping a
+    // term from the determinant, changes no die's behaviour at all. The
+    // routine is written for the general case, so it is asked the general
+    // case here: a full symmetric tensor (the inertia of a solid whose
+    // principal axes are not the coordinate axes) and a non-symmetric matrix
+    // with a negative determinant, which no cancellation can flatter.
+    const general = [
+      [4, 1, -2, 1, 5, 0.5, -2, 0.5, 6],
+      [2, -3, 1, 4, 0, -2, -1, 5, 3],
+      [1, 2, 3, 0, 1, 4, 5, 6, 0],
+    ];
+    for (const m of general) {
+      const inverse = invertMatrix(m);
+      for (const [left, right, order] of [
+        [m, inverse, 'M M^-1'],
+        [inverse, m, 'M^-1 M'],
+      ] as const) {
+        for (let row = 0; row < 3; row++) {
+          for (let column = 0; column < 3; column++) {
+            let sum = 0;
+            for (let k = 0; k < 3; k++) sum += left[row * 3 + k] * right[k * 3 + column];
+            const wanted = row === column ? 1 : 0;
+            assert.ok(
+              Math.abs(sum - wanted) < 1e-9,
+              `[${m}] ${order}[${row}][${column}] = ${sum}, expected ${wanted}`,
+            );
+          }
+        }
+      }
+    }
+    // A singular matrix is a broken solid, not a zero-division to propagate.
+    assert.throws(() => invertMatrix([1, 2, 3, 2, 4, 6, 7, 8, 9]), /singular/);
+  });
+
   it('bounds every vertex by every plane of the closed surface', () => {
     for (const faceCount of SHAPES) {
       const solid = simulationSolid(dieGeometry(faceCount));
@@ -532,6 +659,22 @@ describe('simulateRoll settling', () => {
         assert.ok(
           diagnostics.restingDrift < MAX_RESTING_DRIFT_DEGREES,
           `${label}: the roll stopped ${diagnostics.restingDrift.toFixed(2)} degrees short of where the die settled`,
+        );
+        // And the integrator stopped because it DETECTED rest, not because it
+        // ran out of budget. `let resting = true` -> `false` in the rest scan
+        // survived a mutation pass: it disables the early exit outright, so
+        // every roll integrates the full five seconds, and nothing failed --
+        // the dice really have stopped by then and the trim cuts the dead tail
+        // anyway. A change that makes the simulator do the maximum amount of
+        // work on every roll forever should not be invisible.
+        //
+        // The cap is MAX_SECONDS * PHYSICS_HZ = 5 * 1080, restated here the
+        // way the cost test below restates it. Measured over these shapes and
+        // seeds the worst roll takes 2412 steps, so this is ~1.6x the observed
+        // worst and 0.7x the cap; a roll that hits the cap is at 5400.
+        assert.ok(
+          diagnostics.stepCount < 5 * 1080 * 0.7,
+          `${label}: integrated ${diagnostics.stepCount} steps of a ${5 * 1080} budget, i.e. it never detected rest`,
         );
         let spin = 0;
         let speed = 0;
