@@ -9,14 +9,10 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-// Note: these are also duplicated in server/api/storage.go
-const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
-const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
-
 // gameWillSeatPlayer returns true if the game will ever potentially call
 // moves.SeatPlayer or not.
 func gameWillSeatPlayer(state boardgame.ImmutableState) bool {
-	willSeatPlayer := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), willSeatPlayerRendevousDataType)
+	willSeatPlayer := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), interfaces.WillSeatPlayerRendezvousDataType)
 	if willSeatPlayer == nil {
 		return false
 	}
@@ -152,7 +148,7 @@ func (s *SeatPlayer) IsSeatPlayerMove() bool {
 // closed" -- naming a seat that is not the one being reported. ActivateInactivePlayer
 // skips EnsureValid for the same reason and says so in its own comment.
 func (s *SeatPlayer) playerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
-	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), playerToSeatRendevousDataType)
+	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), interfaces.PlayerToSeatRendezvousDataType)
 	if playerToSeatGeneric == nil {
 		return boardgame.AdminPlayerIndex
 	}
@@ -193,7 +189,7 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	if err := s.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
-	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), playerToSeatRendevousDataType)
+	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), interfaces.PlayerToSeatRendezvousDataType)
 	if playerToSeatGeneric == nil {
 		return errors.New("No player to seat")
 	}
@@ -234,7 +230,7 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 func (s *SeatPlayer) Apply(state boardgame.State) error {
 
 	//Make sure server will get a signal when the player is seated.
-	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), playerToSeatRendevousDataType)
+	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), interfaces.PlayerToSeatRendezvousDataType)
 	if playerToSeatGeneric == nil {
 		return errors.New("No player to seat")
 	}

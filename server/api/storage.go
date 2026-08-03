@@ -5,16 +5,13 @@ import (
 	"time"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
-
-// Note: these are also duplicated in moves/seat_player.go
-const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
-const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
 
 // StorageManager extends the base boardgame.StorageManager with a few more
 // methods necessary to make server work. When creating a new Server, you need
@@ -220,12 +217,12 @@ func (s *Server) emitSystemChatMessage(gameID string, version int, body string) 
 // FetchInjectedDataForGame is where the server signals to SeatPlayer that
 // there's a player to be seated.
 func (s *ServerStorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
-	if dataType == willSeatPlayerRendevousDataType {
+	if dataType == interfaces.WillSeatPlayerRendezvousDataType {
 		//This data type should return anything non-nil to signal, yes, I am a
 		//context that will pass you SeatPlayers when there's a player to seat.
 		return true
 	}
-	if dataType == playerToSeatRendevousDataType {
+	if dataType == interfaces.PlayerToSeatRendezvousDataType {
 		s.server.mu.Lock()
 		slice := s.server.playersToSeat[gameID]
 		var result interface{}

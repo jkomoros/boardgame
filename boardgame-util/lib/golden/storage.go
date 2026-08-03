@@ -9,10 +9,6 @@ import (
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 )
 
-// Note: these are also duplicated in moves/seat_player.go and server/api/storage.go
-const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
-const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
-
 // by defining the variable type, we verify we actually do implement the
 // interface. Since it flows via FetchInejctedData, there's no type
 // checking otherwise.
@@ -72,7 +68,7 @@ func (s *storageManager) gameWillSeatPlayer(gameID string) bool {
 }
 
 func (s *storageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
-	if dataType == willSeatPlayerRendevousDataType {
+	if dataType == interfaces.WillSeatPlayerRendezvousDataType {
 		//This data type should return anything non-nil to signal, yes, I am a
 		//context that will pass you SeatPlayers when there's a player to seat.
 
@@ -80,7 +76,7 @@ func (s *storageManager) FetchInjectedDataForGame(gameID string, dataType string
 		//true.
 		return s.gameWillSeatPlayer(gameID)
 	}
-	if dataType == playerToSeatRendevousDataType {
+	if dataType == interfaces.PlayerToSeatRendezvousDataType {
 		if s.playerToSeat == nil {
 			//Return an untyped nil
 			return nil

@@ -12,6 +12,39 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
+/*
+The two keys the seating rendezvous is conducted over.
+
+moves.SeatPlayer cannot call the server; the server cannot call moves. They meet
+through boardgame.StorageManager.FetchInjectedDataForGame, keyed by these
+strings, and a string is all the contract there is -- FetchInjectedDataForGame
+returns nil for an unrecognized key, with no error anywhere. If one side's copy
+ever differed from another's, SeatPlayer would report "No player to seat" and
+gameWillSeatPlayer would answer false forever, so InactivateEmptySeat would
+never apply and no player would ever be seated.
+
+They lived as three separate literals -- in moves/seat_player.go,
+server/api/storage.go and boardgame-util/lib/golden/storage.go -- kept in sync
+by a comment on each. The comments had already drifted: two of the three named
+only ONE other copy, because the golden one was added later and nobody updated
+them. A comment is not a constraint. All three sites now reference these, so a
+change to the protocol is a change to one line and cannot be partially applied.
+
+This package is where they belong because it is the one package all three
+already import, and because these ARE the interface between a move and its
+server, exactly like the interfaces around them.
+*/
+const (
+	// PlayerToSeatRendezvousDataType keys the SeatPlayerSignaler the server
+	// injects when it has a specific player waiting for a seat.
+	PlayerToSeatRendezvousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
+	// WillSeatPlayerRendezvousDataType keys the bool the server injects to tell
+	// game logic that SeatPlayer will ever be proposed at all. Moves that would
+	// misbehave in a context where nobody is ever seated -- InactivateEmptySeat
+	// would close every seat in the game -- consult it before applying.
+	WillSeatPlayerRendezvousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
+)
+
 // AllowMultipleInProgression is an interface that moves should implement if they
 // want to affirmatively communicate to [moves.Default] that in a move progression
 // is it legal to apply multiple. If the move does not implement this interface

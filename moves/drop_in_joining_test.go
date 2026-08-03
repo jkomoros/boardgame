@@ -9,6 +9,7 @@ import (
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/storage/memory"
 )
 
@@ -181,9 +182,9 @@ func (d *dropInStorage) FetchInjectedDataForGame(gameID string, dataType string)
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	switch dataType {
-	case willSeatPlayerRendevousDataType:
+	case interfaces.WillSeatPlayerRendezvousDataType:
 		return true
-	case playerToSeatRendevousDataType:
+	case interfaces.PlayerToSeatRendezvousDataType:
 		if d.seat == nil {
 			return nil
 		}

@@ -116,3 +116,75 @@ func TestGoLocalUsesRequestedCache(t *testing.T) {
 		t.Fatalf("cache directory was not created: %v", err)
 	}
 }
+
+/*
+TestSeatingRendezvousKeysHaveOneDefinition keeps the seating rendezvous keys
+from growing a fifth copy.
+
+moves.SeatPlayer and the server meet through
+StorageManager.FetchInjectedDataForGame, keyed by two strings, and a string is
+the whole contract: an unrecognized key returns nil with no error anywhere, so a
+drifted copy means "No player to seat" forever and no diagnostic pointing at
+why.
+
+They had FOUR independent literal definitions -- moves/seat_player.go,
+server/api/storage.go, boardgame-util/lib/golden/storage.go, and
+examples/werewolf/main_test.go -- held together by a comment on three of them.
+The comments had already drifted: two named exactly one other copy, and none
+named the werewolf one. That is what a comment-enforced invariant looks like
+after a while.
+
+There is now one definition, in moves/interfaces, which all four sites import.
+That makes drift a compile error rather than a silent runtime nothing -- but
+only for the copies that exist today. This test is what stops a fifth from being
+typed out fresh: the literal may appear only where it is defined.
+*/
+func TestSeatingRendezvousKeysHaveOneDefinition(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git executable is unavailable")
+	}
+
+	// The definition site, relative to the repo root this test runs from.
+	const definitionFile = "moves/interfaces/main.go"
+
+	// Assembled from pieces rather than written whole, so that this file does
+	// not itself become a fifth copy of the literal it is policing.
+	const keyPrefix = "github.com/jkomoros/boardgame/server/api"
+	keys := []string{
+		keyPrefix + ".PlayerToSeat",
+		keyPrefix + ".WillSeatPlayer",
+	}
+
+	out, err := exec.Command("git", "ls-files", "-z", "*.go").Output()
+	if err != nil {
+		t.Fatalf("list tracked Go files: %v", err)
+	}
+
+	sawDefinition := false
+	for _, path := range strings.Split(string(out), "\x00") {
+		if path == "" {
+			continue
+		}
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			//A tracked file we cannot read is not this test's business.
+			continue
+		}
+		text := string(contents)
+
+		for _, key := range keys {
+			if !strings.Contains(text, `"`+key+`"`) {
+				continue
+			}
+			if filepath.ToSlash(path) == definitionFile {
+				sawDefinition = true
+				continue
+			}
+			t.Errorf("%v spells the seating rendezvous key %q as a literal. Use interfaces.PlayerToSeatRendezvousDataType / interfaces.WillSeatPlayerRendezvousDataType instead: this key is a protocol between moves.SeatPlayer and the server, FetchInjectedDataForGame answers nil for an unrecognized one with no error anywhere, and four independent copies of it is how it got here.", path, key)
+		}
+	}
+
+	if !sawDefinition {
+		t.Fatalf("no tracked file spells the rendezvous keys, not even %v. Either the definition moved (point this test at it) or the keys changed; leaving this unmatched would make the test pass without checking anything.", definitionFile)
+	}
+}

@@ -15,8 +15,6 @@ import (
 // with a server-like context. Duplicated from moves/seat_player.go (they
 // are also duplicated in server/api and lib/golden — the framework keys
 // them by string, not by exported const).
-const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
-const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
 
 type testPlayerToSeat struct {
 	index boardgame.PlayerIndex
@@ -37,10 +35,10 @@ type testStorageManager struct {
 }
 
 func (s *testStorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
-	if dataType == willSeatPlayerRendevousDataType {
+	if dataType == interfaces.WillSeatPlayerRendezvousDataType {
 		return true
 	}
-	if dataType == playerToSeatRendevousDataType {
+	if dataType == interfaces.PlayerToSeatRendezvousDataType {
 		if s.playerToSeat == nil {
 			return nil
 		}
