@@ -102,9 +102,9 @@ const CONTENT_MARGIN = 0.72;
  * in that is depends on how sharp the corner is (a d4's 60-degree triangle
  * corner needs more inset than a barrel face's right angle).
  */
-const CORNER_INSET_MIN = 0.18;
-const CORNER_INSET_MAX = 0.65;
-const CORNER_INSET_STEPS = 12;
+export const CORNER_INSET_MIN = 0.18;
+export const CORNER_INSET_MAX = 0.65;
+export const CORNER_INSET_STEPS = 12;
 
 /**
  * A corner mark never grows past this fraction of the centre content square.
@@ -121,7 +121,7 @@ const CORNER_INSET_STEPS = 12;
  * and a d4's into its centre numeral, measured. `die-shape.spec.ts` pins both
  * ends of that: nothing smaller than 6px, and nothing outside its own facet.
  */
-const CORNER_MAX_SIZE = 0.6;
+export const CORNER_MAX_SIZE = 0.6;
 
 /** A point in a facet's own plane; `a` is along the box's local x, `b` its y. */
 export interface PlanePoint {

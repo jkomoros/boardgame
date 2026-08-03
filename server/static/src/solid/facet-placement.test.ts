@@ -13,6 +13,9 @@ import {
 } from '../motion/die-geometry.ts';
 import { toScreen } from './screen-frame.ts';
 import {
+  CORNER_INSET_MAX,
+  CORNER_INSET_MIN,
+  CORNER_MAX_SIZE,
   facetPlacement,
   inscribedSquareHalfSide,
   solidFacets,
@@ -367,11 +370,22 @@ test('each corner mark sits nearest the vertex whose value it carries', () => {
     const unitsToEm = 0.5 / geometry.nominalRadius;
     for (const [faceIndex, face] of geometry.faces.entries()) {
       const parsed = parseStyle(facetPlacement(face, unitsToEm, null).style);
-      const { corners } = facetPlacement(face, unitsToEm, face.polygon.map((_, i) => i));
+      const { corners, contentSize } = facetPlacement(
+        face, unitsToEm, face.polygon.map((_, i) => i));
       // Distances in em, not in the box's percentages, which are anisotropic on
       // a barrel's 2.7:1 side face.
       const inEm = (px: number, py: number) =>
         [(px - 0.5) * parsed.width, (py - 0.5) * parsed.height] as const;
+      // The content square is centred on the facet's centroid, so its own box
+      // gives the centroid without re-deriving it.
+      const content = {
+        left: parsed.vars['--content-left'],
+        top: parsed.vars['--content-top'],
+        width: parsed.vars['--content-width'],
+        height: parsed.vars['--content-height'],
+      };
+      const centroid = inEm(
+        (content.left + content.width / 2) / 100, (content.top + content.height / 2) / 100);
       corners.forEach((corner, index) => {
         assert.equal(corner.faceIndex, index, 'the mark keeps its vertex index');
         const [cx, cy] = inEm(
@@ -388,9 +402,64 @@ test('each corner mark sits nearest the vertex whose value it carries', () => {
           (corner.left + corner.width / 2) / 100,
           (corner.top + corner.height / 2) / 100,
         ), `d${faceCount} face ${faceIndex}: mark ${index} escaped the facet`);
+
+        // HOW BIG, AND HOW FAR IN. Everything above this line is structure --
+        // a mark exists, it is the right one, its centre is on the facet --
+        // and a mutation pass found that structure was all this file ever
+        // asserted: `Math.min(best.size, cap)` -> `Math.max` survived, as did
+        // moving `CORNER_INSET_MAX` from 0.65 to 1.65 and `CORNER_MAX_SIZE`
+        // from 0.6 to 1.6. Those constants carry a measurement log in their
+        // doc comment (a 6.5px font on a 100px d7, marks that collide at the
+        // next step up) and none of it was pinned by anything.
+        assert.ok(
+          corner.size <= contentSize * CORNER_MAX_SIZE + 1e-9,
+          `d${faceCount} face ${faceIndex}: mark ${index} is ${corner.size}em, over the ${
+            contentSize * CORNER_MAX_SIZE}em cap`,
+        );
+        // How far in from its vertex, as a fraction of the vertex-to-centroid
+        // line -- which is exactly the quantity the inset scan walks.
+        const [vx, vy] = inEm(...parsed.clip[index]);
+        const inset = Math.hypot(cx - vx, cy - vy)
+          / Math.hypot(centroid[0] - vx, centroid[1] - vy);
+        assert.ok(
+          inset >= CORNER_INSET_MIN - 1e-6 && inset <= CORNER_INSET_MAX + 1e-6,
+          `d${faceCount} face ${faceIndex}: mark ${index} sits ${inset} of the way to the centroid`,
+        );
       });
+
+      // THE POSITIVE CONTROL for the size bound. On all three of these shapes
+      // the inset scan finds a square bigger than the cap at every vertex, so
+      // the cap is what decides the mark's size -- every mark comes out at
+      // exactly `contentSize * CORNER_MAX_SIZE`. That is what makes the bound
+      // above a bound rather than a ceiling nothing reaches, and it is what
+      // makes `Math.min(best.size, cap)` -> `Math.max` observable at all.
+      assert.ok(
+        corners.every(
+          (corner) => Math.abs(corner.size - contentSize * CORNER_MAX_SIZE) < 1e-9),
+        `d${faceCount} face ${faceIndex}: the size cap never binds; sizes ${
+          corners.map((corner) => corner.size / contentSize)}`,
+      );
     }
   }
+});
+
+/**
+ * The two bounds of the inset scan, stated in absolute terms rather than
+ * against themselves. `t` is the fraction of the way from a vertex to the
+ * centroid, so `t >= 1` puts a corner mark AT or PAST the centroid -- on the
+ * far side of the facet from the vertex whose value it carries, which makes
+ * `each corner mark sits nearest the vertex whose value it carries` above
+ * unsatisfiable. A mutation pass moved `CORNER_INSET_MAX` to 1.65 and nothing
+ * noticed; the assertion above would move with it, this one does not.
+ */
+test('the corner inset scan stays on the vertex side of the centroid', () => {
+  assert.ok(CORNER_INSET_MIN > 0, `${CORNER_INSET_MIN}: a mark sitting on its vertex has no room`);
+  assert.ok(CORNER_INSET_MIN < CORNER_INSET_MAX, `${CORNER_INSET_MIN} >= ${CORNER_INSET_MAX}`);
+  assert.ok(CORNER_INSET_MAX < 1, `${CORNER_INSET_MAX}: the scan walks past the centroid`);
+  // A corner mark is a fraction of the CENTRE content, never a multiple of it:
+  // at 1.0 the mark is the whole content square and there is nothing left to
+  // put in the middle of the facet.
+  assert.ok(CORNER_MAX_SIZE > 0 && CORNER_MAX_SIZE < 1, `${CORNER_MAX_SIZE}`);
 });
 
 test('solidFacets accepts any structurally compatible surface, not just a die', () => {
