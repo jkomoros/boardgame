@@ -308,3 +308,68 @@ func TestGameAdminGoesToTheFirstSeatedPlayerOnly(t *testing.T) {
 		t.Errorf("player %v was seated first but is not the game admin", firstSeated)
 	}
 }
+
+// baseDelegationDelegate configures ActivateEmptySeat so that its EMBEDDED
+// base's check is the one that fails: the move is legal only in the playing
+// phase, and every game below sits in the gathering phase.
+type baseDelegationDelegate struct {
+	gatheringDelegate
+}
+
+func (b *baseDelegationDelegate) ConfigureMoves() []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(b)
+	return Add(
+		auto.MustConfig(new(SeatPlayer)),
+		auto.MustConfig(new(ActivateEmptySeat),
+			WithLegalPhases(gatheringPhasePlaying),
+		),
+	)
+}
+
+// TestASubclassSurfacesItsBaseClassError covers the framework's central
+// composition mechanism, which a mutation pass found systematically
+// unasserted: `moves/seat_player.go:540` (`a.FixUpMulti.Legal`), `:779`
+// (`c.Default.ValidConfiguration`), and `moves/round_robin.go:254,316` are all
+// a subclass forwarding to its embedded base and propagating the error, and
+// every one of them could be disabled without a test noticing.
+//
+// The shape of the test is the generalizable part: configure the move so the
+// BASE's check is what fails, then assert the subclass hands that failure back
+// rather than reaching its own logic. Here the base is `Default.Legal`'s phase
+// gate, reached through FixUpMulti, and the subclass's own check (a target
+// seat that is unfilled and inactive) would pass.
+func TestASubclassSurfacesItsBaseClassError(t *testing.T) {
+
+	manager, err := boardgame.NewGameManager(&baseDelegationDelegate{}, memory.NewStorageManager())
+	if err != nil {
+		t.Fatal("Couldn't create manager:", err)
+	}
+	game, err := manager.NewGame(2, nil, nil)
+	if err != nil {
+		t.Fatal("Couldn't create game:", err)
+	}
+
+	move := manager.ExampleMoveByName("Activate Empty Seat")
+	if move == nil {
+		t.Fatal("Activate Empty Seat was not configured")
+	}
+	activate, ok := move.(*ActivateEmptySeat)
+	if !ok {
+		t.Fatalf("Activate Empty Seat was a %T", move)
+	}
+
+	state := game.CurrentState()
+
+	//Its own check would pass on this target: seat 0 is unfilled, and every
+	//player of a fresh game is inactive. So anything the move returns comes
+	//from the base.
+	activate.DefaultsForState(state)
+
+	err = move.Legal(state, boardgame.AdminPlayerIndex)
+	if err == nil {
+		t.Fatal("a move legal only in the playing phase was legal in the gathering phase")
+	}
+	if !strings.Contains(err.Error(), "phase") {
+		t.Errorf("the move was refused, but not by its base's phase check: %v", err)
+	}
+}
