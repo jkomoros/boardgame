@@ -322,3 +322,53 @@ func recursiveListFilesForFileContents(basePath, prefix string, contents FileCon
 	return nil
 
 }
+
+// TestPostProcessOverlappingPatterns pins the one property that makes
+// postProcess safe to extend: its replacement patterns overlap, so the result
+// must not depend on which one is considered first.
+//
+// `[[BACKTICK]]}` -- which the tutorial renderer emits for every
+// `label=${`Player ${index + 1}`}` -- contains `[[BACKTICK]]` starting at 0 and
+// `]]}` starting at 10. Applying them in the wrong order eats the backtick
+// marker's tail and emits TypeScript that does not parse. The old
+// map-and-loop implementation chose that order by Go's randomized map
+// iteration, so the tutorial golden failed roughly one run in four.
+//
+// Each case runs many times because the bug this guards against is
+// probabilistic: a single pass of a nondeterministic implementation is green
+// three times out of four, which is exactly why it survived unnoticed.
+func TestPostProcessOverlappingPatterns(t *testing.T) {
+
+	tests := []struct {
+		description string
+		in          string
+		expected    string
+	}{
+		{
+			"backtick marker immediately followed by a closing brace",
+			"label=${[[BACKTICK]]Player ${index + 1}[[BACKTICK]]}",
+			"label=${`Player ${index + 1}`}",
+		},
+		{
+			"a bare template action needs no backticks",
+			"{[[.Name]]}",
+			"{{.Name}}",
+		},
+		{
+			"each pattern alone",
+			"[[BACKTICK]] {[[ ]]}",
+			"` {{ }}",
+		},
+	}
+
+	for _, test := range tests {
+		first := string(postProcess([]byte(test.in)))
+		assert.For(t, test.description).ThatActual(first).Equals(test.expected)
+		for i := 0; i < 500; i++ {
+			again := string(postProcess([]byte(test.in)))
+			if again != first {
+				t.Fatalf("%s: postProcess is not deterministic -- iteration %d gave %q, first pass gave %q", test.description, i, again, first)
+			}
+		}
+	}
+}

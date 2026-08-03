@@ -89,22 +89,39 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 	return result, nil
 }
 
-var postProcessReplacements = map[string]string{
-	"[[BACKTICK]]": "`",
-	"{[[":          "{{",
-	"]]}":          "}}",
-}
+// backtickMarker stands in for a literal backtick, which cannot be written
+// inside the raw string literals these templates live in.
+//
+// It MUST be resolved before braceMarkers, because the brace markers straddle
+// it in both directions. The tutorial renderer emits
+//
+//	label=${[[BACKTICK]]Player ${index + 1}[[BACKTICK]]}
+//
+// where `{[[` overlaps the marker's head at offset 7 and `]]}` overlaps its
+// tail at the other end. Resolve the marker first and neither brace pattern
+// is present at all; resolve either brace pattern first and it eats half the
+// marker, emitting TypeScript that does not parse.
+//
+// Until 2026-08-03 all three lived in one map that postProcess ranged over,
+// so Go's randomized map iteration picked the order and the tutorial stub came
+// out corrupt in roughly a quarter of runs. Ordering is the fix; a single
+// strings.Replacer is NOT, because its left-to-right scan reaches `{[[` at
+// offset 7 before the marker at offset 8, and argument order breaks ties only
+// between patterns matching at the same position.
+var backtickMarker = strings.NewReplacer("[[BACKTICK]]", "`")
+
+// braceMarkers stand in for the delimiters of the template engine that
+// expands these files, which would otherwise be consumed during expansion.
+// These two cannot overlap each other, so one pass settles them.
+var braceMarkers = strings.NewReplacer(
+	"{[[", "{{",
+	"]]}", "}}",
+)
 
 // postProcess to replace hard-to-escape literals moves.With different results.
 func postProcess(in []byte) []byte {
 
-	str := string(in)
-
-	for find, replace := range postProcessReplacements {
-		str = strings.Replace(str, find, replace, -1)
-	}
-
-	return []byte(str)
+	return []byte(braceMarkers.Replace(backtickMarker.Replace(string(in))))
 
 }
 
