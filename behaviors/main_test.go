@@ -82,8 +82,42 @@ func TestPlayerOrderBehavior(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNotNil()
 
 	// ReversePlayerOrder also fails when not connected (requires container)
-	// Note: can't fully test Set/Reverse/PlayerOrder validation without a
-	// real game state, which requires the moves package.
+	// Note: the CONNECTED half of this -- the permutation validator, which is
+	// this behavior's entire job -- is in moves/player_order_test.go, because
+	// exercising it needs a real game state and building one here would be an
+	// import cycle. A mutation pass found the validator scored 14%: every
+	// guard in buildAndValidateOrder survived, including all five mutants on
+	// the range check, so nothing distinguished a behavior that rejects a
+	// malformed order from one that accepts anything.
+}
+
+// TestPlayerOrderBehaviorUnconnected covers the one branch of
+// buildAndValidateOrder that does NOT need a game: an OrderSlice on a behavior
+// nobody has connected yet is converted without validation, deliberately, so
+// a half-built state can still be read. Disabling the `container == nil`
+// branch (or inverting it) survived a mutation pass because no test ever set
+// an OrderSlice on an unconnected behavior.
+func TestPlayerOrderBehaviorUnconnected(t *testing.T) {
+	p := &PlayerOrderBehavior{OrderSlice: []int{2, 0, 1}}
+
+	order := p.PlayerOrder()
+
+	// Converted, in order, and NOT validated -- there is nothing to validate
+	// against without a state to count players from.
+	assert.For(t).ThatActual(len(order)).Equals(3)
+	for i, want := range []boardgame.PlayerIndex{2, 0, 1} {
+		assert.For(t, i).ThatActual(order[i]).Equals(want)
+	}
+
+	// The result is a copy: a caller that mangles it must not mangle the
+	// cache the next caller reads.
+	order[0] = 99
+	assert.For(t).ThatActual(p.PlayerOrder()[0]).Equals(boardgame.PlayerIndex(2))
+
+	// An out-of-range value is passed through untouched here rather than
+	// rejected, because "out of range" has no meaning yet.
+	unchecked := &PlayerOrderBehavior{OrderSlice: []int{7}}
+	assert.For(t).ThatActual(unchecked.PlayerOrder()[0]).Equals(boardgame.PlayerIndex(7))
 }
 
 func TestDefaultPlayerColor(t *testing.T) {
