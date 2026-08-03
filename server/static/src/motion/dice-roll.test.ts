@@ -382,6 +382,7 @@ test('the entry cap keeps the spread the throws have', () => {
  * to aim at the landed face and that turn is free to point the fall upward.
  */
 test('a roll always enters from above where it lands', () => {
+  const leans: number[] = [];
   for (const { faceCount, seed, scene } of seededScenes(ENTRY_RADIUS_PX)) {
     const entry = travelOf(scene.transform(0));
     // CSS y points down, so entering from above is a negative y offset.
@@ -392,11 +393,39 @@ test('a roll always enters from above where it lands', () => {
     // Leaning is allowed — a die that always fell straight down the screen
     // would read as a lift, not a throw — but only this far off vertical.
     const lean = (Math.atan2(Math.abs(entry[0]), -entry[1]) * 180) / Math.PI;
+    leans.push(lean);
     assert.ok(
       lean <= MAX_ENTRY_LEAN_DEGREES + EMITTED_SLACK,
       `d${faceCount} seed ${seed} enters ${lean} degrees off vertical`,
     );
   }
+  // THE POSITIVE CONTROL. The bound above imports the very constant it bounds
+  // itself by, so on its own it moves with the code and a mutation pass
+  // confirmed it cannot see the constant change at all. What it CAN see is
+  // whether the clamp still runs, and these two lines are what make that
+  // visible — copied from `MAX_ENTRY_OFFSET_DIE_WIDTHS`'s control three tests
+  // up, but stated differently because the two caps clamp differently:
+  //
+  //   - the offset cap is SOFT, so the worst roll lands just under it, and
+  //     `worst > cap * 0.8` is a control that the cap value itself moves.
+  //   - this one is a HARD clamp, so the worst roll lands exactly ON it at
+  //     whatever value it holds; no ratio to the cap can ever fail. So the
+  //     control is on the clamp's two observable effects instead: it fires,
+  //     and it does not fire on everything.
+  //
+  // Deleting the clamp fails the first; a cap small enough to bind on every
+  // roll fails the second. Moving 60 to 61 fails neither, and no unit property
+  // can see that one -- it is a degree of tuning with no consequence the suite
+  // can name. Measured today: 139 of 210 rolls come in at exactly the cap and
+  // 71 under it, i.e. the clamp is load-bearing on two rolls in three.
+  const clamped = leans.filter(
+    (lean) => lean > MAX_ENTRY_LEAN_DEGREES - 1e-3).length;
+  assert.ok(clamped > 0, `the lean cap never binds: worst of ${leans.length} is ${
+    Math.max(...leans)}`);
+  assert.ok(
+    clamped < leans.length,
+    `every one of ${leans.length} rolls enters at exactly the cap, so the cap IS the entry`,
+  );
 });
 
 /**
@@ -405,6 +434,17 @@ test('a roll always enters from above where it lands', () => {
  * point, chosen from the entry frame and then used for every frame — so the
  * path keeps its shape, keeps ending exactly at the origin, and gains no corner
  * for a player to see.
+ *
+ * WALKED BETWEEN THE SAMPLES, NOT JUST ON THEM. Every other `transform(...)`
+ * call in this file lands exactly on a trajectory sample time, where the
+ * interpolation inside `positionAt` degenerates to "return the sample" — so a
+ * mutation pass found thirteen survivors on the five lines that do the lerp:
+ * every sign flip, `samples[low + 1]` -> `samples[low]`, and `/ span` ->
+ * `* span` all left the suite green. That is the die's position on most frames
+ * a player sees, since the bake emits keyframes on a 60Hz grid over samples
+ * ~200ms apart. The probe list below is the fix: sample times AND three points
+ * inside every segment, with the expected position restated here as a plain
+ * lerp rather than read back out of the code under test.
  */
 test('the entry cap is one similarity of the whole path, not a per-frame nudge', () => {
   const geometry = dieGeometry(20);
@@ -425,11 +465,39 @@ test('the entry cap is one similarity of the whole path, not a per-frame nudge',
     posedAt(vec3(position[0] * radiusPx, -position[1] * radiusPx, position[2] * radiusPx))
       .map((value, axis) => value - rest[axis]);
 
+  // Every sample time, plus a quarter, a half and three quarters of the way
+  // through each segment. `probes` states where the die is expected to be at
+  // each of those times: on a sample it is that sample, and in between it is
+  // the straight line between the two — which is what `positionAt` claims to
+  // do, restated here rather than borrowed from it, the same way `rotate`
+  // below restates Rodrigues.
+  const probes: { t: number; position: Vec3 }[] = [];
+  for (let index = 0; index < die.samples.length; index++) {
+    const a = die.samples[index];
+    probes.push({ t: a.t, position: a.position });
+    const b = die.samples[index + 1];
+    if (!b) continue;
+    for (const u of [0.25, 0.5, 0.75]) {
+      probes.push({
+        t: a.t + (b.t - a.t) * u,
+        position: vec3(
+          a.position[0] + (b.position[0] - a.position[0]) * u,
+          a.position[1] + (b.position[1] - a.position[1]) * u,
+          a.position[2] + (b.position[2] - a.position[2]) * u,
+        ),
+      });
+    }
+  }
+  // Nine of the twelve probes are strictly between two samples: if that ever
+  // stops being true the check has quietly gone back to only testing the
+  // sample times, which is the state this test was in.
+  assert.equal(probes.length, 13, `${probes.length} probes`);
+
   let ratio = NaN;
   let turn = NaN;
-  for (const sample of die.samples) {
-    const before = untouched(sample.position);
-    const after = travelOf(scene.transform(sample.t / 600));
+  for (const probe of probes) {
+    const before = untouched(probe.position);
+    const after = travelOf(scene.transform(probe.t / 600));
     const beforeLength = Math.hypot(before[0], before[1], before[2]);
     if (beforeLength < 1e-3) {
       // The resting frame: a similarity fixes the origin, whatever it does.
@@ -440,14 +508,14 @@ test('the entry cap is one similarity of the whole path, not a per-frame nudge',
     // One scale for every frame, all three axes.
     if (Number.isNaN(ratio)) ratio = afterLength / beforeLength;
     assert.ok(Math.abs(afterLength / beforeLength - ratio) < 1e-4,
-      `t=${sample.t}: scaled by ${afterLength / beforeLength}, not ${ratio}`);
+      `t=${probe.t}: scaled by ${afterLength / beforeLength}, not ${ratio}`);
     assert.ok(Math.abs(after[2] - before[2] * ratio) < 1e-4,
-      `t=${sample.t}: depth ${after[2]} is not ${before[2] * ratio}`);
+      `t=${probe.t}: depth ${after[2]} is not ${before[2] * ratio}`);
     // ...and one turn, in the screen plane only.
     const angle = Math.atan2(after[1], after[0]) - Math.atan2(before[1], before[0]);
     const wrapped = Math.atan2(Math.sin(angle), Math.cos(angle));
     if (Number.isNaN(turn)) turn = wrapped;
-    assert.ok(Math.abs(wrapped - turn) < 1e-4, `t=${sample.t}: turned ${wrapped}, not ${turn}`);
+    assert.ok(Math.abs(wrapped - turn) < 1e-4, `t=${probe.t}: turned ${wrapped}, not ${turn}`);
   }
   assert.ok(ratio > 0 && ratio <= 1, `a similarity may only shrink the throw: ${ratio}`);
 });
