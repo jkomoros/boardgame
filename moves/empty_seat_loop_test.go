@@ -211,3 +211,95 @@ func TestEmptySeatActivationCheckAcceptsRealConfigurations(t *testing.T) {
 		})
 	}
 }
+
+/*
+samePhaseLoopDelegate is dropInDelegate's own move list with ONE addition:
+ActivateEmptySeat scoped to dropInPhaseSetUp, the same phase DefaultRoundSetup's
+InactivateEmptySeat runs its progression in.
+
+Neither move is installed unrestricted -- the activator carries a legal phase,
+the inactivator carries a progression -- so the check's original "is either one
+unrestricted" test was silent on this, and the check's own remedy text said to
+"restrict them to phases where they cannot both apply". A creator who followed
+that advice INTO the same phase got no diagnostic at all.
+
+Observed with the check disabled, and with a seating rendezvous injected so
+InactivateEmptySeat actually applies (storage.setSeat, two of four seats
+filled): NewDefaultGame fails with "we recursed deeply in fixup, which implies
+that ProposeFixUp has a move that is always legal" -- boardgame.ErrTooManyFixUps.
+The control matters here: the identical fixture with the activator deleted boots
+clean, so it is the activator doing it and not the trimmed move list.
+
+The activator is legal at every point of the setup phase because it is in no
+progression, which includes the point the progression fires the inactivator at.
+Sharing a phase is exactly as fatal as sharing the whole game.
+*/
+type samePhaseLoopDelegate struct {
+	dropInDelegate
+}
+
+func (g *samePhaseLoopDelegate) ConfigureMoves() []boardgame.MoveConfig {
+	auto := NewAutoConfigurer(g)
+	return Combine(
+		AddForPhase(dropInPhaseSetUp,
+			auto.MustConfig(new(SeatPlayer)),
+			auto.MustConfig(new(ActivateEmptySeat)),
+		),
+		AddForPhase(dropInPhaseNormal,
+			auto.MustConfig(new(SeatPlayer),
+				WithMoveNameSuffix("Mid Game"),
+			),
+			auto.MustConfig(new(ActivateFilledSeat)),
+			auto.MustConfig(new(moveDropInAct),
+				WithMoveName("Drop In Act"),
+			),
+			auto.MustConfig(new(FinishTurn)),
+		),
+		AddOrderedForPhase(dropInPhaseSetUp,
+			DefaultRoundSetup(auto),
+			auto.MustConfig(new(StartPhase),
+				WithPhaseToStart(dropInPhaseNormal, dropInPhaseEnum),
+			),
+		),
+	)
+}
+
+// TestSamePhaseEmptySeatActivationIsABootError covers the shape the check
+// originally missed: both moves restricted, to the SAME phase. The question the
+// check has to answer is not "is either move unrestricted" but "can these two be
+// candidates at the same moment", and phase-scoping two fix-up moves together
+// answers yes.
+func TestSamePhaseEmptySeatActivationIsABootError(t *testing.T) {
+
+	storage := &dropInStorage{StorageManager: memory.NewStorageManager()}
+
+	_, err := boardgame.NewGameManager(&samePhaseLoopDelegate{}, storage)
+	if err == nil {
+		t.Fatal("NewGameManager accepted an activator and an inactivator scoped to the same phase, which recurses until NewDefaultGame fails with ErrTooManyFixUps")
+	}
+
+	message := err.Error()
+
+	//The error must name the phase, or the reader has to guess which of their
+	//AddForPhase blocks is the problem.
+	if !strings.Contains(message, "Set Up") {
+		t.Errorf("the boot error does not name the shared phase, so it does not say which AddForPhase block to go change: %v", message)
+	}
+
+	//It must name the move that is NOT in a progression, since that is the one
+	//that is a candidate at every point of the phase and the one to move.
+	if !strings.Contains(message, "\"Activate Empty Seat\" is not in a move progression") {
+		t.Errorf("the boot error does not identify the move that is loose in the phase, so it does not say which of the two to change: %v", message)
+	}
+
+	//It must NOT claim either move is unrestricted -- both carry restrictions,
+	//and sending the reader to look for a missing phase would waste their time.
+	if strings.Contains(message, "installed unrestricted") {
+		t.Errorf("the boot error blames being installed unrestricted, but both of these moves ARE restricted: %v", message)
+	}
+
+	//The remedy that caused this must not be the remedy offered for it.
+	if !strings.Contains(message, "scoping both to the SAME phase does not help") {
+		t.Errorf("the boot error does not warn against the remedy that produced this configuration: %v", message)
+	}
+}

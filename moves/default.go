@@ -439,31 +439,49 @@ func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
 }
 
 /*
-InstalledUnrestricted reports whether this move was installed with neither a
-legal-phase restriction (WithLegalPhases, AddForPhase) nor a move progression
-(WithLegalMoveProgression, AddOrderedForPhase). Such a move is a candidate at
-every point of every phase, because neither of the two clauses of Default.Legal
-that narrow WHEN a move applies can ever reject it.
+InstalledLegalPhases reports the phases this move was restricted to at install
+time (WithLegalPhases, AddForPhase). An EMPTY result means the move carries no
+phase restriction at all, so it is legal in every phase -- not that it is legal
+in none.
 
-This is NOT "this move is always legal": Default.Legal also runs the stack
-constraint check, subclasses add their own conditions, and declared
-preconditions may reject it. It answers the narrower question of installed
-SCOPE, which is what framework code needs when it has to reason about whether
-two moves can be candidates at the same moment.
+Together with InstalledInProgression this describes a move's installed SCOPE:
+the two clauses of Default.Legal that narrow WHEN a move applies, as opposed to
+whether it applies. That is what framework code needs when it has to reason
+about whether two moves can be candidates at the same moment.
+
+This is NOT "this move is always legal" even when the result is empty:
+Default.Legal also runs the stack constraint check, subclasses add their own
+conditions, and declared preconditions may reject it.
 
 Exported because the core boardgame package consults it structurally at boot --
 it cannot import moves -- in exactly the way base.IsFixUp consults IsFixUp. See
 validateEmptySeatActivationLoop in behavior_pairings.go, the one caller.
 */
-func (d *Default) InstalledUnrestricted() bool {
-	if len(d.legalPhases()) > 0 {
-		return false
+func (d *Default) InstalledLegalPhases() []enum.EnumKey {
+	phases := d.legalPhases()
+	if len(phases) == 0 {
+		return nil
 	}
+	//Copy so a caller cannot reach into this move's stored configuration.
+	result := make([]enum.EnumKey, len(phases))
+	copy(result, phases)
+	return result
+}
+
+/*
+InstalledInProgression reports whether this move was installed as part of an
+ordered move progression (WithLegalMoveProgression, AddOrderedForPhase).
+
+A move in a progression is legal only at its own position in that order, so two
+moves that share a progression cannot be candidates at the same moment. A move
+NOT in one is a candidate at every point of every phase it is legal in, which is
+what makes it able to fight with a progression's moves.
+
+See InstalledLegalPhases for the other half of installed scope.
+*/
+func (d *Default) InstalledInProgression() bool {
 	progressioner, ok := d.Info().ConcreteMove().(legalMoveProgressioner)
-	if ok && progressioner.legalMoveProgression() != nil {
-		return false
-	}
-	return true
+	return ok && progressioner.legalMoveProgression() != nil
 }
 
 func (d *Default) legalPhases() []enum.EnumKey {

@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 )
 
@@ -60,12 +61,75 @@ type emptySeatInactivator interface {
 	InactivatesEmptySeats() bool
 }
 
-// unrestrictedMove matches moves.Default's InstalledUnrestricted, which reports
-// whether a move was installed with neither a legal-phase restriction nor a
-// move progression -- i.e. whether it is a candidate at every point of every
-// phase.
-type unrestrictedMove interface {
-	InstalledUnrestricted() bool
+// scopedMove matches moves.Default's InstalledLegalPhases and
+// InstalledInProgression, which together describe a move's installed SCOPE --
+// the two things that narrow WHEN a move applies. An empty phase list means the
+// move is legal in every phase.
+type scopedMove interface {
+	InstalledLegalPhases() []enum.EnumKey
+	InstalledInProgression() bool
+}
+
+// installedScope is what validateEmptySeatActivationLoop records per candidate
+// move. A move with no phases and no progression is the "unrestricted" case:
+// legal everywhere, ordered against nothing.
+type installedScope struct {
+	name          string
+	phases        []enum.EnumKey
+	inProgression bool
+}
+
+func (s installedScope) unrestricted() bool {
+	return len(s.phases) == 0 && !s.inProgression
+}
+
+// sharedPhase reports a phase in which both moves are legal, and whether one
+// exists. An empty phase list means "every phase", so a move with no
+// restriction shares a phase with everything.
+func sharedPhase(a, b installedScope) (enum.EnumKey, bool) {
+	if len(a.phases) == 0 && len(b.phases) == 0 {
+		return 0, true
+	}
+	if len(a.phases) == 0 {
+		return b.phases[0], true
+	}
+	if len(b.phases) == 0 {
+		return a.phases[0], true
+	}
+	for _, aPhase := range a.phases {
+		for _, bPhase := range b.phases {
+			if aPhase == bPhase {
+				return aPhase, true
+			}
+		}
+	}
+	return 0, false
+}
+
+/*
+canCoincide reports whether two installed moves can both be candidates at the
+same moment, which is the actual question the empty-seat loop check has to
+answer.
+
+Two conditions must hold. They must share a phase -- otherwise the game is never
+in a state where both apply. And at least one of them must NOT be in a move
+progression: a progression makes a move legal only at its own position, so a
+move outside every progression is a candidate at every point of the phases it is
+legal in, including whatever point the progression's move fires at.
+
+When BOTH are in progressions this answers false, which is deliberately
+conservative. moves.DefaultRoundSetup puts its activator and inactivator in ONE
+progression, where they are ordered against each other and provably cannot
+coincide; two moves in DIFFERENT progressions in the same phase would need
+reasoning about progression structure that is not worth building for a case no
+game has yet produced. That is the one gap left, and it is recorded here rather
+than in a comment somewhere else.
+*/
+func canCoincide(a, b installedScope) (enum.EnumKey, bool) {
+	if a.inProgression && b.inProgression {
+		return 0, false
+	}
+	return sharedPhase(a, b)
 }
 
 // validateBehaviorPairings returns an error if the game's state behaviors imply
@@ -176,52 +240,92 @@ invisible here, exactly as intended.
 */
 func validateEmptySeatActivationLoop(exampleState ImmutableState, moveTypes []*moveType) error {
 
-	type installedMove struct {
-		name         string
-		unrestricted bool
-	}
-
-	var activators, inactivators []installedMove
+	var activators, inactivators []installedScope
 
 	for _, mt := range moveTypes {
 		testMove := mt.NewMove(exampleState)
 
-		unrestricted := false
-		if m, ok := testMove.(unrestrictedMove); ok {
-			unrestricted = m.InstalledUnrestricted()
+		scope := installedScope{name: mt.Name()}
+		if m, ok := testMove.(scopedMove); ok {
+			scope.phases = m.InstalledLegalPhases()
+			scope.inProgression = m.InstalledInProgression()
 		}
 
 		if m, ok := testMove.(emptySeatActivator); ok && m.ActivatesEmptySeats() {
-			activators = append(activators, installedMove{mt.Name(), unrestricted})
+			activators = append(activators, scope)
 		}
 		if m, ok := testMove.(emptySeatInactivator); ok && m.InactivatesEmptySeats() {
-			inactivators = append(inactivators, installedMove{mt.Name(), unrestricted})
+			inactivators = append(inactivators, scope)
 		}
 	}
 
 	for _, activator := range activators {
 		for _, inactivator := range inactivators {
-			if !activator.unrestricted && !inactivator.unrestricted {
+			phase, coincide := canCoincide(activator, inactivator)
+			if !coincide {
 				continue
-			}
-
-			culprit := activator.name
-			if inactivator.unrestricted && !activator.unrestricted {
-				culprit = inactivator.name
 			}
 
 			return errors.New("the move \"" + inactivator.name +
 				"\" inactivates empty seats and the move \"" + activator.name +
-				"\" reopens them (it implements interfaces.EmptySeatActivator), but \"" + culprit +
-				"\" is installed unrestricted -- no legal phases and no move progression, so it is a candidate at every point of every phase. " +
+				"\" reopens them (it implements interfaces.EmptySeatActivator), but " +
+				whyTheyCoincide(exampleState, activator, inactivator, phase) + " " +
 				"Both are fix-up moves, which the framework proposes on its own: one would close an empty seat and the other would immediately reopen it. " +
 				"Depending only on the order of your ConfigureMoves entries, that either recurses until NewGame fails with ErrTooManyFixUps, or leaves play " +
 				"starting with empty seats marked ACTIVE, so turn order stops on a seat nobody is sitting in and no one can ever propose its move. " +
-				"Restrict them to phases where they cannot both apply, or put them in a single ordered move progression the way moves.DefaultRoundSetup does. " +
+				"Put them in a single ordered move progression the way moves.DefaultRoundSetup does, or restrict them to phases that do not overlap -- " +
+				"scoping both to the SAME phase does not help, because a move outside a progression is a candidate at every point of the phases it is legal in. " +
 				"If what you wanted was an always-legal activation so a player who joins mid-game can take a turn, use moves.ActivateFilledSeat: " +
 				"it activates only seats a real player is sitting in, so it never fights with an empty-seat inactivator")
 		}
 	}
 
 	return nil
+}
+
+// whyTheyCoincide states, in the creator's own vocabulary, the specific reason
+// this pair can both be candidates at once. The two shapes read very
+// differently to someone looking at their ConfigureMoves, and an error that
+// says "unrestricted" about two phase-scoped moves would send them hunting for
+// something that is not there.
+func whyTheyCoincide(exampleState ImmutableState, activator, inactivator installedScope, phase enum.EnumKey) string {
+
+	if activator.unrestricted() || inactivator.unrestricted() {
+		culprit := activator.name
+		if inactivator.unrestricted() && !activator.unrestricted() {
+			culprit = inactivator.name
+		}
+		return "\"" + culprit + "\" is installed unrestricted -- no legal phases and no move progression, " +
+			"so it is a candidate at every point of every phase."
+	}
+
+	//The move that is NOT in a progression is the one that is a candidate at
+	//every point of the shared phase, so it is the one to go change.
+	loose := activator.name
+	if activator.inProgression {
+		loose = inactivator.name
+	}
+
+	return "both are legal in " + phaseDescription(exampleState, phase) +
+		", and \"" + loose + "\" is not in a move progression there, so it is a candidate at every point of that phase -- " +
+		"including whatever point the other one fires at."
+}
+
+// phaseDescription names the phase if the game has a phase enum that knows it,
+// and degrades to something still readable if not. A boot error that says
+// `phase 3` has sent the reader to count entries in an enum.
+func phaseDescription(exampleState ImmutableState, phase enum.EnumKey) string {
+	manager := exampleState.Manager()
+	if manager == nil {
+		return "the same phase"
+	}
+	phaseEnum := manager.Delegate().PhaseEnum()
+	if phaseEnum == nil {
+		return "the same phase"
+	}
+	name := phaseEnum.String(phase)
+	if name == "" {
+		return "the same phase"
+	}
+	return "the phase \"" + name + "\""
 }
