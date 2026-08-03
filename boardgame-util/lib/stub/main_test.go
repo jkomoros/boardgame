@@ -175,55 +175,6 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 		}
 
 		return
-	} else if name == "tutorial" {
-		//We also do a lot of the expensive building and testing for tutorial,
-		//as a tripline to have tests fail when the underlying libraries have
-		//changed and the stub outputs need updating.
-
-		tempDir, err := os.MkdirTemp("", "TEMP_test_pkg_")
-
-		if err != nil {
-			t.Fatal("Couldn't create temp dir")
-		}
-
-		defer func() {
-			if err := os.RemoveAll(tempDir); err != nil {
-				t.Fatal("couldn't clean up temp testing dir: " + err.Error())
-			}
-		}()
-
-		if err := contents.Save(tempDir, false); err != nil {
-			t.Error("couldn't save contents: " + err.Error())
-		}
-
-		//TODO: this is substantially recreated from right above, which is
-		//error-prone.
-
-		gameDir := filepath.Join(tempDir, opt.Name)
-
-		cmd := exec.Command("go", "generate")
-		cmd.Dir = gameDir
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-
-		if err := cmd.Run(); err != nil {
-			fmt.Println("Couldn't generate: " + err.Error())
-			return
-		}
-
-		//Generated golden; now verify that the generated pass tests. We do
-		//this now so that general tests will be fast; we verify that future
-		//tests output the same thing, and then verify that the thing they
-		//equal was valid when generated.
-		cmd = exec.Command("go", "build")
-		cmd.Dir = filepath.Join(tempDir, opt.Name)
-		buf := &bytes.Buffer{}
-		cmd.Stderr = buf
-
-		if err := cmd.Run(); err != nil {
-			t.Fatal("Didn't build (likely underlying library changed) " + err.Error() + ": " + buf.String())
-		}
-
 	}
 
 	golden, err := fileContentsFromDir(dir)
@@ -232,6 +183,89 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 
 	assert.For(t, name).ThatActual(contents).Equals(golden).ThenDiffOnFail()
 
+}
+
+// TestTutorialStubBuilds is the build tripwire: it regenerates the tutorial
+// stub into a scratch package, runs `go generate` over it and builds it, so
+// that a change to the underlying libraries that leaves the stub uncompilable
+// fails a test rather than waiting for the next person to run the stub.
+//
+// IT USED TO LIVE INSIDE compareGolden, AND THAT MADE THE TUTORIAL GOLDEN
+// DEAD. The tripwire ended with `fmt.Println("Couldn't generate: ...")` and a
+// bare `return` -- a `return` out of compareGolden, before the golden
+// comparison at the bottom of it. And the generate could not do anything BUT
+// fail: the scratch dir came from os.MkdirTemp(""), which is outside any Go
+// module, so `go generate` there died on "go.mod file not found" on every run
+// on every machine. Measured, in an isolated copy: appending a comment to
+// testdata/tutorial/checkers/main.go left `go test` green, while the same
+// change to testdata/default/checkers/main.go turned it red. The tutorial
+// case is the one that exercises EnableTutorials(), i.e. the largest template
+// surface in the package, and it had never compared anything.
+//
+// Two changes keep that from coming back. The comparison is no longer
+// downstream of the build at all -- compareGolden does nothing but compare --
+// and the scratch package is created INSIDE this package's directory, so it
+// inherits the repo's go.mod and `go generate` can actually run.
+func TestTutorialStubBuilds(t *testing.T) {
+
+	//The generated package carries `//go:generate boardgame-util codegen`, so
+	//the tripwire needs that binary. Skipping is loud (`go test -v` prints the
+	//reason) and, unlike the old behaviour, it cannot take a golden
+	//comparison down with it.
+	if _, err := exec.LookPath("boardgame-util"); err != nil {
+		t.Skip("boardgame-util is not on PATH, so `go generate` cannot run; " +
+			"build and install it to exercise this tripwire")
+	}
+
+	opt := &Options{
+		Name:        "checkers",
+		DisplayName: "CHECKERS!!!",
+	}
+	opt.EnableTutorials()
+
+	contents, err := Generate(opt)
+
+	if err != nil {
+		t.Fatal("couldn't generate: " + err.Error())
+	}
+
+	//Inside the package dir, NOT os.MkdirTemp(""): the generated package has
+	//to sit within a module for `go generate` and `go build` to resolve
+	//anything at all. The go tool ignores directories it cannot see as
+	//packages until they are built, and this one is removed either way.
+	tempDir, err := os.MkdirTemp(".", "TEMP_test_pkg_")
+
+	if err != nil {
+		t.Fatal("Couldn't create temp dir: " + err.Error())
+	}
+
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Fatal("couldn't clean up temp testing dir: " + err.Error())
+		}
+	}()
+
+	if err := contents.Save(tempDir, false); err != nil {
+		t.Fatal("couldn't save contents: " + err.Error())
+	}
+
+	gameDir := filepath.Join(tempDir, opt.Name)
+
+	cmd := exec.Command("go", "generate")
+	cmd.Dir = gameDir
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		t.Fatal("`go generate` failed on the generated stub: " + err.Error() + ": " + string(out))
+	}
+
+	cmd = exec.Command("go", "build")
+	cmd.Dir = gameDir
+	out, err = cmd.CombinedOutput()
+
+	if err != nil {
+		t.Fatal("Didn't build (likely underlying library changed) " + err.Error() + ": " + string(out))
+	}
 }
 
 // fileContentsFromDir loads up filecontents from the given path so they can be
