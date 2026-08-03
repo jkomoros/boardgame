@@ -1,0 +1,28 @@
+// Test sources are type-checked by this project, not by tsconfig.json.
+//
+// tsconfig.json drives the `declaration`/`outDir` build (`npm run build` runs
+// `tsc` against it), and emitting .d.ts for *.test.ts is not wanted -- so that
+// project excludes them. For a long time nothing else checked them, which meant
+// no test file was ever type-checked and stale call signatures in tests could
+// pass CI forever.
+//
+// This project closes that hole: same compiler options, no emit, and the test
+// files explicitly included. Production files reachable from a test are pulled
+// in by module resolution, so they are checked here too; the rest are covered
+// by the plain `tsc --noEmit`. `npm run type-check` runs both, and
+// src/type-check-coverage.test.ts fails if any test file falls outside the
+// union of what those projects see.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false
+  },
+  "include": [
+    "src/**/*.test.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

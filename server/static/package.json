@@ -16,7 +16,7 @@
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "dev": "vite",
     "build": "tsc && vite build",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "type-check:strict": "tsc --noEmit -p tsconfig.strict.json",
     "type-check:strict-migration": "tsc --noEmit -p tsconfig.strict-migration.json",
     "type-check:authoring": "node scripts/check-client.mjs --project tsconfig.authoring.json",
