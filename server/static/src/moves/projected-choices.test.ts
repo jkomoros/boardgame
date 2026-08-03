@@ -4,6 +4,7 @@ import {
   MoveSubmissionGate,
   createMoveAction,
   type BoundMoveAction,
+  type MoveActionBuilder,
   type MoveActionService,
   type MoveActionSnapshot,
 } from './action.ts';
@@ -57,9 +58,19 @@ function actions(): <K extends keyof Projections & string>(
     currentLegality: () => ({ legalForPlayer: false, legalForAnyone: true }),
     currentAnimating: () => false, baselineLegalityApplies: true,
   };
-  return (move, input) => {
-    const builder = createMoveAction<keyof Projections & string, Names, Inputs>(move, service, snapshot);
-    return builder.with(input) as BoundMoveAction<typeof move, Projections[typeof move]['input']>;
+  // Written as an explicitly generic function rather than an arrow so each call
+  // is instantiated at its own move name. `createMoveAction` returns a
+  // conditional type ("does this move take input?") that TypeScript cannot
+  // evaluate while `K` is still generic, so the builder arm -- which every move
+  // in this fixture lands on, all three carrying a required field -- has to be
+  // named. This is the narrowest cast that says so.
+  return function make<K extends keyof Projections & string>(
+    move: K,
+    input: Projections[K]['input'],
+  ): BoundMoveAction<K, Projections[K]['input']> {
+    const builder = createMoveAction<K, Names, Inputs>(move, service, snapshot) as
+      MoveActionBuilder<K, Projections[K]['input']>;
+    return builder.with(input);
   };
 }
 

@@ -11,8 +11,15 @@ import {
 
 describe('motion geometry', () => {
   it('captures viewport geometry without retaining a mutable DOMRect', () => {
-    const source = { top: 10, left: 20, width: 30, height: 40 };
-    const element = { getBoundingClientRect: () => source };
+    // A real getBoundingClientRect hands back a whole DOMRect, and the point of
+    // this test is that the capture copies rather than aliases it -- so the stub
+    // has to be a whole, mutable rect, not just the four fields we read back.
+    const source = {
+      top: 10, left: 20, width: 30, height: 40,
+      x: 20, y: 10, bottom: 50, right: 50,
+      toJSON: () => ({}),
+    };
+    const element = { getBoundingClientRect: (): DOMRect => source };
     const captured = captureViewportGeometry(element);
     source.left = 999;
     assert.deepEqual(captured, {

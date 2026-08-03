@@ -46,9 +46,9 @@ function actionFor(
     currentTargetPreviewTransport: () => null,
     currentGate: () => gate,
     nextRequestID: () => 'request-1',
-    validate: (_name, input) => typeof (input as Partial<Inputs['Play']>).Placements === 'string'
+    validate: (name, input) => typeof (input as Partial<Inputs['Play']>).Placements === 'string'
       ? []
-      : [{ field: 'Placements', code: 'invalid-type', message: 'Placements must be a string' }],
+      : [{ moveName: name, field: 'Placements', code: 'invalid-type', message: 'Placements must be a string' }],
     serialize: (_name, input) => ({ Placements: (input as Inputs['Play']).Placements }),
   };
   const snapshotKey = gameSnapshotKey(host);

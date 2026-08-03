@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { resolveStructuralContinuity } from './continuity.ts';
+import type { MotionContinuityResolution } from './continuity.ts';
 
 const exact = (subjectId: string, collectionId: string) => ({ subjectId, collectionId });
 const history = (collectionId: string, lastSeen: Record<string, number>) => ({ collectionId, lastSeen });
+
+// `reason` lives only on the unresolved arm of the union -- a resolved
+// continuity has no reason to give. Reading it therefore has to assert the arm
+// first, which also makes each failure-mode test say out loud that it expects a
+// refusal rather than merely that some `reason` field happens to match.
+function unresolved(
+  result: MotionContinuityResolution,
+): Extract<MotionContinuityResolution, { status: 'unresolved' }> {
+  assert.ok(result.status === 'unresolved',
+    `expected an unresolved continuity, got ${JSON.stringify(result)}`);
+  return result;
+}
 
 describe('structural continuity', () => {
   test('exact identity dominates contradictory history', () => {
@@ -52,15 +65,16 @@ describe('structural continuity', () => {
   });
 
   test('fails closed for duplicate identity, same-stack-only, malformed, and absent evidence', () => {
-    assert.equal(resolveStructuralContinuity('card', [exact('card', 'a'), exact('card', 'b')], [], []).reason,
-      'duplicate-exact-sighting');
-    assert.equal(resolveStructuralContinuity(
+    assert.equal(unresolved(
+      resolveStructuralContinuity('card', [exact('card', 'a'), exact('card', 'b')], [], []),
+    ).reason, 'duplicate-exact-sighting');
+    assert.equal(unresolved(resolveStructuralContinuity(
       'card', [], [exact('card', 'a')], [history('a', { card: 1 })], 'strict',
-    ).reason,
-      'missing-history');
-    assert.equal(resolveStructuralContinuity('card', [], [exact('card', 'a')], [history('b', { card: NaN })]).reason,
-      'invalid-history');
-    assert.equal(resolveStructuralContinuity('card', [], [], []).reason, 'absent-both-sides');
+    )).reason, 'missing-history');
+    assert.equal(unresolved(
+      resolveStructuralContinuity('card', [], [exact('card', 'a')], [history('b', { card: NaN })]),
+    ).reason, 'invalid-history');
+    assert.equal(unresolved(resolveStructuralContinuity('card', [], [], [])).reason, 'absent-both-sides');
   });
 
   test('does not expose history versions or candidate sets', () => {

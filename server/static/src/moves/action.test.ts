@@ -6,6 +6,7 @@ import {
   createMoveAction,
   moveActionReasonSeverity,
   notifyMoveActionLiveStateChanged,
+  type InputFor,
   type MoveActionFor,
   type MoveActionLegality,
   type MoveActionService,
@@ -76,10 +77,13 @@ function context(overrides: ContextOverrides = {}): {
   return { service, snapshot };
 }
 
+// The return type has to be spelled the way `createMoveAction` spells it:
+// with `K` still generic TypeScript cannot see that `InputFor<K, Inputs>` and
+// `Inputs[K]` are the same type, so the shorter form does not assign.
 function action<K extends Names>(
   name: K,
   value = context(),
-): MoveActionFor<K, Inputs[K]> {
+): MoveActionFor<K, InputFor<K, Inputs>> {
   return createMoveAction<K, Names, Inputs>(name, value.service, value.snapshot);
 }
 

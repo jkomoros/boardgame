@@ -10,7 +10,10 @@ import { apiHttpGet, apiHttpPost, movePreview, movePreviewBatch } from './api.ts
 
 interface Captured {
   url: string;
-  opts: { method: string; headers: Record<string, string>; body: string };
+  // `signal` is optional on the wire — only the cancellable callers pass one —
+  // but it is genuinely part of what the client hands to fetch, so the capture
+  // has to model it or the assertions about cancellation cannot be written.
+  opts: { method: string; headers: Record<string, string>; body: string; signal?: AbortSignal };
 }
 
 // stubFetch installs a fake global fetch that captures the one request made and

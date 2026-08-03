@@ -47,6 +47,8 @@ test('chat user maps copy special user IDs without prototype mutation', () => {
   special.UserIDMap = JSON.parse('{"__proto__":0}');
   const decoded = decodeChatReadResponse(special);
   assert.equal(Object.getPrototypeOf(decoded.UserIDMap), Object.prototype);
-  assert.equal(Object.hasOwn(decoded.UserIDMap, '__proto__'), true);
+  // `Object.hasOwn` is ES2022; this project's lib is ES2020, so use the
+  // equivalent call form rather than widening the lib for one assertion.
+  assert.equal(Object.prototype.hasOwnProperty.call(decoded.UserIDMap, '__proto__'), true);
   assert.equal(decoded.UserIDMap['__proto__'], 0);
 });

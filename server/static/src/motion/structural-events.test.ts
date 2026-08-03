@@ -26,8 +26,9 @@ function planned(generation = 7) {
     subjectId: 'card-1',
     presence: 'retained',
     provenance: { kind: 'identity' },
-    from,
-    to,
+    // A draft's path is built from the VIEWPORT pair only; `from`/`to` are the
+    // offset-space geometries and exist here solely to solve the inversion.
+    // Passing them to the draft was silently ignored.
     viewportFrom,
     viewportTo,
     inversion: solveFlipGeometry(from, to, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
@@ -44,7 +45,9 @@ describe('structural motion event compilation', () => {
     const [plannedEvent] = compileStructuralMotionEvents(null, intention);
     assert.equal(plannedEvent.kind, 'planned');
     assert.equal(plannedEvent.id, 'flip:7:0:planned');
-    assert.equal(plannedEvent.kind !== 'generation-settled' && plannedEvent.segmentId, 'flip:7:0');
+    // The `kind` assertion above already narrows the event to the planned arm,
+    // so the old `kind !== 'generation-settled' &&` guard was dead weight.
+    assert.equal(plannedEvent.segmentId, 'flip:7:0');
     assert.equal(plannedEvent.segment, intention.segments[0]);
     assert.deepEqual(compileStructuralMotionEvents(intention, intention), []);
 

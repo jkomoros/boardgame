@@ -3,13 +3,21 @@ import test from 'node:test';
 import { decodeGameInfoResponse, decodeGameVersionResponse } from './server-response.ts';
 
 function game(version = 2) {
+  // The creator's per-game and per-player state blobs are opaque JSON on the
+  // wire. Letting their type be inferred from the empty default fixture pins
+  // them to `{}`, so no test can install a realistic payload into one.
+  const CurrentState: {
+    Version: number;
+    Game: Record<string, unknown>;
+    Players: object[];
+  } = { Version: version, Game: {}, Players: [{}] };
   return {
     Name: 'pig',
     ID: 'GAME',
     NumPlayers: 2,
     Agents: ['', ''],
     Variant: null,
-    CurrentState: { Version: version, Game: {}, Players: [{}] },
+    CurrentState,
     ActiveTimers: {},
     Version: version,
     CurrentPlayerIndex: 0,
@@ -19,9 +27,17 @@ function game(version = 2) {
 }
 
 function info() {
+  // Every Chest member is optional on the wire and several tests swap the whole
+  // Chest for a richer one; the inferred literal type of the default fixture
+  // would make Decks and Constants mandatory.
+  const Chest: {
+    Decks?: unknown;
+    Enums?: Record<string, unknown>;
+    Constants?: unknown;
+  } = { Decks: null, Enums: {}, Constants: null };
   return {
     Status: 'Success',
-    Chest: { Decks: null, Enums: {}, Constants: null },
+    Chest,
     Players: [{ IsEmpty: false, IsAgent: false, DisplayName: 'Ada' }],
     HasEmptySlots: true,
     GameOpen: true,
