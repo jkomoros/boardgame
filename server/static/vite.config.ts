@@ -27,12 +27,17 @@ export default defineConfig({
   // just incomplete, which is the failure mode of any hand-maintained
   // allowlist.
   //
-  // So this is now the WHOLE set of bare specifiers imported anywhere under
+  // So this is the WHOLE set of bare specifiers imported by client code under
   // `src/` or `examples/*/client/`, not the subset someone happened to hit.
   // Listing a specifier the crawl would have found anyway costs nothing.
-  // Regenerate with:
-  //   grep -rhoE "from '(lit[^']*|@material/web[^']*|redux[^']*|pwa-helpers[^']*)'" \
-  //     examples/*/client/ server/static/src/ | sort -u
+  //
+  // DO NOT hand-maintain this. `src/vite-optimize-deps.test.ts` derives the set
+  // from the source and fails naming any specifier that is missing or stale --
+  // which is how the last three below were found. The grep recipe that used to
+  // live here was hardcoded to four package prefixes, so `reselect`,
+  // `reselect-tools/src` and `firebase/compat/app` were invisible to the very
+  // recipe offered for regenerating the list. A hand-maintained allowlist plus
+  // a hand-maintained way to regenerate it is two copies of the same mistake.
   optimizeDeps: {
     include: [
       'lit',
@@ -42,17 +47,29 @@ export default defineConfig({
       'lit/directives/repeat.js',
       'lit/directives/style-map.js',
       'lit/directives/when.js',
+      '@material/web/button/filled-button.js',
+      '@material/web/button/outlined-button.js',
       '@material/web/checkbox/checkbox.js',
+      '@material/web/chips/assist-chip.js',
       '@material/web/dialog/dialog.js',
+      '@material/web/icon/icon.js',
+      '@material/web/iconbutton/icon-button.js',
+      '@material/web/progress/linear-progress.js',
       '@material/web/radio/radio.js',
       '@material/web/select/filled-select.js',
+      '@material/web/select/select-option.js',
       '@material/web/slider/slider.js',
       '@material/web/switch/switch.js',
+      '@material/web/textfield/filled-text-field.js',
       'pwa-helpers/connect-mixin.js',
       'pwa-helpers/lazy-reducer-enhancer.js',
       'pwa-helpers/router.js',
       'redux',
       'redux-thunk',
+      'firebase/compat/app',
+      'firebase/compat/auth',
+      'reselect',
+      'reselect-tools/src',
     ],
   },
   build: {
