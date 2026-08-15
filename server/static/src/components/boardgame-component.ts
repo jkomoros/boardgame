@@ -204,8 +204,27 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   @property({ type: Number })
   index = 0;
 
+  /**
+   * The component this host stands for, assigned by the stack.
+   *
+   * `undefined` rather than `null`, and the difference is the difference
+   * between "nobody has said anything about an item" and "there is
+   * deliberately no item here". `_itemChanged` treats the second as a SPACER --
+   * `visibility: hidden`, and on a card also `noContent` and `faceUp = false` --
+   * which is exactly right for an empty slot of a sized stack, and exactly
+   * wrong for a card somebody wrote in their own template.
+   *
+   * It used to default to `null`, and a class field's initializer goes through
+   * the reactive setter, so EVERY host reported `item` as changed on its first
+   * update and ran the empty-slot path. Inside a stack that is invisible: the
+   * stack assigns the real item before the first paint. Outside one it meant a
+   * plain `<boardgame-card face-up>` in a game's own markup rendered
+   * `visibility: hidden` with its face suppressed and its `face-up` silently
+   * reset -- which is a large part of why `darwin` drew its cards, its deck
+   * back and its food token as bespoke `<div>`s instead.
+   */
   @property({ type: Object })
-  item: any = null;
+  item: any = undefined;
 
   // reflect: true is LOAD-BEARING. This Lit property shadows the native
   // Element.id accessor; without reflection, `ele.id = x` stores the value

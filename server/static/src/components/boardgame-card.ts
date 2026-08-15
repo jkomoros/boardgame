@@ -1,7 +1,8 @@
 import { BoardgameComponent } from './boardgame-component.js';
-import { html, css, TemplateResult } from 'lit';
-import { property, query } from 'lit/decorators.js';
+import { html, css, nothing, TemplateResult } from 'lit';
+import { property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { artLayerStyle, isArtFit, type ArtFit } from './component-art.js';
 import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
 import type { VisualMotionTrackInput } from '../motion/component-track.js';
@@ -199,6 +200,202 @@ export class BoardgameCard extends BoardgameComponent {
         border-radius: var(--card-effective-border-radius);
       }
 
+      /*
+       * THE FACE, which is the half of a card this component never had.
+       *
+       * boardgame-card shipped the chrome -- face-up, rotated, the aspect
+       * ratio, the back slot -- and a bare centred slot for the face. Three
+       * games built the rest by hand, three different ways, and every one of
+       * them rediscovered THIS box: something that fills the card, that content
+       * can be pinned to the top, the middle and the bottom of.
+       *
+       *   - a button.card with 'grid-template-rows: auto auto 1fr', a
+       *     radial-gradient corner pip, and an art band bled past the padding
+       *     by 'width: calc(100% + 1.1rem); margin: -.4rem -.55rem 0'
+       *   - a whole separate LitElement whose root rule is
+       *     'position: absolute; height: 100%; width: 100%; top: 0; left: 0'
+       *     followed by a 'flex: 1' middle and a 'flex-direction: row' bottom
+       *   - '.card-face { width: 100%; height: 100%; display: grid }' with an
+       *     'inset 0 0 0 4px' box-shadow standing in for a printed frame
+       *
+       * ## Why the padding is on the REGIONS and not here
+       *
+       * #top-rank, #bottom-rank and #center-rank are absolutely positioned, and
+       * their containing block is the nearest positioned ancestor -- which, now
+       * that this element exists, is #face rather than #front. Padding here
+       * would move all three, and the classic card must render
+       * pixel-identically to what it rendered before the face regions existed.
+       * 'inset: 0' with no padding keeps that box exactly where it was; #center
+       * and #footer carry the inset instead, and they contain only slotted
+       * content. The regions are 'position: static' for the same reason.
+       *
+       * ## The rows
+       *
+       * Art, centre, footer, and every one of them names its row explicitly.
+       *
+       * AUTO-PLACEMENT IS WRONG HERE, and silently: a 'display: none' art band
+       * is not a grid item at all, so auto-placement slides the centre up into
+       * row 1 -- the 'auto' row -- and the card's whole middle collapses to the
+       * height of its text. Measured: a 67px face with a 25px centre floating
+       * at the top of it. Naming the rows is what makes the empty cases lay out
+       * like the full one.
+       *
+       * The art row is a PERCENTAGE of the face, so it has to be a track and
+       * not a height on the item: a percentage height on a grid item resolves
+       * against its grid AREA, which in an 'auto' row is indefinite, so it
+       * computed to zero and took the art with it. The track resolves against
+       * the grid container, which has a definite height because '#face' is
+       * absolutely positioned with 'inset: 0'.
+       *
+       * The middle row is 'minmax(0, 1fr)' rather than '1fr' because a grid
+       * row's automatic minimum is its content's min-content size, so a long
+       * trait name in the centre would otherwise push the footer off a 100px
+       * card instead of wrapping inside it.
+       *
+       * The corner is out of flow on purpose: a cost or a rank in the corner of
+       * a real card overlaps the art, and a corner that consumed a row would
+       * shorten the art band for every card that has one.
+       */
+      #face {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-rows: 0 minmax(0, 1fr) auto;
+        /* Proportional to the card's DRAWN width, which is
+           --default-component-width: #inner is exactly that wide and is then
+           scaled as a whole by --component-effective-scale. Sizing from
+           --component-effective-width instead would apply the scale twice. */
+        font-size: var(--card-face-font-size, calc(var(--default-component-width) * 0.13));
+        line-height: 1.15;
+        color: var(--card-ink-color, #1c2b22);
+        text-align: center;
+        min-width: 0;
+        /*
+         * The printed frame, as a TOKEN rather than only as ::part(face).
+         *
+         * ::part is the obvious escape hatch and it does not reach here: a
+         * stack builds its component hosts inside its OWN shadow root, so a
+         * game's 'boardgame-card::part(face)' rule has no card in scope to
+         * match -- measured on sequenceforge, whose inset gold frame computed
+         * to 'none' on every card. A custom property inherits through both
+         * boundaries, so this is the hatch that actually works from a renderer.
+         */
+        box-shadow: var(--card-face-shadow, none);
+      }
+
+      /*
+       * The art band, and the reason a game no longer needs negative margins.
+       *
+       * It is a grid row of #face, which has no padding, so the art already
+       * runs to all three card edges it touches. The bleed the games hand-rolled
+       * was only ever compensating for padding they had put on the face
+       * themselves.
+       */
+      #face.has-art {
+        grid-template-rows: var(--card-art-height, 45%) minmax(0, 1fr) auto;
+      }
+
+      #art-band {
+        grid-row: 1;
+        overflow: hidden;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      /* An absent band must occupy no row at all -- not a zero-height one,
+         which would still show a seam against a tinted centre. */
+      #art-band.empty {
+        display: none;
+      }
+
+      #art-image {
+        height: 100%;
+        width: 100%;
+      }
+
+      /* A game that slots its own <img slot="art"> gets the same box model
+         without writing it: fill the band, crop rather than squash. */
+      #art-band ::slotted(*) {
+        display: block;
+        height: 100%;
+        width: 100%;
+        object-fit: var(--card-art-fit, cover);
+      }
+
+      #center {
+        grid-row: 2;
+        display: flex;
+        flex-direction: column;
+        /*
+         * STRETCH, not center, and the centring is #face's text-align instead.
+         *
+         * A flex column with align-items: center sizes every item to its own
+         * content, so a slotted element WIDER than the card is simply wider
+         * than the card and gets clipped by #front's overflow -- measured on a
+         * murdermrmonroe card, a boardgame-stat reading "Room Winter Garden"
+         * could not wrap because it was never told how much room it had.
+         * Stretched, each item is the card's width and wraps inside it, and
+         * text-align keeps short content looking exactly as centred as before.
+         */
+        align-items: stretch;
+        justify-content: center;
+        gap: var(--card-face-gap, 0.15em);
+        padding: var(--card-face-padding, 0.4em);
+        box-sizing: border-box;
+        min-width: 0;
+        min-height: 0;
+        /* A 100px-wide card is narrower than plenty of single words a game
+           will legitimately put on one -- "Cooperation" measured 8px wider
+           than the card. Without this the word is simply clipped by #front's
+           overflow, which reads as a rendering bug rather than as a long
+           name. break-word rather than anywhere: only a word that cannot fit
+           at all is broken. */
+        overflow-wrap: break-word;
+      }
+
+      /* Slotted content may not be wider than the card.
+         #center is a flex COLUMN with align-items: center, so a flex item's
+         cross size is its own content width and nothing clamps it -- a
+         boardgame-stat reading "Room Winter Garden" measured 168px inside a
+         100px card and was clipped on both sides by #front's overflow, which
+         reads as a rendering bug rather than as a long value. With the clamp it
+         wraps instead. */
+      #center ::slotted(*),
+      #footer ::slotted(*),
+      #corner ::slotted(*) {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      #footer {
+        grid-row: 3;
+        padding: 0 var(--card-face-padding, 0.4em) var(--card-face-padding, 0.4em);
+        box-sizing: border-box;
+        font-size: var(--card-footer-font-size, 0.8em);
+        color: var(--card-footer-color, var(--card-ink-color, #1c2b22));
+        min-width: 0;
+      }
+
+      #corner {
+        position: absolute;
+        top: var(--card-face-padding, 0.4em);
+        right: var(--card-face-padding, 0.4em);
+        font-size: var(--card-corner-font-size, 0.95em);
+        font-weight: 700;
+        line-height: 1;
+        z-index: 2;
+      }
+
+      #footer.empty,
+      #corner.empty {
+        display: none;
+      }
+
+      #back-art {
+        position: absolute;
+        inset: 0;
+      }
+
       #top-rank,
       #bottom-rank {
         position: absolute;
@@ -304,8 +501,63 @@ export class BoardgameCard extends BoardgameComponent {
   @property({ type: Number, attribute: 'aspect-ratio' })
   aspectRatio = 0.6666666;
 
+  /**
+   * Art for the card FACE, drawn as a band across the top of it.
+   *
+   * The common case is one attribute and nothing else. A card whose art should
+   * cover the whole face sets `--card-art-height: 100%`; a card that wants a
+   * different picture per component slots its own `<img slot="art">` and gets
+   * the same box model without writing it.
+   */
+  @property({ type: String })
+  art = '';
+
+  /** How `art` and any slotted art fills the band. `cover` crops, `contain` letterboxes. */
+  @property({ type: String, attribute: 'art-fit' })
+  artFit: ArtFit = 'cover';
+
+  /**
+   * Art for the card BACK.
+   *
+   * The back already had a `<slot name="back">`, and every game that wanted a
+   * printed back still had to hand-write an element and a `background`
+   * shorthand into it -- `darwin` renders a bare `<div class="deck-back">` with
+   * its own width, aspect-ratio, radius, border and
+   * `url('./assets/card-back.png') center / cover` and no card at all. The slot
+   * stays; this is its default content, so the common case is an attribute and
+   * the uncommon case is exactly as reachable as it was.
+   */
+  @property({ type: String, attribute: 'back-art' })
+  backArt = '';
+
+  /**
+   * This card's face colour, when it is a fact about the COMPONENT rather than
+   * about the deck.
+   *
+   * `--card-front-color` has always existed, and it has always been unreachable
+   * from where the answer lives: a component view's `properties` callback can
+   * set typed host properties but not custom properties, and a game's own
+   * stylesheet cannot see one card's values. So `sequenceforge` renders a
+   * `.card-face` div filling the whole slot purely to have something it can
+   * paint, and switches its background between a cream fill and a radial
+   * gradient on `Values.Value === 0`.
+   *
+   * Empty means "whatever the stylesheet says", so a deck with one face colour
+   * keeps setting it in CSS exactly as before.
+   */
+  @property({ type: String, attribute: 'front-color' })
+  frontColor = '';
+
+  /** This card's ink colour, for the same reason and reaching `--card-ink-color`. */
+  @property({ type: String, attribute: 'ink-color' })
+  inkColor = '';
+
   @query('#front-slot')
   private frontSlot!: HTMLSlotElement;
+
+  @state() private _artSlotted = false;
+  @state() private _footerSlotted = false;
+  @state() private _cornerSlotted = false;
 
   override motionSubjectSnapshot(): MotionSubjectSnapshot {
     // Shape only: card face/back/content never crosses this boundary.
@@ -465,6 +717,14 @@ export class BoardgameCard extends BoardgameComponent {
     return this.animationRotates(beforeProps, afterProps);
   }
 
+  /**
+   * Whether the LAST scan of the face slot found content claiming `tall`.
+   *
+   * The whole of the difference between "the content decides the card's shape"
+   * and "the content may decide the card's shape". See `_frontChanged`.
+   */
+  private _tallFromContent = false;
+
   private _frontChanged() {
     if (!this.frontSlot) return;
 
@@ -481,7 +741,28 @@ export class BoardgameCard extends BoardgameComponent {
         this.aspectRatio = parseFloat(element.getAttribute('aspect-ratio') || '0.6666666');
       }
     }
-    this.tall = newValue;
+    /*
+     * AN EMPTY SLOT MAKES NO CLAIM ABOUT THE CARD'S SHAPE.
+     *
+     * This used to be an unconditional `this.tall = newValue`, which meant the
+     * `tall` PROPERTY could not be set by anybody: `firstUpdated` calls this
+     * once before any content exists, so an authored `<boardgame-card tall>` or
+     * a `cardView` `properties` callback returning `{ tall: true }` was
+     * overwritten with `false` on the first render, every time, silently. The
+     * only way to get a portrait card was to hang a `tall` attribute on the
+     * element you slotted into the face -- which `debuganimations` does, and
+     * which is a strange enough channel that three games with portrait cards
+     * built the whole face by hand instead.
+     *
+     * The scan still wins whenever it has ever had something to say, so
+     * `debuganimations` is bit-for-bit unchanged: its face content declares
+     * `tall`, so the first scan finds it, and when the card flips face-down and
+     * the content goes away the scan clears it exactly as before. What changes
+     * is only the case where content NEVER declared it, where the scan now says
+     * nothing rather than saying `false`.
+     */
+    if (newValue || this._tallFromContent) this.tall = newValue;
+    this._tallFromContent = newValue;
   }
 
   private _rotatedChanged(_newValue: boolean) {
@@ -524,17 +805,65 @@ export class BoardgameCard extends BoardgameComponent {
     };
   }
 
+  private _slotTracker(assign: (populated: boolean) => void) {
+    return (event: Event): void => {
+      const slot = event.target;
+      if (!(slot instanceof HTMLSlotElement)) return;
+      assign(slot.assignedNodes({ flatten: true })
+        .some(node => node.nodeType !== Node.TEXT_NODE || (node.textContent ?? '').trim() !== ''));
+    };
+  }
+
+  /**
+   * The per-card colour overrides, written on `#outer` so they INHERIT down to
+   * `#front` and to the corner indices rather than being set on either.
+   *
+   * Inheritance is the point: `--card-ink-color` is read by three separate
+   * rules and by whatever a game slots into the face, and a custom property
+   * declared on an ancestor is visible to all of them at once.
+   */
+  private _colorStyle(): string {
+    let style = '';
+    if (this.frontColor) style += `--card-front-color: ${this.frontColor};`;
+    if (this.inkColor) style += `--card-ink-color: ${this.inkColor};`;
+    return style;
+  }
+
+  private _validateArt(): void {
+    if (!isArtFit(this.artFit)) {
+      throw new Error(`boardgame-card: art-fit must be "cover" or "contain", not ${JSON.stringify(this.artFit)}`);
+    }
+  }
+
   override render(): TemplateResult {
+    this._validateArt();
+    const hasArt = !!this.art || this._artSlotted;
     return html`
-      <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}">
+      <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}${this._colorStyle()}">
         <div id="inner">
           <div id="front">
-            <div class="normal ${this.suit === '♥' || this.suit === '♦' ? 'red-suit' : ''}">
-              <slot id="front-slot">
-                <div id="top-rank">${this.suit}${this.rank}</div>
-                <div id="center-rank">${this.suit}</div>
-                <div id="bottom-rank">${this.suit}${this.rank}</div>
-              </slot>
+            <div id="face" part="face" class="normal ${hasArt ? 'has-art' : ''} ${this.suit === '♥' || this.suit === '♦' ? 'red-suit' : ''}">
+              <div id="art-band" part="art" class="${hasArt ? '' : 'empty'}">
+                <slot name="art" @slotchange=${this._slotTracker(v => { this._artSlotted = v; })}
+                  >${this.art
+                    ? html`<div id="art-image" style="${artLayerStyle(this.art, this.artFit)}"></div>`
+                    : nothing}</slot>
+              </div>
+              <div id="center" part="center">
+                <slot id="front-slot">
+                  <div id="top-rank">${this.suit}${this.rank}</div>
+                  <div id="center-rank">${this.suit}</div>
+                  <div id="bottom-rank">${this.suit}${this.rank}</div>
+                </slot>
+              </div>
+              <div id="footer" part="footer" class="${this._footerSlotted ? '' : 'empty'}">
+                <slot name="footer"
+                  @slotchange=${this._slotTracker(v => { this._footerSlotted = v; })}></slot>
+              </div>
+              <div id="corner" part="corner" class="${this._cornerSlotted ? '' : 'empty'}">
+                <slot name="corner"
+                  @slotchange=${this._slotTracker(v => { this._cornerSlotted = v; })}></slot>
+              </div>
             </div>
             <div class="fallback">
               <slot name="motion-history"><slot name="fallback"></slot></slot>
@@ -542,9 +871,12 @@ export class BoardgameCard extends BoardgameComponent {
           </div>
           <div id="back">
             <slot name="back">
-              <div id="default-back">
+              ${this.backArt
+                ? html`<div id="back-art" part="back-art"
+                    style="${artLayerStyle(this.backArt, this.artFit)}"></div>`
+                : html`<div id="default-back">
                 ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
-              </div>
+              </div>`}
             </slot>
           </div>
         </div>

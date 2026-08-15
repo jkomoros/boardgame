@@ -48,6 +48,7 @@ const FACADE_COMPONENT_MODULES = new Set([
   'boardgame-placement-item',
   'boardgame-player-grid',
   'boardgame-player-badge',
+  'boardgame-pips',
   'boardgame-player-panel',
   'boardgame-readiness',
   'boardgame-selection-option',

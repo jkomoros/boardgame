@@ -1,5 +1,6 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, css, html, nothing } from 'lit';
 import { property, state } from 'lit/decorators.js';
+import { artLayerStyle, isArtFit, type ArtFit } from './component-art.js';
 
 type OptionalSurfaceSlot = 'actions' | 'footer' | 'status';
 
@@ -20,6 +21,26 @@ export class BoardgameGameSurface extends LitElement {
       min-width: 0;
       margin-inline: auto;
       padding: var(--boardgame-game-surface-padding, clamp(0.75rem, 3cqi, 1.5rem));
+    }
+
+    /*
+     * THE TABLE THE GAME IS PLAYED ON.
+     *
+     * Only when art is set, and that is the whole design: a surface with no
+     * art paints nothing and lays out exactly as it did before this existed, so
+     * every renderer already using it is untouched. A surface WITH art needs the
+     * rest of the treatment or the art does not read as a table -- the one game
+     * that shipped a mat wrote a rounded, bordered, shadowed main.board INSIDE
+     * its game-surface purely to have somewhere to put the picture, which is a
+     * second surface existing because the first one had no art slot.
+     *
+     * Every value is a custom property so a game can keep the art and drop the
+     * frame.
+     */
+    #surface.matted {
+      border: var(--boardgame-game-surface-mat-border, 1px solid rgba(38, 59, 72, 0.55));
+      border-radius: var(--boardgame-game-surface-mat-radius, 1rem);
+      box-shadow: var(--boardgame-game-surface-mat-shadow, 0 0.4rem 1.4rem rgba(16, 38, 49, 0.25));
     }
 
     #header {
@@ -100,6 +121,18 @@ export class BoardgameGameSurface extends LitElement {
   @property({ type: Boolean, attribute: 'hide-heading' })
   hideHeading = false;
 
+  /** The table mat: art painted behind the whole surface. */
+  @property({ type: String })
+  art = '';
+
+  /** How `art` fills the surface. */
+  @property({ type: String, attribute: 'art-fit' })
+  artFit: ArtFit = 'cover';
+
+  /** A flat translucent sheet over the art, as a CSS colour, so text stays legible. */
+  @property({ type: String, attribute: 'art-wash' })
+  artWash = '';
+
   @state()
   private readonly populatedSlots: Record<OptionalSurfaceSlot, boolean> = {
     actions: false,
@@ -110,7 +143,9 @@ export class BoardgameGameSurface extends LitElement {
   override render() {
     this.#validateConfiguration();
     return html`
-      <section id="surface" part="surface" aria-labelledby="heading">
+      <section id="surface" part="surface" aria-labelledby="heading"
+        class=${this.art ? 'matted' : nothing}
+        style=${this.art ? artLayerStyle(this.art, this.artFit, this.artWash || undefined) : nothing}>
         <header id="header" part="header">
           <div
             id="heading"
@@ -153,6 +188,9 @@ export class BoardgameGameSurface extends LitElement {
     }
     if (!Number.isSafeInteger(this.headingLevel) || this.headingLevel < 1 || this.headingLevel > 6) {
       throw new Error('boardgame-game-surface: headingLevel must be a safe integer from 1 through 6');
+    }
+    if (!isArtFit(this.artFit)) {
+      throw new Error(`boardgame-game-surface: art-fit must be "cover" or "contain", not ${JSON.stringify(this.artFit)}`);
     }
   }
 }

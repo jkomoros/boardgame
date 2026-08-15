@@ -2007,6 +2007,115 @@ If the host itself must be custom, use `componentView()` with a factory that
 returns a fresh registered element extending `BoardgameComponent`. The framework
 checks that the factory never reuses an element or changes host type.
 
+###### The card face: corner, centre and footer
+
+**Do not build a card face out of a `position: absolute; inset: 0` div.** The
+card owns that box. Three games in this repo each rediscovered it — one with a
+`<button>` and a negative-margin art bleed, one with a whole separate
+`LitElement`, one with a `.card-face` grid — and the card gives you all of it:
+
+```typescript
+private readonly cards = cardView<GameState['Hand']>({
+  render: ({ kind, component }) => kind === 'visible'
+    ? html`
+        <boardgame-stat slot="corner" .value=${component.Values.Cost}></boardgame-stat>
+        <strong>${component.Values.Name}</strong>
+        <boardgame-pips slot="footer" glyph="☀" .count=${component.Values.Suns}></boardgame-pips>
+      `
+    : null,
+});
+```
+
+* **default slot** — the centre. Vertically and horizontally centred, padded,
+  and given the whole card minus whatever the art band and footer take.
+* **`slot="footer"`** — sits on the bottom edge.
+* **`slot="corner"`** — out of flow in the top-right corner, over the art, the
+  way a cost or a rank is printed on a real card.
+
+A region with nothing in it takes no space at all, so a card that only slots a
+title lays out exactly like a bare one.
+
+| Hatch | What it controls |
+|---|---|
+| `--card-face-padding`, `--card-face-gap`, `--card-face-font-size` | the inset, the centre's gap, and the face's type scale |
+| `--card-corner-font-size`, `--card-footer-font-size`, `--card-footer-color` | the two smaller regions |
+| `--card-face-shadow` | a printed frame, e.g. `inset 0 0 0 4px gold` |
+| `--card-front-color`, `--card-ink-color` | the face colour and its ink, for a whole deck |
+| `::part(face)`, `::part(art)`, `::part(center)`, `::part(footer)`, `::part(corner)` | any region — but **only for a card you wrote in your own template**; see below |
+
+> **`::part()` does not reach a card a stack built.** A
+> `boardgame-component-stack` creates its component hosts inside its *own*
+> shadow root, so a `boardgame-card::part(face)` rule in your renderer has no
+> card in scope to match and silently does nothing. Custom properties inherit
+> through both boundaries, so reach a stack's cards with a token — declared on
+> `:host`, or on the stack element — and keep `::part` for cards you place
+> yourself.
+
+###### Art on a card, a token, a board and the table
+
+A game's art attaches to the component it is art *of*:
+
+```typescript
+// The back of every card in a deck, in place of the default star pattern.
+html`<boardgame-card back-art=${cardBack}></boardgame-card>`
+
+// A band of illustration across the top of the face. No negative margins: the
+// band already runs to the card's edges.
+html`<boardgame-card face-up art=${illustration}></boardgame-card>`
+```
+
+`art-fit` is `cover` (crop) or `contain` (letterbox); `--card-art-height`
+defaults to `45%` of the face, and `100%` makes the art the whole face. A game
+that needs a different image element per component slots its own
+`<img slot="art">` and gets the same box model without writing it.
+
+A card's colours can also come from the component rather than the deck, which
+is what `--card-front-color` in a stylesheet could never express:
+
+```typescript
+properties: ({ kind, component }) => kind === 'visible' && component.Values.Value === 0
+  ? { frontColor: '#653477', inkColor: '#fff5dc' }
+  : { frontColor: '#fff5dc', inkColor: '#18324a' },
+```
+
+A token takes `art` in place of its shipped `token_<type>.svg`, and art wins
+over the generated 3D solid — an author who supplied a picture of the piece has
+said what the piece looks like:
+
+```typescript
+html`<boardgame-token type="chip" art=${foodToken}>${count}</boardgame-token>`
+```
+
+**Your art is not recoloured by default, and that is deliberate.** The `color`
+property works by running the shipped red-family SVG through a table of
+`hue-rotate`/`brightness` filters. Run that over a brown photographic chip and
+you get an olive smear, not a green chip. If — and only if — your art is drawn
+in the same red family, add `recolor-art` and it composes with the table
+exactly, giving you all ten colours and agreement with the 3D solids for free.
+The standing-piece depth treatment (`pawn`, `meeple`) still applies to your art;
+the left/right mirror, which is a correction for two specific shipped files,
+does not.
+
+Boards and tables take art the same way:
+
+```typescript
+// The table the game is played on. `art-wash` is a flat translucent sheet over
+// the picture — without it, text on a photograph is unreadable.
+html`<boardgame-game-surface heading="Darwin" art=${habitatMat} art-wash="#f4eddde8">`
+
+// A printed grid board, in place of the flat --board-surface colour.
+html`<boardgame-game-board rows="8" cols="8" art=${boardArt}>`
+```
+
+A surface with no `art` paints nothing and lays out exactly as it always did; a
+surface *with* art also gets the mat's rounded, bordered, shadowed frame, which
+`--boardgame-game-surface-mat-{border,radius,shadow}` control.
+
+For a **spatial** board whose artwork has named hotspots, use
+`rasterBoardArtwork()` with `boardgame-spatial-board` instead: that pairs the
+image with normalized regions the framework can target moves at, which is a
+different and stronger thing than a decorative background.
+
 ##### A custom component host
 
 `BoardgameComponent` is the one framework class a game is meant to extend, and
@@ -2169,6 +2278,7 @@ Everything is replaceable without abandoning the component:
 | `<span slot="icon">` / `<span slot="label">` | the `icon` and `label` attributes |
 | `::part(icon)`, `::part(label)`, `::part(value)`, `::part(capacity)` | the styling of any single piece |
 | `--boardgame-stat-gap`, `--boardgame-stat-align`, `--boardgame-stat-{label,value,capacity}-color`, `--boardgame-stat-{label,value}-size` | spacing, alignment and type |
+| `--boardgame-stat-value-wrap` | `normal` when the value is TEXT in something narrow; the default `nowrap` is for numbers, and would otherwise clip a long room name on a card face |
 
 ```typescript
 html`<boardgame-stat .stack=${game.Supply} stacked>
@@ -2184,6 +2294,56 @@ Finally: **you do not need a trailing `&nbsp;` or `'\xa0'` to stop the row
 jumping when the value is empty.** A stat with no value is exactly as tall as
 one with a value. (So was a bare `boardgame-status-text`, measured — that
 workaround never did anything.)
+
+###### `hide-when-zero`
+
+The opposite request — *remove the row entirely* when there is nothing to say —
+is `hide-when-zero`. It removes the **host** from layout, not just its contents,
+so a flex row around it does not keep paying a `gap` for a stat nobody can see.
+
+```typescript
+// Prints nothing at all when this card has no associated room.
+html`<boardgame-stat label="Room" .value=${card.AssociatedRoom} hide-when-zero></boardgame-stat>`
+```
+
+It is opt-in, and should stay that way: `Score 0` is a fact about the game, and
+a scoreboard whose zeroes silently vanish is worse than one with zeroes in it. A
+capacity counts as something to say, so `Food 0/6` still renders.
+
+##### boardgame-pips
+
+Some counts are printed on a card rather than written next to it: three
+clovers, two suns, four food. `boardgame-pips` draws a number as that many
+symbols.
+
+```typescript
+html`<boardgame-pips glyph="☘" label="Luck" .count=${card.NumLuck} hide-when-zero></boardgame-pips>`
+```
+
+Give it a `max` and the row is always that long, with the remainder drawn in a
+quiet colour — the difference between "3 food" and "3 of the 5 this species can
+hold":
+
+```typescript
+html`<boardgame-pips glyph="●" .count=${filled} .max=${capacity}></boardgame-pips>`
+```
+
+**Screen readers get the number, never the symbols.** `☘☘☘` announced literally
+is "shamrock shamrock shamrock"; the glyph row is `aria-hidden` decoration and
+the accessible name is `label` plus the count. Fractions and negatives are
+floored and clamped, and a count above `max` cannot draw more symbols than the
+cap has slots.
+
+This is *not* a variant of `boardgame-stat`: a stat is a labelled number whose
+value announces and animates when it changes; pips are the same count drawn as a
+quantity you read at a glance. Use both together if a game wants both — a
+`boardgame-pips` can be slotted anywhere.
+
+| Hatch | What it replaces |
+|---|---|
+| `::part(pip)`, `::part(empty)` | the styling of the filled and unfilled symbols |
+| `empty-glyph` | the symbol used for the remainder (defaults to `glyph`) |
+| `--boardgame-pips-{size,gap,color,empty-color}` | type, spacing and the two colours |
 
 Game timers are stable references in renderer state, not clocks that force the
 whole game snapshot to change every animation frame. Bind one to the timer

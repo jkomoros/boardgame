@@ -19,8 +19,28 @@ const cards = cardView<Cards>({
   properties: context => ({
     faceUp: context.kind === 'visible',
     rotated: true,
+    // The art and per-card colour slots, through the typed view -- which is the
+    // whole point of them: they are facts about the COMPONENT, so a stylesheet
+    // that only sees the deck cannot express them.
+    art: context.kind === 'visible' ? `/art/${context.component.Values.rank}.png` : '',
+    artFit: 'contain',
+    backArt: '/art/back.png',
+    frontColor: '#fff5dc',
+    inkColor: '#18324a',
+    tall: true,
   }),
 });
+
+const badFit = cardView<Cards>({
+  // @ts-expect-error a card's art fits by covering or by containing, nothing else
+  properties: () => ({ artFit: 'fill' }),
+});
+void badFit;
+
+const artedTokens = tokenView<Cards>({
+  properties: () => ({ art: '/art/chip.png', recolorArt: true }),
+});
+void artedTokens;
 
 const tokens = tokenView<Cards>({
   properties: context => ({

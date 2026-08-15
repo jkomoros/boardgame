@@ -346,6 +346,62 @@ export class BoardgameToken extends BoardgameComponent {
          the solids' base colours are computed from. Red is the colour the art is
          already drawn in, so it has no rule. */
       ${unsafeCSS(COLOR_FILTER_RULES)}
+
+      /*
+       * A GAME'S OWN ART, and the two shipped treatments it opts out of.
+       *
+       * These come LAST on purpose. Both rules tie on specificity with the
+       * generated ones they are countermanding -- '#outer.custom-art #art img'
+       * against '#outer.meeple #art img' is two ids, one class and one element
+       * either way -- so source order is what decides, and moving this block
+       * above the interpolated COLOR_FILTER_RULES would silently restore the
+       * behaviour it exists to suppress.
+       *
+       * ## The recolouring
+       *
+       * TOKEN_COLOR_FILTERS is a table of 'hue-rotate(...) brightness(...)'
+       * chains, and every one of them is calibrated against ONE input: the
+       * red-family SVG the shipped tokens are drawn in. Run
+       * 'hue-rotate(130deg) brightness(2.0)' over a brown photographic chip and
+       * the result is not a green chip, it is a washed-out olive smear -- and
+       * the ten colours stop agreeing with each other, because they were only
+       * ever a set relative to that one red.
+       *
+       * So a game's own art is NOT recoloured by default. 'recolor-art' opts
+       * back in, and it is worth having rather than forbidding: art authored in
+       * the same red family the shipped SVGs use composes with the table
+       * exactly, and gets all ten colours plus arithmetic agreement with the 3D
+       * solids for free. The flag is the author asserting that fact about their
+       * asset, which is not something this component can check.
+       *
+       * ## The mirror
+       *
+       * artSelector's 'scaleX(-1)' is a correction for a specific property of
+       * two specific FILES -- token_meeple.svg and token_pawn.svg are lit from
+       * the upper right while every solid is lit from the upper left. It is not
+       * a property of "being a pawn", so it cannot follow the TYPE onto somebody
+       * else's asset, whose lighting is unknown and whose silhouette may not be
+       * mirror-symmetric at all.
+       *
+       * The lean and the contact shadow deliberately DO survive: those follow
+       * from the type meaning "this piece stands up on the board", which is a
+       * claim the author made by choosing the type.
+       */
+      #outer.custom-art:not(.recolor-art) #art img {
+        filter: none;
+      }
+
+      /* object-fit is here rather than on the shared '#art img' rule because
+         the shipped assets do not need it and a game's raster does: an SVG
+         handed a 100%-by-100% viewport letterboxes itself through its own
+         preserveAspectRatio, while a PNG in the same box is stretched to fill
+         it. 'contain' makes a non-square asset keep its proportions inside the
+         token's square layout box, which is the same bargain the SVGs already
+         struck. */
+      #outer.custom-art #art img {
+        transform: scaleX(1);
+        object-fit: contain;
+      }
     `
   ];
 
@@ -366,6 +422,33 @@ export class BoardgameToken extends BoardgameComponent {
   // "cube", "pawn", "meeple"
   @property({ type: String })
   type = 'token';
+
+  /**
+   * A game's own art for this piece, in place of the shipped
+   * `token_<type>.svg`.
+   *
+   * `darwin` has a round chip in its house style and renders it as
+   * `background: url('./assets/food-token.png') center / contain no-repeat` on a
+   * `<div class="food-count">`, which is a token in every respect except that it
+   * cannot animate, cannot sit in a stack and cannot be tapped.
+   *
+   * Art wins over the 3D solid as well as over the flat SVG: an author who has
+   * supplied a picture of the piece has said what the piece looks like, and a
+   * generated prism drawn on top of it would be the component arguing with
+   * them.
+   */
+  @property({ type: String })
+  art = '';
+
+  /**
+   * Opt this game's own art back into the per-colour filter table.
+   *
+   * Only meaningful for art drawn in the same red family the shipped SVGs are;
+   * see the CSS at the end of `styles` for why that is a real constraint and not
+   * a formality.
+   */
+  @property({ type: Boolean, attribute: 'recolor-art' })
+  recolorArt = false;
 
   get legalTypes(): string[] {
     return [...LEGAL_TYPES];
@@ -407,7 +490,7 @@ export class BoardgameToken extends BoardgameComponent {
   private _throb: Animation | null = null;
 
   private _computeAsset(type: string): string {
-    return `src/assets/token_${type}.svg`;
+    return this.art || `src/assets/token_${type}.svg`;
   }
 
   // Override _computeClasses and add some more.
@@ -438,6 +521,8 @@ export class BoardgameToken extends BoardgameComponent {
       active: this.active,
       highlighted: this.highlighted,
       solid: this._solid() !== null,
+      'custom-art': !!this.art,
+      'recolor-art': this.recolorArt,
     };
   }
 
@@ -467,6 +552,10 @@ export class BoardgameToken extends BoardgameComponent {
     // elements per empty square of a board is exactly the kind of cost nobody
     // would ever see and everybody would pay.
     if (this.spacer) return null;
+    // A game that supplied art has said what this piece looks like. Modelling a
+    // prism on top of it would be the component arguing with the author, and it
+    // is also the only way `art` could be set on a `cube` and do nothing.
+    if (this.art) return null;
     if (!isTokenSolidShape(this.type)) return null;
     return tokenSolid(this.type, this.color);
   }

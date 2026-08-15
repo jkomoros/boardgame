@@ -10,6 +10,10 @@ stat.value = null;
 stat.autoMessage = 'new';
 stat.announce = false;
 stat.stacked = true;
+stat.hideWhenZero = true;
+
+const hidden: boolean = stat.suppressed;
+void hidden;
 
 declare const food: ExpandedStack;
 stat.stack = food;

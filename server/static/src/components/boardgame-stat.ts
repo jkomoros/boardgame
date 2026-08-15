@@ -70,6 +70,19 @@ export class BoardgameStat extends LitElement {
       display: none;
     }
 
+    /*
+     * hide-when-zero, applied to the HOST rather than to its contents.
+     *
+     * Emptying the stat is not enough: an inline-flex host with nothing in it
+     * is zero pixels wide but still a flex item, so the row around it keeps
+     * paying its gap and the layout gets a hole exactly where the stat that
+     * was supposed to disappear used to be. The 'empty' attribute is written in
+     * willUpdate(), so this stays a plain CSS consequence of the state.
+     */
+    :host([empty]) {
+      display: none;
+    }
+
     .label {
       color: var(--boardgame-stat-label-color, var(--md-sys-color-on-surface-variant, #4A4539));
       font-size: var(--boardgame-stat-label-size, inherit);
@@ -78,7 +91,33 @@ export class BoardgameStat extends LitElement {
     .value {
       color: var(--boardgame-stat-value-color, inherit);
       font-size: var(--boardgame-stat-value-size, inherit);
-      white-space: nowrap;
+      /*
+       * nowrap by default because the overwhelmingly common value is a number
+       * -- and 3/6 breaking across two lines would be worse than anything
+       * wrapping could cost.
+       *
+       * It is a token because the default is wrong for the one shape that is
+       * not a number: a TEXT value on something narrow. Measured on a
+       * murdermrmonroe card, "Room Winter Garden" on a 100px-wide face is
+       * clipped mid-word by the card's overflow with nowrap, and wraps onto
+       * two lines with 'normal'.
+       */
+      white-space: var(--boardgame-stat-value-wrap, nowrap);
+      /* A flex item's automatic minimum is its MIN-CONTENT size, so without
+         this the value can never be narrower than its longest unbreakable run
+         and a wrappable value in a tight box still overflows rather than
+         wrapping. Inert for the numeric default, where nothing is under
+         shrink pressure in the first place. */
+      min-width: 0;
+    }
+
+    /* The composed status-text is an inline-block, which shrink-to-fits to its
+       MAX-content and so paints past a narrow parent no matter what the parent
+       does. Clamping it here is the last of the three things a wrappable value
+       in a tight box needs; without it the wrap above is computed and then
+       drawn outside the card anyway. */
+    .value boardgame-status-text {
+      max-width: 100%;
     }
 
     .capacity {
@@ -120,6 +159,37 @@ export class BoardgameStat extends LitElement {
   @property({ type: Boolean, reflect: true })
   stacked = false;
 
+  /**
+   * Render nothing at all when there is nothing to say.
+   *
+   * `murdermrmonroe` has a helper for exactly this and calls it three times:
+   *
+   * ```ts
+   * private _valueOrNothing(value, prefix?) {
+   *   if (!value) return "";
+   *   return (prefix ?? "") + value;
+   * }
+   * ```
+   *
+   * so a card with no associated room prints no `Room:` label rather than
+   * `Room: ` with nothing after it.
+   *
+   * ## This is NOT the empty-value case, which was already emergent
+   *
+   * An empty `boardgame-status-text` renders 18px tall, exactly as tall as a
+   * filled one, so a stat with no value already holds its row open without
+   * help — that is why the `&nbsp;` several renderers appended was cargo cult
+   * and why an "empty value" test on this element could not fail. This is the
+   * opposite request: not *keep the row when the value is empty* but *remove
+   * the row, label and all*. Nothing about the element did that.
+   *
+   * Opt-in, and it must stay opt-in: `Score 0` is a fact about the game, and a
+   * scoreboard whose zeroes silently vanish is worse than one with zeroes in
+   * it. A capacity counts as something to say, so `Food 0/6` still renders.
+   */
+  @property({ type: Boolean, attribute: 'hide-when-zero' })
+  hideWhenZero = false;
+
   @state() private _iconSlotted = false;
   @state() private _labelSlotted = false;
 
@@ -135,8 +205,21 @@ export class BoardgameStat extends LitElement {
     return statCapacity(this.stack);
   }
 
-  override render(): TemplateResult {
+  /** Whether `hide-when-zero` is currently removing this stat from the layout. */
+  get suppressed(): boolean {
+    if (!this.hideWhenZero) return false;
+    if (this.displayCapacity !== undefined) return false;
+    const value = this.displayValue;
+    return value === null || value === undefined || value === 0 || value === '';
+  }
+
+  protected override willUpdate(): void {
+    this.toggleAttribute('empty', this.suppressed);
+  }
+
+  override render(): TemplateResult | typeof nothing {
     this.#validateAuthoring();
+    if (this.suppressed) return nothing;
     const capacity = this.displayCapacity;
     const iconEmpty = !this.icon && !this._iconSlotted;
     const labelEmpty = !this.label && !this._labelSlotted;

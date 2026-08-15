@@ -27,6 +27,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import './boardgame-component-stack.js';
 import type { ComponentView } from './component-view.js';
+import { artLayerStyle, type ArtFit } from './component-art.js';
 import { MAX_TARGET_ACTION_CANDIDATES, type TargetAction } from '../moves/target-action.js';
 import type { SourceDestinationBinding } from '../moves/source-destination.js';
 import type { PlacementTargetBinding } from '../moves/placement-draft.js';
@@ -290,6 +291,32 @@ export class BoardgameGameBoard extends LitElement {
   /** Whether to show coordinate labels (1-8, A-H). */
   @property({ type: Boolean, reflect: true })
   labels = false;
+
+  /**
+   * A printed board, in place of the flat `--board-surface` colour.
+   *
+   * The same slot `boardgame-game-surface` offers for a table mat; a board that
+   * IS the grid takes it here so the art sits under the cells and inside the
+   * surface's rounded, clipped, shadowed frame rather than behind the whole
+   * page.
+   */
+  @property({ type: String })
+  art = '';
+
+  /** How `art` fills the board surface. */
+  @property({ type: String, attribute: 'art-fit' })
+  artFit: ArtFit = 'cover';
+
+  /**
+   * A flat translucent sheet painted over the art, as a CSS colour.
+   *
+   * Not decoration: a photographic board with pieces and coordinate labels on
+   * it is unreadable without one, which is why the one game that shipped a mat
+   * wrote `linear-gradient(#f4eddde8, #f4eddde8), url(mat)` by hand rather than
+   * using the art alone.
+   */
+  @property({ type: String, attribute: 'art-wash' })
+  artWash = '';
 
   // Precomputed Sets for O(1) lookup in _cellClass
   private _highlightedSet = new Set<number>();
@@ -587,7 +614,8 @@ export class BoardgameGameBoard extends LitElement {
     const rowLabels = Array.from({ length: this.rows }, (_, i) => i);
 
     return html`
-      <div class="board-surface">
+      <div class="board-surface" part="surface"
+        style=${this.art ? artLayerStyle(this.art, this.artFit, this.artWash || undefined) : nothing}>
         <div class="board-area" style="aspect-ratio: ${this.cols} / ${this.rows}">
           <!-- Cell background layer -->
           <div class="cell-layer" role="grid"
