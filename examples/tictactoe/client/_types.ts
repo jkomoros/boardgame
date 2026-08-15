@@ -6,6 +6,32 @@ import type { CatalogComponent, ExpandedStack, FullGameState } from '../../src/t
 
 export type PhaseValue = "Before First Move" | "After First Move";
 
+/** One value of a game enum, plus whatever presentation the game attached to it. */
+export interface EnumValueInfo<V extends string = string> {
+  /** The enum's own integer key. Stable when a display name changes. */
+  readonly Key: number;
+  /** The enum's string value; a member of the generated string literal union. */
+  readonly Value: V;
+  /** Human-readable label. Equals Value unless the game set one explicitly. */
+  readonly Label: string;
+  /** Longer explanation, e.g. the rules text for a card. */
+  readonly Description?: string;
+  /** CSS color for this value, e.g. to hang on a custom property. */
+  readonly CSSColor?: string;
+  /** Fully resolved URL of this value's art. */
+  readonly Art?: string;
+}
+
+/** Every value of the `phase` enum, in the order the game declared them. */
+export const PhaseValues = [
+  { Key: 0, Value: "Before First Move", Label: "Before First Move" },
+  { Key: 1, Value: "After First Move", Label: "After First Move" },
+] as const satisfies readonly EnumValueInfo<PhaseValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const PhaseValueInfo: Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>> =
+  Object.fromEntries(PhaseValues.map((value) => [value.Value, value])) as Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>>;
+
 export interface GameEnums {
   readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
 }

@@ -22,6 +22,46 @@ func TestValidateTypeResultRejectsPascalCaseCollision(t *testing.T) {
 	}
 }
 
+func TestValidateTypeResultRejectsEnumMetadataCollisionsAndDuplicates(t *testing.T) {
+	for name, want := range map[string]struct {
+		result   TypeResult
+		fragment string
+	}{
+		// Two enums whose names pascal-case to the same thing would generate
+		// three colliding declarations each; the ordered list and the by-value
+		// lookup are registered alongside the union so the collision is
+		// reported rather than one enum silently shadowing the other.
+		"metadata name collision": {
+			result: TypeResult{Enums: []EnumInfo{
+				{Name: "climate-card"},
+				{Name: "climate_card"},
+			}},
+			fragment: `both generate TypeScript declaration "ClimateCardValue"`,
+		},
+		"duplicate key": {
+			result: TypeResult{Enums: []EnumInfo{{Name: "color", Values: []EnumValueInfo{
+				{Key: 0, Value: "Red"},
+				{Key: 0, Value: "Blue"},
+			}}}},
+			fragment: `duplicate key 0`,
+		},
+		"duplicate value": {
+			result: TypeResult{Enums: []EnumInfo{{Name: "color", Values: []EnumValueInfo{
+				{Key: 0, Value: "Red"},
+				{Key: 1, Value: "Red"},
+			}}}},
+			fragment: `duplicate value "Red"`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := ValidateTypeResult(want.result)
+			if err == nil || !strings.Contains(err.Error(), want.fragment) {
+				t.Fatalf("ValidateTypeResult() error = %v, want one containing %q", err, want.fragment)
+			}
+		})
+	}
+}
+
 func TestValidateTypeResultRejectsInvalidAndDuplicateFields(t *testing.T) {
 	for name, result := range map[string]TypeResult{
 		"invalid": {GameFields: []FieldInfo{{Name: "not-valid", Type: "TypeInt"}}},

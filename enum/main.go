@@ -248,6 +248,7 @@ import (
 	"errors"
 	"math"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -274,13 +275,57 @@ type Set struct {
 	enums    map[string]Enum
 }
 
+// Presentation is optional per-value display data that a game may attach to an
+// enum with [Set.SetPresentation]. It exists so a game declares how a value
+// looks exactly once, next to the enum itself, instead of hand-copying the
+// enum's values into its client and keying art or colors on a display string
+// that silently breaks the moment the string changes.
+//
+// Every field is optional. An enum that attaches no presentation stores
+// nothing, serializes nothing extra, and generates nothing extra into its
+// client types.
+type Presentation struct {
+	//Label is a human-readable label for the value. When empty the enum's own
+	//string value (see [Enum.String]) is the label, which is what you want for
+	//almost every enum. Set it when the string value is not what a player
+	//should read: a tree enum whose string value is the whole path
+	//("Red > Circle"), or a ranged enum whose string value is an index pair
+	//("3_4").
+	Label string
+	//Description is a longer human-readable explanation of the value,
+	//typically the rules text a client shows in a legend or tooltip. Empty
+	//when there is nothing more to say than the label.
+	Description string
+	//CSSColor is a CSS color string for this value, e.g. "#ff0000" or
+	//"rebeccapurple". A client can hang it on a custom property instead of
+	//writing one CSS rule per value.
+	CSSColor string
+	//Art is a path or URL to an image representing this value, relative to
+	//the game's client folder unless it starts with "/" or a scheme.
+	Art string
+}
+
+// Zero returns true if no presentation data at all was provided for the value.
+func (p Presentation) Zero() bool {
+	return p == Presentation{}
+}
+
 // Enum is a named set of values within a set. Get a new one with
 // enumSet.Add(). It's an interface to better support anonymous-embedding
 // scenarios.
 type Enum interface {
 	//Values returns all values that are in this enum--all values for which
-	//enum.Valid(val) would return true.
+	//enum.Valid(val) would return true, in ascending EnumKey order. Because
+	//the idiomatic enum is declared with iota, that is the order the values
+	//were declared in.
 	Values() []EnumKey
+	//Presentation returns the optional per-value display data attached with
+	//[Set.SetPresentation]. Returns the zero Presentation if none was
+	//attached, or if val is not valid for this enum.
+	Presentation(val EnumKey) Presentation
+	//HasPresentation returns true if any value in this enum has non-zero
+	//presentation data attached.
+	HasPresentation() bool
 	//DefaultValue returns the default value for this enum (the lowest valid
 	//value in it). TreeEnums will instead return BranchDefaultValue for 0, to
 	//ensure that the DefaultValue is a leaf.z
@@ -353,6 +398,9 @@ type enum struct {
 	parents map[EnumKey]EnumKey
 	//children is created based on the parents map we got.
 	children map[EnumKey][]EnumKey
+	//presentation is optional per-value display data. Nil unless the game
+	//attached any, so an enum that wants none costs nothing.
+	presentation map[EnumKey]Presentation
 }
 
 // variable is the underlying type we'll return for both Value and Constant.
@@ -625,6 +673,69 @@ func (e *Set) MustAdd(enumName string, values map[EnumKey]string) Enum {
 	return result
 }
 
+/*
+SetPresentation attaches optional per-value display data to the named enum in
+this set, so a game declares how each value looks once, in Go, next to the enum
+itself. The values reach the client through the generated client types, which
+means a renderer never has to hand-copy the enum's values or key art on a
+display string.
+
+Presentation is purely additive: enums that never call this are unaffected, and
+values omitted from the map keep the zero Presentation. Calling it more than
+once for the same enum merges, with later entries winning for the same key, so
+it is safe to attach colors and art from different places.
+
+Will error if the set has been finished, if no enum in this set has that name,
+or if any key in the map is not a valid value for that enum.
+
+	var climateEnum = enums.MustAdd("climate", map[enum.EnumKey]string{...})
+
+	func init() {
+		enums.MustSetPresentation("climate", map[enum.EnumKey]enum.Presentation{
+			climateArid:    {CSSColor: "#d9a441", Art: "img/climate/arid.png"},
+			climateHumid:   {CSSColor: "#3f8f5b", Art: "img/climate/humid.png"},
+		})
+	}
+*/
+func (e *Set) SetPresentation(enumName string, presentation map[EnumKey]Presentation) error {
+
+	if e.finished {
+		return errors.New("the set has been finished so presentation can no longer be set")
+	}
+
+	theEnum, ok := e.enums[enumName].(*enum)
+
+	if !ok || theEnum == nil {
+		return errors.New("no enum in this set named " + enumName)
+	}
+
+	for key := range presentation {
+		if !theEnum.Valid(key) {
+			return errors.New(strconv.Itoa(int(key)) + " is not a valid value for enum " + enumName)
+		}
+	}
+
+	if theEnum.presentation == nil {
+		theEnum.presentation = make(map[EnumKey]Presentation, len(presentation))
+	}
+
+	for key, value := range presentation {
+		theEnum.presentation[key] = value
+	}
+
+	return nil
+}
+
+// MustSetPresentation is like SetPresentation, but instead of an error it will
+// panic if the presentation cannot be set. This is useful for attaching
+// presentation at package-level initialization, where any failure should stop
+// the program from booting at all.
+func (e *Set) MustSetPresentation(enumName string, presentation map[EnumKey]Presentation) {
+	if err := e.SetPresentation(enumName, presentation); err != nil {
+		panic("Couldn't set presentation on enum set: " + err.Error())
+	}
+}
+
 // MustCombine is like Combine, but if it would have errored it will panic.
 // Suitable for usage at package-level initalization, where any panics will be
 // found during initialization.
@@ -651,7 +762,26 @@ func (e *Set) Combine(name string, enums ...Enum) (Enum, error) {
 			values[n] = en.String(n)
 		}
 	}
-	return e.addEnumImpl(name, values)
+	result, err := e.addEnumImpl(name, values)
+	if err != nil {
+		return nil, err
+	}
+	//Carry presentation across, so combining enums doesn't silently drop the
+	//display data the constituent enums declared.
+	for _, en := range enums {
+		if !en.HasPresentation() {
+			continue
+		}
+		for _, n := range en.Values() {
+			if p := en.Presentation(n); !p.Zero() {
+				if result.presentation == nil {
+					result.presentation = make(map[EnumKey]Presentation)
+				}
+				result.presentation[n] = p
+			}
+		}
+	}
+	return result, nil
 }
 
 /*
@@ -669,14 +799,11 @@ func (e *Set) addEnumImpl(enumName string, values map[EnumKey]string) (*enum, er
 	}
 
 	enum := &enum{
-		enumName,
-		make(map[EnumKey]string),
-		IllegalValue,
+		name:         enumName,
+		values:       make(map[EnumKey]string),
+		defaultValue: IllegalValue,
 		//We'll set this to the real maxValue later.
-		0,
-		nil,
-		nil,
-		nil,
+		maxValue: 0,
 	}
 
 	var maxSeenVal EnumKey
@@ -752,6 +879,9 @@ func (e *enum) RangeEnum() RangeEnum {
 	return nil
 }
 
+// Values returns the enum's values in ascending EnumKey order. The order is
+// part of the contract: clients render enums as ordered lists, and ranging over
+// the underlying map instead would hand them a different order on every run.
 func (e *enum) Values() []EnumKey {
 	result := make([]EnumKey, len(e.values))
 	counter := 0
@@ -759,7 +889,24 @@ func (e *enum) Values() []EnumKey {
 		result[counter] = key
 		counter++
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i] < result[j] })
 	return result
+}
+
+func (e *enum) Presentation(val EnumKey) Presentation {
+	if e.presentation == nil {
+		return Presentation{}
+	}
+	return e.presentation[val]
+}
+
+func (e *enum) HasPresentation() bool {
+	for _, p := range e.presentation {
+		if !p.Zero() {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *enum) SubsetOf(other Enum) bool {

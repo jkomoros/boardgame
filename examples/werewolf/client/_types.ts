@@ -10,6 +10,53 @@ export type PhaseValue = "Gathering" | "Day" | "Night";
 
 export type RoleValue = "Villager" | "Werewolf";
 
+/** One value of a game enum, plus whatever presentation the game attached to it. */
+export interface EnumValueInfo<V extends string = string> {
+  /** The enum's own integer key. Stable when a display name changes. */
+  readonly Key: number;
+  /** The enum's string value; a member of the generated string literal union. */
+  readonly Value: V;
+  /** Human-readable label. Equals Value unless the game set one explicitly. */
+  readonly Label: string;
+  /** Longer explanation, e.g. the rules text for a card. */
+  readonly Description?: string;
+  /** CSS color for this value, e.g. to hang on a custom property. */
+  readonly CSSColor?: string;
+  /** Fully resolved URL of this value's art. */
+  readonly Art?: string;
+}
+
+/** Every value of the `group` enum, in the order the game declared them. */
+export const GroupValues = [
+  { Key: 0, Value: "Villager", Label: "Villager" },
+  { Key: 1, Value: "Werewolf", Label: "Werewolf" },
+] as const satisfies readonly EnumValueInfo<GroupValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const GroupValueInfo: Readonly<Record<GroupValue, EnumValueInfo<GroupValue>>> =
+  Object.fromEntries(GroupValues.map((value) => [value.Value, value])) as Readonly<Record<GroupValue, EnumValueInfo<GroupValue>>>;
+
+/** Every value of the `phase` enum, in the order the game declared them. */
+export const PhaseValues = [
+  { Key: 0, Value: "Gathering", Label: "Gathering" },
+  { Key: 1, Value: "Day", Label: "Day" },
+  { Key: 2, Value: "Night", Label: "Night" },
+] as const satisfies readonly EnumValueInfo<PhaseValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const PhaseValueInfo: Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>> =
+  Object.fromEntries(PhaseValues.map((value) => [value.Value, value])) as Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>>;
+
+/** Every value of the `role` enum, in the order the game declared them. */
+export const RoleValues = [
+  { Key: 0, Value: "Villager", Label: "Villager" },
+  { Key: 1, Value: "Werewolf", Label: "Werewolf" },
+] as const satisfies readonly EnumValueInfo<RoleValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const RoleValueInfo: Readonly<Record<RoleValue, EnumValueInfo<RoleValue>>> =
+  Object.fromEntries(RoleValues.map((value) => [value.Value, value])) as Readonly<Record<RoleValue, EnumValueInfo<RoleValue>>>;
+
 export interface GameEnums {
   readonly "group": { readonly Values?: Readonly<Record<string, GroupValue>> };
   readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };

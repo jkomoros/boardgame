@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+// enumValuesForTest builds the ordered value list an enum with no presentation
+// data produces: ascending keys from zero, label equal to the string value.
+func enumValuesForTest(values ...string) []EnumValueInfo {
+	result := make([]EnumValueInfo, len(values))
+	for i, value := range values {
+		result[i] = EnumValueInfo{Key: i, Value: value, Label: value}
+	}
+	return result
+}
+
 func TestToPascalCase(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -56,7 +66,7 @@ func TestEscapeForTS(t *testing.T) {
 
 func TestBaseFieldTypeToTS(t *testing.T) {
 	enums := []EnumInfo{
-		{Name: "color", Values: []string{"Red", "Blue"}},
+		{Name: "color", Values: enumValuesForTest("Red", "Blue")},
 	}
 
 	tests := []struct {
@@ -88,7 +98,7 @@ func TestBaseFieldTypeToTS(t *testing.T) {
 
 func TestDynamicFieldTypeToTS(t *testing.T) {
 	enums := []EnumInfo{
-		{Name: "color", Values: []string{"Red", "Blue"}},
+		{Name: "color", Values: enumValuesForTest("Red", "Blue")},
 	}
 
 	tests := []struct {
@@ -121,7 +131,7 @@ func TestStateFieldTypeToTS(t *testing.T) {
 		{Name: "pieces", DynamicFields: []FieldInfo{{Name: "Crowned", Type: "TypeBool"}}},
 	}
 	enums := []EnumInfo{
-		{Name: "phase", Values: []string{"Setup", "Playing"}},
+		{Name: "phase", Values: enumValuesForTest("Setup", "Playing")},
 	}
 
 	tests := []struct {
@@ -168,7 +178,7 @@ func TestGenerateTypeScript(t *testing.T) {
 			}},
 		},
 		Enums: []EnumInfo{
-			{Name: "phase", Values: []string{"Setup", "Playing"}},
+			{Name: "phase", Values: enumValuesForTest("Setup", "Playing")},
 		},
 		Constants: []ConstantInfo{
 			{Name: "numCards", Kind: "number", Value: "9"},
@@ -256,6 +266,107 @@ func TestGenerateTypeScript(t *testing.T) {
 	// Check State type alias
 	if !strings.Contains(ts, "export type State = FullGameState<GameState, PlayerState, GameComputed, PlayerComputed, DynamicComponentValues>;") {
 		t.Error("missing State type alias")
+	}
+}
+
+// climateResult mirrors a real game enum: declared with iota, so key order is
+// declaration order, and deliberately neither alphabetical nor reverse
+// alphabetical.
+func climateResult() TypeResult {
+	return TypeResult{Enums: []EnumInfo{{Name: "climate", Values: []EnumValueInfo{
+		{Key: 0, Value: "Unknown", Label: "Unknown"},
+		{Key: 1, Value: "Ice Age", Label: "Ice Age"},
+		{Key: 2, Value: "Freezing", Label: "Freezing"},
+		{Key: 3, Value: "Cold", Label: "Cold"},
+		{Key: 4, Value: "Temperate", Label: "Temperate"},
+		{Key: 5, Value: "Warm", Label: "Warm"},
+		{Key: 6, Value: "Scorching", Label: "Scorching"},
+	}}}}
+}
+
+// TestGenerateTypeScriptEmitsEnumValuesInDeclaredOrder asserts the whole list
+// as one contiguous block rather than checking for each entry separately. A
+// per-entry check would pass for a reordered or partially-emitted list; this
+// one fails if any value is missing, extra, or out of place.
+func TestGenerateTypeScriptEmitsEnumValuesInDeclaredOrder(t *testing.T) {
+
+	ts := GenerateTypeScript(climateResult())
+
+	want := `export const ClimateValues = [
+  { Key: 0, Value: "Unknown", Label: "Unknown" },
+  { Key: 1, Value: "Ice Age", Label: "Ice Age" },
+  { Key: 2, Value: "Freezing", Label: "Freezing" },
+  { Key: 3, Value: "Cold", Label: "Cold" },
+  { Key: 4, Value: "Temperate", Label: "Temperate" },
+  { Key: 5, Value: "Warm", Label: "Warm" },
+  { Key: 6, Value: "Scorching", Label: "Scorching" },
+] as const satisfies readonly EnumValueInfo<ClimateValue>[];`
+
+	if !strings.Contains(ts, want) {
+		t.Fatalf("generated enum metadata is missing, empty, or misordered.\nwant block:\n%s\ngot:\n%s", want, ts)
+	}
+
+	for _, wantFragment := range []string{
+		"export interface EnumValueInfo<V extends string = string> {",
+		"readonly Key: number;",
+		"readonly Value: V;",
+		"readonly Label: string;",
+		"export const ClimateValueInfo: Readonly<Record<ClimateValue, EnumValueInfo<ClimateValue>>> =",
+		"Object.fromEntries(ClimateValues.map((value) => [value.Value, value])) as Readonly<Record<ClimateValue, EnumValueInfo<ClimateValue>>>;",
+	} {
+		if !strings.Contains(ts, wantFragment) {
+			t.Errorf("missing %q:\n%s", wantFragment, ts)
+		}
+	}
+
+	// The union and the ordered list must agree, so a renderer that indexes
+	// the lookup with a union member always finds an entry.
+	if !strings.Contains(ts, `export type ClimateValue = "Unknown" | "Ice Age" | "Freezing" | "Cold" | "Temperate" | "Warm" | "Scorching";`) {
+		t.Errorf("union does not match the ordered list:\n%s", ts)
+	}
+}
+
+// TestGenerateTypeScriptOmitsAbsentPresentation is the "pays nothing" half of
+// the contract: an enum that attached no presentation must not emit optional
+// keys at all, not even empty ones.
+func TestGenerateTypeScriptOmitsAbsentPresentation(t *testing.T) {
+
+	ts := GenerateTypeScript(climateResult())
+
+	for _, unwanted := range []string{"Description:", "CSSColor:", "Art:", "new URL("} {
+		if strings.Contains(ts, unwanted) {
+			t.Errorf("emitted %q for an enum with no presentation:\n%s", unwanted, ts)
+		}
+	}
+}
+
+func TestGenerateTypeScriptEmitsPresentation(t *testing.T) {
+
+	ts := GenerateTypeScript(TypeResult{Enums: []EnumInfo{{Name: "card", Values: []EnumValueInfo{
+		{Key: 0, Value: "Unknown", Label: "Unknown"},
+		{Key: 1, Value: "Guard", Label: "Guard", Description: `Guess a "hand"`, CSSColor: "#c62828"},
+		{Key: 2, Value: "Princess", Label: "The Princess", Art: "assets/princess.jpg"},
+	}}}})
+
+	want := `export const CardValues = [
+  { Key: 0, Value: "Unknown", Label: "Unknown" },
+  { Key: 1, Value: "Guard", Label: "Guard", Description: "Guess a \"hand\"", CSSColor: "#c62828" },
+  { Key: 2, Value: "Princess", Label: "The Princess", Art: new URL("assets/princess.jpg", import.meta.url).href },
+] as const satisfies readonly EnumValueInfo<CardValue>[];`
+
+	if !strings.Contains(ts, want) {
+		t.Fatalf("presentation not emitted as expected.\nwant block:\n%s\ngot:\n%s", want, ts)
+	}
+}
+
+func TestGenerateTypeScriptWithoutEnumsEmitsNoMetadata(t *testing.T) {
+
+	ts := GenerateTypeScript(TypeResult{})
+
+	for _, unwanted := range []string{"EnumValueInfo", "Object.fromEntries"} {
+		if strings.Contains(ts, unwanted) {
+			t.Errorf("emitted %q for a game with no enums:\n%s", unwanted, ts)
+		}
 	}
 }
 

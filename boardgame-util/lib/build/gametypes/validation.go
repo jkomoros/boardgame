@@ -22,6 +22,7 @@ func ValidateTypeResult(result TypeResult) error {
 	declared := map[string]string{
 		"ComponentCatalog":       "framework component catalog",
 		"ComputedEnumOption":     "framework computed enum option",
+		"EnumValueInfo":          "framework enum value info",
 		"GameConstants":          "framework game constants",
 		"GameEnums":              "framework game enums",
 		"DynamicComponentValues": "framework dynamic component values",
@@ -127,8 +128,26 @@ func ValidateTypeResult(result TypeResult) error {
 		return err
 	}
 	for _, enum := range result.Enums {
-		if err := declare(toPascalCase(enum.Name)+"Value", fmt.Sprintf("enum %q", enum.Name)); err != nil {
-			return err
+		// One enum generates three declarations: the string literal union, the
+		// ordered value list, and the by-value lookup. All three have to be
+		// checked for collisions, or a second enum could silently shadow the
+		// first one's metadata.
+		for _, suffix := range []string{"Value", "Values", "ValueInfo"} {
+			if err := declare(toPascalCase(enum.Name)+suffix, fmt.Sprintf("enum %q", enum.Name)); err != nil {
+				return err
+			}
+		}
+		seenKeys := make(map[int]bool, len(enum.Values))
+		seenValues := make(map[string]bool, len(enum.Values))
+		for _, value := range enum.Values {
+			if seenKeys[value.Key] {
+				return fmt.Errorf("enum %q contains duplicate key %d", enum.Name, value.Key)
+			}
+			if seenValues[value.Value] {
+				return fmt.Errorf("enum %q contains duplicate value %q", enum.Name, value.Value)
+			}
+			seenKeys[value.Key] = true
+			seenValues[value.Value] = true
 		}
 	}
 	for _, deck := range result.Decks {

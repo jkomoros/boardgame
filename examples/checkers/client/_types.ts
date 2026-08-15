@@ -10,6 +10,114 @@ export type PhaseValue = "Setup" | "Playing";
 
 export type SpacesValue = "0_0" | "0_1" | "0_2" | "0_3" | "0_4" | "0_5" | "0_6" | "0_7" | "1_0" | "1_1" | "1_2" | "1_3" | "1_4" | "1_5" | "1_6" | "1_7" | "2_0" | "2_1" | "2_2" | "2_3" | "2_4" | "2_5" | "2_6" | "2_7" | "3_0" | "3_1" | "3_2" | "3_3" | "3_4" | "3_5" | "3_6" | "3_7" | "4_0" | "4_1" | "4_2" | "4_3" | "4_4" | "4_5" | "4_6" | "4_7" | "5_0" | "5_1" | "5_2" | "5_3" | "5_4" | "5_5" | "5_6" | "5_7" | "6_0" | "6_1" | "6_2" | "6_3" | "6_4" | "6_5" | "6_6" | "6_7" | "7_0" | "7_1" | "7_2" | "7_3" | "7_4" | "7_5" | "7_6" | "7_7";
 
+/** One value of a game enum, plus whatever presentation the game attached to it. */
+export interface EnumValueInfo<V extends string = string> {
+  /** The enum's own integer key. Stable when a display name changes. */
+  readonly Key: number;
+  /** The enum's string value; a member of the generated string literal union. */
+  readonly Value: V;
+  /** Human-readable label. Equals Value unless the game set one explicitly. */
+  readonly Label: string;
+  /** Longer explanation, e.g. the rules text for a card. */
+  readonly Description?: string;
+  /** CSS color for this value, e.g. to hang on a custom property. */
+  readonly CSSColor?: string;
+  /** Fully resolved URL of this value's art. */
+  readonly Art?: string;
+}
+
+/** Every value of the `color` enum, in the order the game declared them. */
+export const ColorValues = [
+  { Key: 0, Value: "Red", Label: "Red" },
+  { Key: 4, Value: "Black", Label: "Black" },
+] as const satisfies readonly EnumValueInfo<ColorValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const ColorValueInfo: Readonly<Record<ColorValue, EnumValueInfo<ColorValue>>> =
+  Object.fromEntries(ColorValues.map((value) => [value.Value, value])) as Readonly<Record<ColorValue, EnumValueInfo<ColorValue>>>;
+
+/** Every value of the `phase` enum, in the order the game declared them. */
+export const PhaseValues = [
+  { Key: 0, Value: "Setup", Label: "Setup" },
+  { Key: 1, Value: "Playing", Label: "Playing" },
+] as const satisfies readonly EnumValueInfo<PhaseValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const PhaseValueInfo: Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>> =
+  Object.fromEntries(PhaseValues.map((value) => [value.Value, value])) as Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>>;
+
+/** Every value of the `spaces` enum, in the order the game declared them. */
+export const SpacesValues = [
+  { Key: 0, Value: "0_0", Label: "0_0" },
+  { Key: 1, Value: "0_1", Label: "0_1" },
+  { Key: 2, Value: "0_2", Label: "0_2" },
+  { Key: 3, Value: "0_3", Label: "0_3" },
+  { Key: 4, Value: "0_4", Label: "0_4" },
+  { Key: 5, Value: "0_5", Label: "0_5" },
+  { Key: 6, Value: "0_6", Label: "0_6" },
+  { Key: 7, Value: "0_7", Label: "0_7" },
+  { Key: 8, Value: "1_0", Label: "1_0" },
+  { Key: 9, Value: "1_1", Label: "1_1" },
+  { Key: 10, Value: "1_2", Label: "1_2" },
+  { Key: 11, Value: "1_3", Label: "1_3" },
+  { Key: 12, Value: "1_4", Label: "1_4" },
+  { Key: 13, Value: "1_5", Label: "1_5" },
+  { Key: 14, Value: "1_6", Label: "1_6" },
+  { Key: 15, Value: "1_7", Label: "1_7" },
+  { Key: 16, Value: "2_0", Label: "2_0" },
+  { Key: 17, Value: "2_1", Label: "2_1" },
+  { Key: 18, Value: "2_2", Label: "2_2" },
+  { Key: 19, Value: "2_3", Label: "2_3" },
+  { Key: 20, Value: "2_4", Label: "2_4" },
+  { Key: 21, Value: "2_5", Label: "2_5" },
+  { Key: 22, Value: "2_6", Label: "2_6" },
+  { Key: 23, Value: "2_7", Label: "2_7" },
+  { Key: 24, Value: "3_0", Label: "3_0" },
+  { Key: 25, Value: "3_1", Label: "3_1" },
+  { Key: 26, Value: "3_2", Label: "3_2" },
+  { Key: 27, Value: "3_3", Label: "3_3" },
+  { Key: 28, Value: "3_4", Label: "3_4" },
+  { Key: 29, Value: "3_5", Label: "3_5" },
+  { Key: 30, Value: "3_6", Label: "3_6" },
+  { Key: 31, Value: "3_7", Label: "3_7" },
+  { Key: 32, Value: "4_0", Label: "4_0" },
+  { Key: 33, Value: "4_1", Label: "4_1" },
+  { Key: 34, Value: "4_2", Label: "4_2" },
+  { Key: 35, Value: "4_3", Label: "4_3" },
+  { Key: 36, Value: "4_4", Label: "4_4" },
+  { Key: 37, Value: "4_5", Label: "4_5" },
+  { Key: 38, Value: "4_6", Label: "4_6" },
+  { Key: 39, Value: "4_7", Label: "4_7" },
+  { Key: 40, Value: "5_0", Label: "5_0" },
+  { Key: 41, Value: "5_1", Label: "5_1" },
+  { Key: 42, Value: "5_2", Label: "5_2" },
+  { Key: 43, Value: "5_3", Label: "5_3" },
+  { Key: 44, Value: "5_4", Label: "5_4" },
+  { Key: 45, Value: "5_5", Label: "5_5" },
+  { Key: 46, Value: "5_6", Label: "5_6" },
+  { Key: 47, Value: "5_7", Label: "5_7" },
+  { Key: 48, Value: "6_0", Label: "6_0" },
+  { Key: 49, Value: "6_1", Label: "6_1" },
+  { Key: 50, Value: "6_2", Label: "6_2" },
+  { Key: 51, Value: "6_3", Label: "6_3" },
+  { Key: 52, Value: "6_4", Label: "6_4" },
+  { Key: 53, Value: "6_5", Label: "6_5" },
+  { Key: 54, Value: "6_6", Label: "6_6" },
+  { Key: 55, Value: "6_7", Label: "6_7" },
+  { Key: 56, Value: "7_0", Label: "7_0" },
+  { Key: 57, Value: "7_1", Label: "7_1" },
+  { Key: 58, Value: "7_2", Label: "7_2" },
+  { Key: 59, Value: "7_3", Label: "7_3" },
+  { Key: 60, Value: "7_4", Label: "7_4" },
+  { Key: 61, Value: "7_5", Label: "7_5" },
+  { Key: 62, Value: "7_6", Label: "7_6" },
+  { Key: 63, Value: "7_7", Label: "7_7" },
+] as const satisfies readonly EnumValueInfo<SpacesValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const SpacesValueInfo: Readonly<Record<SpacesValue, EnumValueInfo<SpacesValue>>> =
+  Object.fromEntries(SpacesValues.map((value) => [value.Value, value])) as Readonly<Record<SpacesValue, EnumValueInfo<SpacesValue>>>;
+
 export interface GameEnums {
   readonly "color": { readonly Values?: Readonly<Record<string, ColorValue>> };
   readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };

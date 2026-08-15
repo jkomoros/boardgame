@@ -30,10 +30,38 @@ type DeckInfo struct {
 	DynamicFields []FieldInfo `json:"dynamicFields,omitempty"`
 }
 
-// EnumInfo describes an enum and its string values.
+// EnumValueInfo describes a single value of an enum, in the enum's own declared
+// order, together with any optional presentation data the game attached with
+// enum.Set.SetPresentation. The optional fields are omitted entirely when the
+// game attached nothing, so an enum with no presentation generates nothing
+// extra.
+type EnumValueInfo struct {
+	//Key is the enum's own integer value, stable across display-name changes.
+	Key int `json:"key"`
+	//Value is the enum's string value, and the member of the generated string
+	//literal union that identifies this value.
+	Value string `json:"value"`
+	//Label is the human-readable label. Defaults to Value.
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	CSSColor    string `json:"cssColor,omitempty"`
+	Art         string `json:"art,omitempty"`
+}
+
+// EnumInfo describes an enum and its values, in the enum's declared order.
 type EnumInfo struct {
-	Name   string   `json:"name"`
-	Values []string `json:"values"`
+	Name   string          `json:"name"`
+	Values []EnumValueInfo `json:"values"`
+}
+
+// ValueNames returns just the string values, in order. It is the source of the
+// generated string literal union.
+func (e EnumInfo) ValueNames() []string {
+	result := make([]string, len(e.Values))
+	for i, value := range e.Values {
+		result[i] = value.Value
+	}
+	return result
 }
 
 // ConstantInfo describes a configured game constant and its exact primitive
@@ -193,9 +221,18 @@ type deckInfo struct {
 	DynamicFields []fieldInfo ` + "`" + `json:"dynamicFields,omitempty"` + "`" + `
 }
 
+type enumValueInfo struct {
+	Key         int    ` + "`" + `json:"key"` + "`" + `
+	Value       string ` + "`" + `json:"value"` + "`" + `
+	Label       string ` + "`" + `json:"label"` + "`" + `
+	Description string ` + "`" + `json:"description,omitempty"` + "`" + `
+	CSSColor    string ` + "`" + `json:"cssColor,omitempty"` + "`" + `
+	Art         string ` + "`" + `json:"art,omitempty"` + "`" + `
+}
+
 type enumInfo struct {
-	Name   string   ` + "`" + `json:"name"` + "`" + `
-	Values []string ` + "`" + `json:"values"` + "`" + `
+	Name   string          ` + "`" + `json:"name"` + "`" + `
+	Values []enumValueInfo ` + "`" + `json:"values"` + "`" + `
 }
 
 type constantInfo struct {
@@ -221,13 +258,12 @@ type delegateEntry struct {
 	importPath string
 }
 
-// collectEnum extracts an enum's name and string values, storing them in
-// the discoveredEnums map if not already present.
-func collectEnum(e enum.Enum, discoveredEnums map[string][]string) {
-	name := e.Name()
-	if _, ok := discoveredEnums[name]; ok {
-		return
-	}
+// enumValues extracts an enum's values in ascending key order -- which for the
+// idiomatic iota-declared enum is declaration order -- together with any
+// per-value presentation the game attached. Ordering is load bearing: the
+// client renders enums as ordered lists, so ranging over the enum's underlying
+// map instead would hand it a different order on every generation.
+func enumValues(e enum.Enum) []enumValueInfo {
 	vals := e.Values()
 
 	// For tree enums, filter to leaf values only.
@@ -244,17 +280,39 @@ func collectEnum(e enum.Enum, discoveredEnums map[string][]string) {
 
 	sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
 
-	var strVals []string
+	result := make([]enumValueInfo, 0, len(vals))
 	for _, v := range vals {
-		strVals = append(strVals, e.String(v))
+		presentation := e.Presentation(v)
+		label := presentation.Label
+		if label == "" {
+			label = e.String(v)
+		}
+		result = append(result, enumValueInfo{
+			Key:         int(v),
+			Value:       e.String(v),
+			Label:       label,
+			Description: presentation.Description,
+			CSSColor:    presentation.CSSColor,
+			Art:         presentation.Art,
+		})
 	}
-	discoveredEnums[name] = strVals
+	return result
+}
+
+// collectEnum extracts an enum's name and values, storing them in the
+// discoveredEnums map if not already present.
+func collectEnum(e enum.Enum, discoveredEnums map[string][]enumValueInfo) {
+	name := e.Name()
+	if _, ok := discoveredEnums[name]; ok {
+		return
+	}
+	discoveredEnums[name] = enumValues(e)
 }
 
 // extractFields extracts field information from a PropertyReader. Any enum
 // associations discovered at runtime (not from struct tags) are recorded in
 // discoveredEnums so they can be included in the output.
-func extractFields(reader boardgame.PropertyReader, concreteType reflect.Type, discoveredEnums map[string][]string) []fieldInfo {
+func extractFields(reader boardgame.PropertyReader, concreteType reflect.Type, discoveredEnums map[string][]enumValueInfo) []fieldInfo {
 	props := reader.Props()
 
 	// Sort field names for deterministic output
@@ -393,7 +451,7 @@ func main() {
 
 		// discoveredEnums collects enum definitions found via runtime resolution
 		// (e.g. enums from imported component packages like playingcards).
-		discoveredEnums := make(map[string][]string)
+		discoveredEnums := make(map[string][]enumValueInfo)
 
 		// Extract game state fields
 		gameSubState := exampleState.ImmutableGameState()
@@ -486,30 +544,10 @@ func main() {
 				if e == nil {
 					continue
 				}
-				vals := e.Values()
-
-				// For tree enums, filter to leaf values only.
-				if treeEnum := e.TreeEnum(); treeEnum != nil {
-					n := 0
-					for _, v := range vals {
-						if treeEnum.IsLeaf(v) {
-							vals[n] = v
-							n++
-						}
-					}
-					vals = vals[:n]
-				}
-
-				sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
-
-				var strVals []string
-				for _, v := range vals {
-					strVals = append(strVals, e.String(v))
-				}
 
 				enums = append(enums, enumInfo{
 					Name:   enumName,
-					Values: strVals,
+					Values: enumValues(e),
 				})
 			}
 		}

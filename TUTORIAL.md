@@ -3039,6 +3039,48 @@ diagnostics precise.
 
 **Enum types** are generated as string literal unions. If your game or any imported package (like `playingcards`) defines enums, the corresponding fields will use the union type instead of `string`. For example, if your enum has values "Red" and "Blue", the generated type will be `"Red" | "Blue"`.
 
+A union tells you which values are legal but not what order they come in, what
+to call them, or what they look like. So alongside each union you also get an
+**ordered list** and a **by-value lookup**, both runtime values you import
+normally rather than with `import type`:
+
+```typescript
+export type ClimateValue = "Unknown" | "Ice Age" | "Freezing" | "Cold";
+
+export const ClimateValues = [
+  { Key: 0, Value: "Unknown", Label: "Unknown" },
+  { Key: 1, Value: "Ice Age", Label: "Ice Age", Art: new URL("./assets/ice-age.jpg", import.meta.url).href },
+  { Key: 2, Value: "Freezing", Label: "Freezing" },
+  { Key: 3, Value: "Cold", Label: "Cold" },
+] as const satisfies readonly EnumValueInfo<ClimateValue>[];
+
+export const ClimateValueInfo: Readonly<Record<ClimateValue, EnumValueInfo<ClimateValue>>> = /* ... */;
+```
+
+`ClimateValues` is in the order your Go const block declares, so iterating it
+renders a track, a legend or a picker without a hand-written array:
+
+```typescript
+import { ClimateValues, ClimateValueInfo } from './_types.js';
+
+html`${ClimateValues.map(climate => html`
+  <div class=${climate.Value === state.Game.Climate ? 'active' : ''}>${climate.Label}</div>
+`)}`;
+
+// And, keyed on the value rather than on a display string:
+const art = ClimateValueInfo[card.Climate].Art;
+```
+
+`Label`, `Description`, `CSSColor` and `Art` come from
+[enum presentation](#enum-presentation); `Art` arrives as a URL already resolved
+against the generated module, which lives in your `client/` folder. Values with
+no presentation carry only `Key`, `Value` and `Label`, and a game with no enums
+generates none of this at all.
+
+Take the list from here rather than writing your own: a hand-written copy is a
+second source of truth that goes stale silently, and four renderers had already
+grown one before this existed.
+
 **Component values** are generated as interfaces matching the fields on your component value structs. Stack fields in your state are typed as `ExpandedStack<YourComponentValues>`, giving you autocomplete on `component.Values.FieldName`.
 
 **Dynamic component values** are also supported. If a deck has dynamic component values (see [Dynamic Component Values](#dynamic-component-values) below), a separate interface is generated and the stack type gains a second generic parameter:
@@ -3352,6 +3394,55 @@ This will automatically create a global `enums` EnumSet, and a global `phaseEnum
 
 Note that the convention is to have your enum constants be package-private (that
 is, start with a lowercase letter), although the codegen tool will work either way.
+
+#### Enum presentation
+
+An enum's values reach your renderer as an ordered, typed list (see [Generated
+Type Definitions](#generated-type-definitions)), so a renderer never needs to
+write out the values itself. Sometimes each value also has presentation that
+belongs to it: a color, an illustration, a line of rules text. Attach that once,
+in Go, next to the enum, with `enums.MustSetPresentation`:
+
+```go
+//boardgame:codegen
+const (
+	cardUnknown = iota
+	cardGuard
+	cardPriest
+)
+
+func init() {
+	enums.MustSetPresentation("card", map[enum.EnumKey]enum.Presentation{
+		cardGuard:  {Description: "Guess another player's hand", Art: "./assets/guard.jpg"},
+		cardPriest: {Description: "Look at another hand", CSSColor: "#8e6bbf"},
+		//cardUnknown is a sanitized placeholder; it needs nothing, so it says
+		//nothing.
+	})
+}
+```
+
+`enum.Presentation` has four optional fields:
+
+- `Label` — a human-readable label. Leave it empty and the enum's own string
+  value is the label, which is what you want almost always. Set it when the
+  string value is not what a player should read: a tree enum whose string value
+  is a whole path (`"Red > Circle"`), or a ranged enum whose string value is an
+  index pair (`"3_4"`).
+- `Description` — longer text, typically the rules text for a legend or tooltip.
+- `CSSColor` — a CSS color the client can hang on a custom property, instead of
+  writing one CSS rule per value.
+- `Art` — a path to an image, relative to the game's `client/` folder.
+
+Everything is optional, and an enum that attaches nothing generates nothing
+extra. The point of attaching in Go rather than in the renderer is that the map
+is keyed on the enum *constant*: rename a value's display string and its art
+follows it, instead of a lookup keyed on the old string silently missing and
+rendering nothing.
+
+`MustSetPresentation` panics on an unknown enum name or an invalid key, so a
+typo stops the program at boot rather than at render time. Use `SetPresentation`
+if you want the error instead. Calling it more than once for the same enum
+merges, so colors and art can be attached from different places.
 
 ### RangedEnum and Enum Graphs
 

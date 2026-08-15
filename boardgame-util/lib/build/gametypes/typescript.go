@@ -2,6 +2,7 @@ package gametypes
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -88,12 +89,14 @@ func GenerateTypeScript(result TypeResult) string {
 					b.WriteString(" | ")
 				}
 				b.WriteString("\"")
-				b.WriteString(escapeForTS(v))
+				b.WriteString(escapeForTS(v.Value))
 				b.WriteString("\"")
 			}
 		}
 		b.WriteString(";\n\n")
 	}
+
+	writeEnumMetadata(&b, result.Enums)
 
 	// Generate component value interfaces (one per deck that has fields)
 	if len(result.Enums) > 0 {
@@ -281,6 +284,100 @@ func GenerateTypeScript(result TypeResult) string {
 
 	return b.String()
 }
+
+// writeEnumMetadata emits, for every enum, the ordered list of its values and a
+// lookup keyed on the value itself. Renderers previously hand-copied both --
+// four of them did -- because the string literal union alone gives no order, no
+// label, and nowhere to hang per-value art or color. The array is emitted in
+// the enum's own declared order and is never sorted here; reordering it would
+// silently reorder every client that iterates it.
+func writeEnumMetadata(b *strings.Builder, enums []EnumInfo) {
+
+	named := make([]EnumInfo, 0, len(enums))
+	for _, e := range enums {
+		if toPascalCase(e.Name) != "" {
+			named = append(named, e)
+		}
+	}
+	if len(named) == 0 {
+		return
+	}
+
+	b.WriteString(enumValueInfoDeclaration)
+
+	for _, e := range named {
+		name := toPascalCase(e.Name)
+		valueType := name + "Value"
+
+		b.WriteString("/** Every value of the `")
+		b.WriteString(escapeForTS(e.Name))
+		b.WriteString("` enum, in the order the game declared them. */\nexport const ")
+		b.WriteString(name)
+		b.WriteString("Values = [\n")
+		for _, value := range e.Values {
+			b.WriteString("  { Key: ")
+			b.WriteString(strconv.Itoa(value.Key))
+			b.WriteString(", Value: ")
+			b.WriteString(tsQuoted(value.Value))
+			b.WriteString(", Label: ")
+			label := value.Label
+			if label == "" {
+				label = value.Value
+			}
+			b.WriteString(tsQuoted(label))
+			if value.Description != "" {
+				b.WriteString(", Description: ")
+				b.WriteString(tsQuoted(value.Description))
+			}
+			if value.CSSColor != "" {
+				b.WriteString(", CSSColor: ")
+				b.WriteString(tsQuoted(value.CSSColor))
+			}
+			if value.Art != "" {
+				// Resolved against this module's own URL so a path relative to
+				// the game's client folder works in dev and survives bundling,
+				// exactly like a hand-written asset reference in the same
+				// folder would.
+				b.WriteString(", Art: new URL(")
+				b.WriteString(tsQuoted(value.Art))
+				b.WriteString(", import.meta.url).href")
+			}
+			b.WriteString(" },\n")
+		}
+		b.WriteString("] as const satisfies readonly EnumValueInfo<")
+		b.WriteString(valueType)
+		b.WriteString(">[];\n\n")
+
+		record := "Readonly<Record<" + valueType + ", EnumValueInfo<" + valueType + ">>>"
+		b.WriteString("/** The same values, keyed on the enum value rather than on a display string. */\nexport const ")
+		b.WriteString(name)
+		b.WriteString("ValueInfo: ")
+		b.WriteString(record)
+		b.WriteString(" =\n  Object.fromEntries(")
+		b.WriteString(name)
+		b.WriteString("Values.map((value) => [value.Value, value])) as ")
+		b.WriteString(record)
+		b.WriteString(";\n\n")
+	}
+}
+
+const enumValueInfoDeclaration = `/** One value of a game enum, plus whatever presentation the game attached to it. */
+export interface EnumValueInfo<V extends string = string> {
+  /** The enum's own integer key. Stable when a display name changes. */
+  readonly Key: number;
+  /** The enum's string value; a member of the generated string literal union. */
+  readonly Value: V;
+  /** Human-readable label. Equals Value unless the game set one explicitly. */
+  readonly Label: string;
+  /** Longer explanation, e.g. the rules text for a card. */
+  readonly Description?: string;
+  /** CSS color for this value, e.g. to hang on a custom property. */
+  readonly CSSColor?: string;
+  /** Fully resolved URL of this value's art. */
+  readonly Art?: string;
+}
+
+`
 
 func writeComputedFields(b *strings.Builder, fields []FieldInfo, enums []EnumInfo, frameworkNames map[string]bool) {
 	for _, field := range fields {

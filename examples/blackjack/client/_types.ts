@@ -10,6 +10,71 @@ export type RankValue = "Unknown" | "Ace" | "2" | "3" | "4" | "5" | "6" | "7" | 
 
 export type SuitValue = "�" | "♠" | "♥" | "♣" | "♦" | "Jokers";
 
+/** One value of a game enum, plus whatever presentation the game attached to it. */
+export interface EnumValueInfo<V extends string = string> {
+  /** The enum's own integer key. Stable when a display name changes. */
+  readonly Key: number;
+  /** The enum's string value; a member of the generated string literal union. */
+  readonly Value: V;
+  /** Human-readable label. Equals Value unless the game set one explicitly. */
+  readonly Label: string;
+  /** Longer explanation, e.g. the rules text for a card. */
+  readonly Description?: string;
+  /** CSS color for this value, e.g. to hang on a custom property. */
+  readonly CSSColor?: string;
+  /** Fully resolved URL of this value's art. */
+  readonly Art?: string;
+}
+
+/** Every value of the `phase` enum, in the order the game declared them. */
+export const PhaseValues = [
+  { Key: 0, Value: "Gathering", Label: "Gathering" },
+  { Key: 1, Value: "Initial Deal", Label: "Initial Deal" },
+  { Key: 2, Value: "Normal Play", Label: "Normal Play" },
+  { Key: 3, Value: "Round Cleanup", Label: "Round Cleanup" },
+] as const satisfies readonly EnumValueInfo<PhaseValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const PhaseValueInfo: Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>> =
+  Object.fromEntries(PhaseValues.map((value) => [value.Value, value])) as Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>>;
+
+/** Every value of the `Rank` enum, in the order the game declared them. */
+export const RankValues = [
+  { Key: 0, Value: "Unknown", Label: "Unknown" },
+  { Key: 1, Value: "Ace", Label: "Ace" },
+  { Key: 2, Value: "2", Label: "2" },
+  { Key: 3, Value: "3", Label: "3" },
+  { Key: 4, Value: "4", Label: "4" },
+  { Key: 5, Value: "5", Label: "5" },
+  { Key: 6, Value: "6", Label: "6" },
+  { Key: 7, Value: "7", Label: "7" },
+  { Key: 8, Value: "8", Label: "8" },
+  { Key: 9, Value: "9", Label: "9" },
+  { Key: 10, Value: "10", Label: "10" },
+  { Key: 11, Value: "Jack", Label: "Jack" },
+  { Key: 12, Value: "Queen", Label: "Queen" },
+  { Key: 13, Value: "King", Label: "King" },
+  { Key: 14, Value: "Joker", Label: "Joker" },
+] as const satisfies readonly EnumValueInfo<RankValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const RankValueInfo: Readonly<Record<RankValue, EnumValueInfo<RankValue>>> =
+  Object.fromEntries(RankValues.map((value) => [value.Value, value])) as Readonly<Record<RankValue, EnumValueInfo<RankValue>>>;
+
+/** Every value of the `Suit` enum, in the order the game declared them. */
+export const SuitValues = [
+  { Key: 0, Value: "�", Label: "�" },
+  { Key: 1, Value: "♠", Label: "♠" },
+  { Key: 2, Value: "♥", Label: "♥" },
+  { Key: 3, Value: "♣", Label: "♣" },
+  { Key: 4, Value: "♦", Label: "♦" },
+  { Key: 5, Value: "Jokers", Label: "Jokers" },
+] as const satisfies readonly EnumValueInfo<SuitValue>[];
+
+/** The same values, keyed on the enum value rather than on a display string. */
+export const SuitValueInfo: Readonly<Record<SuitValue, EnumValueInfo<SuitValue>>> =
+  Object.fromEntries(SuitValues.map((value) => [value.Value, value])) as Readonly<Record<SuitValue, EnumValueInfo<SuitValue>>>;
+
 export interface GameEnums {
   readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
   readonly "Rank": { readonly Values?: Readonly<Record<string, RankValue>> };
