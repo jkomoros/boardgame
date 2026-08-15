@@ -427,6 +427,41 @@ test('each corner mark sits nearest the vertex whose value it carries', () => {
         );
       });
 
+      // THE SCAN RANGE MUST NOT CLIP THE OPTIMUM. The inset the scan settles on
+      // has to land strictly INSIDE [CORNER_INSET_MIN, CORNER_INSET_MAX]; an
+      // endpoint means the best inset was outside the range and the mark is
+      // wearing whatever the range would allow instead.
+      //
+      // This is the assertion that makes those two constants mean something,
+      // and it took a measurement to find the right one. The obvious reading --
+      // that widening the range lets marks slide down onto the centre numeral
+      // -- is FALSE, measured: with CORNER_INSET_MAX at 0.95 instead of 0.65
+      // the chosen inset moves 0.6108 -> 0.6292 (the step grid shifts) and mark
+      // size is byte-identical at 0.1491/0.2539/0.1874em on d4/d5/d7. Raising
+      // MIN to 0.55 is likewise inert. The optimum is interior at ~0.61, so
+      // neither end BINDS, and a mutation widening either one is equivalent --
+      // surviving is the correct outcome, not an escaped bug.
+      //
+      // Narrowing is the direction that hurts, and this catches it: MAX at 0.45
+      // pins every mark to exactly 0.4500 and shrinks all three by 25%
+      // (0.1491 -> 0.1118, 0.2539 -> 0.1904, 0.1874 -> 0.1406), which is
+      // straight into the unreadable range the constants' doc comment exists to
+      // keep marks out of.
+      const chosen = corners.map((corner, index) => {
+        const [mx, my] = inEm(
+          (corner.left + corner.width / 2) / 100, (corner.top + corner.height / 2) / 100);
+        const [vx, vy] = inEm(...parsed.clip[index]);
+        return Math.hypot(mx - vx, my - vy) / Math.hypot(centroid[0] - vx, centroid[1] - vy);
+      });
+      for (const [index, inset] of chosen.entries()) {
+        assert.ok(
+          inset > CORNER_INSET_MIN + 1e-6 && inset < CORNER_INSET_MAX - 1e-6,
+          `d${faceCount} face ${faceIndex}: mark ${index} settled at inset ${inset.toFixed(4)}, `
+          + `on the edge of the [${CORNER_INSET_MIN}, ${CORNER_INSET_MAX}] scan range -- the range `
+          + 'is clipping the best inset, so this mark is smaller than the facet can carry',
+        );
+      }
+
       // THE POSITIVE CONTROL for the size bound. On all three of these shapes
       // the inset scan finds a square bigger than the cap at every vertex, so
       // the cap is what decides the mark's size -- every mark comes out at

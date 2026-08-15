@@ -101,6 +101,15 @@ const CONTENT_MARGIN = 0.72;
  * to the corner as it can while still being big enough to read, and how far
  * in that is depends on how sharp the corner is (a d4's 60-degree triangle
  * corner needs more inset than a barrel face's right angle).
+ *
+ * These two are a WINDOW the scan searches, not a budget it spends. On every
+ * shape we render the optimum is interior, at about 0.61, so neither end binds
+ * and widening either is inert: at MAX 0.95 the chosen inset moves only
+ * 0.6108 -> 0.6292 and mark size does not change at all. Narrowing is what
+ * costs -- MAX at 0.45 clips the scan to its own endpoint and shrinks every
+ * mark by 25%. `facet-placement.test.ts` asserts the chosen inset lands
+ * strictly inside the window, which is the form that catches the direction
+ * that matters and correctly ignores the one that does not.
  */
 export const CORNER_INSET_MIN = 0.18;
 export const CORNER_INSET_MAX = 0.65;
