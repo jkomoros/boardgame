@@ -156,6 +156,19 @@ type gameState struct {
 
 The `constraints` sub-package provides pre-built constraints: `MaxNumComponents`, `Unique`, `Same`, and `MaxDistinctValues`. See the `constraints` package documentation for details on property path syntax and available constraints.
 
+> **Declare the deck in the tag, not only in the constructor.** A stack you
+> build by hand in `GameStateConstructor` — `traitCards.NewStack(0)` on an
+> untagged `boardgame.Stack` field — works perfectly on the server and is
+> *invisible* to the client. The generated TypeScript can only learn a stack's
+> deck from the `stack` / `sizedstack` tag, so an untagged field is typed as
+> `ExpandedStack` over an anonymous record: no `component.Values.Trait`, no
+> autocomplete, and a renderer that wants a component's fields has to re-assert
+> their shape with a hand-written runtime type guard. `darwin` had accumulated
+> three such guards over fifteen stacks. Tagging the fields and letting the
+> framework build them deleted all three and cost nothing else:
+> `TraitDeck boardgame.Stack \`stack:"TraitCards" sanitize:"len"\``. The two
+> forms build the same stack; only one of them tells the client what is in it.
+
 Constraints are validation predicates, not callbacks. The engine may evaluate a constraint against a copied state. A custom constraint may capture immutable configuration such as a maximum count, but it must resolve runtime stacks and substates from the `destination`, `proposed`, and `state` arguments on every call. Do not capture `gs`, `gs.Hand`, a player state, or another mutable runtime object in the constraint closure; that captured value would still point at the original graph while the supplied arguments describe the copy.
 
 Constraints are **not** checked during initial game setup (when components are distributed via `DistributeComponentToStarterStack`), only during normal gameplay moves.

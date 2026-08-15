@@ -9,7 +9,10 @@ const die = {
   Deck: 'dice',
   GameName: 'pig',
   ID: 'pig-die-0',
-  DynamicValues: { SelectedFace: 3, Value: 4 },
+  // RollCount is required, not optional: it is the field the client watches to
+  // tell a re-roll from a no-op (see boardgame-die). A fixture that omitted it
+  // did not type-check against the generated contract.
+  DynamicValues: { RollCount: 0, SelectedFace: 3, Value: 4 },
 } as const;
 
 const dieStack = {

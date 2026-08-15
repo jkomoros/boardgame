@@ -74,7 +74,7 @@ export class BoardgameRenderGamePig extends GameRenderer {
       <boardgame-game-surface heading="Pig">
         <div class="horizontal">
           <boardgame-die
-            .item="${this.state?.Game?.Die?.Components?.[0]}"
+            .item="${this.state?.Game.Die.Components[0] ?? null}"
             .action="${this.move(MoveNames.RollDice)}"
             @roll-end="${this._celebrateRoll}">
           </boardgame-die>

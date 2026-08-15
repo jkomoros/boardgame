@@ -71,9 +71,14 @@ export class BoardgameRenderGameMemory extends GameRenderer {
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
     if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.RevealCard) return [];
-    const revealed = context.after.Game.VisibleCards.Components.filter(isVisibleComponent);
+    // flatMap rather than filter: isVisibleComponent is overloaded, so as a
+    // bare filter predicate TypeScript falls back to the boolean overload and
+    // keeps the empty slots' null in the element type.
+    const revealed = context.after.Game.VisibleCards.Components
+      .flatMap(card => isVisibleComponent(card) ? [card] : []);
     const previouslyRevealed = new Set(
-      context.before.Game.VisibleCards.Components.filter(isVisibleComponent).map(card => card.ID),
+      context.before.Game.VisibleCards.Components
+        .flatMap(card => isVisibleComponent(card) ? [card.ID] : []),
     );
     const newlyRevealed = revealed.find(card => !previouslyRevealed.has(card.ID));
     const isMatch = revealed.length === 2
