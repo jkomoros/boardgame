@@ -18,6 +18,13 @@ export interface EnumValueInfo<V extends string = string> {
   readonly Value: V;
   /** Human-readable label. Equals Value unless the game set one explicitly. */
   readonly Label: string;
+  /**
+   * True for the enum's default value -- the lowest value it declares, and what
+   * a sanitized (hidden) value of this enum reads as. Exactly one value has it.
+   * It is still a real member of the enum, so only filter on it if this enum's
+   * lowest value is a placeholder rather than something you mean to show.
+   */
+  readonly IsDefault: boolean;
   /** Longer explanation, e.g. the rules text for a card. */
   readonly Description?: string;
   /** CSS color for this value, e.g. to hang on a custom property. */
@@ -28,52 +35,119 @@ export interface EnumValueInfo<V extends string = string> {
 
 /** Every value of the `phase` enum, in the order the game declared them. */
 export const PhaseValues = [
-  { Key: 0, Value: "Gathering", Label: "Gathering" },
-  { Key: 1, Value: "Initial Deal", Label: "Initial Deal" },
-  { Key: 2, Value: "Normal Play", Label: "Normal Play" },
-  { Key: 3, Value: "Round Cleanup", Label: "Round Cleanup" },
+  { Key: 0, Value: "Gathering", Label: "Gathering", IsDefault: true },
+  { Key: 1, Value: "Initial Deal", Label: "Initial Deal", IsDefault: false },
+  { Key: 2, Value: "Normal Play", Label: "Normal Play", IsDefault: false },
+  { Key: 3, Value: "Round Cleanup", Label: "Round Cleanup", IsDefault: false },
 ] as const satisfies readonly EnumValueInfo<PhaseValue>[];
 
 /** The same values, keyed on the enum value rather than on a display string. */
 export const PhaseValueInfo: Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>> =
   Object.fromEntries(PhaseValues.map((value) => [value.Value, value])) as Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>>;
 
+/** This enum's default value: the lowest value it declares, and the one
+ * the framework substitutes when it sanitizes this enum away, so a value
+ * you are not allowed to see reads as this. It is a real member of the
+ * enum: if this enum's lowest value carries meaning of its own, this is
+ * still that value, and filtering it out would drop something real. */
+export const PhaseValueDefault = "Gathering" satisfies PhaseValue;
+
+/** Each value under its own name, so code can name a value instead of
+ * repeating its string. The name is the value, so only values whose string
+ * is a JavaScript identifier have a dotted form; anything with a space or
+ * punctuation in it needs bracket access, e.g. PhaseValueName["Two Words"]. */
+export const PhaseValueName = {
+  "Gathering": "Gathering",
+  "Initial Deal": "Initial Deal",
+  "Normal Play": "Normal Play",
+  "Round Cleanup": "Round Cleanup",
+} as const satisfies Readonly<Record<PhaseValue, PhaseValue>>;
+
 /** Every value of the `Rank` enum, in the order the game declared them. */
 export const RankValues = [
-  { Key: 0, Value: "Unknown", Label: "Unknown" },
-  { Key: 1, Value: "Ace", Label: "Ace" },
-  { Key: 2, Value: "2", Label: "2" },
-  { Key: 3, Value: "3", Label: "3" },
-  { Key: 4, Value: "4", Label: "4" },
-  { Key: 5, Value: "5", Label: "5" },
-  { Key: 6, Value: "6", Label: "6" },
-  { Key: 7, Value: "7", Label: "7" },
-  { Key: 8, Value: "8", Label: "8" },
-  { Key: 9, Value: "9", Label: "9" },
-  { Key: 10, Value: "10", Label: "10" },
-  { Key: 11, Value: "Jack", Label: "Jack" },
-  { Key: 12, Value: "Queen", Label: "Queen" },
-  { Key: 13, Value: "King", Label: "King" },
-  { Key: 14, Value: "Joker", Label: "Joker" },
+  { Key: 0, Value: "Unknown", Label: "Unknown", IsDefault: true },
+  { Key: 1, Value: "Ace", Label: "Ace", IsDefault: false },
+  { Key: 2, Value: "2", Label: "2", IsDefault: false },
+  { Key: 3, Value: "3", Label: "3", IsDefault: false },
+  { Key: 4, Value: "4", Label: "4", IsDefault: false },
+  { Key: 5, Value: "5", Label: "5", IsDefault: false },
+  { Key: 6, Value: "6", Label: "6", IsDefault: false },
+  { Key: 7, Value: "7", Label: "7", IsDefault: false },
+  { Key: 8, Value: "8", Label: "8", IsDefault: false },
+  { Key: 9, Value: "9", Label: "9", IsDefault: false },
+  { Key: 10, Value: "10", Label: "10", IsDefault: false },
+  { Key: 11, Value: "Jack", Label: "Jack", IsDefault: false },
+  { Key: 12, Value: "Queen", Label: "Queen", IsDefault: false },
+  { Key: 13, Value: "King", Label: "King", IsDefault: false },
+  { Key: 14, Value: "Joker", Label: "Joker", IsDefault: false },
 ] as const satisfies readonly EnumValueInfo<RankValue>[];
 
 /** The same values, keyed on the enum value rather than on a display string. */
 export const RankValueInfo: Readonly<Record<RankValue, EnumValueInfo<RankValue>>> =
   Object.fromEntries(RankValues.map((value) => [value.Value, value])) as Readonly<Record<RankValue, EnumValueInfo<RankValue>>>;
 
+/** This enum's default value: the lowest value it declares, and the one
+ * the framework substitutes when it sanitizes this enum away, so a value
+ * you are not allowed to see reads as this. It is a real member of the
+ * enum: if this enum's lowest value carries meaning of its own, this is
+ * still that value, and filtering it out would drop something real. */
+export const RankValueDefault = "Unknown" satisfies RankValue;
+
+/** Each value under its own name, so code can name a value instead of
+ * repeating its string. The name is the value, so only values whose string
+ * is a JavaScript identifier have a dotted form; anything with a space or
+ * punctuation in it needs bracket access, e.g. RankValueName["Two Words"]. */
+export const RankValueName = {
+  "Unknown": "Unknown",
+  "Ace": "Ace",
+  "2": "2",
+  "3": "3",
+  "4": "4",
+  "5": "5",
+  "6": "6",
+  "7": "7",
+  "8": "8",
+  "9": "9",
+  "10": "10",
+  "Jack": "Jack",
+  "Queen": "Queen",
+  "King": "King",
+  "Joker": "Joker",
+} as const satisfies Readonly<Record<RankValue, RankValue>>;
+
 /** Every value of the `Suit` enum, in the order the game declared them. */
 export const SuitValues = [
-  { Key: 0, Value: "�", Label: "�" },
-  { Key: 1, Value: "♠", Label: "♠" },
-  { Key: 2, Value: "♥", Label: "♥" },
-  { Key: 3, Value: "♣", Label: "♣" },
-  { Key: 4, Value: "♦", Label: "♦" },
-  { Key: 5, Value: "Jokers", Label: "Jokers" },
+  { Key: 0, Value: "�", Label: "�", IsDefault: true },
+  { Key: 1, Value: "♠", Label: "♠", IsDefault: false },
+  { Key: 2, Value: "♥", Label: "♥", IsDefault: false },
+  { Key: 3, Value: "♣", Label: "♣", IsDefault: false },
+  { Key: 4, Value: "♦", Label: "♦", IsDefault: false },
+  { Key: 5, Value: "Jokers", Label: "Jokers", IsDefault: false },
 ] as const satisfies readonly EnumValueInfo<SuitValue>[];
 
 /** The same values, keyed on the enum value rather than on a display string. */
 export const SuitValueInfo: Readonly<Record<SuitValue, EnumValueInfo<SuitValue>>> =
   Object.fromEntries(SuitValues.map((value) => [value.Value, value])) as Readonly<Record<SuitValue, EnumValueInfo<SuitValue>>>;
+
+/** This enum's default value: the lowest value it declares, and the one
+ * the framework substitutes when it sanitizes this enum away, so a value
+ * you are not allowed to see reads as this. It is a real member of the
+ * enum: if this enum's lowest value carries meaning of its own, this is
+ * still that value, and filtering it out would drop something real. */
+export const SuitValueDefault = "�" satisfies SuitValue;
+
+/** Each value under its own name, so code can name a value instead of
+ * repeating its string. The name is the value, so only values whose string
+ * is a JavaScript identifier have a dotted form; anything with a space or
+ * punctuation in it needs bracket access, e.g. SuitValueName["Two Words"]. */
+export const SuitValueName = {
+  "�": "�",
+  "♠": "♠",
+  "♥": "♥",
+  "♣": "♣",
+  "♦": "♦",
+  "Jokers": "Jokers",
+} as const satisfies Readonly<Record<SuitValue, SuitValue>>;
 
 export interface GameEnums {
   readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };

@@ -6,11 +6,12 @@ import (
 )
 
 // enumValuesForTest builds the ordered value list an enum with no presentation
-// data produces: ascending keys from zero, label equal to the string value.
+// data produces: ascending keys from zero, label equal to the string value, and
+// the lowest value flagged as the enum's default.
 func enumValuesForTest(values ...string) []EnumValueInfo {
 	result := make([]EnumValueInfo, len(values))
 	for i, value := range values {
-		result[i] = EnumValueInfo{Key: i, Value: value, Label: value}
+		result[i] = EnumValueInfo{Key: i, Value: value, Label: value, IsDefault: i == 0}
 	}
 	return result
 }
@@ -274,7 +275,7 @@ func TestGenerateTypeScript(t *testing.T) {
 // alphabetical.
 func climateResult() TypeResult {
 	return TypeResult{Enums: []EnumInfo{{Name: "climate", Values: []EnumValueInfo{
-		{Key: 0, Value: "Unknown", Label: "Unknown"},
+		{Key: 0, Value: "Unknown", Label: "Unknown", IsDefault: true},
 		{Key: 1, Value: "Ice Age", Label: "Ice Age"},
 		{Key: 2, Value: "Freezing", Label: "Freezing"},
 		{Key: 3, Value: "Cold", Label: "Cold"},
@@ -293,13 +294,13 @@ func TestGenerateTypeScriptEmitsEnumValuesInDeclaredOrder(t *testing.T) {
 	ts := GenerateTypeScript(climateResult())
 
 	want := `export const ClimateValues = [
-  { Key: 0, Value: "Unknown", Label: "Unknown" },
-  { Key: 1, Value: "Ice Age", Label: "Ice Age" },
-  { Key: 2, Value: "Freezing", Label: "Freezing" },
-  { Key: 3, Value: "Cold", Label: "Cold" },
-  { Key: 4, Value: "Temperate", Label: "Temperate" },
-  { Key: 5, Value: "Warm", Label: "Warm" },
-  { Key: 6, Value: "Scorching", Label: "Scorching" },
+  { Key: 0, Value: "Unknown", Label: "Unknown", IsDefault: true },
+  { Key: 1, Value: "Ice Age", Label: "Ice Age", IsDefault: false },
+  { Key: 2, Value: "Freezing", Label: "Freezing", IsDefault: false },
+  { Key: 3, Value: "Cold", Label: "Cold", IsDefault: false },
+  { Key: 4, Value: "Temperate", Label: "Temperate", IsDefault: false },
+  { Key: 5, Value: "Warm", Label: "Warm", IsDefault: false },
+  { Key: 6, Value: "Scorching", Label: "Scorching", IsDefault: false },
 ] as const satisfies readonly EnumValueInfo<ClimateValue>[];`
 
 	if !strings.Contains(ts, want) {
@@ -311,6 +312,7 @@ func TestGenerateTypeScriptEmitsEnumValuesInDeclaredOrder(t *testing.T) {
 		"readonly Key: number;",
 		"readonly Value: V;",
 		"readonly Label: string;",
+		"readonly IsDefault: boolean;",
 		"export const ClimateValueInfo: Readonly<Record<ClimateValue, EnumValueInfo<ClimateValue>>> =",
 		"Object.fromEntries(ClimateValues.map((value) => [value.Value, value])) as Readonly<Record<ClimateValue, EnumValueInfo<ClimateValue>>>;",
 	} {
@@ -323,6 +325,91 @@ func TestGenerateTypeScriptEmitsEnumValuesInDeclaredOrder(t *testing.T) {
 	// the lookup with a union member always finds an entry.
 	if !strings.Contains(ts, `export type ClimateValue = "Unknown" | "Ice Age" | "Freezing" | "Cold" | "Temperate" | "Warm" | "Scorching";`) {
 		t.Errorf("union does not match the ordered list:\n%s", ts)
+	}
+}
+
+// TestGenerateTypeScriptMarksTheDefaultTheExtractorFound pins the flag to the
+// value the extractor marked rather than to a position in the list. A TreeEnum's
+// DefaultValue is its first leaf, which need not be the lowest leaf key, so a
+// generator that flagged "the first entry" instead would be wrong for real
+// enums while still passing any fixture whose default happens to come first.
+func TestGenerateTypeScriptMarksTheDefaultTheExtractorFound(t *testing.T) {
+
+	ts := GenerateTypeScript(TypeResult{Enums: []EnumInfo{{Name: "climate", Values: []EnumValueInfo{
+		{Key: 0, Value: "Cold", Label: "Cold"},
+		{Key: 1, Value: "Ice Age", Label: "Ice Age", IsDefault: true},
+		{Key: 2, Value: "Warm", Label: "Warm"},
+	}}}})
+
+	// Asserted as one block: the flag has to be present on every entry, true on
+	// exactly the marked one, and false on the rest. An entry missing it would
+	// not even compile downstream, because `as const` gives each entry its own
+	// literal type and a key on only some of them cannot be read off the union.
+	want := `export const ClimateValues = [
+  { Key: 0, Value: "Cold", Label: "Cold", IsDefault: false },
+  { Key: 1, Value: "Ice Age", Label: "Ice Age", IsDefault: true },
+  { Key: 2, Value: "Warm", Label: "Warm", IsDefault: false },
+] as const satisfies readonly EnumValueInfo<ClimateValue>[];`
+
+	if !strings.Contains(ts, want) {
+		t.Fatalf("default flag is missing, on the wrong value, or not on every value.\nwant block:\n%s\ngot:\n%s", want, ts)
+	}
+
+	if !strings.Contains(ts, `export const ClimateValueDefault = "Ice Age" satisfies ClimateValue;`) {
+		t.Errorf("default value is not exposed directly, or names the wrong value:\n%s", ts)
+	}
+}
+
+// TestGenerateTypeScriptEmitsDefaultForTheShippedShape checks the ordinary case
+// alongside the awkward one above, so the two together fail for both a default
+// stuck at index zero and one derived from the wrong entry.
+func TestGenerateTypeScriptEmitsDefaultForTheShippedShape(t *testing.T) {
+
+	ts := GenerateTypeScript(climateResult())
+
+	if !strings.Contains(ts, `export const ClimateValueDefault = "Unknown" satisfies ClimateValue;`) {
+		t.Errorf("missing ClimateValueDefault:\n%s", ts)
+	}
+}
+
+// TestGenerateTypeScriptEmitsValueNames covers the by-name constants, including
+// the multi-word value that has no identifier-style form and so can only be
+// reached with brackets.
+func TestGenerateTypeScriptEmitsValueNames(t *testing.T) {
+
+	ts := GenerateTypeScript(climateResult())
+
+	want := `export const ClimateValueName = {
+  "Unknown": "Unknown",
+  "Ice Age": "Ice Age",
+  "Freezing": "Freezing",
+  "Cold": "Cold",
+  "Temperate": "Temperate",
+  "Warm": "Warm",
+  "Scorching": "Scorching",
+} as const satisfies Readonly<Record<ClimateValue, ClimateValue>>;`
+
+	if !strings.Contains(ts, want) {
+		t.Fatalf("by-name constants are missing or incomplete.\nwant block:\n%s\ngot:\n%s", want, ts)
+	}
+
+	// The caveat is the whole reason a game cannot assume a dotted form exists.
+	if !strings.Contains(ts, `bracket access, e.g. ClimateValueName["Two Words"]`) {
+		t.Errorf("generated docs do not warn that non-identifier values need bracket access:\n%s", ts)
+	}
+}
+
+// TestGenerateTypeScriptSkipsDefaultAndNamesForValuelessEnum: an enum whose
+// values could not be resolved generates a `string` union, so there is no value
+// to name and no default to point at. Emitting either would be a lie.
+func TestGenerateTypeScriptSkipsDefaultAndNamesForValuelessEnum(t *testing.T) {
+
+	ts := GenerateTypeScript(TypeResult{Enums: []EnumInfo{{Name: "climate"}}})
+
+	for _, unwanted := range []string{"ClimateValueDefault", "ClimateValueName"} {
+		if strings.Contains(ts, unwanted) {
+			t.Errorf("emitted %q for an enum with no values:\n%s", unwanted, ts)
+		}
 	}
 }
 
@@ -343,15 +430,15 @@ func TestGenerateTypeScriptOmitsAbsentPresentation(t *testing.T) {
 func TestGenerateTypeScriptEmitsPresentation(t *testing.T) {
 
 	ts := GenerateTypeScript(TypeResult{Enums: []EnumInfo{{Name: "card", Values: []EnumValueInfo{
-		{Key: 0, Value: "Unknown", Label: "Unknown"},
+		{Key: 0, Value: "Unknown", Label: "Unknown", IsDefault: true},
 		{Key: 1, Value: "Guard", Label: "Guard", Description: `Guess a "hand"`, CSSColor: "#c62828"},
 		{Key: 2, Value: "Princess", Label: "The Princess", Art: "assets/princess.jpg"},
 	}}}})
 
 	want := `export const CardValues = [
-  { Key: 0, Value: "Unknown", Label: "Unknown" },
-  { Key: 1, Value: "Guard", Label: "Guard", Description: "Guess a \"hand\"", CSSColor: "#c62828" },
-  { Key: 2, Value: "Princess", Label: "The Princess", Art: new URL("assets/princess.jpg", import.meta.url).href },
+  { Key: 0, Value: "Unknown", Label: "Unknown", IsDefault: true },
+  { Key: 1, Value: "Guard", Label: "Guard", IsDefault: false, Description: "Guess a \"hand\"", CSSColor: "#c62828" },
+  { Key: 2, Value: "Princess", Label: "The Princess", IsDefault: false, Art: new URL("assets/princess.jpg", import.meta.url).href },
 ] as const satisfies readonly EnumValueInfo<CardValue>[];`
 
 	if !strings.Contains(ts, want) {
@@ -363,7 +450,7 @@ func TestGenerateTypeScriptWithoutEnumsEmitsNoMetadata(t *testing.T) {
 
 	ts := GenerateTypeScript(TypeResult{})
 
-	for _, unwanted := range []string{"EnumValueInfo", "Object.fromEntries"} {
+	for _, unwanted := range []string{"EnumValueInfo", "Object.fromEntries", "ValueDefault", "ValueName"} {
 		if strings.Contains(ts, unwanted) {
 			t.Errorf("emitted %q for a game with no enums:\n%s", unwanted, ts)
 		}

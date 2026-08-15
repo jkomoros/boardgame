@@ -14,6 +14,13 @@ export interface EnumValueInfo<V extends string = string> {
   readonly Value: V;
   /** Human-readable label. Equals Value unless the game set one explicitly. */
   readonly Label: string;
+  /**
+   * True for the enum's default value -- the lowest value it declares, and what
+   * a sanitized (hidden) value of this enum reads as. Exactly one value has it.
+   * It is still a real member of the enum, so only filter on it if this enum's
+   * lowest value is a placeholder rather than something you mean to show.
+   */
+  readonly IsDefault: boolean;
   /** Longer explanation, e.g. the rules text for a card. */
   readonly Description?: string;
   /** CSS color for this value, e.g. to hang on a custom property. */
@@ -24,12 +31,27 @@ export interface EnumValueInfo<V extends string = string> {
 
 /** Every value of the `phase` enum, in the order the game declared them. */
 export const PhaseValues = [
-  { Key: 1, Value: "Normal", Label: "Normal" },
+  { Key: 1, Value: "Normal", Label: "Normal", IsDefault: true },
 ] as const satisfies readonly EnumValueInfo<PhaseValue>[];
 
 /** The same values, keyed on the enum value rather than on a display string. */
 export const PhaseValueInfo: Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>> =
   Object.fromEntries(PhaseValues.map((value) => [value.Value, value])) as Readonly<Record<PhaseValue, EnumValueInfo<PhaseValue>>>;
+
+/** This enum's default value: the lowest value it declares, and the one
+ * the framework substitutes when it sanitizes this enum away, so a value
+ * you are not allowed to see reads as this. It is a real member of the
+ * enum: if this enum's lowest value carries meaning of its own, this is
+ * still that value, and filtering it out would drop something real. */
+export const PhaseValueDefault = "Normal" satisfies PhaseValue;
+
+/** Each value under its own name, so code can name a value instead of
+ * repeating its string. The name is the value, so only values whose string
+ * is a JavaScript identifier have a dotted form; anything with a space or
+ * punctuation in it needs bracket access, e.g. PhaseValueName["Two Words"]. */
+export const PhaseValueName = {
+  "Normal": "Normal",
+} as const satisfies Readonly<Record<PhaseValue, PhaseValue>>;
 
 export interface GameEnums {
   readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };

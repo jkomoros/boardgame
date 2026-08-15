@@ -128,17 +128,18 @@ func ValidateTypeResult(result TypeResult) error {
 		return err
 	}
 	for _, enum := range result.Enums {
-		// One enum generates three declarations: the string literal union, the
-		// ordered value list, and the by-value lookup. All three have to be
-		// checked for collisions, or a second enum could silently shadow the
-		// first one's metadata.
-		for _, suffix := range []string{"Value", "Values", "ValueInfo"} {
+		// One enum generates five declarations: the string literal union, the
+		// ordered value list, the by-value lookup, the default value, and the
+		// by-name constants. All of them have to be checked for collisions, or
+		// a second enum could silently shadow the first one's metadata.
+		for _, suffix := range []string{"Value", "Values", "ValueInfo", "ValueDefault", "ValueName"} {
 			if err := declare(toPascalCase(enum.Name)+suffix, fmt.Sprintf("enum %q", enum.Name)); err != nil {
 				return err
 			}
 		}
 		seenKeys := make(map[int]bool, len(enum.Values))
 		seenValues := make(map[string]bool, len(enum.Values))
+		defaults := 0
 		for _, value := range enum.Values {
 			if seenKeys[value.Key] {
 				return fmt.Errorf("enum %q contains duplicate key %d", enum.Name, value.Key)
@@ -148,6 +149,16 @@ func ValidateTypeResult(result TypeResult) error {
 			}
 			seenKeys[value.Key] = true
 			seenValues[value.Value] = true
+			if value.IsDefault {
+				defaults++
+			}
+		}
+		// Every enum has exactly one DefaultValue, so extractor output that
+		// flags none or several is not a shape the generated types can describe:
+		// the client would get no XValueDefault, or a wrong one, with nothing to
+		// say so. Refuse it here rather than generating a plausible-looking file.
+		if len(enum.Values) > 0 && defaults != 1 {
+			return fmt.Errorf("enum %q flags %d values as the default; exactly one of its %d values must be", enum.Name, defaults, len(enum.Values))
 		}
 	}
 	for _, deck := range result.Decks {

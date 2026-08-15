@@ -28,9 +28,10 @@ func TestValidateTypeResultRejectsEnumMetadataCollisionsAndDuplicates(t *testing
 		fragment string
 	}{
 		// Two enums whose names pascal-case to the same thing would generate
-		// three colliding declarations each; the ordered list and the by-value
-		// lookup are registered alongside the union so the collision is
-		// reported rather than one enum silently shadowing the other.
+		// five colliding declarations each; the ordered list, the by-value
+		// lookup, the default and the by-name constants are all registered
+		// alongside the union so the collision is reported rather than one enum
+		// silently shadowing the other.
 		"metadata name collision": {
 			result: TypeResult{Enums: []EnumInfo{
 				{Name: "climate-card"},
@@ -40,17 +41,34 @@ func TestValidateTypeResultRejectsEnumMetadataCollisionsAndDuplicates(t *testing
 		},
 		"duplicate key": {
 			result: TypeResult{Enums: []EnumInfo{{Name: "color", Values: []EnumValueInfo{
-				{Key: 0, Value: "Red"},
+				{Key: 0, Value: "Red", IsDefault: true},
 				{Key: 0, Value: "Blue"},
 			}}}},
 			fragment: `duplicate key 0`,
 		},
 		"duplicate value": {
 			result: TypeResult{Enums: []EnumInfo{{Name: "color", Values: []EnumValueInfo{
-				{Key: 0, Value: "Red"},
+				{Key: 0, Value: "Red", IsDefault: true},
 				{Key: 1, Value: "Red"},
 			}}}},
 			fragment: `duplicate value "Red"`,
+		},
+		// Every enum has exactly one DefaultValue. Extractor output that lost
+		// the flag would otherwise generate a file with no XValueDefault and an
+		// IsDefault that is false everywhere, which reads as a valid enum.
+		"no default flagged": {
+			result: TypeResult{Enums: []EnumInfo{{Name: "color", Values: []EnumValueInfo{
+				{Key: 0, Value: "Red"},
+				{Key: 1, Value: "Blue"},
+			}}}},
+			fragment: `enum "color" flags 0 values as the default; exactly one of its 2 values must be`,
+		},
+		"several defaults flagged": {
+			result: TypeResult{Enums: []EnumInfo{{Name: "color", Values: []EnumValueInfo{
+				{Key: 0, Value: "Red", IsDefault: true},
+				{Key: 1, Value: "Blue", IsDefault: true},
+			}}}},
+			fragment: `enum "color" flags 2 values as the default; exactly one of its 2 values must be`,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -85,7 +103,10 @@ func TestValidateTypeResultAcceptsDistinctContract(t *testing.T) {
 	err := ValidateTypeResult(TypeResult{
 		GameFields:   []FieldInfo{{Name: "CurrentPlayer", Type: "TypePlayerIndex"}},
 		PlayerFields: []FieldInfo{{Name: "Score", Type: "TypeInt"}},
-		Enums:        []EnumInfo{{Name: "phase"}},
+		Enums: []EnumInfo{{Name: "phase", Values: []EnumValueInfo{
+			{Key: 0, Value: "Setup", Label: "Setup", IsDefault: true},
+			{Key: 1, Value: "Playing", Label: "Playing"},
+		}}},
 		Decks: []DeckInfo{{
 			Name:          "playing_cards",
 			Fields:        []FieldInfo{{Name: "Rank", Type: "TypeEnum", EnumName: "rank"}},

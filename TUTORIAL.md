@@ -3208,13 +3208,22 @@ normally rather than with `import type`:
 export type ClimateValue = "Unknown" | "Ice Age" | "Freezing" | "Cold";
 
 export const ClimateValues = [
-  { Key: 0, Value: "Unknown", Label: "Unknown" },
-  { Key: 1, Value: "Ice Age", Label: "Ice Age", Art: new URL("./assets/ice-age.jpg", import.meta.url).href },
-  { Key: 2, Value: "Freezing", Label: "Freezing" },
-  { Key: 3, Value: "Cold", Label: "Cold" },
+  { Key: 0, Value: "Unknown", Label: "Unknown", IsDefault: true },
+  { Key: 1, Value: "Ice Age", Label: "Ice Age", IsDefault: false, Art: new URL("./assets/ice-age.jpg", import.meta.url).href },
+  { Key: 2, Value: "Freezing", Label: "Freezing", IsDefault: false },
+  { Key: 3, Value: "Cold", Label: "Cold", IsDefault: false },
 ] as const satisfies readonly EnumValueInfo<ClimateValue>[];
 
 export const ClimateValueInfo: Readonly<Record<ClimateValue, EnumValueInfo<ClimateValue>>> = /* ... */;
+
+export const ClimateValueDefault = "Unknown" satisfies ClimateValue;
+
+export const ClimateValueName = {
+  "Unknown": "Unknown",
+  "Ice Age": "Ice Age",
+  "Freezing": "Freezing",
+  "Cold": "Cold",
+} as const satisfies Readonly<Record<ClimateValue, ClimateValue>>;
 ```
 
 `ClimateValues` is in the order your Go const block declares, so iterating it
@@ -3231,11 +3240,33 @@ html`${ClimateValues.map(climate => html`
 const art = ClimateValueInfo[card.Climate].Art;
 ```
 
+`IsDefault` and `ClimateValueDefault` both name the enum's
+[`DefaultValue`](https://pkg.go.dev/github.com/jkomoros/boardgame/enum#Enum):
+the lowest value it declares, and the value the framework substitutes when it
+sanitizes a hidden enum, so a value your player is not allowed to see reads as
+this one. Many games declare a placeholder there and want it out of a picker:
+
+```typescript
+const GUESSABLE = ClimateValues.filter(climate => !climate.IsDefault);
+```
+
+That is a decision about *your* enum, not a fact about the framework. The
+default is a real member of the enum; if your lowest value carries meaning of
+its own, `IsDefault` is still correctly true for it and filtering it out would
+drop something real.
+
+`ClimateValueName` lets a comparison name a value instead of repeating its
+string. The name *is* the value, so only values whose string is a JavaScript
+identifier have a dotted form; `ClimateValueName.Cold` works but "Ice Age" needs
+`ClimateValueName["Ice Age"]`. This is for readability: TypeScript already
+rejects a comparison against a string that is not a member of the union, so a
+bare `climate === 'Ice Age'` is equally safe and equally checked.
+
 `Label`, `Description`, `CSSColor` and `Art` come from
 [enum presentation](#enum-presentation); `Art` arrives as a URL already resolved
 against the generated module, which lives in your `client/` folder. Values with
-no presentation carry only `Key`, `Value` and `Label`, and a game with no enums
-generates none of this at all.
+no presentation carry only `Key`, `Value`, `Label` and `IsDefault`, and a game
+with no enums generates none of this at all.
 
 Take the list from here rather than writing your own: a hand-written copy is a
 second source of truth that goes stale silently, and four renderers had already

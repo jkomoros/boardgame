@@ -42,7 +42,11 @@ type EnumValueInfo struct {
 	//literal union that identifies this value.
 	Value string `json:"value"`
 	//Label is the human-readable label. Defaults to Value.
-	Label       string `json:"label"`
+	Label string `json:"label"`
+	//IsDefault reports whether this is the enum's DefaultValue: the lowest
+	//value in it, and the one the framework substitutes when it sanitizes a
+	//hidden enum away. Exactly one value in a non-empty enum has it.
+	IsDefault   bool   `json:"isDefault,omitempty"`
 	Description string `json:"description,omitempty"`
 	CSSColor    string `json:"cssColor,omitempty"`
 	Art         string `json:"art,omitempty"`
@@ -62,6 +66,18 @@ func (e EnumInfo) ValueNames() []string {
 		result[i] = value.Value
 	}
 	return result
+}
+
+// DefaultValue returns the string value of the enum's default, and whether one
+// was flagged at all. ValidateTypeResult guarantees exactly one for a non-empty
+// enum, so the second return is false only for an enum with no values.
+func (e EnumInfo) DefaultValue() (string, bool) {
+	for _, value := range e.Values {
+		if value.IsDefault {
+			return value.Value, true
+		}
+	}
+	return "", false
 }
 
 // ConstantInfo describes a configured game constant and its exact primitive
@@ -225,6 +241,7 @@ type enumValueInfo struct {
 	Key         int    ` + "`" + `json:"key"` + "`" + `
 	Value       string ` + "`" + `json:"value"` + "`" + `
 	Label       string ` + "`" + `json:"label"` + "`" + `
+	IsDefault   bool   ` + "`" + `json:"isDefault,omitempty"` + "`" + `
 	Description string ` + "`" + `json:"description,omitempty"` + "`" + `
 	CSSColor    string ` + "`" + `json:"cssColor,omitempty"` + "`" + `
 	Art         string ` + "`" + `json:"art,omitempty"` + "`" + `
@@ -280,6 +297,11 @@ func enumValues(e enum.Enum) []enumValueInfo {
 
 	sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
 
+	// The enum knows its own default; don't re-derive it from the sorted list.
+	// A TreeEnum's DefaultValue is its first leaf, which need not be the lowest
+	// leaf key, so "the first entry" would be a different value for some enums.
+	defaultValue := e.DefaultValue()
+
 	result := make([]enumValueInfo, 0, len(vals))
 	for _, v := range vals {
 		presentation := e.Presentation(v)
@@ -291,6 +313,7 @@ func enumValues(e enum.Enum) []enumValueInfo {
 			Key:         int(v),
 			Value:       e.String(v),
 			Label:       label,
+			IsDefault:   v == defaultValue,
 			Description: presentation.Description,
 			CSSColor:    presentation.CSSColor,
 			Art:         presentation.Art,

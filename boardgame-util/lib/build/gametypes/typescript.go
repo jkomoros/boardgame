@@ -325,6 +325,12 @@ func writeEnumMetadata(b *strings.Builder, enums []EnumInfo) {
 				label = value.Value
 			}
 			b.WriteString(tsQuoted(label))
+			// Emitted on every entry, not just the default one. `as const` gives
+			// each entry its own literal type, so a key present on only some of
+			// them cannot be read off the array's element union at all --
+			// `values.filter(v => !v.IsDefault)` would not compile.
+			b.WriteString(", IsDefault: ")
+			b.WriteString(strconv.FormatBool(value.IsDefault))
 			if value.Description != "" {
 				b.WriteString(", Description: ")
 				b.WriteString(tsQuoted(value.Description))
@@ -358,6 +364,45 @@ func writeEnumMetadata(b *strings.Builder, enums []EnumInfo) {
 		b.WriteString("Values.map((value) => [value.Value, value])) as ")
 		b.WriteString(record)
 		b.WriteString(";\n\n")
+
+		if len(e.Values) == 0 {
+			continue
+		}
+
+		if defaultValue, ok := e.DefaultValue(); ok {
+			b.WriteString("/** This enum's default value: the lowest value it declares, and the one\n")
+			b.WriteString(" * the framework substitutes when it sanitizes this enum away, so a value\n")
+			b.WriteString(" * you are not allowed to see reads as this. It is a real member of the\n")
+			b.WriteString(" * enum: if this enum's lowest value carries meaning of its own, this is\n")
+			b.WriteString(" * still that value, and filtering it out would drop something real. */\nexport const ")
+			b.WriteString(name)
+			b.WriteString("ValueDefault = ")
+			b.WriteString(tsQuoted(defaultValue))
+			b.WriteString(" satisfies ")
+			b.WriteString(valueType)
+			b.WriteString(";\n\n")
+		}
+
+		b.WriteString("/** Each value under its own name, so code can name a value instead of\n")
+		b.WriteString(" * repeating its string. The name is the value, so only values whose string\n")
+		b.WriteString(" * is a JavaScript identifier have a dotted form; anything with a space or\n")
+		b.WriteString(" * punctuation in it needs bracket access, e.g. ")
+		b.WriteString(name)
+		b.WriteString("ValueName[\"Two Words\"]. */\nexport const ")
+		b.WriteString(name)
+		b.WriteString("ValueName = {\n")
+		for _, value := range e.Values {
+			b.WriteString("  ")
+			b.WriteString(tsQuoted(value.Value))
+			b.WriteString(": ")
+			b.WriteString(tsQuoted(value.Value))
+			b.WriteString(",\n")
+		}
+		b.WriteString("} as const satisfies Readonly<Record<")
+		b.WriteString(valueType)
+		b.WriteString(", ")
+		b.WriteString(valueType)
+		b.WriteString(">>;\n\n")
 	}
 }
 
@@ -369,6 +414,13 @@ export interface EnumValueInfo<V extends string = string> {
   readonly Value: V;
   /** Human-readable label. Equals Value unless the game set one explicitly. */
   readonly Label: string;
+  /**
+   * True for the enum's default value -- the lowest value it declares, and what
+   * a sanitized (hidden) value of this enum reads as. Exactly one value has it.
+   * It is still a real member of the enum, so only filter on it if this enum's
+   * lowest value is a placeholder rather than something you mean to show.
+   */
+  readonly IsDefault: boolean;
   /** Longer explanation, e.g. the rules text for a card. */
   readonly Description?: string;
   /** CSS color for this value, e.g. to hang on a custom property. */
