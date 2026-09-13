@@ -3,7 +3,7 @@ import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 import type { CardsComponentValues, GameState, State } from './_types.js';
 import type { MoveName } from './_move_names.js';
-import { cardView, fx, isVisibleComponent } from '../../src/client.js';
+import { cardView, diffVisibleComponents, fx, isVisibleComponent } from '../../src/client.js';
 import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
 
 @registerGameRenderer
@@ -71,41 +71,24 @@ export class BoardgameRenderGameMemory extends GameRenderer {
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
     if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.RevealCard) return [];
-    // flatMap rather than filter: isVisibleComponent is overloaded, so as a
-    // bare filter predicate TypeScript falls back to the boolean overload and
-    // keeps the empty slots' null in the element type.
     const revealed = context.after.Game.VisibleCards.Components
       .flatMap(card => isVisibleComponent(card) ? [card] : []);
-    const previouslyRevealed = new Set(
-      context.before.Game.VisibleCards.Components
-        .flatMap(card => isVisibleComponent(card) ? [card.ID] : []),
+    const diff = diffVisibleComponents(
+      context.before.Game.VisibleCards.Components,
+      context.after.Game.VisibleCards.Components,
     );
-    const newlyRevealed = revealed.find(card => !previouslyRevealed.has(card.ID));
     const isMatch = revealed.length === 2
       && revealed[0]!.Values.Type === revealed[1]!.Values.Type;
-    // A motion anchor follows the real card's structural lifecycle. It works
-    // even though a reveal is a stationary face morph rather than travel, and
-    // never clones or takes transform ownership from the card.
-    const revealPoint = newlyRevealed
-      ? fx.motion(newlyRevealed.ID)
-      : fx.anchor('memory-cards');
-    const feedback: EffectSpec[] = [fx.pulse({
-      at: revealPoint,
-      tone: isMatch ? 'reward' : 'attention',
-      intensity: isMatch ? 'medium' : 'small',
-      timing: newlyRevealed ? 'immediate' : 'version',
-    })];
-    if (isMatch) {
-      feedback.push(fx.burst({
-        at: revealPoint,
-        tone: 'reward',
-        intensity: 'medium',
-        timing: newlyRevealed ? 'immediate' : 'version',
-      }));
-    }
-    return [fx.parallel(feedback, {
-      key: 'reveal-card',
-      timing: 'version',
+    if (diff.status !== 'exact' || diff.added.length !== 1 || !isMatch) return [];
+    const matchedCard = diff.added[0];
+    if (!matchedCard) return [];
+    // The flip carries ordinary reveals. A completed match gets one quiet,
+    // geometry-only acknowledgment on the newly revealed public card.
+    return [fx.pulse({
+      at: fx.subject(matchedCard),
+      tone: 'reward',
+      intensity: 'subtle',
+      key: 'memory-match',
     })];
   }
 
@@ -119,7 +102,6 @@ export class BoardgameRenderGameMemory extends GameRenderer {
       <boardgame-game-surface heading="Memory">
         <div>
           <boardgame-component-stack
-            data-effect-anchor="memory-cards"
             layout="grid"
             messy
             post-animation-delay="${this._revealHoldMs()}"

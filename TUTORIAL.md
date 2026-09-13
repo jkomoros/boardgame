@@ -4777,17 +4777,17 @@ motion. Prefer deriving the value from current rendered state, as Memory's
 
 #### Semantic delight effects
 
-Automatic component movement explains *what changed*. For moments that should
-also communicate meaning—a match, reward, warning, transfer, or magical
-action—return immutable effect recipes from `effectsForTransition()`. Keep the
-three authoring choices independent:
+Automatic component movement should carry ordinary play. For a rare moment
+that also needs meaning—a win, milestone, or important confirmation—return one
+immutable effect phrase from `effectsForTransition()`. Keep its three choices
+independent:
 
 - the recipe (`pulse`, `burst`, `travel`, `sequence`, or `parallel`),
 - its semantic tone (`reward`, `warning`, `attention`, and so on), and
-- its intensity (`subtle` through `large`).
+- its intensity (`subtle` through `large`). Prefer `subtle` or `small`.
 
-Memory, for example, gives every reveal a small emphasis and adds a reward
-burst when the second revealed card matches:
+Memory stays quiet on ordinary reveals and gives only a completed match one
+restrained emphasis:
 
 ```ts
 override effectsForTransition(
@@ -4797,51 +4797,31 @@ override effectsForTransition(
     return [];
   }
   const revealed = context.after.Game.VisibleCards.Components
-    .filter(isVisibleComponent);
-  const previouslyRevealed = new Set(
-    context.before.Game.VisibleCards.Components
-      .filter(isVisibleComponent)
-      .map(card => card.ID),
+    .flatMap(card => isVisibleComponent(card) ? [card] : []);
+  const diff = diffVisibleComponents(
+    context.before.Game.VisibleCards.Components,
+    context.after.Game.VisibleCards.Components,
   );
-  const newlyRevealed = revealed.find(card => !previouslyRevealed.has(card.ID));
   const isMatch = revealed.length === 2
     && revealed[0]!.Values.Type === revealed[1]!.Values.Type;
-  const revealPoint = newlyRevealed
-    ? fx.motion(newlyRevealed.ID)
-    : fx.anchor('memory-cards');
-
-  return [fx.parallel([
-    fx.pulse({
-      at: revealPoint,
-      tone: isMatch ? 'reward' : 'attention',
-      intensity: isMatch ? 'medium' : 'small',
-      timing: newlyRevealed ? 'immediate' : 'version',
-    }),
-    ...(isMatch ? [fx.burst({
-      at: revealPoint,
-      tone: 'reward',
-      intensity: 'medium',
-      timing: newlyRevealed ? 'immediate' : 'version',
-    })] : []),
-  ], {
-    key: 'reveal-card',
-    timing: 'version',
+  if (diff.status !== 'exact' || diff.added.length !== 1 || !isMatch) return [];
+  const matchedCard = diff.added[0];
+  if (!matchedCard) return [];
+  return [fx.pulse({
+    at: fx.subject(matchedCard),
+    tone: 'reward',
+    intensity: 'subtle',
+    key: 'memory-match',
   })];
 }
 ```
 
-`fx.motion(id)` follows the framework's measured structural lifecycle for that
-component ID, including a stationary card-face morph. It reads immutable
-geometry and timing; it does not clone the card or compete for its transform.
-The stable DOM anchor is an honest fallback when there is no newly revealed
-subject. The renderer marks that fallback with a scoped name:
-
-```ts
-html`<boardgame-component-stack
-  data-effect-anchor="memory-cards"
-  .stack=${this.state.Game.Cards}>
-</boardgame-component-stack>`
-```
+`fx.subject(id)` targets exactly one current, publicly identified component
+without exposing its DOM, face, or contents. It needs no structural movement.
+`fx.motion(id)` instead follows a measured departure or arrival. Use
+`diffVisibleComponents(before, after)` to derive public membership changes; it
+returns an ambiguous result for duplicate identity, ignores opaque entries,
+and does not claim that a removal was a transfer or capture.
 
 The framework invokes the hook exactly once per installed authoritative
 snapshot and owns measurement, deterministic particles, companion timing,
@@ -4849,6 +4829,11 @@ cancellation, reduced-motion behavior, cleanup, and document-wide budgets.
 Initial snapshots are explicit, so refreshing a finished game does not replay
 an old celebration. Effects remain decorative: they never mutate game truth,
 hold the state queue, or replace accessible outcome UI.
+
+Keep the craft rule strict: at most one focal phrase per transition, no
+particles for routine turns, and no reward tone inferred from a generic stat
+change. Structural movement, typography, color, and persistent state should do
+most of the work.
 
 For feedback that is genuinely local—such as acknowledging a selection before
 it proposes a move—use `this.effects?.play(fx.pulse({ at: element, ... }))`.

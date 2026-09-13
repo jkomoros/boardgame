@@ -1,7 +1,22 @@
 import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
-import { html, css, isVisibleComponent, SourceDestinationController, tokenView } from '../../src/client.js';
+import {
+  diffVisibleComponents,
+  fx,
+  html,
+  css,
+  isVisibleComponent,
+  SourceDestinationController,
+  tokenView,
+} from '../../src/client.js';
+import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
-import type { GameState } from './_types.js';
+import type { MoveName } from './_move_names.js';
+import type { GameState, State } from './_types.js';
+
+type VisibleChecker = Extract<
+  NonNullable<GameState['Spaces']['Components'][number]>,
+  { readonly ID: string }
+>;
 
 @registerGameRenderer
 export class BoardgameRenderGameCheckers extends GameRenderer {
@@ -18,10 +33,41 @@ export class BoardgameRenderGameCheckers extends GameRenderer {
   private readonly moveToken = new SourceDestinationController<number>(this);
   private readonly tokens = tokenView<GameState['Spaces']>({
     properties: ({ kind, component }) => ({
-      type: 'disc',
+      type: kind === 'visible' && component.DynamicValues?.Crowned ? 'token' : 'disc',
       color: kind === 'visible' ? component.Values.Color : '',
     }),
   });
+
+  override effectsForTransition(
+    context: EffectTransitionContext<State, MoveName>,
+  ): readonly EffectSpec[] {
+    if (context.kind === 'initial') return [];
+    const membership = diffVisibleComponents(
+      context.before.Game.Spaces.Components,
+      context.after.Game.Spaces.Components,
+    );
+    if (membership.status !== 'exact') return [];
+
+    const beforeById = new Map<string, VisibleChecker>();
+    for (const component of context.before.Game.Spaces.Components) {
+      if (isVisibleComponent(component)) beforeById.set(component.ID, component);
+    }
+    const crowned = context.after.Game.Spaces.Components.flatMap(component => {
+      if (!isVisibleComponent(component)) return [];
+      const before = beforeById.get(component.ID);
+      return before && component.DynamicValues?.Crowned === true
+        && before.DynamicValues?.Crowned !== true ? [component.ID] : [];
+    });
+    if (crowned.length !== 1) return [];
+
+    return [fx.pulse({
+      at: fx.subject(crowned[0]!),
+      tone: 'reward',
+      intensity: 'small',
+      timing: 'version',
+      key: 'crown-token',
+    })];
+  }
 
   override render() {
     const spaces = this.state?.Game?.Spaces ?? null;

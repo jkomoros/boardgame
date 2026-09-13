@@ -138,6 +138,61 @@ test('Pig fixture installs a typed snapshot and correlates zero-input proposals'
   }
 });
 
+test('Pig keeps ordinary rolls quiet and gives a maximum one restrained cue', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/game-src/pig/boardgame-render-game-pig.ts');
+      const { pigRendererFixture } = await import('/game-src/pig/boardgame-render-fixtures-pig.ts');
+      const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+      const outer = document.createElement('div');
+      const root = outer.attachShadow({ mode: 'open' });
+      const calls: any[] = [];
+      const effects = document.createElement('div') as HTMLElement & {
+        play(effect: object): { finished: Promise<{ status: string }>; cancel(): void };
+      };
+      effects.id = 'effects';
+      effects.play = effect => {
+        calls.push(effect);
+        return { finished: Promise.resolve({ status: 'finished' }), cancel() {} };
+      };
+      root.append(effects);
+      document.body.append(outer);
+      const handle = await mountRendererFixture(pigRendererFixture, root);
+      const die = handle.renderer.shadowRoot?.querySelector('boardgame-die');
+      if (!(die instanceof HTMLElement)) throw new Error('Pig fixture did not render its die');
+      die.dispatchEvent(new CustomEvent('roll-end', { detail: { value: 4 } }));
+      const ordinaryCalls = calls.length;
+      die.dispatchEvent(new CustomEvent('roll-end', { detail: { value: 6 } }));
+      const maximum = calls[0];
+      handle.dispose();
+      outer.remove();
+      return {
+        ordinaryCalls,
+        callCount: calls.length,
+        maximum: maximum ? {
+          kind: maximum.kind,
+          tone: maximum.tone,
+          intensity: maximum.intensity,
+          key: maximum.key,
+          anchoredToDie: maximum.at === die,
+        } : null,
+      };
+    });
+    expect(result).toEqual({
+      ordinaryCalls: 0,
+      callCount: 1,
+      maximum: {
+        kind: 'pulse', tone: 'reward', intensity: 'subtle',
+        key: 'maximum-roll', anchoredToDie: true,
+      },
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('chat preserves rejected drafts, retries visibly, and deduplicates notifications', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   let postCount = 0;
@@ -1869,6 +1924,12 @@ test('game outcome waits for settled animation and renders public or personal ve
       outcome.winnerLabels = ['Ada'];
       document.body.append(outcome);
       await outcome.updateComplete;
+      const defaultEffectAnchor = outcome.getAttribute('data-effect-anchor');
+      const explicitOutcome = document.createElement('boardgame-game-outcome');
+      explicitOutcome.setAttribute('data-effect-anchor', 'final-score');
+      document.body.append(explicitOutcome);
+      const explicitEffectAnchor = explicitOutcome.getAttribute('data-effect-anchor');
+      explicitOutcome.remove();
       const gated = outcome.shadowRoot?.querySelector('#outcome') === null;
 
       outcome.animating = false;
@@ -1925,6 +1986,8 @@ test('game outcome waits for settled animation and renders public or personal ve
         invalidViewer,
         mismatchedLabels,
         blankTitle,
+        defaultEffectAnchor,
+        explicitEffectAnchor,
       };
     });
 
@@ -1945,6 +2008,8 @@ test('game outcome waits for settled animation and renders public or personal ve
     expect(result.invalidViewer).toContain('viewer must be null or a nonnegative safe player index');
     expect(result.mismatchedLabels).toContain('exactly one label per winner');
     expect(result.blankTitle).toContain('title must be non-empty');
+    expect(result.defaultEffectAnchor).toBe('game-outcome');
+    expect(result.explicitEffectAnchor).toBe('final-score');
     const axeResult = await new AxeBuilder({ page }).include('boardgame-game-outcome').analyze();
     expect(axeResult.violations).toEqual([]);
     diagnostics.assertEmpty();
@@ -3328,6 +3393,131 @@ test('Tic-tac-toe fixture proposes native numeric targets and stays bounded at c
     expect(rectangular.containmentError).toBeLessThanOrEqual(1);
     expect(rectangular.centerError).toBeLessThanOrEqual(1);
     expect(rectangular).toMatchObject({ componentRows: 2, componentCols: 3 });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('restrained game pilots emit one stationary cue and keep the result legible', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await retryRendererEvaluation(page, () => page.evaluate(async () => {
+      await Promise.all([
+        import('/game-src/checkers/boardgame-render-game-checkers.ts'),
+        import('/game-src/tictactoe/boardgame-render-game-tictactoe.ts'),
+        import('/game-src/memory/boardgame-render-game-memory.ts'),
+      ]);
+      const { createEffectTransitionContext } = await import('/src/effects/effect-spec.ts');
+      const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+      const {
+        checkersRendererFixture,
+        checkersFixtureState,
+        checkersCrownedFixtureState,
+      } = await import('/game-src/checkers/boardgame-render-fixtures-checkers.ts');
+      const {
+        tictactoeRendererFixture,
+        tictactoePreWinningFixtureState,
+        tictactoeWinningFixtureState,
+      } = await import('/game-src/tictactoe/boardgame-render-fixtures-tictactoe.ts');
+      const {
+        memoryRendererFixture,
+        memoryOneRevealedFixtureState,
+        memoryMatchedFixtureState,
+        memoryMismatchedFixtureState,
+      } = await import('/game-src/memory/boardgame-render-fixtures-memory.ts');
+
+      const checkers = await mountRendererFixture(checkersRendererFixture);
+      const checkersEffects = checkers.renderer.effectsForTransition(createEffectTransitionContext({
+        before: checkersFixtureState,
+        after: checkersCrownedFixtureState,
+        move: { AnimationKey: 'Move Token', Version: 4 },
+        version: 4,
+        snapshotEpoch: 4,
+      }));
+      await checkers.update({
+        ...checkersRendererFixture.snapshot,
+        state: checkersCrownedFixtureState,
+        version: 4,
+      });
+      const crownedType = (checkers.renderer.shadowRoot
+        ?.querySelector('boardgame-game-board')
+        ?.shadowRoot
+        ?.querySelector('#checkers-red-0') as (HTMLElement & { type?: string }) | null)?.type;
+
+      const tictactoe = await mountRendererFixture({
+        ...tictactoeRendererFixture,
+        snapshot: {
+          ...tictactoeRendererFixture.snapshot,
+          state: tictactoePreWinningFixtureState,
+        },
+      });
+      const tictactoeEffects = tictactoe.renderer.effectsForTransition(createEffectTransitionContext({
+        before: tictactoePreWinningFixtureState,
+        after: tictactoeWinningFixtureState,
+        move: { AnimationKey: 'Place Token', Version: 5 },
+        version: 5,
+        snapshotEpoch: 5,
+      }));
+      await tictactoe.update({
+        ...tictactoeRendererFixture.snapshot,
+        state: tictactoeWinningFixtureState,
+        version: 5,
+        outcome: { finished: true, winners: [0] },
+      });
+      const winningTypes = [...(tictactoe.renderer.shadowRoot
+        ?.querySelector('boardgame-game-board')
+        ?.shadowRoot
+        ?.querySelector('boardgame-component-stack')
+        ?.querySelectorAll('boardgame-token') ?? [])]
+        .filter(token => token.id)
+        .map(token => (token as HTMLElement & { type: string }).type);
+
+      const memory = document.createElement(memoryRendererFixture.tagName) as HTMLElement & {
+        effectsForTransition(context: unknown): readonly unknown[];
+      };
+      const memoryContext = (after: typeof memoryMatchedFixtureState) =>
+        createEffectTransitionContext({
+          before: memoryOneRevealedFixtureState,
+          after,
+          move: { AnimationKey: 'Reveal Card', Version: 4 },
+          version: 4,
+          snapshotEpoch: 4,
+        });
+      const memoryMatchEffects = memory.effectsForTransition(
+        memoryContext(memoryMatchedFixtureState),
+      );
+      const memoryMismatchEffects = memory.effectsForTransition(
+        memoryContext(memoryMismatchedFixtureState),
+      );
+
+      checkers.dispose();
+      tictactoe.dispose();
+      return {
+        checkersEffects,
+        crownedType,
+        tictactoeEffects,
+        winningTypes,
+        memoryMatchEffects,
+        memoryMismatchEffects,
+      };
+    }));
+
+    expect(result.checkersEffects).toEqual([expect.objectContaining({
+      kind: 'pulse', at: { kind: 'subject', subjectId: 'checkers-red-0' },
+      tone: 'reward', intensity: 'small', key: 'crown-token',
+    })]);
+    expect(result.crownedType).toBe('token');
+    expect(result.tictactoeEffects).toEqual([expect.objectContaining({
+      kind: 'pulse', at: { kind: 'subject', subjectId: 'tictactoe-token-2' },
+      tone: 'reward', intensity: 'small', key: 'winning-line',
+    })]);
+    expect(result.winningTypes).toEqual(['token', 'token', 'token']);
+    expect(result.memoryMatchEffects).toEqual([expect.objectContaining({
+      kind: 'pulse', at: { kind: 'subject', subjectId: 'memory-card-1' },
+      tone: 'reward', intensity: 'subtle', key: 'memory-match',
+    })]);
+    expect(result.memoryMismatchEffects).toEqual([]);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

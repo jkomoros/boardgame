@@ -104,10 +104,10 @@ is also available through `fx.point(x, y)`.
 
 ## Authoritative transition effects
 
-Override `effectsForTransition()` for scoring, transfers, placement, reveals,
-or victory. The host invokes it exactly once for each installed snapshot, after
-the renderer has settled. Do not diff state or start authoritative effects from
-Lit lifecycle methods.
+Override `effectsForTransition()` for an occasional scoring milestone, rare
+placement, or victory cue. The host invokes it exactly once for each installed
+snapshot, after the renderer has settled. Do not diff state or start
+authoritative effects from Lit lifecycle methods.
 
 ```ts
 override effectsForTransition(
@@ -120,18 +120,10 @@ override effectsForTransition(
     return [];
   }
 
-  return [fx.parallel([
-    fx.pulse({
-      at: fx.anchor('score'),
-      tone: 'reward',
-      intensity: 'medium',
-    }),
-    fx.burst({
-      at: fx.anchor('score'),
-      tone: 'reward',
-      intensity: 'small',
-    }),
-  ], {
+  return [fx.pulse({
+    at: fx.anchor('score'),
+    tone: 'reward',
+    intensity: 'small',
     key: 'claim-point',
     timing: 'version',
   })];
@@ -149,6 +141,30 @@ Initial installation is explicit. Authors must opt in if an initial snapshot
 should animate, preventing a refresh of an already-finished game from replaying
 its victory celebration.
 
+Keep ordinary play quiet: structural motion should carry routine movement. Use
+at most one focal phrase per transition, reserve particles for rare peaks, and
+prefer `subtle` or `small`. Derive a reward tone only from game-specific meaning;
+a generic stat increase or component removal does not establish a reward.
+
+### Comparing visible component membership
+
+Use `diffVisibleComponents(before, after)` when a transition needs the public
+IDs added to or removed from a sanitized stack. It returns ordered `added`,
+`removed`, and `retained` arrays when identity is exact. Opaque entries remain
+unavailable. A duplicate visible ID returns `status: 'ambiguous'` with empty
+arrays rather than guessing through private or malformed state.
+
+```ts
+const diff = diffVisibleComponents(
+  context.before.Game.Hand.Components,
+  context.after.Game.Hand.Components,
+);
+if (diff.status !== 'exact' || diff.added.length !== 1) return [];
+```
+
+These are membership changes only. A removed ID does not prove where the piece
+went or why, so it must not be treated as a transfer or capture signal.
+
 ## Named anchors and disappearing sources
 
 Declarative effects use renderer-scoped names:
@@ -159,6 +175,10 @@ html`
   <div data-effect-anchor="hand">...</div>
 `
 ```
+
+`boardgame-game-outcome` supplies `data-effect-anchor="game-outcome"` when it
+connects. Set your own `data-effect-anchor` on the element to preserve an
+authored outcome target instead.
 
 ```ts
 fx.travel({
@@ -244,6 +264,26 @@ and `burst`, not `travel`. They expose an ID and captured viewport center—neve
 a DOM reference, cloned card, hidden face, or transform ownership. They are for
 authoritative transition descriptors; use ordinary element or point anchors
 for local interaction feedback.
+
+### Emphasizing a stationary visible component
+
+`fx.subject(id)` resolves the current center of exactly one connected,
+presented component whose ID and values are public in the sanitized snapshot:
+
+```ts
+fx.pulse({
+  at: fx.subject(winningTokenId),
+  tone: 'reward',
+  intensity: 'subtle',
+})
+```
+
+Unlike `fx.motion()`, it does not require a structural animation. Resolution
+uses the same sanitized silhouette capability as motion decoration and exposes
+only a frozen point. Missing, duplicate, opaque, presentation-hidden, or
+opted-out subjects skip with `missing-subject`. A public card may still be a
+subject when its face presentation is down; an opaque occupied slot is not,
+even when its generic card back is visible.
 
 Because the structural event itself supplies synchronization, start a
 departure/arrival decoration with `timing: 'immediate'`. Reusing
@@ -514,6 +554,7 @@ text remains normal accessible UI; any floating text effect is only its
 | Intensity | `subtle`, `small`, `medium`, `large` | `medium` | Inherited through composition |
 | Timing | `immediate`, `version`, or `{ localStartAtMs }` | `immediate` | Inherited through composition |
 | Identity | `key`, `seedKey` | descriptor path | Descriptor and deterministic seed identity |
+| Visible subject point | `fx.subject(id)` | none | Current exact visible component; `pulse` and `burst` |
 | Structural point | `fx.motion(id, 'departure' \| 'arrival')` | `arrival` | `pulse` and `burst` in authoritative transitions |
 | Structural trail | `fx.trail({ subject: id })` | none | Real automatic movement only; inherits its structural timing |
 | Structural cohort | `motion.stagger({ subjects, intervalMs })` | none | Ordered starts within one authoritative transition |
@@ -529,9 +570,9 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 
 ## Working examples
 
-- `examples/memory` follows the real revealed card's structural arrival, then
-  pulses it and adds a reward burst for a match. The reveal is a stationary
-  face morph, demonstrating that endpoint decoration does not imply travel.
+- `examples/memory` lets card flips carry ordinary reveals, then uses a
+  fail-closed visible-membership diff and `fx.subject()` for one quiet match
+  cue.
 - `examples/debuganimations` follows a real moved token with a silhouette trail,
   decorates its arrival, and uses an explicit cohort cadence for its visible
   shuffle, plus demonstrating imperative click celebration and theme/intensity
@@ -542,11 +583,11 @@ start is infrastructure-level scheduling, not a synchronization protocol.
   duration rather than a version slot — a clamped bake is a die falling at
   five times gravity — but stays queue-gated, declaring that duration so the
   gate waits for it, without being misrepresented as structural travel. Its
-  celebration is the worked example of an effect that CANNOT be planned in
+  maximum-roll cue is the worked example of an effect that CANNOT be planned in
   `effectsForTransition`: that hook runs at cycle start, which for a die that
   flies is the moment of the throw, not the moment of the result. Pig listens
-  for the die's own `roll-end` instead and plays a pulse (plus a reward burst
-  on a six) imperatively, at immediate timing, on the value the event carries.
+  for the die's own `roll-end` instead and plays one subtle pulse only for a
+  six, at immediate timing, on the value the event carries.
 - Companion Table/Hand bases preserve their established local choreography
   with `animateBetween()` compatibility flights derived from adjacent sanitized
   snapshots. Hand arrivals launch together from their final pose; Table stub

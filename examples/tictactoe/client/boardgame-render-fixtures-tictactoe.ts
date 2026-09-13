@@ -65,6 +65,50 @@ export const tictactoeFixtureState = {
   ],
 } as const satisfies State;
 
+const xAtFour = token(5, 'X');
+const preWinningComponents = [
+  xAtZero, null, null,
+  null, xAtFour, null,
+  null, null, null,
+] as const;
+const winningComponents = [
+  xAtZero, null, null,
+  null, xAtFour, null,
+  null, null, xAtEight,
+] as const;
+
+export const tictactoePreWinningFixtureState = {
+  ...tictactoeFixtureState,
+  Game: {
+    ...tictactoeFixtureState.Game,
+    Slots: {
+      ...tictactoeFixtureState.Game.Slots,
+      Indexes: preWinningComponents.map(component => component?.Index ?? -1),
+      IDs: preWinningComponents.map(component => component?.ID ?? ''),
+      IDsLastSeen: { [xAtZero.ID]: 4, [xAtFour.ID]: 4 },
+      Components: preWinningComponents,
+    },
+  },
+} as const satisfies State;
+
+export const tictactoeWinningFixtureState = {
+  ...tictactoeFixtureState,
+  Game: {
+    ...tictactoeFixtureState.Game,
+    Slots: {
+      ...tictactoeFixtureState.Game.Slots,
+      Indexes: winningComponents.map(component => component?.Index ?? -1),
+      IDs: winningComponents.map(component => component?.ID ?? ''),
+      IDsLastSeen: {
+        [xAtZero.ID]: 5,
+        [xAtFour.ID]: 5,
+        [xAtEight.ID]: 5,
+      },
+      Components: winningComponents,
+    },
+  },
+} as const satisfies State;
+
 export const tictactoeRendererFixture = defineRendererFixture<GameClientContract>({
   tagName: 'boardgame-render-game-tictactoe',
   snapshot: {

@@ -47,6 +47,23 @@ export const checkersFixtureState = {
   })),
 } as const satisfies State;
 
+const crownedSpaces = [
+  ...spaces.slice(0, 17),
+  { ...redToken, DynamicValues: { Crowned: true } },
+  ...spaces.slice(18),
+];
+
+export const checkersCrownedFixtureState = {
+  ...checkersFixtureState,
+  Game: {
+    ...checkersFixtureState.Game,
+    Spaces: {
+      ...checkersFixtureState.Game.Spaces,
+      Components: crownedSpaces,
+    },
+  },
+} as const satisfies State;
+
 export const checkersRendererFixture = defineRendererFixture<GameClientContract>({
   tagName: 'boardgame-render-game-checkers',
   snapshot: {

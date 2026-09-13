@@ -138,6 +138,139 @@ test('named anchors stay renderer-scoped', async ({ page }) => {
   }
 });
 
+test('visible subject anchors expose current geometry and skip missing subjects', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-effect-layer.ts');
+      const { fx } = await import('/src/effects/effect-spec.ts');
+      const lookups: string[] = [];
+      const layer = document.createElement('boardgame-effect-layer') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        shadowRoot: ShadowRoot;
+        configure(config: object): void;
+        play(effect: object): { finished: Promise<unknown> };
+      };
+      document.body.append(layer);
+      await layer.updateComplete;
+      layer.configure({
+        anchorRoot: document,
+        seedScope: 'visible-subject',
+        theme: {},
+        animationContext: null,
+        motionSource: {
+          observeStructuralMotionEvents() { return () => {}; },
+          captureVisibleSubjectPoint(subjectId: string) {
+            lookups.push(subjectId);
+            return subjectId === 'public-token' ? { x: 140, y: 90 } : null;
+          },
+        },
+      });
+      const visible = layer.play(fx.pulse({
+        at: fx.subject('public-token'), advanced: { durationMs: 80 },
+      }));
+      const pulse = layer.shadowRoot.querySelector<HTMLElement>('.pulse');
+      const position = { left: pulse?.style.left, top: pulse?.style.top };
+      const visibleResult = await visible.finished;
+      const hiddenResult = await layer.play(fx.pulse({
+        at: fx.subject('hidden-token'), advanced: { durationMs: 80 },
+      })).finished;
+      return { lookups, position, visibleResult, hiddenResult };
+    });
+    expect(result.lookups).toEqual(['public-token', 'hidden-token']);
+    expect(result.position).toEqual({ left: '140px', top: '90px' });
+    expect(result.visibleResult).toEqual({ status: 'finished' });
+    expect(result.hiddenResult).toEqual({ status: 'skipped', reason: 'missing-subject' });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('component animator resolves exactly one public, presented subject', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-token.ts');
+      await import('/src/components/boardgame-card.ts');
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        captureVisibleSubjectPoint(id: string): Readonly<{ x: number; y: number }> | null;
+      };
+      const detachedMissing = animator.captureVisibleSubjectPoint('visible-token');
+      const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+      };
+      const visible = document.createElement('boardgame-token') as HTMLElement & { item: unknown };
+      visible.id = 'visible-token';
+      visible.item = {
+        ID: 'visible-token', Index: 0, Deck: 'tokens', GameName: 'fixture', Values: {},
+      };
+      visible.style.position = 'fixed';
+      visible.style.left = '100px';
+      visible.style.top = '60px';
+      visible.style.width = '40px';
+      visible.style.height = '20px';
+
+      const opaque = document.createElement('boardgame-card') as HTMLElement & {
+        item: unknown; faceUp: boolean;
+      };
+      opaque.id = 'opaque-card';
+      opaque.item = {};
+
+      const publicFaceDown = document.createElement('boardgame-card') as HTMLElement & {
+        item: unknown; faceUp: boolean;
+      };
+      publicFaceDown.id = 'public-facedown';
+      publicFaceDown.item = {
+        ID: 'public-facedown', Index: 1, Deck: 'cards', GameName: 'fixture', Values: {},
+      };
+      stack.append(visible, opaque, publicFaceDown);
+      document.body.append(animator, stack);
+      await Promise.all([animator.updateComplete, stack.updateComplete]);
+      publicFaceDown.faceUp = false;
+      await (publicFaceDown as typeof publicFaceDown & { updateComplete: Promise<unknown> }).updateComplete;
+
+      const rect = visible.getBoundingClientRect();
+      const expected = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const point = animator.captureVisibleSubjectPoint('visible-token');
+      const opaquePoint = animator.captureVisibleSubjectPoint('opaque-card');
+      const faceDownPoint = animator.captureVisibleSubjectPoint('public-facedown');
+
+      const duplicateStack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+      };
+      const duplicate = document.createElement('boardgame-token') as HTMLElement & { item: unknown };
+      duplicate.id = 'visible-token';
+      duplicate.item = {
+        ID: 'visible-token', Index: 2, Deck: 'tokens', GameName: 'fixture', Values: {},
+      };
+      duplicateStack.append(duplicate);
+      document.body.append(duplicateStack);
+      await duplicateStack.updateComplete;
+      const ambiguous = animator.captureVisibleSubjectPoint('visible-token');
+      duplicate.style.visibility = 'hidden';
+      const hiddenDuplicateIgnored = animator.captureVisibleSubjectPoint('visible-token');
+      return {
+        detachedMissing, point, expected, opaquePoint, faceDownPoint, ambiguous, hiddenDuplicateIgnored,
+        frozen: point ? Object.isFrozen(point) : false,
+      };
+    });
+    expect(result.point).toEqual(result.expected);
+    expect(result.detachedMissing).toBeNull();
+    expect(result.opaquePoint).toBeNull();
+    expect(result.faceDownPoint).not.toBeNull();
+    expect(result.ambiguous).toBeNull();
+    expect(result.hiddenDuplicateIgnored).toEqual(result.expected);
+    expect(result.frozen).toBe(true);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('motion anchors and sanitized trails decorate real structural lifecycle', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
