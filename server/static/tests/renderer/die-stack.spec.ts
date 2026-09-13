@@ -58,12 +58,22 @@ test('hidden, empty, and replacement slots clear roll state and historical carri
     await drain();
     const source = stack.querySelector('boardgame-die');
     source.finishGatedAnimations(); await source.settled(); await source.updateComplete;
+    const sourceInner = source.shadowRoot.querySelector('#inner');
+    const sourceOrient = source.shadowRoot.querySelector('#orient');
+    const sourcePose = {
+      inner: getComputedStyle(sourceInner).transform,
+      orient: getComputedStyle(sourceOrient).transform,
+    };
     const appearance = captureHistoricalPresentation(source)!;
     const carrier = stack.newMotionCarrier().component;
     const installed = installHistoricalPresentation(carrier, appearance);
     for (let i = 0; i < 4; i++) await carrier.updateComplete;
+    const carrierInner = carrier.shadowRoot.querySelector('#inner');
+    const carrierOrient = carrier.shadowRoot.querySelector('#orient');
     const history = { installed, value: carrier.value, item: carrier.item ?? null,
-      animations: carrier.shadowRoot.querySelector('#inner').getAnimations().length };
+      animations: carrierInner.getAnimations().length,
+      poseMatches: getComputedStyle(carrierInner).transform === sourcePose.inner
+        && getComputedStyle(carrierOrient).transform === sourcePose.orient };
     clearHistoricalPresentation(carrier);
     for (let i = 0; i < 4; i++) await carrier.updateComplete;
     const cleared = carrier.value;
@@ -73,12 +83,53 @@ test('hidden, empty, and replacement slots clear roll state and historical carri
     return { history, cleared, values: current.map(d => d.value), spacers: current.map(d => d.spacer),
       animated: current.some(d => d.isAnimating), hiddenText: current[0].shadowRoot.textContent.includes('Rolled') };
   });
-  expect(result.history).toEqual({ installed: true, value: 4, item: null, animations: 0 });
+  expect(result.history).toEqual({ installed: true, value: 4, item: null, animations: 0, poseMatches: true });
   expect(result.cleared).toBe(null);
   expect(result.values).toEqual([null, null, 4]);
   expect(result.spacers).toEqual([false, true, false]);
   expect(result.animated).toBe(false);
   expect(result.hiddenText).toBe(false);
+});
+
+test('historical reel carriers preserve the settled visual pose without replaying the roll', async ({ page }) => {
+  await mount(page);
+  const result = await page.evaluate(async () => {
+    const { captureHistoricalPresentation, installHistoricalPresentation } = await import('/src/motion/historical-presentation.ts');
+    const { stack, state, drain } = (window as any).diceFixture;
+    const coin = (roll: number, selected: number) => ({
+      ID: 'coin', Index: 0, Deck: 'dice', GameName: 'dice-fixture',
+      Values: { Faces: [0, 1] },
+      DynamicValues: { SelectedFace: selected, Value: selected, RollCount: roll },
+    });
+    stack.stack = state([coin(0, 0)]); await drain();
+    stack.stack = state([coin(1, 1)]); await drain();
+    const source = stack.querySelector('boardgame-die');
+    source.finishGatedAnimations(); await source.settled(); await source.updateComplete;
+    const sourceInner = source.shadowRoot.querySelector('#inner');
+    const sourceTransform = getComputedStyle(sourceInner).transform;
+    const appearance = captureHistoricalPresentation(source)!;
+    const carrier = stack.newMotionCarrier().component;
+    const installed = installHistoricalPresentation(carrier, appearance);
+    for (let i = 0; i < 4; i++) await carrier.updateComplete;
+    const carrierInner = carrier.shadowRoot.querySelector('#inner');
+    return {
+      installed,
+      sourceClass: sourceInner.className,
+      carrierClass: carrierInner.className,
+      sourceTransform,
+      carrierTransform: getComputedStyle(carrierInner).transform,
+      value: carrier.value,
+      animations: carrierInner.getAnimations().length,
+    };
+  });
+  expect(result).toMatchObject({
+    installed: true,
+    sourceClass: 'reel',
+    carrierClass: 'reel',
+    value: 1,
+    animations: 0,
+  });
+  expect(result.carrierTransform).toBe(result.sourceTransform);
 });
 
 for (const budget of [false, true]) for (const count of [5, 20]) test(`${count} concurrent dice (budget ${budget}) report bounded duration and allocation measurements`, async ({ page }) => {

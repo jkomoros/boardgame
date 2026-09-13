@@ -2019,7 +2019,7 @@ export class BoardgameDie extends BoardgameComponent {
     // did NOT fix was every other facet's depth, and on a d4 that undid the
     // lean that makes a tetrahedron read as a solid at all. The roll is a roll
     // of the picture now, inside the scene, where it cannot (see `readingPose`).
-    const orient = this._roll?.track
+    const orient = this._roll?.track || this._roll?.resting
       ? 'none'
       : readingPoseTransform(solid.geometry, this._presentedFaceIndex(solid.geometry.faceCount));
     // Which facet the player is meant to read: the one the physics landed once
