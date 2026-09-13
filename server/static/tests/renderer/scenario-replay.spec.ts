@@ -13,6 +13,10 @@ test('real Memory replay renders reveal, mismatch, and timer cleanup for each vi
       await expect(cards).toHaveCount(20);
       await expect.poll(() => cards.evaluateAll(elements => elements.filter(card => card.querySelector('div') !== null).length)).toBe(visible);
       await expect(page.locator('#error')).toBeEmpty();
+      if (viewer === '0' && frame === 1) {
+        await expect(cards.nth(0)).toHaveAttribute('aria-disabled', 'true');
+        await expect(cards.nth(1)).toHaveAttribute('aria-disabled', 'false');
+      }
       if (frame < 3) await page.getByRole('button', { name: 'Next', exact: true }).click();
     }
     await expect(page.getByText(viewer === "1" ? "Your turn" : "Player 2's turn", { exact: true })).toBeVisible();

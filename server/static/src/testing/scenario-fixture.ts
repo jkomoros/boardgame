@@ -1,3 +1,4 @@
+import type { ProjectedMoveChoicesWire } from '../types/api.js';
 import { expandGameStateSnapshot } from '../selectors.js';
 import type { GameFromServer } from '../types/game-state.js';
 import type { GameChest } from '../types/store.js';
@@ -21,6 +22,7 @@ export interface ScenarioReplay {
     readonly viewers: readonly {
       readonly viewer: number;
       readonly game: GameFromServer;
+      readonly projectedMoveChoices?: ProjectedMoveChoicesWire;
       readonly moveLegality: Readonly<Record<string, RendererFixtureLegality>>;
     }[];
   }[];
@@ -44,6 +46,7 @@ export function scenarioFixtureSnapshot<Contract extends RendererFixtureGameCont
     throw new Error('Scenario frame is out of range');
   }
   const frame = replay.frames[frameIndex];
+  if (!frame) throw new Error('Scenario frame is missing');
   const snapshot = frame.viewers.find(candidate => candidate.viewer === viewer);
   if (!snapshot || snapshot.game.Version !== frame.version || snapshot.game.Name !== replay.gameName) {
     throw new Error('Scenario has no matching viewer/version snapshot');
@@ -54,6 +57,8 @@ export function scenarioFixtureSnapshot<Contract extends RendererFixtureGameCont
     // The caller selects its generated contract and we verify the game name.
     // Expansion is shared with live rendering, never a parallel simulator.
     state: expandGameStateSnapshot(game.CurrentState, replay.chest, replay.gameName, game.ActiveTimers) as Contract['State'],
+    ...(snapshot.projectedMoveChoices ? { projectedMoveChoices: snapshot.projectedMoveChoices } : {}),
+    requireRecordedPreviews: true,
     timers: game.ActiveTimers ?? {},
     viewingAsPlayer: viewer,
     currentPlayerIndex: game.CurrentPlayerIndex,

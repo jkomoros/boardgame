@@ -1,6 +1,5 @@
 import type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
 import type { VersionAnimationContext } from '../motion/timing.ts';
-import { usableAnimationContext } from '../motion/timing.ts';
 export type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
 export type { VersionAnimationContext } from '../motion/timing.ts';
 export { usableAnimationContext } from '../motion/timing.ts';

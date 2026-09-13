@@ -17,6 +17,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/bots"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/server/api"
 	"github.com/jkomoros/boardgame/storage/filesystem"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 )
@@ -48,18 +49,16 @@ type Step struct {
 	Bot    bots.Policy
 }
 
-type MoveLegality struct {
-	LegalForPlayer bool `json:"legalForPlayer"`
-	LegalForAnyone bool `json:"legalForAnyone"`
-}
+type MoveLegality = api.ViewerMoveLegality
 
 // ViewerSnapshot is a complete API game snapshot for exactly one viewer.
 // MoveLegality describes default-bound moves, as the ordinary /info tray does;
 // it is not a claim that every possible argument to that move is legal.
 type ViewerSnapshot struct {
-	Viewer       boardgame.PlayerIndex   `json:"viewer"`
-	Game         json.RawMessage         `json:"game"`
-	MoveLegality map[string]MoveLegality `json:"moveLegality"`
+	Viewer               boardgame.PlayerIndex   `json:"viewer"`
+	Game                 json.RawMessage         `json:"game"`
+	MoveLegality         map[string]MoveLegality `json:"moveLegality"`
+	ProjectedMoveChoices json.RawMessage         `json:"projectedMoveChoices,omitempty"`
 }
 
 type Frame struct {
@@ -201,15 +200,15 @@ func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec)
 			if err != nil {
 				return err
 			}
-			legality := make(map[string]MoveLegality, len(schema))
-			for _, entry := range schema {
-				move := game.MoveByName(entry.Name)
-				legality[entry.Name] = MoveLegality{
-					LegalForPlayer: viewer != boardgame.ObserverPlayerIndex && move.Legal(game.CurrentState(), viewer) == nil,
-					LegalForAnyone: move.Legal(game.CurrentState(), boardgame.AdminPlayerIndex) == nil,
-				}
+			legality, err := api.MoveLegalityForViewer(game, viewer)
+			if err != nil {
+				return err
 			}
-			frame.Viewers = append(frame.Viewers, ViewerSnapshot{Viewer: viewer, Game: blob, MoveLegality: legality})
+			choices, err := api.ProjectMoveChoicesForViewer(game, viewer)
+			if err != nil {
+				return err
+			}
+			frame.Viewers = append(frame.Viewers, ViewerSnapshot{Viewer: viewer, Game: blob, MoveLegality: legality, ProjectedMoveChoices: choices})
 		}
 		result.Replay.Frames = append(result.Replay.Frames, frame)
 		return nil

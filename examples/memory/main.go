@@ -310,6 +310,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	revealCardConfig := auto.MustConfig(
 		new(moveRevealCard),
+		moves.WithChoices("CardIndex", moves.FromGameStack("HiddenCards")),
 		moves.WithHelpText("Reveals the card at the specified location"),
 		// Reveal Card IS moves.MoveComponentToSlot -- "move the card the
 		// player named out of HiddenCards and into the mirrored slot of

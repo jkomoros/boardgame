@@ -1,3 +1,4 @@
+import type { ProjectedMoveChoicesWire } from '../types/api.js';
 import { TimerService, TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '../timers/timer-service.js';
 import {
   MoveSubmissionGate,
@@ -41,6 +42,9 @@ export interface RendererFixtureSnapshot<Contract extends RendererFixtureGameCon
   readonly serverMoveInputSchemaFingerprint: string;
   readonly previewDisabledSpaces?: readonly number[];
   /** Recorded clock readings; fixtures keep time fixed until update(). */
+  readonly projectedMoveChoices?: ProjectedMoveChoicesWire;
+  /** Engine replays require exact candidate facts; handcrafted fixtures may simulate previews. */
+  readonly requireRecordedPreviews?: boolean;
   readonly timers?: Readonly<Record<string, { readonly TimeLeft: number; readonly originalTimeLeft?: number }>>;
   /** Explicit identities available through renderer.playerPresentation(index). */
   readonly playerPresentations?: readonly PlayerPresentation[];
@@ -79,6 +83,7 @@ interface RendererFixtureTarget<State extends object> extends HTMLElement {
   gameId: string;
   gameVersion: number;
   snapshotEpoch: number;
+  projectedMoveChoicesWire: ProjectedMoveChoicesWire | null;
   proposingAsPlayer: number;
   proposingAsAdmin: boolean;
   moveTransport: { submit(request: MoveSubmissionRequest): Promise<{ readonly kind: 'success' }> };
@@ -144,6 +149,10 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
     renderer.movePreviewTransport = {
       preview: async request => {
         const legality = this.#snapshot.moveLegality[request.name as Contract['MoveName']];
+        if (this.#snapshot.requireRecordedPreviews) {
+          const legal = this.recordedLegality(request.name, request.arguments);
+          return { kind: 'success', legal, ...(!legal ? { error: 'No legal input recorded for this decision' } : {}) };
+        }
         return {
           kind: 'success',
           legal: legality?.legalForPlayer ?? false,
@@ -154,6 +163,13 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
     renderer.targetPreviewTransport = {
       previewTargets: async request => {
         const legality = this.#snapshot.moveLegality[request.name as Contract['MoveName']];
+        if (this.#snapshot.requireRecordedPreviews) {
+          return { kind: 'success', results: request.candidates.map(candidate => {
+            const legal = this.recordedLegality(request.name, candidate.arguments);
+            return { id: candidate.id, legal,
+              ...(!legal ? { error: 'No legal target recorded for this decision' } : {}) };
+          }) };
+        }
         const disabled = new Set(this.#snapshot.previewDisabledSpaces ?? []);
         return {
           kind: 'success',
@@ -208,8 +224,19 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
     this.renderer.gameId = 'fixture';
     this.renderer.gameVersion = snapshot.version;
     this.renderer.snapshotEpoch = snapshot.version;
+    this.renderer.projectedMoveChoicesWire = snapshot.projectedMoveChoices ?? null;
     this.renderer.proposingAsPlayer = snapshot.viewingAsPlayer;
     this.renderer.proposingAsAdmin = snapshot.viewingAsPlayer === -2;
+  }
+
+  private recordedLegality(name: string, input: Readonly<Record<string, string>>): boolean {
+    const fields = Object.keys(input);
+    if (fields.length === 0) return this.#snapshot.moveLegality[name as Contract['MoveName']]?.legalForPlayer ?? false;
+    const wire = this.#snapshot.projectedMoveChoices;
+    if (wire?.Status !== 'ready' || wire.StateVersion !== this.#snapshot.version) return false;
+    const set = wire.Sets?.find(candidate => candidate.MoveName === name);
+    if (!set || fields.length !== 1 || fields[0] !== set.FieldName) return false;
+    return set.Candidates.find(candidate => String(candidate.Value) === input[set.FieldName])?.Available ?? false;
   }
 
   private recordProposal(request: MoveSubmissionRequest): void {

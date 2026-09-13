@@ -63,3 +63,25 @@ never embedded in `Replay`.
 For explicit bot decisions, set `Bot` and `Player` instead of `Move`/`Input` on a
 step. `RunContext` passes cancellation to policies and checks it between steps.
 See [observation bots](observation-bots.md) for the capability boundary and pilot.
+
+## Native choices and other games
+
+Replays include the API's actor-only candidate projections and default move-tray
+legality, using the same visibility filtering as live `/info`. Recorded controls
+use exact candidate inputs; inputs without recorded evidence stay disabled.
+Declare an ordinary bounded choice with `moves.WithChoices` to make it available
+both to native controls and replay previews. Handcrafted renderer fixtures retain
+their explicit simulated preview behavior.
+
+The review page accepts `?game=darwin` or another configured game with a
+`client/scenario-replay.json`. Companion games can use `&surface=hand&viewer=0`
+or `&surface=table`. Werewolf's `examples/werewolf/scenarios.TimedVote` includes
+seating, a partial vote, and deadline resolution; generate it with:
+
+```sh
+./scripts/go-local run ./examples/werewolf/scenarios/cmd/export
+```
+
+The paired Games repository includes Darwin's simultaneous food commitments and
+Secret Groups' clue-giver/guesser/observer comparison. Each is an ordinary Go
+scenario, and each generated history is tested through golden replay.

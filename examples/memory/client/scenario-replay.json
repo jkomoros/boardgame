@@ -858,7 +858,11 @@
       "legal.component_missing": "there is no component at index {index}",
       "legal.component_missing_key": "there is no component at key {key}",
       "legal.component_present_unexpected": "there is unexpectedly a component at index {index}",
+      "legal.component_prop_equals": "requires the component's {prop} ({value}) to equal {want}",
       "legal.component_prop_not_current_player": "the component's {prop} does not match the current player's {prop}",
+      "legal.component_prop_not_equals": "requires the component's {prop} ({value}) to not equal {want}",
+      "legal.component_props_equal": "requires the selected components' {prop} values ({left} and {right}) to match",
+      "legal.component_props_not_equal": "requires the selected components' {prop} values ({left} and {right}) to differ",
       "legal.in_phase": "{detail}",
       "legal.in_progression": "{detail}",
       "legal.may_not_move_all_to": "{detail}",
@@ -886,6 +890,8 @@
       "legal.stack_count": "requires the stack's count ({count}) to be {op} {n}",
       "legal.stack_empty": "requires the stack to be empty",
       "legal.stack_not_empty": "requires the stack to not be empty",
+      "memory.cards_must_differ": "The two revealed cards are of the same type",
+      "memory.cards_must_match": "The two revealed cards are not of the same type",
       "memory.two_cards_required": "there aren't two cards showing",
       "reveal.no_cards_left": "You have no cards left to reveal this turn"
     }
@@ -2624,6 +2630,101 @@
               "legalForPlayer": true,
               "legalForAnyone": true
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 0,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready",
+            "Sets": [
+              {
+                "MoveName": "Reveal Card",
+                "FieldName": "CardIndex",
+                "Source": "stack-slots",
+                "Candidates": [
+                  {
+                    "Value": 0,
+                    "Available": true
+                  },
+                  {
+                    "Value": 1,
+                    "Available": true
+                  },
+                  {
+                    "Value": 2,
+                    "Available": true
+                  },
+                  {
+                    "Value": 3,
+                    "Available": true
+                  },
+                  {
+                    "Value": 4,
+                    "Available": true
+                  },
+                  {
+                    "Value": 5,
+                    "Available": true
+                  },
+                  {
+                    "Value": 6,
+                    "Available": true
+                  },
+                  {
+                    "Value": 7,
+                    "Available": true
+                  },
+                  {
+                    "Value": 8,
+                    "Available": true
+                  },
+                  {
+                    "Value": 9,
+                    "Available": true
+                  },
+                  {
+                    "Value": 10,
+                    "Available": true
+                  },
+                  {
+                    "Value": 11,
+                    "Available": true
+                  },
+                  {
+                    "Value": 12,
+                    "Available": true
+                  },
+                  {
+                    "Value": 13,
+                    "Available": true
+                  },
+                  {
+                    "Value": 14,
+                    "Available": true
+                  },
+                  {
+                    "Value": 15,
+                    "Available": true
+                  },
+                  {
+                    "Value": 16,
+                    "Available": true
+                  },
+                  {
+                    "Value": 17,
+                    "Available": true
+                  },
+                  {
+                    "Value": 18,
+                    "Available": true
+                  },
+                  {
+                    "Value": 19,
+                    "Available": true
+                  }
+                ]
+              }
+            ]
           }
         },
         {
@@ -3489,6 +3590,12 @@
               "legalForPlayer": false,
               "legalForAnyone": true
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 0,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready"
           }
         }
       ]
@@ -5233,6 +5340,97 @@
               "legalForPlayer": true,
               "legalForAnyone": true
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 1,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready",
+            "Sets": [
+              {
+                "MoveName": "Reveal Card",
+                "FieldName": "CardIndex",
+                "Source": "stack-slots",
+                "Candidates": [
+                  {
+                    "Value": 1,
+                    "Available": true
+                  },
+                  {
+                    "Value": 2,
+                    "Available": true
+                  },
+                  {
+                    "Value": 3,
+                    "Available": true
+                  },
+                  {
+                    "Value": 4,
+                    "Available": true
+                  },
+                  {
+                    "Value": 5,
+                    "Available": true
+                  },
+                  {
+                    "Value": 6,
+                    "Available": true
+                  },
+                  {
+                    "Value": 7,
+                    "Available": true
+                  },
+                  {
+                    "Value": 8,
+                    "Available": true
+                  },
+                  {
+                    "Value": 9,
+                    "Available": true
+                  },
+                  {
+                    "Value": 10,
+                    "Available": true
+                  },
+                  {
+                    "Value": 11,
+                    "Available": true
+                  },
+                  {
+                    "Value": 12,
+                    "Available": true
+                  },
+                  {
+                    "Value": 13,
+                    "Available": true
+                  },
+                  {
+                    "Value": 14,
+                    "Available": true
+                  },
+                  {
+                    "Value": 15,
+                    "Available": true
+                  },
+                  {
+                    "Value": 16,
+                    "Available": true
+                  },
+                  {
+                    "Value": 17,
+                    "Available": true
+                  },
+                  {
+                    "Value": 18,
+                    "Available": true
+                  },
+                  {
+                    "Value": 19,
+                    "Available": true
+                  }
+                ]
+              }
+            ]
           }
         },
         {
@@ -6102,6 +6300,12 @@
               "legalForPlayer": false,
               "legalForAnyone": true
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 1,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready"
           }
         }
       ]
@@ -7858,6 +8062,12 @@
               "legalForPlayer": false,
               "legalForAnyone": false
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 3,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready"
           }
         },
         {
@@ -8733,6 +8943,12 @@
               "legalForPlayer": false,
               "legalForAnyone": false
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 3,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready"
           }
         }
       ]
@@ -10481,6 +10697,12 @@
               "legalForPlayer": false,
               "legalForAnyone": true
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 5,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready"
           }
         },
         {
@@ -11352,6 +11574,101 @@
               "legalForPlayer": true,
               "legalForAnyone": true
             }
+          },
+          "projectedMoveChoices": {
+            "StateVersion": 5,
+            "MoveChoiceProjectionSchemaFingerprint": "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab",
+            "ProjectionSchemaVersion": 1,
+            "Status": "ready",
+            "Sets": [
+              {
+                "MoveName": "Reveal Card",
+                "FieldName": "CardIndex",
+                "Source": "stack-slots",
+                "Candidates": [
+                  {
+                    "Value": 0,
+                    "Available": true
+                  },
+                  {
+                    "Value": 1,
+                    "Available": true
+                  },
+                  {
+                    "Value": 2,
+                    "Available": true
+                  },
+                  {
+                    "Value": 3,
+                    "Available": true
+                  },
+                  {
+                    "Value": 4,
+                    "Available": true
+                  },
+                  {
+                    "Value": 5,
+                    "Available": true
+                  },
+                  {
+                    "Value": 6,
+                    "Available": true
+                  },
+                  {
+                    "Value": 7,
+                    "Available": true
+                  },
+                  {
+                    "Value": 8,
+                    "Available": true
+                  },
+                  {
+                    "Value": 9,
+                    "Available": true
+                  },
+                  {
+                    "Value": 10,
+                    "Available": true
+                  },
+                  {
+                    "Value": 11,
+                    "Available": true
+                  },
+                  {
+                    "Value": 12,
+                    "Available": true
+                  },
+                  {
+                    "Value": 13,
+                    "Available": true
+                  },
+                  {
+                    "Value": 14,
+                    "Available": true
+                  },
+                  {
+                    "Value": 15,
+                    "Available": true
+                  },
+                  {
+                    "Value": 16,
+                    "Available": true
+                  },
+                  {
+                    "Value": 17,
+                    "Available": true
+                  },
+                  {
+                    "Value": 18,
+                    "Available": true
+                  },
+                  {
+                    "Value": 19,
+                    "Available": true
+                  }
+                ]
+              }
+            ]
           }
         }
       ]

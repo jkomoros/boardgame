@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Memory scenario review</title>
+  <title>Game scenario review</title>
   <style>
     body { margin: 0; padding: 24px; background: #f4f1eb; color: #26312d; font: 16px/1.5 system-ui, sans-serif; }
     main { max-width: 1040px; margin: auto; }
@@ -20,8 +20,8 @@
 </head>
 <body>
 <main>
-  <h1>Memory, one decision at a time</h1>
-  <p>Recorded from the game engine: reveal two different cards, then let the timer hide them.</p>
+  <h1 id="title">Game scenario review</h1>
+  <p>Step through recorded engine decisions and compare what each player can see.</p>
   <nav aria-label="Scenario steps">
     <button id="previous" type="button">Previous</button>
     <span id="label" aria-live="polite"></span>
@@ -32,7 +32,6 @@
   <pre id="error" role="alert"></pre>
 </main>
 <script type="module">
-  import '/game-src/memory/boardgame-render-game-memory.ts';
   import { mountRendererFixture } from '/src/testing/renderer-fixture.ts';
   import { scenarioFixtureSnapshot } from '/src/testing/scenario-fixture.ts';
   const previous = document.querySelector('#previous');
@@ -42,13 +41,29 @@
   let frameIndex = 0;
   let handle;
   try {
-    const response = await fetch('/game-src/memory/scenario-replay.json');
-    if (!response.ok) throw new Error('Generate the Memory scenario replay before opening this review.');
+    const gameName = new URL(location.href).searchParams.get('game') ?? 'memory';
+    if (!/^[a-z][a-z0-9]*$/.test(gameName)) throw new Error('Invalid game name');
+    const surface = new URL(location.href).searchParams.get('surface') ?? 'game';
+    if (!['game', 'table', 'hand'].includes(surface)) throw new Error('Invalid renderer surface');
+    const tagName = `boardgame-render-game-${gameName}${surface === 'game' ? '' : `-${surface}`}`;
+    await import(/* @vite-ignore */ `/game-src/${gameName}/${tagName}.ts`);
+    const response = await fetch(`/game-src/${gameName}/scenario-replay.json`);
+    if (!response.ok) throw new Error('Generate this game’s scenario replay before opening this review.');
     const replay = await response.json();
+    document.querySelector('#title').textContent = replay.name;
+    document.title = `${replay.name} · Scenario review`;
+    viewer.replaceChildren(...replay.frames[0].viewers.map(({ viewer: index }) => {
+      const option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = index === -1 ? 'Observer' : `Player ${index + 1}`;
+      return option;
+    }));
+    const requestedViewer = new URL(location.href).searchParams.get('viewer');
+    if ([...viewer.options].some(option => option.value === requestedViewer)) viewer.value = requestedViewer;
     async function render() {
-      const snapshot = scenarioFixtureSnapshot(replay, frameIndex, Number(viewer.value), { gameName: 'memory' });
+      const snapshot = scenarioFixtureSnapshot(replay, frameIndex, Number(viewer.value), { gameName, surface });
       if (handle) await handle.update(snapshot);
-      else handle = await mountRendererFixture({ tagName: 'boardgame-render-game-memory', snapshot }, document.querySelector('#frame'));
+      else handle = await mountRendererFixture({ tagName, snapshot }, document.querySelector('#frame'));
       label.textContent = `${frameIndex + 1} / ${replay.frames.length} · ${replay.frames[frameIndex].label}`;
       previous.disabled = frameIndex === 0;
       next.disabled = frameIndex === replay.frames.length - 1;

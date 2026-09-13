@@ -146,7 +146,7 @@ export const selectHasPendingBundles = createSelector(
 // Memoized to prevent unnecessary recalculations
 export const selectNextBundle = createSelector(
     [selectPendingBundles],
-    (bundles): StateBundle | null => bundles.length > 0 ? bundles[0] : null
+    (bundles): StateBundle | null => bundles[0] ?? null
 );
 
 // Version selectors
@@ -200,8 +200,8 @@ export const selectMoveLegality = createSelector(
             result[form.Name] = {
                 legalForPlayer: form.LegalForPlayer ?? false,
                 legalForAnyone: form.LegalForAnyone ?? false,
-                error: form.LegalForPlayerError,
-                preconditions: form.Preconditions,
+                ...(form.LegalForPlayerError !== undefined ? { error: form.LegalForPlayerError } : {}),
+                ...(form.Preconditions !== undefined ? { preconditions: form.Preconditions } : {}),
             };
         }
         return result;
@@ -338,9 +338,9 @@ const _selectPlayerOrder = createSelector(
     [selectExpandedGameStateWithoutTimers],
     (state): number[] | null => {
         const game = state?.Game as Readonly<Record<string, unknown>> | undefined;
-        const computed = game?.Computed;
+        const computed = game?.['Computed'];
         if (!computed || typeof computed !== 'object' || Array.isArray(computed)) return null;
-        const order = (computed as Readonly<Record<string, unknown>>).PlayerOrder;
+        const order = (computed as Readonly<Record<string, unknown>>)['PlayerOrder'];
         if (!Array.isArray(order)
             || !order.every(playerIndex => Number.isSafeInteger(playerIndex) && playerIndex >= 0)) {
             return null;
@@ -400,7 +400,7 @@ const expandLeafState = (
     const pathToLeaf = getPathToLeaf(wholeState, leafState);
     if (pathToLeaf?.length === 2 && pathToLeaf[0] === 'Players') {
         const playerIndex = pathToLeaf[1];
-        if (wholeState.Computed?.Players?.[playerIndex]) {
+        if (playerIndex !== undefined && wholeState.Computed?.Players?.[playerIndex]) {
             result.Computed = wholeState.Computed.Players[playerIndex];
         }
     }

@@ -21,7 +21,6 @@ package record
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -517,14 +516,8 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 
 	if err := enc.ConfirmPatch(lastState, state, patch); err != nil {
 
-		fmt.Println("UNEXPECTED ERROR IN UNDERLYING LIBRARY")
-		fmt.Println("LastState:")
-		fmt.Println(string(lastState))
-		fmt.Println("\nState:")
-		fmt.Println(string(state))
-		fmt.Println("\nFormatted Patch:")
-		fmt.Println(string(patch))
-		fmt.Println("Trying to auto expand...")
+		// A failed diff is recoverable by storing full snapshots. Never dump
+		// authoritative states or patches: they can contain every player's secrets.
 
 		if r.FullStateEncoding() {
 			//We're already fully encoded, this really shouldn't happen
