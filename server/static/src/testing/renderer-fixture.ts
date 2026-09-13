@@ -1,3 +1,4 @@
+import { TimerService, TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '../timers/timer-service.js';
 import {
   MoveSubmissionGate,
   type MovePreviewTransport,
@@ -39,6 +40,8 @@ export interface RendererFixtureSnapshot<Contract extends RendererFixtureGameCon
   readonly surface: RendererFixtureSurface;
   readonly serverMoveInputSchemaFingerprint: string;
   readonly previewDisabledSpaces?: readonly number[];
+  /** Recorded clock readings; fixtures keep time fixed until update(). */
+  readonly timers?: Readonly<Record<string, { readonly TimeLeft: number; readonly originalTimeLeft?: number }>>;
   /** Explicit identities available through renderer.playerPresentation(index). */
   readonly playerPresentations?: readonly PlayerPresentation[];
 }
@@ -99,6 +102,13 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
   #sequence = 0;
   readonly #submissionGate = new MoveSubmissionGate();
   readonly #proposalListener: EventListener;
+  readonly #timerService = new TimerService();
+  readonly #timerListener: EventListener = event => {
+    const request = event as CustomEvent<TimerServiceRequestDetail>;
+    if (typeof request.detail?.accept !== 'function') throw new Error('Malformed fixture timer service request');
+    event.stopPropagation();
+    request.detail.accept(this.#timerService);
+  };
 
   constructor(
     host: HTMLElement,
@@ -158,6 +168,7 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
       },
     };
     renderer.moveSubmissionGate = this.#submissionGate;
+    host.addEventListener(TIMER_SERVICE_REQUEST_EVENT, this.#timerListener);
     this.install(snapshot);
     renderer.addEventListener('propose-move', this.#proposalListener);
   }
@@ -174,11 +185,13 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
   dispose(): void {
     this.renderer.removeEventListener('propose-move', this.#proposalListener);
     this.host.remove();
+    this.host.removeEventListener(TIMER_SERVICE_REQUEST_EVENT, this.#timerListener);
   }
 
   private install(snapshot: RendererFixtureSnapshot<Contract>): void {
     validateSnapshot(snapshot);
     this.#snapshot = snapshot;
+    this.#timerService.update(snapshot.timers);
     this.host.dataset['fixtureSchemaVersion'] = String(snapshot.schemaVersion);
     this.host.dataset['fixtureVersion'] = String(snapshot.version);
     this.host.dataset['fixtureSurface'] = snapshot.surface;
@@ -232,10 +245,10 @@ export async function mountRendererFixture<Contract extends RendererFixtureGameC
   const host = document.createElement('section');
   host.dataset['rendererFixture'] = tagName;
   host.append(renderer);
-  parent.append(host);
   let handle: RendererFixtureHandle<Contract> | undefined;
   try {
     handle = new RendererFixtureHandle(host, renderer, snapshot);
+    parent.append(host);
     await renderer.updateComplete;
     return handle;
   } catch (error) {

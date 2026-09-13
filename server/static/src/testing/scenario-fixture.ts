@@ -54,6 +54,7 @@ export function scenarioFixtureSnapshot<Contract extends RendererFixtureGameCont
     // The caller selects its generated contract and we verify the game name.
     // Expansion is shared with live rendering, never a parallel simulator.
     state: expandGameStateSnapshot(game.CurrentState, replay.chest, replay.gameName, game.ActiveTimers) as Contract['State'],
+    timers: game.ActiveTimers ?? {},
     viewingAsPlayer: viewer,
     currentPlayerIndex: game.CurrentPlayerIndex,
     moveLegality: snapshot.moveLegality as Readonly<Record<Contract['MoveName'], RendererFixtureLegality>>,
