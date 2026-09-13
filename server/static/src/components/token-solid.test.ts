@@ -22,6 +22,7 @@ import {
   silhouetteExtent,
   tokenBaseColor,
   tokenSolid,
+  tokenSolidGeometry,
   tokenSurface,
   type Rgb,
   type TokenSolidShape,
@@ -423,6 +424,20 @@ test('a solid is a pure function of its type and colour', () => {
       tokenSolid(shape, 'black').facets.map((f) => strip(f.style)),
     );
   }
+});
+
+test('CSS-authored colours reuse a shape-only geometry result', () => {
+  for (const shape of SHAPES) {
+    const geometry = tokenSolidGeometry(shape);
+    assert.strictEqual(tokenSolidGeometry(shape), geometry);
+    assert.deepEqual(
+      geometry.facets.map(facet => facet.style),
+      tokenSolid(shape, 'green').facets.map(facet => facet.style.replace(/;background:.*$/, '')),
+    );
+  }
+  // Unknown legacy names already draw as unfiltered red. Normalizing their
+  // cache key prevents arbitrary author strings from growing that cache too.
+  assert.strictEqual(tokenSolid('cube', 'not-a-palette-name'), tokenSolid('cube', 'red'));
 });
 
 test('every facet is a clipped, filled box and carries NO transform', () => {

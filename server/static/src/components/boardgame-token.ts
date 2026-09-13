@@ -3,6 +3,7 @@ import { html, css, CSSResult, TemplateResult, unsafeCSS } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { repeat } from 'lit/directives/repeat.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
 import { cssNumber } from '../solid/screen-frame.js';
@@ -13,6 +14,7 @@ import {
   isTokenSolidShape,
   shadowOffsetEm,
   tokenSolid,
+  tokenSolidGeometry,
   type TokenSolid,
 } from './token-solid.js';
 
@@ -409,6 +411,14 @@ export class BoardgameToken extends BoardgameComponent {
   @property({ type: String })
   color = 'red';
 
+  /**
+   * An opt-in CSS colour for generated solid shapes. Named `color` keeps its
+   * established material palette; authored SVG/raster art is never tinted by
+   * this property.
+   */
+  @property({ type: String, attribute: 'css-color' })
+  cssColor = '';
+
   // Active changes the styling to make it clear the thing is selected
   @property({ type: Boolean })
   active = false;
@@ -520,7 +530,7 @@ export class BoardgameToken extends BoardgameComponent {
       ...named,
       active: this.active,
       highlighted: this.highlighted,
-      solid: this._solid() !== null,
+      solid: this._solid(this._validCSSColor()) !== null,
       'custom-art': !!this.art,
       'recolor-art': this.recolorArt,
     };
@@ -546,7 +556,13 @@ export class BoardgameToken extends BoardgameComponent {
    * host that arrives with a new `type` or `color` re-renders every one of them,
    * and one that arrives as a `spacer` drops the scene entirely.
    */
-  private _solid(): TokenSolid | null {
+  private _validCSSColor(): string {
+    const value = this.cssColor.trim();
+    if (!value || typeof CSS === 'undefined' || !CSS.supports('color', value)) return '';
+    return value;
+  }
+
+  private _solid(cssColor: string): TokenSolid | null {
     // A spacer has no item to stand for. It is `visibility: hidden` and exists
     // only to hold a slot open, so it must not build a scene at all -- 14 facet
     // elements per empty square of a board is exactly the kind of cost nobody
@@ -557,7 +573,7 @@ export class BoardgameToken extends BoardgameComponent {
     // is also the only way `art` could be set on a `cube` and do nothing.
     if (this.art) return null;
     if (!isTokenSolidShape(this.type)) return null;
-    return tokenSolid(this.type, this.color);
+    return cssColor ? tokenSolidGeometry(this.type) : tokenSolid(this.type, this.color);
   }
 
   protected override updated(changedProperties: Map<string, any>) {
@@ -668,14 +684,25 @@ export class BoardgameToken extends BoardgameComponent {
    * case that matters. Keyed by facet index so that switching a live token
    * between a 6-facet cube and a 14-facet prism reconciles rather than rebuilds.
    */
-  private _renderSolid(solid: TokenSolid) {
+  private _renderSolid(solid: TokenSolid, cssColor: string) {
     return html`
       <div id="solid"
-        style="font-size:calc(var(--component-effective-width) * ${cssNumber(solid.fit)})">
+        style=${styleMap({
+          fontSize: `calc(var(--component-effective-width) * ${cssNumber(solid.fit)})`,
+          '--boardgame-token-css-color': cssColor || undefined,
+        })}>
         ${repeat(solid.facets, (facet) => facet.key, (facet) =>
-          html`<div class="facet" style="${facet.style}"></div>`)}
+          html`<div class="facet" style="${facet.style}${cssColor ? `;background:${this._cssFacetFill(facet.shade)}` : ''}"></div>`)}
       </div>
     `;
+  }
+
+  private _cssFacetFill(shade: number): string {
+    if (shade <= 1) {
+      return `color-mix(in srgb,var(--boardgame-token-css-color) ${cssNumber(shade * 100)}%,black)`;
+    }
+    const white = Math.min(100, (shade - 1) * 100);
+    return `color-mix(in srgb,var(--boardgame-token-css-color) ${cssNumber(100 - white)}%,white)`;
   }
 
   /**
@@ -727,11 +754,12 @@ export class BoardgameToken extends BoardgameComponent {
    * `#outer` is listening for.
    */
   override render(): TemplateResult {
-    const solid = this._solid();
+    const cssColor = this._validCSSColor();
+    const solid = this._solid(cssColor);
     return html`
       <div id="outer" class="${classMap(this._computeClasses())}" @click="${(e: Event) => this.handleTap(e)}" style="${this._outerStyle}">
         <div id="inner">
-          ${solid ? this._renderSolid(solid) : this._renderArt()}
+          ${solid ? this._renderSolid(solid, cssColor) : this._renderArt()}
           <div id="content"><slot></slot></div>
         </div>
       </div>

@@ -661,7 +661,11 @@ export interface TokenFacet {
   /** Stable key: index into the surface's `[...faces, ...capFaces]`. */
   readonly key: number;
   readonly style: string;
+  /** Lighting multiplier before colour-specific clipping. */
+  readonly shade: number;
 }
+
+export type TokenSolidGeometry = TokenSolid;
 
 /** Everything `boardgame-token.ts` needs to draw one solid, and nothing else. */
 export interface TokenSolid {
@@ -739,6 +743,32 @@ export function visibleFacetPolygons(
  * eleven colours; nothing a player can drive touches the key.
  */
 const SOLID_CACHE = new Map<string, TokenSolid>();
+const SOLID_GEOMETRY_CACHE = new Map<TokenSolidShape, TokenSolidGeometry>();
+
+/**
+ * Shape-only projected facets for CSS-authored colours. This cache has exactly
+ * one possible entry per solid shape, so arbitrary CSS colour strings never
+ * become cache keys.
+ */
+export function tokenSolidGeometry(shape: TokenSolidShape): TokenSolidGeometry {
+  const cached = SOLID_GEOMETRY_CACHE.get(shape);
+  if (cached) return cached;
+  const surface = SHAPES[shape].surface();
+  const pose = restingPose(shape);
+  const fit = fitScale(shape);
+  const polygons = [...surface.faces, ...surface.capFaces];
+  const facets = visibleFacetPolygons(shape, fit).map(({ key, points }) => Object.freeze({
+    key,
+    style: flatFacetStyle(points),
+    shade: facetShade(normalize(apply(pose, toScreen(polygons[key].normal)))),
+  }));
+  const geometry: TokenSolidGeometry = Object.freeze({
+    facets: Object.freeze(facets),
+    fit,
+  });
+  SOLID_GEOMETRY_CACHE.set(shape, geometry);
+  return geometry;
+}
 
 /**
  * The solid for a token of this type and colour: one style string per VISIBLE
@@ -751,36 +781,36 @@ const SOLID_CACHE = new Map<string, TokenSolid>();
  * previous occupant to have written.
  */
 export function tokenSolid(shape: TokenSolidShape, color: string): TokenSolid {
-  const key = `${shape}|${color.toLowerCase()}`;
+  const requestedColor = color.toLowerCase();
+  const normalizedColor = requestedColor === 'red'
+    || Object.prototype.hasOwnProperty.call(TOKEN_COLOR_FILTERS, requestedColor)
+    ? requestedColor
+    : 'red';
+  const key = `${shape}|${normalizedColor}`;
   const cached = SOLID_CACHE.get(key);
   if (cached) return cached;
 
-  const surface = SHAPES[shape].surface();
-  const pose = restingPose(shape);
-  const base = tokenBaseColor(color);
-  const fit = fitScale(shape);
-  const polygons = [...surface.faces, ...surface.capFaces];
+  const base = tokenBaseColor(normalizedColor);
+  const geometry = tokenSolidGeometry(shape);
   // How bright this colour can be lit before a channel clips. Shading MULTIPLIES,
   // which is what keeps a 3D blue chip the same blue as a flat blue meeple beside
   // it -- but only while every channel scales by the same number. Orange is
   // (255, 91, 0), so a highlight above 1.0 would clip the red and lift only the
   // green, turning the lit facet yellow. Ceilinged instead, per colour.
   const headroom = 255 / Math.max(base[0], base[1], base[2], 1);
-  const facets = visibleFacetPolygons(shape, fit).map(({ key: facetKey, points }) => {
-    const shade = Math.min(
-      facetShade(normalize(apply(pose, toScreen(polygons[facetKey].normal)))),
-      headroom,
-    );
+  const facets = geometry.facets.map((facet) => {
+    const shade = Math.min(facet.shade, headroom);
     const fill = [0, 1, 2].map((i) => Math.round(clampChannel(base[i] * shade))).join(',');
     return Object.freeze({
-      key: facetKey,
-      style: `${flatFacetStyle(points)};background:rgb(${fill})`,
+      key: facet.key,
+      style: `${facet.style};background:rgb(${fill})`,
+      shade,
     });
   });
 
   const solid: TokenSolid = Object.freeze({
     facets: Object.freeze(facets),
-    fit,
+    fit: geometry.fit,
   });
   SOLID_CACHE.set(key, solid);
   return solid;

@@ -35,8 +35,25 @@ const pseudoRandomValues = [
 ];
 
 const sharedStackList: BoardgameComponentStack[] = [];
+const STACK_DEPTH_CAP = 6;
 
 export type StackLayout = 'board' | 'fan' | 'grid' | 'pile' | 'spatial' | 'spread' | 'stack';
+
+/** The measured, untransformed box a component occupies in an ordinary stack row. */
+export interface StackSlotGeometry {
+  /** The component host's border-box width, before fan rotation or other visual transforms. */
+  readonly componentInlineSize: number;
+  /** The component host's border-box height, before visual transforms. */
+  readonly componentBlockSize: number;
+  /** Border-box width plus the component's logical inline margins. */
+  readonly inlineSize: number;
+  /** Border-box height plus the component's logical block margins. */
+  readonly blockSize: number;
+}
+
+export interface StackSlotGeometryChangedDetail {
+  readonly geometry: StackSlotGeometry;
+}
 
 const stackLayouts = new Set<StackLayout>(['board', 'fan', 'grid', 'pile', 'spatial', 'spread', 'stack']);
 
@@ -71,7 +88,7 @@ export class BoardgameComponentStack extends LitElement {
 
     #container.grid #slot-holder,
     #container.stack #slot-holder {
-      flex-wrap: wrap;
+      flex-wrap: var(--boardgame-stack-flex-wrap, wrap);
     }
 
     #container ::slotted([boardgame-component]),
@@ -116,8 +133,9 @@ export class BoardgameComponentStack extends LitElement {
     .stack ::slotted([boardgame-component]),
     .stack [boardgame-component] {
       position: absolute;
-      top: 6px;
+      top: calc(var(--boardgame-stack-depth, 6) * 1px);
       left: 0px;
+      z-index: calc(10 - var(--boardgame-stack-depth, 6));
     }
 
     .stack ::slotted([boardgame-component].bcc-first),
@@ -126,36 +144,6 @@ export class BoardgameComponentStack extends LitElement {
       z-index: 10;
       position: relative;
       top: 0px;
-    }
-
-    .stack ::slotted([boardgame-component]:nth-child(2)),
-    .stack [boardgame-component]:nth-child(2) {
-      top: 1px;
-      z-index: 9;
-    }
-
-    .stack ::slotted([boardgame-component]:nth-child(3)),
-    .stack [boardgame-component]:nth-child(3) {
-      z-index: 8;
-      top: 2px;
-    }
-
-    .stack ::slotted([boardgame-component]:nth-child(4)),
-    .stack [boardgame-component]:nth-child(4) {
-      z-index: 7;
-      top: 3px;
-    }
-
-    .stack ::slotted([boardgame-component]:nth-child(5)),
-    .stack [boardgame-component]:nth-child(5) {
-      z-index: 6;
-      top: 4px;
-    }
-
-    .stack ::slotted([boardgame-component]:nth-child(6)),
-    .stack [boardgame-component]:nth-child(6) {
-      z-index: 5;
-      top: 5px;
     }
 
     #container.spread #slot-holder {
@@ -174,7 +162,7 @@ export class BoardgameComponentStack extends LitElement {
 
     #container.spread ::slotted([boardgame-component]),
     #container.spread [boardgame-component] {
-      margin-right: calc(100px * -0.75);
+      margin-right: calc(var(--boardgame-stack-component-inline-size, var(--component-effective-width, 0px)) * -0.75);
     }
 
     #container.spread ::slotted([boardgame-component].bcc-last),
@@ -184,12 +172,12 @@ export class BoardgameComponentStack extends LitElement {
 
     #container.fan ::slotted([boardgame-component]),
     #container.fan [boardgame-component] {
-      margin-right: calc(100px * -0.5);
+      margin-right: calc(var(--boardgame-stack-component-inline-size, var(--component-effective-width, 0px)) * -0.5);
     }
 
     #container.fan ::slotted([boardgame-component][rotated]),
     #container.fan [boardgame-component][rotated] {
-      margin-right: calc(100px * -0.25);
+      margin-right: calc(var(--boardgame-stack-component-inline-size, var(--component-effective-width, 0px)) * -0.25);
     }
 
     #container.fan ::slotted([boardgame-component].bcc-last),
@@ -416,6 +404,9 @@ export class BoardgameComponentStack extends LitElement {
   private _randomRotationOffset = 0;
   private _id = '';
   private _boundSlotChanged?: () => void;
+  private _slotGeometry: StackSlotGeometry | null = null;
+  private _slotGeometryObserver: ResizeObserver | null = null;
+  private _slotGeometryTarget: HTMLElement | null = null;
 
   get _sharedStackList(): BoardgameComponentStack[] {
     return sharedStackList;
@@ -437,6 +428,15 @@ export class BoardgameComponentStack extends LitElement {
 
   get Components(): any[] {
     return this._realComponents.concat(this._fauxComponents);
+  }
+
+  /**
+   * The current component slot box, measured from a real host rather than
+   * reconstructed from card defaults. Visual transforms are deliberately
+   * excluded so a rotated fan card cannot widen the row that positioned it.
+   */
+  get slotGeometry(): StackSlotGeometry | null {
+    return this._slotGeometry;
   }
 
   private get _realComponents(): any[] {
@@ -469,6 +469,7 @@ export class BoardgameComponentStack extends LitElement {
     this.addEventListener('keydown', this._componentKeyDown);
     this._subscribeComponentActions();
     this._applyComponentActionState();
+    if (this.hasUpdated) queueMicrotask(() => this._syncSlotGeometryObserver());
   }
 
   override disconnectedCallback() {
@@ -489,6 +490,9 @@ export class BoardgameComponentStack extends LitElement {
     this.removeEventListener('keydown', this._componentKeyDown);
     this._clearComponentActionSubscriptions();
     this._restoreAllComponentActionState();
+    this._slotGeometryObserver?.disconnect();
+    this._slotGeometryObserver = null;
+    this._slotGeometryTarget = null;
   }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
@@ -505,7 +509,7 @@ export class BoardgameComponentStack extends LitElement {
       this.container.style.setProperty('--board-cols', String(this.boardCols));
       this.container.style.setProperty('--board-rows', String(this.boardRows));
     }
-
+    this._syncSlotGeometryObserver();
   }
 
   protected override updated(changedProperties: Map<string, any>) {
@@ -550,6 +554,11 @@ export class BoardgameComponentStack extends LitElement {
       || changedProperties.has('componentsDisabled') || changedProperties.has('stack')) {
       this._subscribeComponentActions();
       this._applyComponentActionState();
+    }
+    if (changedProperties.has('layout') || changedProperties.has('componentView')
+      || changedProperties.has('stack') || changedProperties.has('fauxComponents')
+      || changedProperties.has('noDefaultSpacer')) {
+      this._syncSlotGeometryObserver();
     }
   }
 
@@ -1232,6 +1241,83 @@ export class BoardgameComponentStack extends LitElement {
     this.clearAnimatingComponents();
   }
 
+  private _slotGeometryRepresentative(): HTMLElement | null {
+    return (this._realComponents[0] as HTMLElement | undefined)
+      ?? (this._fauxComponents[0] as HTMLElement | undefined)
+      ?? this.shadowRoot?.querySelector<HTMLElement>('#container>[boardgame-component][spacer]')
+      ?? null;
+  }
+
+  private _syncSlotGeometryObserver(): void {
+    const target = this._slotGeometryRepresentative();
+    if (target === this._slotGeometryTarget) {
+      this._measureSlotGeometry();
+      return;
+    }
+    this._slotGeometryObserver?.disconnect();
+    this._slotGeometryObserver = null;
+    this._slotGeometryTarget = target;
+    if (!target) {
+      this._setSlotGeometry(null);
+      return;
+    }
+    this._measureSlotGeometry();
+    this._slotGeometryObserver = new ResizeObserver(() => this._measureSlotGeometry());
+    // Only the component's border box is observed. The geometry this stack
+    // publishes changes sibling spacing, never that box, so this cannot form a
+    // ResizeObserver feedback loop.
+    this._slotGeometryObserver.observe(target);
+    // Component views may commit their sizing properties in the next microtask.
+    queueMicrotask(() => {
+      if (this.isConnected && this._slotGeometryTarget === target) this._measureSlotGeometry();
+    });
+  }
+
+  private _measureSlotGeometry(): void {
+    const target = this._slotGeometryTarget;
+    if (!target) return;
+    const style = getComputedStyle(target);
+    const componentInlineSize = target.offsetWidth;
+    const componentBlockSize = target.offsetHeight;
+    if (!(componentInlineSize > 0) || !(componentBlockSize > 0)) return;
+    const numeric = (value: string): number => {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    this._setSlotGeometry(Object.freeze({
+      componentInlineSize,
+      componentBlockSize,
+      inlineSize: componentInlineSize + numeric(style.marginInlineStart) + numeric(style.marginInlineEnd),
+      blockSize: componentBlockSize + numeric(style.marginBlockStart) + numeric(style.marginBlockEnd),
+    }));
+  }
+
+  private _setSlotGeometry(geometry: StackSlotGeometry | null): void {
+    const old = this._slotGeometry;
+    if (old === geometry || (old && geometry
+      && old.componentInlineSize === geometry.componentInlineSize
+      && old.componentBlockSize === geometry.componentBlockSize
+      && old.inlineSize === geometry.inlineSize
+      && old.blockSize === geometry.blockSize)) return;
+    this._slotGeometry = geometry;
+    if (!geometry) {
+      this.style.removeProperty('--boardgame-stack-component-inline-size');
+      this.style.removeProperty('--boardgame-stack-component-block-size');
+      this.style.removeProperty('--boardgame-stack-slot-inline-size');
+      this.style.removeProperty('--boardgame-stack-slot-block-size');
+      return;
+    }
+    this.style.setProperty('--boardgame-stack-component-inline-size', `${geometry.componentInlineSize}px`);
+    this.style.setProperty('--boardgame-stack-component-block-size', `${geometry.componentBlockSize}px`);
+    this.style.setProperty('--boardgame-stack-slot-inline-size', `${geometry.inlineSize}px`);
+    this.style.setProperty('--boardgame-stack-slot-block-size', `${geometry.blockSize}px`);
+    this.dispatchEvent(new CustomEvent<StackSlotGeometryChangedDetail>('stack-slot-geometry-changed', {
+      detail: Object.freeze({ geometry }),
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
   private _slotChanged(firstRender: boolean) {
     if (!this.componentView) return;
     const realComponents = this._realComponents;
@@ -1274,6 +1360,7 @@ export class BoardgameComponentStack extends LitElement {
 
     this._updateComponentClasses();
     this._applyComponentActionState();
+    this._syncSlotGeometryObserver();
   }
 
   private _updateComponentClasses() {
@@ -1292,6 +1379,11 @@ export class BoardgameComponentStack extends LitElement {
 
     for (let i = 0; i < components.length; i++) {
       const component = components[i];
+
+      component.style.removeProperty('--boardgame-stack-depth');
+      if (this.layout === 'stack') {
+        component.style.setProperty('--boardgame-stack-depth', String(Math.min(i, STACK_DEPTH_CAP)));
+      }
 
       const classes = ['bcc-first', 'bcc-last'];
 

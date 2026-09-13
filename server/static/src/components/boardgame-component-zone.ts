@@ -1,12 +1,12 @@
 import { LitElement, css, html } from 'lit';
-import { property } from 'lit/decorators.js';
+import { property, query } from 'lit/decorators.js';
 import type { BoundMoveAction } from '../moves/action.js';
 import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { ComponentView } from './component-view.js';
 import './boardgame-component-stack.js';
-import type { StackLayout } from './boardgame-component-stack.js';
+import type { BoardgameComponentStack, StackLayout } from './boardgame-component-stack.js';
 
 export type ComponentZoneLayout = Exclude<StackLayout, 'board' | 'spatial'>;
 
@@ -132,6 +132,13 @@ export class BoardgameComponentZone extends LitElement {
 
   @property({ type: Boolean, attribute: 'hide-count' })
   hideCount = false;
+
+  @query('boardgame-component-stack') private _stackElement!: BoardgameComponentStack;
+
+  /** Direct access for specialized stack policy outside the zone's common API. */
+  get stackElement(): BoardgameComponentStack | null {
+    return this._stackElement ?? null;
+  }
 
   private get _occupiedCount(): number {
     return this.stack?.Components.reduce((count, component) => count + (component === null ? 0 : 1), 0) ?? 0;
