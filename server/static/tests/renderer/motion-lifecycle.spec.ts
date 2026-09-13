@@ -200,3 +200,55 @@ test('every delayed transfer in a batch reaches active-observed independently', 
     diagnostics.stop();
   }
 });
+
+test('detached Hand and Table renderers do not start deferred compatibility flights', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { BoardgameHandViewBase } = await import('/src/components/boardgame-hand-view-base.ts');
+      const { BoardgameTableViewBase } = await import('/src/components/boardgame-table-view-base.ts');
+      const { html } = await import('/src/client.ts');
+
+      class LifecycleHand extends BoardgameHandViewBase<any, any, any, any> {
+        calls = 0;
+        protected override get animator(): any {
+          return { animateBetween: () => { this.calls++; } };
+        }
+      }
+      class LifecycleTable extends BoardgameTableViewBase<any, any, any, any> {
+        calls = 0;
+        protected override get animator(): any {
+          return { animateBetween: () => { this.calls++; } };
+        }
+        override render() {
+          return html`<div id="deal-source"></div><div id="stub:p0:hand"></div>`;
+        }
+      }
+      customElements.define('lifecycle-deferred-hand', LifecycleHand);
+      customElements.define('lifecycle-deferred-table', LifecycleTable);
+      const hand = document.createElement('lifecycle-deferred-hand') as LifecycleHand;
+      const table = document.createElement('lifecycle-deferred-table') as LifecycleTable;
+      document.body.append(hand, table);
+
+      hand.viewingAsPlayer = 0;
+      hand.state = { Players: [{ Hand: { IDs: ['existing'] } }] } as any;
+      table.state = { Players: [{ Hand: { Indexes: [] } }] } as any;
+      await Promise.all([hand.updateComplete, table.updateComplete]);
+
+      hand.state = { Players: [{ Hand: { IDs: ['existing', 'incoming'] } }] } as any;
+      table.state = { Players: [{ Hand: { Indexes: [-1] } }] } as any;
+      await Promise.all([hand.updateComplete, table.updateComplete]);
+      await new Promise(requestAnimationFrame);
+      hand.remove();
+      table.remove();
+      await new Promise(requestAnimationFrame);
+
+      return { handCalls: hand.calls, tableCalls: table.calls };
+    });
+
+    expect(result).toEqual({ handCalls: 0, tableCalls: 0 });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});

@@ -10,6 +10,7 @@ import { apiPath } from '../util.js';
 import './boardgame-game-outcome.js';
 import type { EffectTransitionContext } from '../effects/effect-spec.js';
 import type { MotionTransferDeclaration } from '../motion/transfer.js';
+import { DeferredMotion } from '../motion/deferred-motion.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -101,9 +102,12 @@ export class BoardgameTableViewBase<
   // without replaying deals that happened before this renderer mounted.
   private _prevHandSizes: number[] | null = null;
 
+  private readonly _dealFlight = new DeferredMotion();
+
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
     if (!changedProperties.has('state')) return;
+    this._dealFlight.cancel();
     const sizes = this.state ? this._handSizes(this.state) : [];
     const previous = this._prevHandSizes;
     this._prevHandSizes = sizes;
@@ -114,12 +118,17 @@ export class BoardgameTableViewBase<
       .map((size, playerIndex) => size > (previous[playerIndex] ?? 0) ? playerIndex : -1)
       .filter(playerIndex => playerIndex >= 0);
     if (grew.length === 0) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    this._dealFlight.schedule(this, () => {
       for (const playerIndex of grew) {
         const stub = this.shadowRoot?.getElementById(`stub:p${playerIndex}:hand`);
         if (stub) void this.animator?.animateBetween(stub, source, 600);
       }
-    }));
+    });
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._dealFlight.cancel();
   }
 
   override motionTransfersForTransition(

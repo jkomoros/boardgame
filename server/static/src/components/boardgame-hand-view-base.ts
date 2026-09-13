@@ -7,6 +7,7 @@ import type { SeatPresentation } from './boardgame-table-view-base.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 import type { EffectTransitionContext } from '../effects/effect-spec.js';
 import type { MotionTransferDeclaration } from '../motion/transfer.js';
+import { DeferredMotion } from '../motion/deferred-motion.js';
 
 /**
  * BoardgameHandViewBase is the base class for the Hand view renderer that
@@ -80,6 +81,8 @@ export class BoardgameHandViewBase<
   // visible hand without replaying cards that were already present.
   private _prevOwnCardIds: Set<string> | null = null;
 
+  private readonly _incomingCardFlight = new DeferredMotion();
+
   // Buzz the phone when it becomes this player's turn — the player's eyes
   // are usually on the projector, so a local haptic is the natural cue.
   // navigator.vibrate is a no-op-safe progressive enhancement (undefined on
@@ -88,7 +91,10 @@ export class BoardgameHandViewBase<
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
-    if (changedProperties.has('viewingAsPlayer')) this._prevOwnCardIds = null;
+    if (changedProperties.has('viewingAsPlayer')) {
+      this._prevOwnCardIds = null;
+      this._incomingCardFlight.cancel();
+    }
     const myTurn = this.isCurrentPlayer && !this.gameFinished;
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a
@@ -99,6 +105,7 @@ export class BoardgameHandViewBase<
     }
     this._wasMyTurn = myTurn;
     if (!changedProperties.has('state')) return;
+    this._incomingCardFlight.cancel();
     const ids = this._collectCardIds(this.playerState);
     const previous = this._prevOwnCardIds;
     this._prevOwnCardIds = ids;
@@ -106,9 +113,14 @@ export class BoardgameHandViewBase<
     const incoming = [...ids].filter(id => !previous.has(id));
     if (incoming.length === 0) return;
     const anchor = this.shadowRoot?.getElementById('hand-top-edge') ?? 'hand-top-edge';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    this._incomingCardFlight.schedule(this, () => {
       for (const id of incoming) void this.animator?.animateBetween(id, anchor, 600);
-    }));
+    });
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._incomingCardFlight.cancel();
   }
 
   override motionTransfersForTransition(
