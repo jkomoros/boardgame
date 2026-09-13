@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
-import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
+import { isBoundMoveAction, moveActionReasonSeverity, type BoundMoveAction } from '../moves/action.js';
 
 export class BoardgameActionButton extends LitElement {
   static override styles = css`
@@ -62,6 +62,19 @@ export class BoardgameActionButton extends LitElement {
       margin-top: 0.25rem;
       color: var(--md-sys-color-error, #ba1a1a);
       font-size: 0.875rem;
+    }
+
+    /* Keep ordinary unavailability accessible without moving the board or
+       announcing every animation barrier as an error. */
+    #status.quiet {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
 
     @media (forced-colors: active) {
@@ -134,6 +147,7 @@ export class BoardgameActionButton extends LitElement {
     const reason = bound && action.preview.kind === 'failed' && action.preview.retryable
       ? `${baseReason ?? 'Move legality check failed'}. Activate to retry.`
       : baseReason;
+    const loud = !bound || rejection !== null || moveActionReasonSeverity(action.reason) === 'error';
     return html`
       <button
         part="button"
@@ -148,7 +162,8 @@ export class BoardgameActionButton extends LitElement {
         <span id="spinner" part="spinner" ?hidden=${!pending} aria-hidden="true"></span>
         <span part="label"><slot @slotchange=${this.#slotChanged}></slot></span>
       </button>
-      ${reason ? html`<span id="status" part="status" role="status" aria-live="polite">${reason}</span>` : nothing}
+      ${reason ? html`<span id="status" part="status" class=${loud ? '' : 'quiet'}
+        role=${loud ? 'status' : nothing} aria-live=${loud ? 'polite' : 'off'}>${reason}</span>` : nothing}
     `;
   }
 
