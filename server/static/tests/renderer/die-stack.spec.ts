@@ -198,6 +198,105 @@ test('hidden slots do not spend the solid budget and moving across its boundary 
   expect(result).toEqual({ solids: [false, true, true, true, true, true], starts: [], values: [4,4,4,4,4,4], lastSolid: false });
 });
 
+test('solid eligibility is one stack pass across hidden slots, reorders, and budget changes', async ({ page }) => {
+  const count = 40;
+  await mount(page, count, true);
+  const result = await page.evaluate(async count => {
+    const { BoardgameDie } = await import('/src/components/boardgame-die.ts');
+    const { stack, die, state, drain } = (window as any).diceFixture;
+    const parentDescriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'parentElement')!;
+    const applyBudget = BoardgameDie.prototype.applyStackRollBudget;
+    let parentReads = 0;
+    let budgetVisits = 0;
+    Object.defineProperty(Node.prototype, 'parentElement', {
+      ...parentDescriptor,
+      get(this: Node) {
+        if (this instanceof BoardgameDie) parentReads++;
+        return parentDescriptor.get!.call(this);
+      },
+    });
+    BoardgameDie.prototype.applyStackRollBudget = function(visibleOrdinal: number) {
+      budgetVisits++;
+      return applyBudget.call(this, visibleOrdinal);
+    };
+    let firstSolidIDs: string[] = [];
+    let secondSolidIDs: string[] = [];
+    let realBudgetVisits = 0;
+    let shadowBudgetVisits = 0;
+    let shadowCount = 0;
+    let shadowSolids = 0;
+    try {
+      const visible = Array.from({ length: count - 2 }, (_, index) => die(`visible-${index}`));
+      stack.stack = state([{ ID: 'hidden' }, null, ...visible]);
+      await drain();
+      firstSolidIDs = [...stack.querySelectorAll('boardgame-die')]
+        .filter(host => host.shadowRoot!.querySelector('#inner.solid'))
+        .map(host => host.id);
+
+      stack.componentView = stack.componentView.withProperties({
+        rollBudget: { durationMs: 900, maxSolidDice: 3 },
+      });
+      stack.stack = state([visible.at(-1), { ID: 'hidden' }, null, ...visible.slice(0, -1)]);
+      await drain();
+      secondSolidIDs = [...stack.querySelectorAll('boardgame-die')]
+        .filter(host => host.shadowRoot!.querySelector('#inner.solid'))
+        .map(host => host.id);
+      realBudgetVisits = budgetVisits;
+
+      stack.fauxComponents = count;
+      stack.stack = state([]);
+      await drain();
+      const shadowDice = [...stack.shadowRoot!.querySelectorAll('boardgame-die')];
+      shadowBudgetVisits = budgetVisits - realBudgetVisits;
+      shadowCount = shadowDice.length;
+      shadowSolids = shadowDice.filter(host => host.shadowRoot!.querySelector('#inner.solid')).length;
+    } finally {
+      BoardgameDie.prototype.applyStackRollBudget = applyBudget;
+      Object.defineProperty(Node.prototype, 'parentElement', parentDescriptor);
+    }
+
+    const standalone = document.createElement('boardgame-die');
+    standalone.faces = [1, 2, 3, 4, 5, 6];
+    standalone.rollBudget = { durationMs: 900, maxSolidDice: 0 };
+    document.body.append(standalone);
+    const manualContainer = document.createElement('div');
+    const manualManaged = document.createElement('boardgame-die');
+    manualManaged.stackManaged = true;
+    manualManaged.rollBudget = { durationMs: 900, maxSolidDice: 0 };
+    manualManaged.item = die('manual');
+    manualContainer.append(manualManaged);
+    document.body.append(manualContainer);
+    for (let i = 0; i < 4; i++) {
+      await standalone.updateComplete;
+      await manualManaged.updateComplete;
+    }
+    return {
+      realBudgetVisits,
+      shadowBudgetVisits,
+      parentReads,
+      firstSolidIDs,
+      secondSolidIDs,
+      shadowCount,
+      shadowSolids,
+      standaloneSolid: !!standalone.shadowRoot!.querySelector('#inner.solid'),
+      manualManagedSolid: !!manualManaged.shadowRoot!.querySelector('#inner.solid'),
+    };
+  }, count);
+  expect(result).toEqual({
+    realBudgetVisits: count * 2,
+    shadowBudgetVisits: expect.any(Number),
+    parentReads: 0,
+    firstSolidIDs: ['visible-0', 'visible-1', 'visible-2', 'visible-3', 'visible-4'],
+    secondSolidIDs: ['visible-37', 'visible-0', 'visible-1'],
+    shadowCount: count + 1,
+    shadowSolids: 0,
+    standaloneSolid: true,
+    manualManagedSolid: false,
+  });
+  expect(result.shadowBudgetVisits).toBeGreaterThanOrEqual(count + 1);
+  expect(result.shadowBudgetVisits).toBeLessThanOrEqual((count + 1) * 3);
+});
+
 test('pool budgets reject invalid bounds before they can allocate roll work', async ({ page }) => {
   await prepareRendererFixturePage(page);
   const errors = await page.evaluate(async () => {

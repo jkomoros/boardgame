@@ -72,6 +72,15 @@ interface InternalComponentView<
   readonly base?: InternalComponentView<S, ElementType, Properties>;
   readonly overrides?: Properties;
   readonly validateProperties?: (properties: Properties) => void;
+  readonly reconcileComponents?: (components: readonly ElementType[]) => void;
+}
+
+interface ComponentViewHooks<
+  ElementType extends BoardgameComponent,
+  Properties extends SettableComponentProperties<ElementType>,
+> {
+  readonly validateProperties?: (properties: Properties) => void;
+  readonly reconcileComponents?: (components: readonly ElementType[]) => void;
 }
 
 const initialProperties = new WeakMap<BoardgameComponent, Map<PropertyKey, unknown>>();
@@ -96,13 +105,13 @@ function createComponentView<
 >(
   create: () => ElementType,
   options: ComponentViewOptions<S, ElementType, Properties>,
-  validateProperties?: (properties: Properties) => void,
+  hooks: ComponentViewHooks<ElementType, Properties> = {},
 ): ComponentView<S, ElementType, Properties> {
   let view!: InternalComponentView<S, ElementType, Properties>;
   view = Object.freeze({
     create,
     options,
-    validateProperties,
+    ...hooks,
     withProperties: (properties: Properties) => bindProperties(view, properties),
   }) as InternalComponentView<S, ElementType, Properties>;
   return view;
@@ -144,18 +153,30 @@ export function dieView<S extends ExpandedStack<object, object>>(
 ): ComponentView<S, BoardgameDie, DieViewProperties> {
   if (options.rollBudget) validateDieRollBudget(options.rollBudget);
   const budget = options.rollBudget ? Object.freeze({ ...options.rollBudget }) : null;
-  return createComponentView(() => {
-    const die = document.createElement('boardgame-die');
-    die.stackManaged = true;
-    die.rollBudget = budget;
-    return die;
-  }, options, properties => {
-    for (const key of ['action', 'faces', 'selectedFaceIndex', 'stackManaged'] as const) {
-      if (Object.prototype.hasOwnProperty.call(properties, key)) {
-        throw new Error(`dieView(): ${key} is owned by the stack-managed die host`);
-      }
-    }
-  });
+  return createComponentView(
+    () => {
+      const die = document.createElement('boardgame-die');
+      die.stackManaged = true;
+      die.rollBudget = budget;
+      return die;
+    },
+    options,
+    {
+      validateProperties: properties => {
+        for (const key of ['action', 'faces', 'selectedFaceIndex', 'stackManaged'] as const) {
+          if (Object.prototype.hasOwnProperty.call(properties, key)) {
+            throw new Error(`dieView(): ${key} is owned by the stack-managed die host`);
+          }
+        }
+      },
+      reconcileComponents: components => {
+        let visibleOrdinal = 0;
+        for (const die of components) {
+          if (die.applyStackRollBudget(visibleOrdinal)) visibleOrdinal++;
+        }
+      },
+    },
+  );
 }
 
 export function createComponentForView(view: ComponentView): BoardgameComponent {
@@ -203,6 +224,14 @@ export function updateComponentFromView(
   appliedProperties.set(element, nextKeys);
 }
 
+/** Run a recipe's component-specific work once after a stack reconciliation. */
+export function reconcileComponentsFromView(
+  view: ComponentView,
+  components: readonly BoardgameComponent[],
+): void {
+  asInternalView(view).reconcileComponents?.(components);
+}
+
 /** True when two values use the same host/content recipe, even if overrides differ. */
 export function sameComponentViewRecipe(first: ComponentView | null | undefined, second: ComponentView | null | undefined): boolean {
   if (!first || !second) return first === second;
@@ -228,6 +257,7 @@ function bindProperties<
     base,
     overrides,
     validateProperties: source.validateProperties,
+    reconcileComponents: source.reconcileComponents,
     withProperties: (next: Properties) => bindProperties(
       { ...source, base, overrides } as InternalComponentView<S, ElementType, Properties>,
       next,

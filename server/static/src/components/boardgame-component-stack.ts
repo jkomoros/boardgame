@@ -5,7 +5,12 @@ import { isVisibleComponent, type ExpandedStack } from '../types/boardgame-types
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 import type { BoardgameComponent } from './boardgame-component.js';
 import type { ComponentView } from './component-view.js';
-import { createComponentForView, sameComponentViewRecipe, updateComponentFromView } from './component-view.js';
+import {
+  createComponentForView,
+  reconcileComponentsFromView,
+  sameComponentViewRecipe,
+  updateComponentFromView,
+} from './component-view.js';
 import { compileMotionPresence } from '../motion/presence.js';
 import type { MotionPresenceFacts, MotionPresencePolicy } from '../motion/presence.js';
 import type { TargetAction } from '../moves/target-action.js';
@@ -541,6 +546,10 @@ export class BoardgameComponentStack extends LitElement {
 
     if (changedProperties.has('unsafeComponentAttrs') || changedProperties.has('componentsDisabled')) {
       this._applyComponentAttrsToChildren();
+      if (changedProperties.has('unsafeComponentAttrs')) {
+        this._reconcileViewComponents([...this.children].filter(child =>
+          child.hasAttribute('boardgame-component')) as BoardgameComponent[]);
+      }
     }
     if (changedProperties.has('componentView')) {
       this._componentViewChanged(changedProperties.get('componentView') as ComponentView | null | undefined);
@@ -1195,6 +1204,21 @@ export class BoardgameComponentStack extends LitElement {
       throw new Error('boardgame-component-stack: a configured stack requires .componentView from cardView(), tokenView(), or componentView()');
     }
     this._insertNodes(this.stack ? this.stack.Components : [], this);
+    this._reconcileViewComponents([...this.children].filter(child =>
+      child.hasAttribute('boardgame-component')) as BoardgameComponent[]);
+  }
+
+  private _reconcileViewComponents(components: readonly BoardgameComponent[]): void {
+    if (this.componentView) reconcileComponentsFromView(this.componentView, components);
+  }
+
+  private _reconcileShadowViewComponents(): void {
+    const components = [...this._fauxComponents] as BoardgameComponent[];
+    const spacer = this.shadowRoot?.querySelector(
+      '#container>[boardgame-component][spacer]',
+    ) as BoardgameComponent | null;
+    if (spacer) components.push(spacer);
+    this._reconcileViewComponents(components);
   }
 
   private _componentViewChanged(previous: ComponentView | null | undefined): void {
@@ -1227,6 +1251,7 @@ export class BoardgameComponentStack extends LitElement {
       '#container>[boardgame-component][spacer]',
     ) as BoardgameComponent | null;
     if (spacer) updateComponentFromView(this.componentView, spacer, undefined, 0);
+    this._reconcileShadowViewComponents();
   }
 
   /** A different recipe may create a different host element, so rebuild shadow hosts too. */
@@ -1353,10 +1378,14 @@ export class BoardgameComponentStack extends LitElement {
       spacers = this.shadowRoot!.querySelectorAll('#container>[boardgame-component][spacer]');
     }
 
-    if (firstRender && realComponents.length < 1) return;
+    if (firstRender && realComponents.length < 1) {
+      this._reconcileShadowViewComponents();
+      return;
+    }
 
     const targetNumFauxComponents = Math.max(0, this.fauxComponents - realComponents.length);
     this._insertNodes(Array(targetNumFauxComponents).fill(undefined), fauxComponentsContainer);
+    this._reconcileShadowViewComponents();
 
     this._updateComponentClasses();
     this._applyComponentActionState();

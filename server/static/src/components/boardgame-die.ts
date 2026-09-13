@@ -910,11 +910,32 @@ export class BoardgameDie extends BoardgameComponent {
   stackManaged = false;
 
   private _rollBudget: DieRollBudget | null = null;
+  private _stackSolidEligible: boolean | null = null;
   @property({ attribute: false })
   get rollBudget(): DieRollBudget | null { return this._rollBudget; }
   set rollBudget(budget: DieRollBudget | null) {
     if (budget) validateDieRollBudget(budget);
     this._rollBudget = budget ? Object.freeze({ ...budget }) : null;
+    // A stack recipe recomputes this after it has applied the budget to every
+    // child. Directly authored dice fall back to their local sibling scan.
+    this._stackSolidEligible = null;
+  }
+
+  /**
+   * Apply this die's place in the stack's single-pass solid budget.
+   *
+   * @internal Called by the dieView reconciliation hook. The return value says
+   * whether this occupied, readable die consumes an ordinal; hidden and empty
+   * slots therefore never spend the allowance.
+   */
+  applyStackRollBudget(visibleOrdinal: number): boolean {
+    const visible = readDieItem(this.item) !== null;
+    const eligible = this.rollBudget ? visible && visibleOrdinal < this.rollBudget.maxSolidDice : null;
+    if (eligible !== this._stackSolidEligible) {
+      this._stackSolidEligible = eligible;
+      this.requestUpdate();
+    }
+    return visible;
   }
 
   protected override _itemChanged(item: DieComponent | null | undefined): void {
@@ -1751,16 +1772,20 @@ export class BoardgameDie extends BoardgameComponent {
    */
   private _solid(): DieSolid | null {
     if (this._historicalAppearance?.solid === false) return null;
-    if (!this._historicalAppearance && this.rollBudget && this.stackManaged && this.parentElement) {
-      // Only visible die hosts spend the allowance. DOM order is the stack's
-      // ordinary slot order; hidden/faux/empty slots do not consume it.
-      const visible = [...this.parentElement.children].filter((child): child is BoardgameDie =>
-        child instanceof BoardgameDie && readDieItem(child.item) !== null);
-      if (visible.indexOf(this) >= this.rollBudget.maxSolidDice) return null;
-    }
     const faces = this.faces;
     if (!Array.isArray(faces) || faces.length < 3) return null;
     if (!faces.every((face) => Number.isFinite(face))) return null;
+    if (!this._historicalAppearance && this.rollBudget && this.stackManaged) {
+      if (this._stackSolidEligible === false) return null;
+      if (this._stackSolidEligible === null && this.parentElement) {
+        // A directly authored stack-managed die has no recipe reconciliation
+        // hook. Preserve that standalone behavior with the old local fallback;
+        // component stacks always receive the precomputed decision above.
+        const visible = [...this.parentElement.children].filter((child): child is BoardgameDie =>
+          child instanceof BoardgameDie && readDieItem(child.item) !== null);
+        if (visible.indexOf(this) >= this.rollBudget.maxSolidDice) return null;
+      }
+    }
     return dieSolid(faces.length);
   }
 
