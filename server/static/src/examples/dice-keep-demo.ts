@@ -17,7 +17,7 @@ function stack(items: readonly DemoDie[]): ExpandedStack {
 }
 
 export class DiceKeepDemo extends LitElement {
-  static styles = css`
+  static override styles = css`
     :host { display:block; max-width:900px; margin:2rem auto; padding:1rem; color:#302d27; font:17px system-ui; }
     h1 { font-size:1.6rem; } p { line-height:1.5; }
     .zones { display:grid; gap:1rem; grid-template-columns:1fr 1fr; margin:1.5rem 0; }

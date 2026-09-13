@@ -188,3 +188,22 @@ test('empty-stack spacers borrowed from the pool discard old faces and roll iden
   });
   expect(result).toEqual({ value: null, faces: [], appearance: null, roll: null, baseline: null, id: '' });
 });
+
+test('a short pool cap plays the complete trajectory to its authoritative resting pose', async ({ page }) => {
+  await mount(page);
+  const result = await page.evaluate(async () => {
+    const { stack, die, state, drain } = (window as any).diceFixture;
+    stack.componentView = stack.componentView.withProperties({ rollBudget: { durationMs: 100, maxSolidDice: 5 } });
+    await drain();
+    stack.stack = state([die('die-0', 1)]); await drain();
+    const host = stack.querySelector('boardgame-die');
+    const animation = host.shadowRoot.querySelector('#inner').getAnimations()[0];
+    const duration = animation?.effect.getTiming().duration;
+    const plannedRest = host._roll.resting;
+    const normalizedRest = document.createElement('div'); normalizedRest.style.transform = plannedRest;
+    host.finishGatedAnimations(); await host.settled(); await host.updateComplete;
+    return { duration, value: host.value, poseMatches: host.shadowRoot.querySelector('#inner').style.transform === normalizedRest.style.transform,
+      released: !host.isAnimating };
+  });
+  expect(result).toEqual({ duration: 100, value: 4, poseMatches: true, released: true });
+});

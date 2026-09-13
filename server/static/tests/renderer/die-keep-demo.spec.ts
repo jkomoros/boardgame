@@ -7,7 +7,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 640 
   await page.setViewportSize(viewport);
   const diagnostics = await prepareRendererFixturePage(page);
   await page.evaluate(async () => {
-    await import('/src/testing/dice-keep-demo.ts');
+    await import('/src/examples/dice-keep-demo.ts');
     document.body.append(document.createElement('dice-keep-demo'));
   });
   const demo = page.locator('dice-keep-demo');
