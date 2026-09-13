@@ -96,6 +96,17 @@ test('selection draft can expose reconciled selection without choosing a commit 
   assert.deepEqual(draft.notice?.removed, ['second']);
 });
 
+test('selection option bindings fail closed after their snapshot becomes stale', () => {
+  const host = new TestHost();
+  const controller = new SelectionDraftController<string>(host);
+  const stale = controller.draft({ candidates: ['first', 'second'], maxSelected: 1 }).option('second');
+  host.state = {};
+  host.gameVersion++;
+  stale.toggle();
+  assert.deepEqual(controller.draft({ candidates: ['first'], maxSelected: 1 }).selected, []);
+  assert.equal(host.updates, 1);
+});
+
 test('selection draft clears safely, can keep valid stable keys, and leaves stale actions closed', async () => {
   const host = new TestHost();
   const controller = new SelectionDraftController<string>(host);

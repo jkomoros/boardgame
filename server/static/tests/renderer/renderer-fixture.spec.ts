@@ -565,12 +565,14 @@ test('component stacks consume indexed target actions and controller-owned local
       await import('/game-src/tictactoe/boardgame-render-game-tictactoe.ts');
       const { tictactoeRendererFixture } = await import('/game-src/tictactoe/boardgame-render-fixtures-tictactoe.ts');
       const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
-      const { html, SelectionDraftController } = await import('/src/client.ts');
+      const { cardView, html, SelectionDraftController } = await import('/src/client.ts');
       const TicTacToeRenderer = customElements.get('boardgame-render-game-tictactoe');
       if (!TicTacToeRenderer) throw new Error('Tic-tac-toe renderer was not registered');
 
       class StackBindingsRenderer extends TicTacToeRenderer {
         private readonly cardDraft = new SelectionDraftController<number>(this as never);
+        private readonly stableDraft = new SelectionDraftController<string>(this as never);
+        private readonly cards = cardView({ render: () => null });
 
         override render() {
           const renderer = this as unknown as {
@@ -580,13 +582,26 @@ test('component stacks consume indexed target actions and controller-owned local
           };
           const action = renderer.move('Place Token').targets([1, 2], Slot => ({ Slot }));
           const selection = this.cardDraft.draft({ candidates: [0, 1], maxSelected: 1, rebase: 'clear' });
+          const stableSelection = this.stableDraft.draft({
+            candidates: ['stable-here', 'stable-in-other-zone'], maxSelected: 1, rebase: 'keep-valid',
+          });
+          const stableComponent = {
+            Index: 0, Values: {}, Deck: 'cards', GameName: 'tictactoe', ID: 'stable-here',
+          };
+          const stableStack = {
+            Deck: 'cards', Indexes: [0], IDs: ['stable-here'], IDsLastSeen: { 'stable-here': 4 },
+            ShuffleCount: 0, GameName: 'tictactoe', Components: [stableComponent],
+          };
           const cards = (prefix: string) => [0, 1, 2].map(index => html`
             <boardgame-card boardgame-component
               .item=${{ ID: `${prefix}-${index}`, Values: { Rank: String(index) } }}>
             </boardgame-card>`);
           return html`
             <boardgame-component-stack id="action" .action=${action}>${cards('action')}</boardgame-component-stack>
-            <boardgame-component-stack id="selection" .selection=${selection}>${cards('selection')}</boardgame-component-stack>`;
+            <boardgame-component-stack id="selection" .selection=${selection}>${cards('selection')}</boardgame-component-stack>
+            <boardgame-component-stack id="stable" .stack=${stableStack}
+              .componentView=${this.cards} .selection=${stableSelection}>
+            </boardgame-component-stack>`;
         }
       }
       customElements.define('boardgame-render-game-tictactoe-stack-bindings', StackBindingsRenderer);
@@ -618,16 +633,23 @@ test('component stacks consume indexed target actions and controller-owned local
         pressed: card.getAttribute('aria-pressed'),
         disabled: card.getAttribute('aria-disabled'),
       }));
+      const stableCard = stacks[2]!.querySelector('boardgame-card')!;
+      (stableCard.shadowRoot!.querySelector('#outer') as HTMLElement).click();
+      await handle.renderer.updateComplete;
+      await stacks[2]!.updateComplete;
+      const stablePressed = stacks[2]!.querySelector('boardgame-card')!.getAttribute('aria-pressed');
       await handle.update({ ...tictactoeRendererFixture.snapshot, version: 5 });
       await selectionStack!.updateComplete;
       const rebasedState = [...selectionStack!.querySelectorAll('boardgame-card')].map(card =>
         card.getAttribute('aria-pressed'));
-      selectionStack!.action = actionStack!.action;
-      let conflict = '<missing error>';
-      try { await selectionStack!.updateComplete; }
-      catch (error) { conflict = error instanceof Error ? error.message : String(error); }
-      handle.dispose();
-      return { actionState, selectedState, rebasedState, conflict, proposals: handle.proposals };
+      (globalThis as unknown as { __stackBindingValidation: {
+        handle: typeof handle;
+        actionStack: NonNullable<typeof actionStack>;
+        selectionStack: NonNullable<typeof selectionStack>;
+      } }).__stackBindingValidation = {
+        handle, actionStack: actionStack!, selectionStack: selectionStack!,
+      };
+      return { actionState, selectedState, stablePressed, rebasedState, proposals: handle.proposals };
     });
 
     expect(result.actionState).toEqual([
@@ -640,12 +662,46 @@ test('component stacks consume indexed target actions and controller-owned local
       { pressed: 'true', disabled: 'false' },
       { pressed: null, disabled: 'true' },
     ]);
+    expect(result.stablePressed).toBe('true');
     expect(result.rebasedState).toEqual(['false', 'false', null]);
-    expect(result.conflict).toContain('mutually exclusive');
     expect(result.proposals).toContainEqual(expect.objectContaining({
       name: 'Place Token', arguments: { Slot: '2' },
     }));
     diagnostics.assertEmpty();
+    diagnostics.stop();
+
+    const errors = await page.evaluate(async () => {
+      const { handle, actionStack, selectionStack } = (globalThis as unknown as {
+        __stackBindingValidation: {
+          handle: { renderer: HTMLElement & { shadowRoot: ShadowRoot }; dispose(): void };
+          actionStack: HTMLElement & { action: unknown };
+          selectionStack: HTMLElement & { action: unknown; updateComplete: Promise<unknown> };
+        };
+      }).__stackBindingValidation;
+      const invalidStack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        action: unknown;
+        updateComplete: Promise<unknown>;
+      };
+      invalidStack.action = actionStack.action;
+      for (let index = 0; index < 2; index++) {
+        const card = document.createElement('boardgame-card');
+        card.setAttribute('boardgame-component', '');
+        invalidStack.append(card);
+      }
+      handle.renderer.shadowRoot.append(invalidStack);
+      let rangeError = '<missing error>';
+      try { await invalidStack.updateComplete; }
+      catch (error) { rangeError = error instanceof Error ? error.message : String(error); }
+      invalidStack.remove();
+      selectionStack.action = actionStack.action;
+      let conflict = '<missing error>';
+      try { await selectionStack!.updateComplete; }
+      catch (error) { conflict = error instanceof Error ? error.message : String(error); }
+      handle.dispose();
+      return { rangeError, conflict };
+    });
+    expect(errors.rangeError).toContain('outside 0 through 1');
+    expect(errors.conflict).toContain('mutually exclusive');
   } finally {
     diagnostics.stop();
   }

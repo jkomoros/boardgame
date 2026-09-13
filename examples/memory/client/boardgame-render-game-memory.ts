@@ -107,7 +107,7 @@ export class BoardgameRenderGameMemory extends GameRenderer {
             post-animation-delay="${this._revealHoldMs()}"
             .stack="${cardStack}"
             .componentView=${this.cards}
-            .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+            .action=${reveals}>
           </boardgame-component-stack>
           <boardgame-fading-text
             message="Match"

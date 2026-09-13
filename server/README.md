@@ -101,9 +101,15 @@ return html`<boardgame-component-zone
   layout="grid"
   .stack=${cards}
   .componentView=${this.cards}
-  .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+  .action=${reveals}>
 </boardgame-component-zone>`;
 ```
+
+Target keys are zero-based slot indexes, and may cover only the interactive
+slots. Keep `.componentActions` for heterogeneous per-slot moves. For local
+selection that feeds several moves, pass a `SelectionDraftController.draft()`
+binding as `.selection`; number keys address slots and string keys address
+uniquely visible stable component IDs.
 
 For more complex processing, render ordinary Lit content from the view or use
 `componentView()` with a fresh registered custom element extending

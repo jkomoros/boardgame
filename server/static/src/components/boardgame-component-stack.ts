@@ -79,6 +79,13 @@ export class BoardgameComponentStack extends LitElement {
       margin: 1em;
     }
 
+    #container ::slotted([boardgame-component][aria-pressed='true']),
+    #container [boardgame-component][aria-pressed='true'] {
+      outline: var(--boardgame-state-ring-width, 3px) solid
+        var(--boardgame-state-selected-ring, Highlight);
+      outline-offset: var(--boardgame-state-ring-offset, 2px);
+    }
+
     /*
      * The padding is the pile's scatter radius, expressed as room to scatter
      * into: --pile-scale is the same 0..1 multiplier _pileOffsetsForId uses to
@@ -847,7 +854,7 @@ export class BoardgameComponentStack extends LitElement {
     if (action?.canActivate) void action.activate();
   }
 
-  private _validateComponentActions(): void {
+  private _validateComponentActions(renderedCount?: number): void {
     const interactions = Number(this.componentActions.length > 0)
       + Number(this.action !== null)
       + Number(this.selection !== null);
@@ -858,6 +865,7 @@ export class BoardgameComponentStack extends LitElement {
       throw new Error('boardgame-component-stack: actions and selection cannot be combined with componentsDisabled');
     }
     const components = this.stack?.Components;
+    const componentCount = Array.isArray(components) ? components.length : renderedCount;
     if (this.componentActions.length && Array.isArray(components)
       && this.componentActions.length !== components.length) {
       throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but stack has ${components.length} slots`);
@@ -869,9 +877,9 @@ export class BoardgameComponentStack extends LitElement {
     });
     if (this.action) {
       const invalid = this.action.candidates.find(candidate => !Number.isSafeInteger(candidate.key)
-        || candidate.key < 0 || (Array.isArray(components) && candidate.key >= components.length));
+        || candidate.key < 0 || (componentCount !== undefined && candidate.key >= componentCount));
       if (invalid) {
-        const range = Array.isArray(components) ? `0 through ${Math.max(components.length - 1, 0)}` : 'non-negative slot indexes';
+        const range = componentCount === undefined ? 'non-negative slot indexes' : `0 through ${Math.max(componentCount - 1, 0)}`;
         throw new Error(`boardgame-component-stack: action target ${JSON.stringify(invalid.key)} is outside ${range}`);
       }
     }
@@ -886,22 +894,18 @@ export class BoardgameComponentStack extends LitElement {
       }
       if (keyType === 'number') {
         const invalid = (candidates as readonly number[]).find(key => !Number.isSafeInteger(key)
-          || key < 0 || (Array.isArray(components) && key >= components.length));
+          || key < 0 || (componentCount !== undefined && key >= componentCount));
         if (invalid !== undefined) {
           throw new Error(`boardgame-component-stack: selection slot ${JSON.stringify(invalid)} is outside the stack`);
         }
       } else if (keyType === 'string' && this.stack) {
-        const visibleIDs = this.stack.Components
-          .filter(isVisibleComponent)
-          .map(component => component.ID);
-        const duplicate = visibleIDs.find((id, index) => visibleIDs.indexOf(id) !== index);
-        if (duplicate !== undefined) {
-          throw new Error(`boardgame-component-stack: stable component ID ${JSON.stringify(duplicate)} appears in multiple visible slots`);
-        }
-        const ids = new Set(visibleIDs);
-        const invalid = (candidates as readonly string[]).find(key => !ids.has(key));
-        if (invalid !== undefined) {
-          throw new Error(`boardgame-component-stack: selection component ID ${JSON.stringify(invalid)} is not uniquely visible in the stack`);
+        const visibleIDs = new Set<string>();
+        for (const component of this.stack.Components) {
+          if (!isVisibleComponent(component)) continue;
+          if (visibleIDs.has(component.ID)) {
+            throw new Error(`boardgame-component-stack: stable component ID ${JSON.stringify(component.ID)} appears in multiple visible slots`);
+          }
+          visibleIDs.add(component.ID);
         }
       }
     }
@@ -938,7 +942,7 @@ export class BoardgameComponentStack extends LitElement {
       this._applyComponentAttrsToChildren();
       return;
     }
-    this._validateComponentActions();
+    this._validateComponentActions(components.length);
     if (!this.stack && this.componentActions.length && components.length !== this.componentActions.length) {
       if (!this.hasUpdated && components.length === 0) return;
       throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but the stack has ${components.length} rendered components`);

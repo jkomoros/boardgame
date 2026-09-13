@@ -2001,8 +2001,8 @@ stack-specific properties; this preserves host identity even when values change.
 `components-disabled` is the explicit display-only common case.
 `.unsafeComponentAttrs` remains an intentionally named escape hatch for custom
 host properties the typed view cannot express. Do not put move names or move
-arguments in it. For one typed action per slot, create a target
-collection and pass its actions in stack order:
+arguments in it. For one move with indexed targets, pass the target action
+directly:
 
 ```typescript
 const cards = this.state?.Game.Cards ?? null;
@@ -2016,19 +2016,51 @@ return html`<boardgame-component-zone
   layout="grid"
   .stack=${cards}
   .componentView=${this.cards}
-  .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+  .action=${reveals}>
 </boardgame-component-zone>`;
 ```
 
 That is the complete common-case interaction wiring. The stack owns pointer and
 Enter/Space activation, live legality and pending state, `aria-disabled`, focus
 semantics, explanations, subscriptions, and cleanup while preserving component
-identity and movement animations. Use `null` at a slot that is deliberately not
-interactive. The array must contain exactly one entry per stack slot; a mismatch
-or an unbound action throws an actionable error instead of silently targeting
-the wrong card. Removed proposal keys such as `proposeMove`, `indexAttributes`,
-and `data-arg-*` are rejected even through `.unsafeComponentAttrs`; they cannot
-make a component look interactive or bypass the typed action path.
+identity and movement animations. Target keys are zero-based stack slot indexes;
+the collection may be sparse, and slots without a candidate are disabled. Use
+`.componentActions` only when slots run different moves: provide one bound action
+or explicit `null` per slot. A mismatch, conflict, or unbound action throws an
+actionable error instead of silently targeting the wrong card. Removed proposal
+keys such as `proposeMove`, `indexAttributes`, and `data-arg-*` are rejected even
+through `.unsafeComponentAttrs`; they cannot make a component look interactive
+or bypass the typed action path.
+
+For a local choice that feeds more than one possible move, keep the selection in
+the existing controller and give its action-free binding to the stack:
+
+```typescript
+private readonly cardSelection = new SelectionDraftController<string>(this);
+
+const cards = this.state?.Players[this.viewingAsPlayer]?.Hand ?? null;
+const selection = this.cardSelection.draft({
+  candidates: cards?.Components.flatMap(component =>
+    isVisibleComponent(component) ? [component.ID] : []) ?? [],
+  maxSelected: 1,
+  rebase: 'keep-valid',
+});
+
+return html`<boardgame-component-zone
+  label="Your hand"
+  .stack=${cards}
+  .componentView=${this.cards}
+  .selection=${selection}>
+</boardgame-component-zone>`;
+```
+
+Number candidates select slots; string candidates select uniquely visible,
+stable component IDs. The latter survives reordering and lets the controller
+remove a choice when its card disappears on a later snapshot. The stack delegates
+toggle, bounds, reconciliation, pointer, keyboard, `aria-pressed`, selected
+outline, and disabled state to that binding. Use `selection.selected` to build any number of separate
+typed action buttons. `.action`, `.selection`, `.componentActions`, and
+`components-disabled` are mutually exclusive on one stack.
 
 For more complex processing, render ordinary Lit content in the view callback.
 If the host itself must be custom, use `componentView()` with a factory that

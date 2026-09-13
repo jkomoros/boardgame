@@ -67,7 +67,7 @@ export interface SelectionDraftBinding<
   readonly action: BoundMoveAction<MoveName, Input> | null;
 }
 
-/** Snapshot-safe local multi-selection whose only commit is a typed move action. */
+/** Snapshot-safe local multi-selection with strict committed and action-free bindings. */
 export class SelectionDraftController<Key extends TargetKey> implements ReactiveController {
   readonly #host: GameSnapshotHost;
   #stateObject: object | null | undefined;
@@ -122,6 +122,7 @@ export class SelectionDraftController<Key extends TargetKey> implements Reactive
     }
     const nextCandidates = new Set(candidates);
     const nextSnapshotKey = gameSnapshotKey(this.#host);
+    const nextStateObject = this.#host.state;
     const snapshotChanged = this.#snapshotKey !== ''
       && (this.#snapshotKey !== nextSnapshotKey || this.#stateObject !== this.#host.state);
     const availabilityChanged = this.#selected.some(key => !nextCandidates.has(key))
@@ -131,7 +132,7 @@ export class SelectionDraftController<Key extends TargetKey> implements Reactive
     this.#rebase = rebase;
     if (snapshotChanged || availabilityChanged) this.#reconcile(snapshotChanged);
     this.#snapshotKey = nextSnapshotKey;
-    this.#stateObject = this.#host.state;
+    this.#stateObject = nextStateObject;
 
     return Object.freeze({
       candidates,
@@ -154,7 +155,13 @@ export class SelectionDraftController<Key extends TargetKey> implements Reactive
           choice: key,
           selected,
           capacityBlocked: !selected && this.#selected.length >= maximumSelected,
-          toggle: () => this.toggle(key),
+          toggle: () => {
+            if (gameSnapshotKey(this.#host) !== nextSnapshotKey || this.#host.state !== nextStateObject) {
+              this.#host.requestUpdate();
+              return;
+            }
+            this.toggle(key);
+          },
         });
       },
       toggle: this.toggle,

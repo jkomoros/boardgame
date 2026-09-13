@@ -185,6 +185,12 @@ export class BoardgameComponentZone extends LitElement {
     if (!this.hideEmptyState && !this.emptyLabel.trim()) {
       throw new Error('boardgame-component-zone: emptyLabel must be non-empty unless hideEmptyState is enabled');
     }
+    const interactions = Number(this.componentActions.length > 0)
+      + Number(this.action !== null)
+      + Number(this.selection !== null);
+    if (interactions > 1) {
+      throw new Error('boardgame-component-zone: action, selection, and componentActions are mutually exclusive');
+    }
   }
 }
 
