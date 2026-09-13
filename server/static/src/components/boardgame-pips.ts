@@ -145,6 +145,20 @@ export class BoardgamePips extends LitElement {
     return Math.max(0, Math.floor(this.max) - this.filled);
   }
 
+  /** Copy only the finite leaf presentation used to render this pip row. */
+  copyHistoricalPresentationTo(target: Element): void {
+    if (target.localName !== 'boardgame-pips') return;
+    const clone = target as BoardgamePips;
+    clone.glyph = typeof this.glyph === 'string' ? this.glyph : '●';
+    clone.count = Number.isFinite(this.count) ? this.count : 0;
+    clone.max = this.max !== null && Number.isFinite(this.max)
+      ? Math.max(0, this.max)
+      : null;
+    clone.emptyGlyph = typeof this.emptyGlyph === 'string' ? this.emptyGlyph : '';
+    clone.label = typeof this.label === 'string' ? this.label : '';
+    clone.hideWhenZero = this.hideWhenZero === true;
+  }
+
   override render(): TemplateResult | typeof nothing {
     this.#validateAuthoring();
     const filled = this.filled;

@@ -192,6 +192,7 @@ export class BoardgameStat extends LitElement {
 
   @state() private _iconSlotted = false;
   @state() private _labelSlotted = false;
+  @state() private _historicalCapacity: number | undefined;
 
   /** The value actually displayed, after the stack fallback. */
   get displayValue(): StatusTextValue {
@@ -202,7 +203,25 @@ export class BoardgameStat extends LitElement {
 
   /** The capacity actually displayed, or undefined when the stack has none. */
   get displayCapacity(): number | undefined {
-    return statCapacity(this.stack);
+    return this._historicalCapacity ?? statCapacity(this.stack);
+  }
+
+  /** Copy only the resolved leaf presentation, never its backing stack. */
+  copyHistoricalPresentationTo(target: Element): void {
+    if (target.localName !== 'boardgame-stat') return;
+    const clone = target as BoardgameStat;
+    const value = this.displayValue;
+    clone.icon = typeof this.icon === 'string' ? this.icon : '';
+    clone.label = typeof this.label === 'string' ? this.label : '';
+    clone.value = typeof value === 'string' || typeof value === 'number'
+      ? value
+      : value === null ? null : undefined;
+    clone.stack = null;
+    clone._historicalCapacity = this.displayCapacity;
+    clone.stacked = this.stacked === true;
+    clone.hideWhenZero = this.hideWhenZero === true;
+    // Historical carriers are inert presentation and must never announce.
+    clone.announce = false;
   }
 
   /** Whether `hide-when-zero` is currently removing this stat from the layout. */
