@@ -2,6 +2,8 @@ import { LitElement, css, html, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
 import { isTargetListBinding, type TargetListBinding } from '../moves/target-list.js';
 import type { TargetKey } from '../moves/target-action.js';
+import { isProjectedPlayerChoices, type ProjectedPlayerChoices } from '../moves/projected-choices.js';
+import { ProjectedChoiceConsumptionController } from '../moves/projected-choice-consumption.js';
 import './boardgame-action-button.js';
 
 export type TargetListLayout = 'stack' | 'grid';
@@ -66,7 +68,7 @@ export class BoardgameTargetList extends LitElement {
   `;
 
   @property({ attribute: false })
-  choices: TargetListBinding<TargetKey> | null = null;
+  choices: TargetListBinding<TargetKey> | ProjectedPlayerChoices | null = null;
 
   @property({ type: String })
   label = 'Choices';
@@ -84,6 +86,10 @@ export class BoardgameTargetList extends LitElement {
   layout: TargetListLayout = 'stack';
 
   #unsubscribe: (() => void) | null = null;
+  readonly #projectedChoiceConsumption = new ProjectedChoiceConsumptionController(
+    this,
+    () => this.#consumableProjectedChoiceSet(),
+  );
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -116,8 +122,13 @@ export class BoardgameTargetList extends LitElement {
   override render() {
     this.#validate();
     const binding = this.choices!;
+    const projected = isProjectedPlayerChoices(binding);
+    const renderedChoices = projected
+      ? binding.choices.map(choice => ({ label: choice.label, action: choice.action }))
+      : binding.choices;
+    const preview = projected ? null : binding.target.preview;
     return html`
-      <section part="region" aria-labelledby="heading" aria-busy=${String(binding.target.preview.kind === 'checking')}>
+      <section part="region" aria-labelledby="heading" aria-busy=${String(preview?.kind === 'checking')}>
         <div
           id="heading"
           part="heading"
@@ -126,25 +137,25 @@ export class BoardgameTargetList extends LitElement {
           aria-level=${this.headingLevel}>
           ${this.label.trim()}
         </div>
-        ${binding.choices.length ? html`
+        ${renderedChoices.length ? html`
           <ul part="list">
-            ${binding.choices.map(choice => html`
+            ${renderedChoices.map(choice => html`
               <li part="choice">
                 <boardgame-action-button .action=${choice.action}>${choice.label}</boardgame-action-button>
               </li>
             `)}
           </ul>
         ` : html`<div id="empty" part="empty">${this.emptyLabel.trim()}</div>`}
-        ${binding.target.preview.kind === 'failed'
-          ? html`<div part="status" role="status" aria-live="polite">${binding.target.preview.reason.message}</div>`
+        ${preview?.kind === 'failed'
+          ? html`<div part="status" role="status" aria-live="polite">${preview.reason.message}</div>`
           : nothing}
       </section>
     `;
   }
 
   #validate(): void {
-    if (!isTargetListBinding(this.choices)) {
-      throw new Error('boardgame-target-list: .choices must come from targetList(move(...).targets(...), labelFor)');
+    if (!isTargetListBinding(this.choices) && !isProjectedPlayerChoices(this.choices)) {
+      throw new Error('boardgame-target-list: .choices must come from targetList() or projectedPlayerChoices()');
     }
     if (!this.label.trim()) throw new Error('boardgame-target-list: label must be a non-empty choice collection name');
     if (!Number.isSafeInteger(this.headingLevel) || this.headingLevel < 1 || this.headingLevel > 6) {
@@ -154,6 +165,14 @@ export class BoardgameTargetList extends LitElement {
     if (this.layout !== 'stack' && this.layout !== 'grid') {
       throw new Error(`boardgame-target-list: layout must be "stack" or "grid", not ${JSON.stringify(this.layout)}`);
     }
+  }
+
+  #consumableProjectedChoiceSet() {
+    if (!isProjectedPlayerChoices(this.choices)) return null;
+    const renderedControls = this.renderRoot.querySelectorAll('boardgame-action-button').length;
+    return renderedControls > 0 && this.choices.choices.some(choice => choice.available)
+      ? this.choices.set
+      : null;
   }
 }
 

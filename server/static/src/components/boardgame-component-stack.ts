@@ -15,6 +15,8 @@ import { compileMotionPresence } from '../motion/presence.js';
 import type { MotionPresenceFacts, MotionPresencePolicy } from '../motion/presence.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
+import { isProjectedStackChoices, type ProjectedStackChoices } from '../moves/projected-choices.js';
+import { ProjectedChoiceConsumptionController } from '../moves/projected-choice-consumption.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -376,6 +378,10 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Array, attribute: false })
   componentActions: readonly (BoundMoveAction<string, object> | null)[] = [];
 
+  /** Exact projected slot actions, consumed only while this stack renders them. */
+  @property({ attribute: false })
+  projectedChoices: ProjectedStackChoices | null = null;
+
   /** One indexed target action shared by every candidate slot. */
   @property({ attribute: false })
   action: TargetAction<number> | null = null;
@@ -398,6 +404,10 @@ export class BoardgameComponentStack extends LitElement {
     ariaPressed: string | null;
     title: string | null;
   }>();
+  private readonly _projectedChoiceConsumption = new ProjectedChoiceConsumptionController(
+    this,
+    () => this._consumableProjectedChoiceSet(),
+  );
   /**
    * The pile's scatter multiplier, in 0..1, as computed by _pileOffsetsForId:
    * the component count clamped to 5..25 and normalized. render() turns it
@@ -567,7 +577,8 @@ export class BoardgameComponentStack extends LitElement {
       this._generateChildren();
       if (changedProperties.has('presentationIndexOffset')) this._refreshShadowViewComponents();
     }
-    if (changedProperties.has('componentActions') || changedProperties.has('action')
+    if (changedProperties.has('componentActions') || changedProperties.has('projectedChoices')
+      || changedProperties.has('action')
       || changedProperties.has('selection') || changedProperties.has('unsafeComponentAttrs')
       || changedProperties.has('componentsDisabled') || changedProperties.has('stack')) {
       this._subscribeComponentActions();
@@ -841,12 +852,18 @@ export class BoardgameComponentStack extends LitElement {
   };
 
   private get _hasComponentInteraction(): boolean {
-    return this.componentActions.length > 0 || this.action !== null || this.selection !== null;
+    return this._effectiveComponentActions.length > 0 || this.action !== null || this.selection !== null;
+  }
+
+  private get _effectiveComponentActions(): readonly (BoundMoveAction<string, object> | null)[] {
+    return isProjectedStackChoices(this.projectedChoices)
+      ? this.projectedChoices.actions
+      : this.componentActions;
   }
 
   private _componentAction(index: number): BoundMoveAction<string, object> | null {
-    return this.componentActions.length
-      ? this.componentActions[index] ?? null
+    return this._effectiveComponentActions.length
+      ? this._effectiveComponentActions[index] ?? null
       : this.action?.get(index)?.action ?? null;
   }
 
@@ -883,21 +900,26 @@ export class BoardgameComponentStack extends LitElement {
 
   private _validateComponentActions(renderedCount?: number): void {
     const interactions = Number(this.componentActions.length > 0)
+      + Number(this.projectedChoices !== null)
       + Number(this.action !== null)
       + Number(this.selection !== null);
     if (interactions > 1) {
-      throw new Error('boardgame-component-stack: action, selection, and componentActions are mutually exclusive');
+      throw new Error('boardgame-component-stack: action, selection, componentActions, and projectedChoices are mutually exclusive');
     }
     if (interactions > 0 && this.componentsDisabled) {
       throw new Error('boardgame-component-stack: actions and selection cannot be combined with componentsDisabled');
     }
+    if (this.projectedChoices !== null && !isProjectedStackChoices(this.projectedChoices)) {
+      throw new Error('boardgame-component-stack: projectedChoices must come from projectedStackChoices()');
+    }
+    const componentActions = this._effectiveComponentActions;
     const components = this.stack?.Components;
     const componentCount = Array.isArray(components) ? components.length : renderedCount;
-    if (this.componentActions.length && Array.isArray(components)
-      && this.componentActions.length !== components.length) {
-      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but stack has ${components.length} slots`);
+    if (componentActions.length && Array.isArray(components)
+      && componentActions.length !== components.length) {
+      throw new Error(`boardgame-component-stack: component actions have ${componentActions.length} entries but stack has ${components.length} slots`);
     }
-    this.componentActions.forEach((action, index) => {
+    componentActions.forEach((action, index) => {
       if (action !== null && !isBoundMoveAction(action)) {
         throw new Error(`boardgame-component-stack: componentActions[${index}] is not a bound move action or null`);
       }
@@ -947,7 +969,7 @@ export class BoardgameComponentStack extends LitElement {
     this._clearComponentActionSubscriptions();
     this._validateComponentActions();
     if (!this.isConnected) return;
-    const subscriptions: { subscribe(listener: () => void): () => void }[] = this.componentActions
+    const subscriptions: { subscribe(listener: () => void): () => void }[] = this._effectiveComponentActions
       .filter((action): action is BoundMoveAction<string, object> => action !== null);
     if (this.action) subscriptions.push(this.action);
     this._componentActionUnsubscribes = [...new Set(subscriptions)]
@@ -970,9 +992,10 @@ export class BoardgameComponentStack extends LitElement {
       return;
     }
     this._validateComponentActions(components.length);
-    if (!this.stack && this.componentActions.length && components.length !== this.componentActions.length) {
+    if (!this.stack && this._effectiveComponentActions.length
+      && components.length !== this._effectiveComponentActions.length) {
       if (!this.hasUpdated && components.length === 0) return;
-      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but the stack has ${components.length} rendered components`);
+      throw new Error(`boardgame-component-stack: component actions have ${this._effectiveComponentActions.length} entries but the stack has ${components.length} rendered components`);
     }
     components.forEach((component, index) => {
       this._captureComponentActionState(component);
@@ -994,6 +1017,14 @@ export class BoardgameComponentStack extends LitElement {
       const reason = action?.reason?.message;
       if (reason) component.setAttribute('title', reason); else component.removeAttribute('title');
     });
+  }
+
+  private _consumableProjectedChoiceSet() {
+    if (!isProjectedStackChoices(this.projectedChoices)) return null;
+    const components = [...this.children].filter(element => element.hasAttribute('boardgame-component'));
+    return this.projectedChoices.actions.some((action, index) => action !== null && components[index])
+      ? this.projectedChoices.set
+      : null;
   }
 
   private _captureComponentActionState(component: HTMLElement): void {

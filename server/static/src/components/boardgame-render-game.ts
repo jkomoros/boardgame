@@ -24,7 +24,14 @@ import {
   type MessageResolver,
   type MoveChoiceProjectionTypes,
   type ProjectedMoveChoices,
+  type ProjectedMoveChoiceSet,
 } from '../moves/projected-choices.js';
+import {
+  isProjectedChoiceConsumptionController,
+  PROJECTED_CHOICE_CONSUMPTION_CHANGED,
+  type ProjectedChoiceConsumptionChangedDetail,
+  type ProjectedChoiceConsumptionController,
+} from '../moves/projected-choice-consumption.js';
 import './boardgame-projected-choices.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
@@ -329,6 +336,7 @@ class BoardgameRenderGame extends LitElement {
   // LOCAL interaction state changes (e.g. a multi-step move selected a source
   // piece) so previewSpec() must be re-evaluated without a state/turn change.
   private _boundPreviewRefreshRequested?: (e: Event) => void;
+  private readonly _projectedChoiceConsumers = new Set<ProjectedChoiceConsumptionController>();
 
   constructor() {
     super();
@@ -344,6 +352,10 @@ class BoardgameRenderGame extends LitElement {
     this.addEventListener('animation-done', this._boundComponentAnimationDone);
     this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     this.addEventListener('projected-choices-changed', this._projectedChoicesChanged);
+    this.addEventListener(
+      PROJECTED_CHOICE_CONSUMPTION_CHANGED,
+      this._projectedChoiceConsumptionChanged as EventListener,
+    );
   }
 
   // The animation-completion gate (see src/motion/animation-gate.ts). The
@@ -1121,6 +1133,8 @@ class BoardgameRenderGame extends LitElement {
       this._container.removeChild(this.renderer);
     }
     this.renderer = null;
+    for (const consumer of this._projectedChoiceConsumers) consumer.setInvalidator(null);
+    this._projectedChoiceConsumers.clear();
   }
 
   private _configureEffectLayer(): void {
@@ -1222,8 +1236,10 @@ class BoardgameRenderGame extends LitElement {
   override render() {
     const projectedChoices = (this.renderer?.choices ?? null) as
       ProjectedMoveChoices<MoveChoiceProjectionTypes> | null;
+    const consumedSets = this._consumedProjectedChoiceSets(projectedChoices);
     const showProjectedChoiceTray = projectedChoices !== null
-      && (projectedChoices.status === 'failed' || projectedChoices.all().length > 0);
+      && (projectedChoices.status === 'failed'
+        || projectedChoices.all().some(set => !consumedSets.includes(set)));
     return html`
       <boardgame-component-animator
         id="animator"
@@ -1256,6 +1272,7 @@ class BoardgameRenderGame extends LitElement {
 
       <boardgame-projected-choices
         .choices=${projectedChoices}
+        .consumedSets=${consumedSets}
         .messageResolver=${this.messageResolver}
         @projected-choice-tray-resize=${this.projectedChoiceTrayResized}>
       </boardgame-projected-choices>
@@ -1282,6 +1299,39 @@ class BoardgameRenderGame extends LitElement {
   private readonly _projectedChoicesChanged = (): void => {
     this.requestUpdate();
   };
+
+  private readonly _projectedChoiceConsumptionChanged = (
+    event: CustomEvent<ProjectedChoiceConsumptionChangedDetail>,
+  ): void => {
+    const controller = event.detail?.controller;
+    const rendererRoot = this.renderer?.shadowRoot;
+    if (!isProjectedChoiceConsumptionController(controller)
+      || !rendererRoot?.contains(controller.hostElement)) return;
+    controller.setInvalidator(() => {
+      this._projectedChoiceConsumers.delete(controller);
+      this.requestUpdate();
+    });
+    this._projectedChoiceConsumers.add(controller);
+    this.requestUpdate();
+  };
+
+  private _consumedProjectedChoiceSets(
+    choices: ProjectedMoveChoices<MoveChoiceProjectionTypes> | null,
+  ): readonly ProjectedMoveChoiceSet<string, any>[] {
+    if (!choices || choices.status !== 'ready' || !this.renderer?.shadowRoot) return [];
+    const current = choices.all();
+    const result: ProjectedMoveChoiceSet<string, any>[] = [];
+    for (const controller of [...this._projectedChoiceConsumers]) {
+      if (!this.renderer.shadowRoot.contains(controller.hostElement)) {
+        controller.setInvalidator(null);
+        this._projectedChoiceConsumers.delete(controller);
+        continue;
+      }
+      const set = controller.consumedSet;
+      if (set && current.includes(set as never) && !result.includes(set)) result.push(set);
+    }
+    return result;
+  }
 
   private readonly projectedChoiceTrayResized = (event: CustomEvent<{ height: number }>): void => {
     const height = event.detail?.height;

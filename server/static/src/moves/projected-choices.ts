@@ -4,6 +4,7 @@ import {
 } from './action.ts';
 import type { ProjectedMoveChoiceSetWire, ProjectedMoveChoicesWire } from '../types/api.js';
 import type { PlayerPresentation } from '../status/player-presentation.js';
+import type { ExpandedStack } from '../types/boardgame-types.js';
 
 export const MOVE_CHOICE_PROJECTION_SCHEMA_VERSION = 1;
 
@@ -63,12 +64,121 @@ export interface ProjectedMoveChoiceSet<
 > {
   readonly move: MoveName;
   readonly field: Projection['field'];
+  /** Generated source metadata retained for safe native-region adapters. */
+  readonly source: MoveChoiceProjectionSchemaEntry['source'];
+  readonly stackSource: MoveChoiceStackSourceSchema | null;
   readonly message: MessageDescriptor;
   readonly candidates: readonly ProjectedMoveChoiceCandidate<
     MoveName,
     Projection['value'],
     Projection['input']
   >[];
+}
+
+export interface ProjectedStackChoices<
+  MoveName extends string = string,
+  Projection extends { readonly field: string; readonly value: number; readonly input: object } = {
+    readonly field: string; readonly value: number; readonly input: object;
+  },
+> {
+  readonly set: ProjectedMoveChoiceSet<MoveName, Projection>;
+  /** Full stack-slot alignment is intentional: sparse candidate indexes stay sparse. */
+  readonly actions: readonly (BoundMoveAction<MoveName, Projection['input']> | null)[];
+}
+
+export interface ProjectedPlayerChoice<
+  MoveName extends string = string,
+  Input extends object = object,
+> {
+  readonly playerIndex: number;
+  readonly label: string;
+  readonly available: boolean;
+  readonly action: BoundMoveAction<MoveName, Input>;
+}
+
+export interface ProjectedPlayerChoices<
+  MoveName extends string = string,
+  Projection extends { readonly field: string; readonly value: number; readonly input: object } = {
+    readonly field: string; readonly value: number; readonly input: object;
+  },
+> {
+  readonly set: ProjectedMoveChoiceSet<MoveName, Projection>;
+  readonly choices: readonly ProjectedPlayerChoice<MoveName, Projection['input']>[];
+}
+
+const projectedStackBindings = new WeakSet<object>();
+const projectedPlayerBindings = new WeakSet<object>();
+
+/** Bind a projected stack-slot set to the exact slots of the stack being rendered. */
+export function projectedStackChoices<
+  MoveName extends string,
+  Projection extends { readonly field: string; readonly value: number; readonly input: object },
+>(
+  set: ProjectedMoveChoiceSet<MoveName, Projection>,
+  stack: ExpandedStack | null | undefined,
+): ProjectedStackChoices<MoveName, Projection> {
+  if (set.source !== 'stack-slots') {
+    throw new Error(`projectedStackChoices: ${JSON.stringify(set.move)} is sourced from ${set.source}, not stack slots`);
+  }
+  const components = Array.isArray(stack?.Components) ? stack.Components : [];
+  const actions: (BoundMoveAction<MoveName, Projection['input']> | null)[] =
+    Array.from({ length: components.length }, () => null);
+  for (const candidate of set.candidates) {
+    const index = candidate.value;
+    // A renderer can momentarily hold the old stack beside a new projection (or
+    // vice versa). Fail closed and leave the generic fallback available.
+    if (!candidate.available || !Number.isSafeInteger(index) || index < 0
+      || index >= components.length || components[index] === null) continue;
+    actions[index] = candidate.action;
+  }
+  const binding = Object.freeze({ set, actions: Object.freeze(actions) });
+  projectedStackBindings.add(binding);
+  return binding;
+}
+
+/** Bind a projected player-index set to an accessible player target list. */
+export function projectedPlayerChoices<
+  MoveName extends string,
+  Projection extends { readonly field: string; readonly value: number; readonly input: object },
+>(
+  set: ProjectedMoveChoiceSet<MoveName, Projection>,
+  labelFor: (playerIndex: number) => string = playerIndex => (
+    set.candidates.find(candidate => candidate.value === playerIndex)?.message.defaultMessage
+      ?? `Player ${playerIndex + 1}`
+  ),
+): ProjectedPlayerChoices<MoveName, Projection> {
+  if (set.source !== 'players') {
+    throw new Error(`projectedPlayerChoices: ${JSON.stringify(set.move)} is sourced from ${set.source}, not players`);
+  }
+  const choices = set.candidates.map(candidate => {
+    let label: string;
+    try {
+      label = labelFor(candidate.value);
+    } catch (error) {
+      const detail = error instanceof Error ? `: ${error.message}` : '';
+      throw new Error(`projectedPlayerChoices: labelFor failed for player ${candidate.value}${detail}`);
+    }
+    if (typeof label !== 'string' || !label.trim()) {
+      throw new Error(`projectedPlayerChoices: labelFor must return a non-empty string for player ${candidate.value}`);
+    }
+    return Object.freeze({
+      playerIndex: candidate.value,
+      label: label.trim(),
+      available: candidate.available,
+      action: candidate.action,
+    });
+  });
+  const binding = Object.freeze({ set, choices: Object.freeze(choices) });
+  projectedPlayerBindings.add(binding);
+  return binding;
+}
+
+export function isProjectedStackChoices(value: unknown): value is ProjectedStackChoices {
+  return typeof value === 'object' && value !== null && projectedStackBindings.has(value);
+}
+
+export function isProjectedPlayerChoices(value: unknown): value is ProjectedPlayerChoices {
+  return typeof value === 'object' && value !== null && projectedPlayerBindings.has(value);
 }
 
 type AnyProjectedSet<Projections extends MoveChoiceProjectionTypes> = {
@@ -202,6 +312,8 @@ export function buildProjectedMoveChoices<Projections extends MoveChoiceProjecti
     result.set(move, Object.freeze({
       move,
       field: schema.fieldName,
+      source: schema.source,
+      stackSource: schema.stackSource ? Object.freeze({ ...schema.stackSource }) : null,
       message: options.messages?.[move] ?? defaultProjectedChoiceMessage(move, schema.fieldName),
       candidates: Object.freeze(candidates),
     }) as AnyProjectedSet<Projections>);

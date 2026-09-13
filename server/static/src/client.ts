@@ -205,6 +205,8 @@ export {
   defaultProjectedChoiceMessage,
   MOVE_CHOICE_PROJECTION_SCHEMA_VERSION,
   PROJECTION_FAILED_MESSAGE,
+  projectedPlayerChoices,
+  projectedStackChoices,
 } from './moves/projected-choices.js';
 export type {
   MessageDescriptor,
@@ -215,6 +217,9 @@ export type {
   ProjectedMoveChoiceSet,
   ProjectedMoveChoices,
   ProjectedMoveChoicesStatus,
+  ProjectedPlayerChoice,
+  ProjectedPlayerChoices,
+  ProjectedStackChoices,
 } from './moves/projected-choices.js';
 
 // THE ONE CLASS A GAME MAY EXTEND.
