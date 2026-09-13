@@ -175,3 +175,16 @@ test('retained hosts keep their landed pose through cosmetic recipe updates', as
   });
   expect(result).toEqual({ retained: true, samePose: true, value: 4, starts: 0, symbol: true });
 });
+
+test('empty-stack spacers borrowed from the pool discard old faces and roll identity', async ({ page }) => {
+  await mount(page);
+  const result = await page.evaluate(async () => {
+    const { stack, state, drain } = (window as any).diceFixture;
+    stack.stack = state([]); await drain();
+    const spacer = stack.shadowRoot.querySelector('boardgame-die[spacer]');
+    for (let i = 0; i < 4; i++) await spacer.updateComplete;
+    return { value: spacer.value, faces: spacer.faces, appearance: spacer.captureHistoricalAppearance(),
+      roll: spacer._roll, baseline: spacer._dieState, id: spacer._componentId };
+  });
+  expect(result).toEqual({ value: null, faces: [], appearance: null, roll: null, baseline: null, id: '' });
+});

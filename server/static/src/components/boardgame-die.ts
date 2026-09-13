@@ -1246,6 +1246,20 @@ export class BoardgameDie extends BoardgameComponent {
       if (this._innerElement) this._innerElement.style.transform = this._roll?.resting ?? '';
       return;
     }
+    if (this.stackManaged && this.spacer) {
+      // Empty-stack spacers may borrow a pooled host without rebinding item.
+      // Discard its former display and roll baseline while it stands for no die.
+      if (this.faces.length || this._dieState !== null) {
+        this._clearRoll();
+        this.faces = [];
+        this.selectedFaceIndex = 0;
+        this._componentId = '';
+        this._rollCount = null;
+        this._dieState = null;
+        this._wasSolid = null;
+      }
+      return;
+    }
     if (this.item != null) {
       const item = readDieItem(this.item);
       const faces = item?.faces ?? [];
