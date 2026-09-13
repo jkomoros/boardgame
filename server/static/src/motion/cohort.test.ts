@@ -63,6 +63,25 @@ describe('motion cohort scheduling', () => {
     );
   });
 
+  it('compresses spacing to bound total start delay, including zero and singleton groups', () => {
+    const result = compileMotionCohortSchedule(entries, [
+      motion.stagger({ subjects: ['a', 'b', 'c'], intervalMs: 45, maxDelayMs: 50 }),
+    ]);
+    assert.deepEqual(result.entries.map(entry => entry.delayMs), [0, 25, 50]);
+    assert.deepEqual(compileMotionCohortSchedule(entries, [
+      motion.stagger({ subjects: ['a', 'b', 'c'], intervalMs: 45, maxDelayMs: 0 }),
+    ]).entries.map(entry => entry.delayMs), [0, 0, 0]);
+    assert.equal(compileMotionCohortSchedule(entries, [
+      motion.stagger({ subjects: ['a'], intervalMs: 45, maxDelayMs: 50 }),
+    ]).entries[0].delayMs, 0);
+    for (const maxDelayMs of [-1, NaN, Infinity]) {
+      assert.throws(() => motion.stagger({ subjects: ['a'], intervalMs: 1, maxDelayMs }), /maxDelayMs/);
+      assert.equal(compileMotionCohortSchedule(entries, [{
+        kind: 'stagger', subjects: ['a'], intervalMs: 1, maxDelayMs,
+      }]).status, 'fallback');
+    }
+  });
+
   it('validates and freezes author declarations', () => {
     const subjects = ['a', 'b'];
     const cohort = motion.stagger({ subjects, intervalMs: 40, key: 'deal' });

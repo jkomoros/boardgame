@@ -33,7 +33,8 @@ export class BoardgameHandViewBase<
   K extends object = object,
   E extends object = object,
   MCP extends MoveChoiceProjectionTypes = Record<never, never>,
-> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E, MCP> {
+  AK extends string = MN,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E, MCP, AK> {
 
   /**
    * The player index this Hand view is bound to. Equals viewingAsPlayer
@@ -125,7 +126,7 @@ export class BoardgameHandViewBase<
   }
 
   override motionTransfersForTransition(
-    context: EffectTransitionContext<S, MN>,
+    context: EffectTransitionContext<S, AK>,
   ): readonly MotionTransferDeclaration[] {
     return super.motionTransfersForTransition(context);
   }

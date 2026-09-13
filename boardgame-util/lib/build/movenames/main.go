@@ -18,9 +18,10 @@ const subFolder = "movenames"
 
 // MoveNameResult is the result of extracting move names for a single game package.
 type MoveNameResult struct {
-	PackageName string   `json:"packageName"`
-	ImportPath  string   `json:"importPath"`
-	MoveNames   []string `json:"moveNames"`
+	PackageName   string   `json:"packageName"`
+	ImportPath    string   `json:"importPath"`
+	AnimationKeys []string `json:"animationKeys"`
+	MoveNames     []string `json:"moveNames"`
 }
 
 // Build generates a temporary Go binary that imports all game packages,
@@ -157,6 +158,7 @@ type delegateEntry struct {
 type moveNameResult struct {
 	PackageName string   ` + "`" + `json:"packageName"` + "`" + `
 	ImportPath  string   ` + "`" + `json:"importPath"` + "`" + `
+	AnimationKeys []string ` + "`" + `json:"animationKeys"` + "`" + `
 	MoveNames   []string ` + "`" + `json:"moveNames"` + "`" + `
 }
 
@@ -178,7 +180,9 @@ func main() {
 		}
 
 		var names []string
+		var animationKeys []string
 		for _, move := range manager.ExampleMoves() {
+			animationKeys = append(animationKeys, move.Info().AnimationKeys()...)
 			if base.IsFixUp(move) {
 				continue
 			}
@@ -189,6 +193,7 @@ func main() {
 			PackageName: entry.delegate.Name(),
 			ImportPath:  entry.importPath,
 			MoveNames:   names,
+			AnimationKeys: animationKeys,
 		})
 	}
 

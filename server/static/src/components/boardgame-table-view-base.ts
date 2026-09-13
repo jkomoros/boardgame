@@ -57,7 +57,8 @@ export class BoardgameTableViewBase<
   K extends object = object,
   E extends object = object,
   MCP extends MoveChoiceProjectionTypes = Record<never, never>,
-> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E, MCP> {
+  AK extends string = MN,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E, MCP, AK> {
 
   /**
    * Per-seat avatar + name records, indexed by player index. May contain
@@ -133,7 +134,7 @@ export class BoardgameTableViewBase<
   }
 
   override motionTransfersForTransition(
-    context: EffectTransitionContext<S, MN>,
+    context: EffectTransitionContext<S, AK>,
   ): readonly MotionTransferDeclaration[] {
     return super.motionTransfersForTransition(context);
   }

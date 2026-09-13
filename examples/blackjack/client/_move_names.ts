@@ -9,3 +9,32 @@ export const MoveNames = {
 } as const;
 
 export type MoveName = typeof MoveNames[keyof typeof MoveNames];
+
+/** Animation vocabulary only; fixups and hidden-name aliases are not proposals. */
+export const AnimationKeys = {
+  ShuffleDiscardIntoDraw: "Shuffle Discard Into Draw",
+  SeatPlayer: "Seat Player",
+  ActivateInactivePlayerGathering: "Activate Inactive Player - Gathering",
+  WaitForEnoughPlayersGathering: "Wait For Enough Players - Gathering",
+  InactivateEmptySeatGathering: "Inactivate Empty Seat - Gathering",
+  BeginGame: "Begin Game",
+  StartRoundCleanup: "Start Round Cleanup",
+  CurrentPlayerHit: "Current Player Hit",
+  CurrentPlayerStand: "Current Player Stand",
+  RevealHiddenCard: "Reveal Hidden Card",
+  FinishTurn: "Finish Turn",
+  ForceFinishTurn: "Force Finish Turn",
+  ActivateInactivePlayer: "Activate Inactive Player",
+  WaitForEnoughPlayers: "Wait For Enough Players",
+  InactivateEmptySeat: "Inactivate Empty Seat",
+  DealInitialHiddenCard: "Deal Initial Hidden Card",
+  DealInitialVisibleCard: "Deal Initial Visible Card",
+  StartPhaseNormalPlay: "Start Phase Normal Play",
+  AccumulateScores: "Accumulate Scores",
+  CollectCards: "Collect Cards",
+  ResetPlayerForNewRound: "Reset Player For New Round",
+  IncrementRoundsCompleted: "Increment Rounds Completed",
+  StartNextRound: "Start Next Round",
+} as const;
+
+export type AnimationKey = typeof AnimationKeys[keyof typeof AnimationKeys];

@@ -16,7 +16,7 @@ import {
   type MoveChoiceProjections,
   type MoveInputs,
 } from './_move_args.js';
-import type { MoveName } from './_move_names.js';
+import type { AnimationKey, MoveName } from './_move_names.js';
 import type {
   ComponentCatalog,
   DynamicComponentValues,
@@ -41,6 +41,7 @@ export interface GameClientContract {
   readonly Constants: GameConstants;
   readonly Enums: GameEnums;
   readonly MoveName: MoveName;
+  readonly AnimationKey: AnimationKey;
   readonly MoveInputs: MoveInputs;
   readonly MoveChoiceProjections: MoveChoiceProjections;
   readonly RendererTag:
@@ -57,7 +58,8 @@ export abstract class GameRenderer extends BoardgameBaseGameRenderer<
   GameClientContract['MoveInputs'],
   GameClientContract['Constants'],
   GameClientContract['Enums'],
-  GameClientContract['MoveChoiceProjections']
+  GameClientContract['MoveChoiceProjections'],
+  GameClientContract['AnimationKey']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -73,7 +75,8 @@ export abstract class TableRenderer extends BoardgameTableViewBase<
   GameClientContract['MoveInputs'],
   GameClientContract['Constants'],
   GameClientContract['Enums'],
-  GameClientContract['MoveChoiceProjections']
+  GameClientContract['MoveChoiceProjections'],
+  GameClientContract['AnimationKey']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -89,7 +92,8 @@ export abstract class HandRenderer extends BoardgameHandViewBase<
   GameClientContract['MoveInputs'],
   GameClientContract['Constants'],
   GameClientContract['Enums'],
-  GameClientContract['MoveChoiceProjections']
+  GameClientContract['MoveChoiceProjections'],
+  GameClientContract['AnimationKey']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;

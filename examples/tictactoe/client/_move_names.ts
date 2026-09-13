@@ -7,3 +7,14 @@ export const MoveNames = {
 } as const;
 
 export type MoveName = typeof MoveNames[keyof typeof MoveNames];
+
+/** Animation vocabulary only; fixups and hidden-name aliases are not proposals. */
+export const AnimationKeys = {
+  SeatPlayer: "Seat Player",
+  ActivateInactivePlayer: "Activate Inactive Player",
+  PlaceToken: "Place Token",
+  HiddenAction: "Hidden Action",
+  FinishTurn: "Finish Turn",
+} as const;
+
+export type AnimationKey = typeof AnimationKeys[keyof typeof AnimationKeys];

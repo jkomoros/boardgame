@@ -2144,6 +2144,22 @@ For a **spatial** board whose artwork has named hotspots, use
 image with normalized regions the framework can target moves at, which is a
 different and stronger thing than a decorative background.
 
+##### Typed transition keys and bounded cadence
+
+Generated `_move_names.ts` exports `MoveNames` / `MoveName` for proposals and
+`AnimationKeys` / `AnimationKey` for transition hooks. The latter also contains
+fixups and configured sanitized aliases. An animation key describes the safe
+metadata received for a transition; its presence in the vocabulary grants no
+visibility or permission to propose that move. Type a hook's context as
+`EffectTransitionContext<State, AnimationKey>` when observing fixups.
+
+For a group whose start delay should stay bounded as it grows, use
+`motion.stagger({ subjects: visibleIds, intervalMs: 45, maxDelayMs: 280 })`.
+The framework evenly compresses spacing only when needed so the last subject
+starts within 280ms. This limits start delay, not each subject's duration;
+a zero cap starts all subjects together. Subject order remains explicit, and
+malformed or overlapping cohorts fall back atomically to normal timing.
+
 ##### A custom component host
 
 `BoardgameComponent` is the one framework class a game is meant to extend, and
@@ -2152,21 +2168,54 @@ card, token, die, stack — are not: the supported way to get one of those is it
 custom-element markup.
 
 ```typescript
-import { BoardgameComponent, componentView } from '../../src/client.js';
+import { css, html } from 'lit';
 import { property } from 'lit/decorators.js';
+import {
+  BoardgameComponent,
+  componentView,
+  type ExpandedStack,
+  type VisualMotionTrackInput,
+} from '../../src/client.js';
 
-class MeeplePiece extends BoardgameComponent {
-  @property({ type: String })
-  tone = 'neutral';
-
-  // Changing `tone` is a visual transition worth animating.
-  override get animatingProperties(): string[] { return ['tone']; }
+function rotation(heading: unknown): string {
+  return `rotate(${typeof heading === 'number' && Number.isFinite(heading) ? heading : 0}deg)`;
 }
-customElements.define('my-meeple-piece', MeeplePiece);
 
-private readonly meeples = componentView<GameState['Pieces'], MeeplePiece>(
-  () => document.createElement('my-meeple-piece') as MeeplePiece,
-  { properties: ({ component }) => ({ tone: component?.Values.Tone ?? 'neutral' }) },
+export class CompassPiece extends BoardgameComponent {
+  @property({ type: Number }) heading = 0;
+
+  static override styles = [BoardgameComponent.styles, css`
+    #outer { width: 56px; height: 56px; padding: 8px; }
+    #inner {
+      width: 100%; height: 100%; background: #6750a4;
+      clip-path: polygon(50% 0, 95% 95%, 50% 72%, 5% 95%);
+    }
+  `];
+
+  override get animatingProperties(): string[] { return ['heading']; }
+
+  protected override propertyMotionTracks(
+    before: Readonly<Record<string, unknown>>,
+    after: Readonly<Record<string, unknown>>,
+  ): readonly VisualMotionTrackInput[] {
+    return [{ target: 'visual', property: 'transform',
+      from: rotation(before['heading']), to: rotation(after['heading']) }];
+  }
+
+  override render() {
+    return html`<div id="outer"><div id="inner"
+      style=${`transform: ${rotation(this.heading)}`} aria-hidden="true"></div></div>`;
+  }
+}
+customElements.define('example-compass-piece', CompassPiece);
+
+declare global {
+  interface HTMLElementTagNameMap { 'example-compass-piece': CompassPiece; }
+}
+
+export const compassView = componentView<ExpandedStack<{ Heading: number }>, CompassPiece>(
+  () => document.createElement('example-compass-piece'),
+  { properties: context => ({ heading: context.kind === 'visible' ? context.component.Values.Heading : 0 }) },
 );
 ```
 
@@ -2177,13 +2226,20 @@ component identity and animation pairing. `componentView({ properties })`
 subtracts exactly those six from what it will accept, so the compiler already
 enforces it.
 
+The example declares a visual property, describes its motion, and renders the
+same resting transform. The stack owns placement; the inner surface owns the
+compass rotation. Declaring `animatingProperties` alone does not create a track.
+The [compiling example](server/static/src/examples/custom-motion-piece.ts) is
+exercised in the browser at the beginning, midpoint, and end of simultaneous
+travel and rotation, including cancellation and reduced motion.
+
 **Everything else has a working default**, so a subclass that adds a field and
 renders content is complete. The deliberate override points, in the order the
 animator calls them, are `animatingProperties` (which of *your* properties
 changing counts as a visual transition — the one most subclasses want),
 `animatingPropValues()` / `animatingPropDefaults(stack)`,
 `propertyMotionTracks(before, after)` (the component-owned motion for that
-change: a card's flip and a die's tumble are both this),
+change: for example a card's flip),
 `motionTrackTarget(target)`, `planMotionTracks(rec)` / `playAnimation(rec)`,
 `motionSubjectSnapshot()`, `motionEndpointOrientation(state)` /
 `animationRotates(...)`, `historicalPresentationPolicy` / `cloneContent`,

@@ -59,6 +59,21 @@ func (m *MoveInfo) MoveNamePublic() bool {
 	return ResolveSanitizationPolicy(m.runtime.moveType.nameSanitization, map[string]bool{SanitizationDefaultGroup: true}, PolicyHidden) == PolicyVisible
 }
 
+// AnimationKeys returns the possible client transition keys for this move,
+// including its canonical name (visible to administrators) and any configured
+// hidden-name alias. These are vocabulary, not evidence that a viewer may see
+// a particular move; MoveJSONForPlayer still controls each disclosure.
+func (m *MoveInfo) AnimationKeys() []string {
+	if m == nil || m.runtime.moveType == nil {
+		return nil
+	}
+	keys := []string{m.Name()}
+	if hidden := m.runtime.moveType.hiddenAnimationKey; hidden != "" && hidden != m.Name() {
+		keys = append(keys, hidden)
+	}
+	return keys
+}
+
 // MoveNameVisibleToPlayer evaluates canonical-name visibility for a proposed
 // or stored move using the same proposer/viewer group semantics as properties.
 func (g *Game) MoveNameVisibleToPlayer(move Move, proposer, viewer PlayerIndex, state ImmutableState) (bool, error) {

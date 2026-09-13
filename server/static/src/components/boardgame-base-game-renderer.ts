@@ -71,6 +71,7 @@ export class BoardgameBaseGameRenderer<
   K extends object = object,
   E extends object = object,
   MCP extends MoveChoiceProjectionTypes = Record<never, never>,
+  AK extends string = MN,
 > extends LitElement {
   /**
    * The shared layout/state vocabulary, so a renderer gets it without asking.
@@ -299,7 +300,7 @@ export class BoardgameBaseGameRenderer<
    * Initial loads are explicit (`context.kind === 'initial'`) so reconnecting
    * to an already-finished game does not accidentally replay a celebration.
    */
-  effectsForTransition(_context: EffectTransitionContext<S, MN>): readonly EffectSpec[] {
+  effectsForTransition(_context: EffectTransitionContext<S, AK>): readonly EffectSpec[] {
     return [];
   }
 
@@ -309,7 +310,7 @@ export class BoardgameBaseGameRenderer<
    * and cannot retime this motion.
    */
   motionCohortsForTransition(
-    _context: EffectTransitionContext<S, MN>,
+    _context: EffectTransitionContext<S, AK>,
   ): readonly MotionStaggerCohortSpec[] {
     return [];
   }
@@ -320,7 +321,7 @@ export class BoardgameBaseGameRenderer<
    * identity unless the server exposes an identical safe token to each view.
    */
   motionTransfersForTransition(
-    _context: EffectTransitionContext<S, MN>,
+    _context: EffectTransitionContext<S, AK>,
   ): readonly MotionTransferDeclaration[] {
     return [];
   }
@@ -331,7 +332,7 @@ export class BoardgameBaseGameRenderer<
    * terminalizes this generation; it is not concurrent multi-generation motion.
    */
   motionReleaseForTransition(
-    _context: EffectTransitionContext<S, MN>,
+    _context: EffectTransitionContext<S, AK>,
   ): MotionReleaseDeclaration | null {
     return null;
   }

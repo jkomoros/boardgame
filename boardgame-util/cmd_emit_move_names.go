@@ -133,7 +133,7 @@ func generateMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, incl
 		}
 
 		generated = append(generated, generatedMoveNamesFile{
-			path: filepath.Join(pkg.ClientFolder(), "_move_names.ts"), contents: []byte(movenames.GenerateTypeScript(result.MoveNames)),
+			path: filepath.Join(pkg.ClientFolder(), "_move_names.ts"), contents: []byte(movenames.GenerateTypeScript(result.MoveNames, result.AnimationKeys)),
 			gameName: result.PackageName, moves: len(result.MoveNames),
 		})
 	}

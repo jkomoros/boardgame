@@ -221,6 +221,7 @@ export type {
 // supported entry point declined to hand it over; the class's own doc comment
 // carries the subclass contract those documents never stated.
 export { BoardgameComponent } from './components/boardgame-component.js';
+export type { VisualMotionTrackInput } from './motion/component-track.js';
 export type { FlipRecord } from './components/boardgame-component.js';
 
 // Importing the facade registers every curated renderer primitive. Game code

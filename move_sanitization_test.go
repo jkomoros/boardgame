@@ -1,6 +1,9 @@
 package boardgame
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestConfiguredMoveNameSanitization(t *testing.T) {
 	config := make(PropertyCollection)
@@ -48,5 +51,26 @@ func TestConfiguredMoveNameSanitizationRejectsInvalidConfiguration(t *testing.T)
 				t.Fatal("expected invalid move name sanitization to fail")
 			}
 		})
+	}
+}
+
+func TestMoveAnimationKeys(t *testing.T) {
+	for _, hidden := range []string{"", "Play Card", "Hidden Action"} {
+		info := &MoveInfo{name: "Play Card", runtime: moveRuntime{moveType: &moveType{hiddenAnimationKey: hidden}}}
+		want := []string{"Play Card"}
+		if hidden == "Hidden Action" {
+			want = append(want, hidden)
+		}
+		got := info.AnimationKeys()
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+		got[0] = "mutated"
+		if info.AnimationKeys()[0] != "Play Card" {
+			t.Fatal("keys expose mutable metadata")
+		}
+	}
+	if (&MoveInfo{}).AnimationKeys() != nil || (*MoveInfo)(nil).AnimationKeys() != nil {
+		t.Fatal("uninitialized info has keys")
 	}
 }

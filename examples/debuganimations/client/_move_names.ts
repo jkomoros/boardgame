@@ -18,3 +18,22 @@ export const MoveNames = {
 } as const;
 
 export type MoveName = typeof MoveNames[keyof typeof MoveNames];
+
+/** Animation vocabulary only; fixups and hidden-name aliases are not proposals. */
+export const AnimationKeys = {
+  SeatPlayer: "Seat Player",
+  MoveCardBetweenShortStacks: "Move Card Between Short Stacks",
+  MoveCardBetweenDrawAndDiscardStacks: "Move Card Between Draw And Discard Stacks",
+  FlipCardBetweenHiddenAndRevealed: "Flip Card Between Hidden and Revealed",
+  MoveFanCard: "Move Fan Card",
+  VisibleShuffle: "Visible Shuffle",
+  Shuffle: "Shuffle",
+  MoveBetweenHidden: "Move Between Hidden",
+  MoveToken: "Move Token",
+  MoveTokenSanitized: "Move Token Sanitized",
+  StartMoveAllComponentsToHidden: "Start Move All Components To Hidden",
+  StartMoveAllComponentsToVisible: "Start Move All Components To Visible",
+  ShuffleHidden: "Shuffle Hidden",
+} as const;
+
+export type AnimationKey = typeof AnimationKeys[keyof typeof AnimationKeys];
