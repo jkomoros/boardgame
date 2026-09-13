@@ -20,6 +20,8 @@ export class BoardgameComponentZone extends LitElement {
       display: block;
       min-width: 0;
       container-type: inline-size;
+      /* Inline containment otherwise contributes zero to a flex row's base size. */
+      contain-intrinsic-inline-size: var(--boardgame-zone-intrinsic-inline-size, 12rem);
     }
 
     #zone {
