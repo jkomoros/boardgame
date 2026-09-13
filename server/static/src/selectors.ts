@@ -225,17 +225,8 @@ export const selectExpandedGameStateWithoutTimers = createSelector(
     (rawState, chest, gameName): ExpandedGameState | null => {
         if (!rawState || !chest) return null;
 
-        // Pure expansion - returns new object tree, skips timer expansion
-        const expandedGame = expandLeafState(rawState, rawState.Game, chest, gameName, null, true);
-        const expandedPlayers = rawState.Players.map((player: any) =>
-            expandLeafState(rawState, player, chest, gameName, null, true)
-        );
+        return expandGameStateSnapshot(rawState, chest, gameName);
 
-        return {
-            ...rawState,
-            Game: expandedGame,
-            Players: expandedPlayers,
-        };
     }
 );
 
@@ -253,16 +244,8 @@ export const selectTimerExpandedGameState = createSelector(
         if (!rawState || !chest) return null;
 
         // Pure expansion with timer info included
-        const expandedGame = expandLeafState(rawState, rawState.Game, chest, gameName, timerInfos, false);
-        const expandedPlayers = rawState.Players.map((player: any) =>
-            expandLeafState(rawState, player, chest, gameName, timerInfos, false)
-        );
+        return expandGameStateSnapshot(rawState, chest, gameName, timerInfos);
 
-        return {
-            ...rawState,
-            Game: expandedGame,
-            Players: expandedPlayers,
-        };
     }
 );
 
@@ -272,6 +255,22 @@ export const selectTimerExpandedGameState = createSelector(
  * 60+ times/second due to timer ticks.
  */
 export const selectExpandedGameState = selectExpandedGameStateWithoutTimers;
+
+/** Expand an API snapshot using exactly the same path as live Redux state. */
+export function expandGameStateSnapshot(
+    rawState: RawGameState,
+    chest: GameChest,
+    gameName: string,
+    timerInfos: Record<string, TimerInfo> | null = null,
+): ExpandedGameState {
+    return {
+        ...rawState,
+        Game: expandLeafState(rawState, rawState.Game, chest, gameName, timerInfos, timerInfos === null),
+        Players: rawState.Players.map(player =>
+            expandLeafState(rawState, player, chest, gameName, timerInfos, timerInfos === null)),
+    };
+}
+
 
 /**
  * Returns a wrapper that deduplicates array results by shallow comparison.
