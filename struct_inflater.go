@@ -530,6 +530,14 @@ func (s *StructInflater) Inflate(obj ReadSetConfigurer, st ImmutableState) error
 
 			board = config.deck.NewBoard(config.boardSize, config.size)
 
+			for _, space := range board.Spaces() {
+				for _, c := range config.constraints {
+					if err := space.AddConstraint(c); err != nil {
+						return errors.New("Couldn't add constraint to " + propName + " board space: " + err.Error())
+					}
+				}
+			}
+
 			if err := readSetConfigurer.ConfigureBoardProp(propName, board); err != nil {
 				return errors.New("Couldn't set " + propName + " to board: " + err.Error())
 			}
