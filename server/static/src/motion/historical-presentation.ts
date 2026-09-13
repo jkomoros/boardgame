@@ -5,8 +5,14 @@ export type HistoricalPresentationPolicy =
   /** Safer clone for new components that do not depend on document identity. */
   | 'clone-default-slot-safe';
 
+/** Explicit, component-owned display facts; never an item or arbitrary host state. */
+export type HistoricalAppearance = Readonly<Record<string, string | number | boolean>>;
+
 export interface HistoricalPresentationSource extends HTMLElement {
   readonly historicalPresentationPolicy?: HistoricalPresentationPolicy;
+  readonly historicalPresentationSlots?: Readonly<Record<string, string>> | null;
+  captureHistoricalAppearance?(): HistoricalAppearance | null;
+  installHistoricalAppearance?(appearance: HistoricalAppearance): () => void;
 }
 
 export interface HistoricalPresentation {
@@ -16,77 +22,128 @@ export interface HistoricalPresentation {
 
 const presentations = new WeakMap<HistoricalPresentation, Readonly<{
   sourceTagName: string;
-  nodes: readonly Node[];
+  nodes: readonly Readonly<{ node: Node; slot: string }>[];
+  appearance: HistoricalAppearance | null;
 }>>();
+const installations = new WeakMap<HTMLElement, () => void>();
+
+/** Leaf primitives may copy their resolved display values, never their data source. */
+function clonePresentationTree(source: Node): Node {
+  const clone = source.cloneNode(true);
+  const visit = (from: Node, to: Node): void => {
+    if (from instanceof Element && to instanceof Element) {
+      (from as Element & { copyHistoricalPresentationTo?(target: Element): void })
+        .copyHistoricalPresentationTo?.(to);
+    }
+    [...from.childNodes].forEach((child, index) => {
+      const target = to.childNodes[index];
+      if (target) visit(child, target);
+    });
+  };
+  visit(source, clone);
+  return clone;
+}
 
 function stripDocumentIdentity(node: Node): void {
   if (!(node instanceof Element)) return;
-  node.removeAttribute('id');
-  node.removeAttribute('autofocus');
-  node.removeAttribute('tabindex');
-  for (const descendant of node.querySelectorAll('[id], [autofocus], [tabindex]')) {
-    descendant.removeAttribute('id');
-    descendant.removeAttribute('autofocus');
-    descendant.removeAttribute('tabindex');
+  for (const element of [node, ...node.querySelectorAll('[id], [autofocus], [tabindex]')]) {
+    element.removeAttribute('id');
+    element.removeAttribute('autofocus');
+    element.removeAttribute('tabindex');
   }
 }
 
-/** Capture only already-rendered, unslotted light DOM. Never component state. */
+/** Capture only component-approved, already-rendered public presentation. */
 export function captureHistoricalPresentation(
   source: HistoricalPresentationSource,
 ): HistoricalPresentation | null {
   const policy = source.historicalPresentationPolicy ?? 'none';
   if (policy === 'none') return null;
-  const stripIdentity = policy === 'clone-default-slot-safe';
-  const nodes: Node[] = [];
-  // Master captured element children only. Bare text/comments were never
-  // historical artwork and must not become visible on a faux carrier.
+  const safe = policy === 'clone-default-slot-safe';
+  const slots = safe ? source.historicalPresentationSlots : null;
+  const nodes: Array<Readonly<{ node: Node; slot: string }>> = [];
+  // Preserve the legacy element-only contract; bare text/comments are not art.
   for (const child of source.children) {
-    if (child.getAttribute('slot')) continue;
-    if (child instanceof Element && child.localName === 'dom-bind') continue;
-    const clone = child.cloneNode(true);
-    if (stripIdentity) stripDocumentIdentity(clone);
-    nodes.push(clone);
+    const sourceSlot = child.getAttribute('slot') ?? '';
+    const slot = slots
+      ? (Object.prototype.hasOwnProperty.call(slots, sourceSlot) ? slots[sourceSlot] : undefined)
+      : !sourceSlot ? safe ? 'motion-history' : 'fallback' : undefined;
+    if (!slot || child.localName === 'dom-bind') continue;
+    const node = safe ? clonePresentationTree(child) : child.cloneNode(true);
+    if (safe) stripDocumentIdentity(node);
+    nodes.push(Object.freeze({ node, slot }));
   }
-  if (nodes.length === 0) return null;
+  const appearance = safe ? source.captureHistoricalAppearance?.() ?? null : null;
+  if (nodes.length === 0 && !appearance) return null;
   const presentation = Object.freeze({
     kind: 'cloned-default-slot' as const,
-    identity: stripIdentity ? 'strip' as const : 'preserve' as const,
+    identity: safe ? 'strip' as const : 'preserve' as const,
   });
   presentations.set(presentation, Object.freeze({
     sourceTagName: source.localName,
     nodes: Object.freeze(nodes),
+    appearance: appearance ? Object.freeze({ ...appearance }) : null,
   }));
   return presentation;
 }
 
-/** Install detached clones into the framework-reserved historical slot. */
+/** Clear only nodes and overrides installed by this module, never authored slots. */
+export function clearHistoricalPresentation(target: HTMLElement): void {
+  installations.get(target)?.();
+}
+
+/** A generation-safe disposer cannot clear a newer installation on the same host. */
+export function historicalPresentationDisposer(target: HTMLElement): () => void {
+  return installations.get(target) ?? (() => {});
+}
+
+/** Install detached clones without replacing the live component's authored content. */
 export function installHistoricalPresentation(
-  target: HTMLElement,
+  target: HistoricalPresentationSource,
   presentation: HistoricalPresentation,
 ): boolean {
-  const capturedPresentation = presentations.get(presentation);
-  if (!capturedPresentation) return false;
-  if (presentation.identity === 'strip'
-    && target.localName !== capturedPresentation.sourceTagName) return false;
+  const captured = presentations.get(presentation);
+  if (!captured) return false;
+  const safe = presentation.identity === 'strip';
+  if (safe && target.localName !== captured.sourceTagName) return false;
+  const nodes: Node[] = [];
+  let restore: (() => void) | undefined;
   try {
-    for (const existing of [...target.children]) {
-      const slot = existing.getAttribute('slot');
-      if (slot === 'motion-history' || slot === 'fallback') existing.remove();
+    // Stage first: a failing custom leaf must not leave a half-installed face.
+    for (const entry of captured.nodes) {
+      const node = safe ? clonePresentationTree(entry.node) : entry.node.cloneNode(true);
+      if (safe) {
+        stripDocumentIdentity(node);
+        if (node instanceof Element) {
+          node.setAttribute('inert', '');
+          node.setAttribute('aria-hidden', 'true');
+        }
+      }
+      if (node instanceof Element) node.setAttribute('slot', entry.slot);
+      nodes.push(node);
     }
-    for (const captured of capturedPresentation.nodes) {
-      const clone = captured.cloneNode(true);
-      if (presentation.identity === 'strip') stripDocumentIdentity(clone);
-      // Identity-preserving mode is the exact legacy contract, including the
-      // public fallback slot custom card CSS may target. Safer new components
-      // use the framework-reserved slot. Explicit attributes also cover SVG.
-      if (clone instanceof Element) clone.setAttribute(
-        'slot', presentation.identity === 'preserve' ? 'fallback' : 'motion-history',
-      );
-      target.append(clone);
+    clearHistoricalPresentation(target);
+    if (!safe) {
+      // This public slot replacement is specifically the legacy contract.
+      for (const child of [...target.children]) {
+        if (['fallback', 'motion-history'].includes(child.getAttribute('slot') ?? '')) child.remove();
+      }
     }
+    if (captured.appearance) restore = target.installHistoricalAppearance?.(captured.appearance);
+    target.append(...nodes);
+    let disposed = false;
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      nodes.forEach(node => node.parentNode?.removeChild(node));
+      restore?.();
+      if (installations.get(target) === dispose) installations.delete(target);
+    };
+    installations.set(target, dispose);
     return true;
   } catch {
+    nodes.forEach(node => node.parentNode?.removeChild(node));
+    restore?.();
     return false;
   }
 }

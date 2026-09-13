@@ -10,7 +10,7 @@ import type {
   ComponentMotionTarget,
   VisualMotionTrackInput,
 } from '../motion/component-track.js';
-import type { HistoricalPresentationPolicy } from '../motion/historical-presentation.js';
+import type { HistoricalAppearance, HistoricalPresentationPolicy } from '../motion/historical-presentation.js';
 import type { MotionEndpointOrientation } from '../motion/endpoint-pose.js';
 import type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -516,6 +516,21 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   /** Opt in only to cloning already-rendered default-slot presentation. */
   get historicalPresentationPolicy(): HistoricalPresentationPolicy {
     return this.cloneContent ? 'clone-default-slot' : 'none';
+  }
+
+  /** Source slots admitted to reserved historical regions in safe clone mode. */
+  get historicalPresentationSlots(): Readonly<Record<string, string>> | null {
+    return null;
+  }
+
+  /** Explicit public display facts only; do not return item, stack, or host state. */
+  captureHistoricalAppearance(): HistoricalAppearance | null {
+    return null;
+  }
+
+  /** Install a temporary presentation override and return its idempotent cleanup. */
+  installHistoricalAppearance(_appearance: HistoricalAppearance): () => void {
+    return () => {};
   }
 
   /** @deprecated Override historicalPresentationPolicy. */

@@ -5,6 +5,7 @@
  * FLIP animation system and the game rendering pipeline.
  */
 
+import type { HistoricalAppearance } from '../motion/historical-presentation';
 import type { AnimatingProps } from './animation';
 import type { ExpandedStack } from './boardgame-types';
 import type { ComponentView } from '../components/component-view';
@@ -63,6 +64,11 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
 
   /** Private historical-presentation capture policy. */
   historicalPresentationPolicy: 'none' | 'clone-default-slot' | 'clone-default-slot-safe';
+
+  /** Component-owned, safe historical presentation extensions. */
+  readonly historicalPresentationSlots?: Readonly<Record<string, string>> | null;
+  captureHistoricalAppearance?(): HistoricalAppearance | null;
+  installHistoricalAppearance?(appearance: HistoricalAppearance): () => void;
 
   /** Prepare a fresh inert host for temporary departing motion. */
   prepareMotionCarrier(defaults: Readonly<Record<string, unknown>>, stack?: unknown): void;

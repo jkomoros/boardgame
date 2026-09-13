@@ -1,3 +1,4 @@
+import { clearHistoricalPresentation, type HistoricalAppearance } from '../motion/historical-presentation.js';
 import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, nothing, TemplateResult } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
@@ -6,6 +7,14 @@ import { artLayerStyle, isArtFit, type ArtFit } from './component-art.js';
 import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
 import type { VisualMotionTrackInput } from '../motion/component-track.js';
+
+interface CardHistoricalAppearance extends HistoricalAppearance {
+  suit: string; rank: string; tall: boolean; aspectRatio: number;
+  art: string; artFit: ArtFit; backArt: string;
+  frontColor: string; inkColor: string; faceFontScale: number;
+  faceShadow: string; footerColor: string; footerFontScale: number;
+  noShadow: boolean; altShadow: boolean;
+}
 
 export class BoardgameCard extends BoardgameComponent {
   static override styles = [
@@ -54,9 +63,13 @@ export class BoardgameCard extends BoardgameComponent {
          fallback slot. Keep the shared face itself so its frame and other
          deck-wide skin travel with that content; only suppress the live face
          regions whose state belongs to the fresh carrier host. */
-      #outer.no-content #face.normal > * {
+      #outer.no-content:not(.structured-history) #face.normal > * {
         display: none;
       }
+
+      slot.historical-presentation { display: none; }
+      #outer.structured-history slot.live-presentation { display: none; }
+      #outer.structured-history slot.historical-presentation { display: contents; }
 
       #outer.no-content div.fallback {
         display: block;
@@ -556,6 +569,18 @@ export class BoardgameCard extends BoardgameComponent {
   @property({ type: String, attribute: 'ink-color' })
   inkColor = '';
 
+  /** @internal cardView opts into the shared, component-owned face snapshot. */
+  structuredHistoricalPresentation = false;
+
+  @state() private _historicalAppearance: CardHistoricalAppearance | null = null;
+  @state() private _historyArtSlotted = false;
+  @state() private _historyFooterSlotted = false;
+  @state() private _historyCornerSlotted = false;
+
+  private get _activeHistory(): CardHistoricalAppearance | null {
+    return this.noContent ? this._historicalAppearance : null;
+  }
+
   @query('#front-slot')
   private frontSlot!: HTMLSlotElement;
 
@@ -609,6 +634,7 @@ export class BoardgameCard extends BoardgameComponent {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
+    if (this.structuredHistoricalPresentation) clearHistoricalPresentation(this);
     if (this._boundFrontChanged && this.frontSlot) {
       this.frontSlot.removeEventListener('slotchange', this._boundFrontChanged);
     }
@@ -689,8 +715,48 @@ export class BoardgameCard extends BoardgameComponent {
     return this.playPropertyAnimation !== BoardgameCard.prototype.playPropertyAnimation;
   }
 
-  override get historicalPresentationPolicy(): 'none' | 'clone-default-slot' {
-    return this.cloneContent ? 'clone-default-slot' : 'none';
+  override get historicalPresentationPolicy(): 'none' | 'clone-default-slot' | 'clone-default-slot-safe' {
+    if (!this.cloneContent) return 'none';
+    return this.structuredHistoricalPresentation ? 'clone-default-slot-safe' : 'clone-default-slot';
+  }
+
+  override get historicalPresentationSlots(): Readonly<Record<string, string>> | null {
+    return this.structuredHistoricalPresentation ? {
+      '': 'motion-history-center', art: 'motion-history-art',
+      footer: 'motion-history-footer', corner: 'motion-history-corner',
+      back: 'motion-history-back',
+    } : null;
+  }
+
+  override captureHistoricalAppearance(): CardHistoricalAppearance | null {
+    if (!this.structuredHistoricalPresentation || this.noContent) return null;
+    const face = this.renderRoot.querySelector<HTMLElement>('#face');
+    const front = this.renderRoot.querySelector<HTMLElement>('#front');
+    const footer = this.renderRoot.querySelector<HTMLElement>('#footer');
+    if (!face || !front || !footer) return null;
+    const faceStyle = getComputedStyle(face);
+    const inner = this.renderRoot.querySelector<HTMLElement>('#inner');
+    const innerStyle = inner ? getComputedStyle(inner) : null;
+    const basis = parseFloat((this.tall ? innerStyle?.height : innerStyle?.width) ?? '') || 100;
+    const fontSize = parseFloat(faceStyle.fontSize) || 13;
+    const footerStyle = getComputedStyle(footer);
+    return Object.freeze({
+      suit: this.suit, rank: this.rank, tall: this.tall, aspectRatio: this.aspectRatio,
+      art: this.art, artFit: this.artFit, backArt: this.backArt,
+      frontColor: getComputedStyle(front).backgroundColor, inkColor: faceStyle.color,
+      faceFontScale: fontSize / basis, faceShadow: faceStyle.boxShadow,
+      footerColor: footerStyle.color,
+      footerFontScale: (parseFloat(footerStyle.fontSize) || fontSize * 0.8) / fontSize,
+      noShadow: this.noShadow, altShadow: this.altShadow,
+    });
+  }
+
+  override installHistoricalAppearance(appearance: HistoricalAppearance): () => void {
+    const captured = appearance as CardHistoricalAppearance;
+    this._historicalAppearance = captured;
+    return () => {
+      if (this._historicalAppearance === captured) this._historicalAppearance = null;
+    };
   }
 
   /** @deprecated Compatibility adapter for pre-motion component callers. */
@@ -802,10 +868,13 @@ export class BoardgameCard extends BoardgameComponent {
     return {
       ...super._computeClasses(),
       card: true,
+      shadow: !(this._activeHistory?.noShadow ?? this.noShadow) && !(this._activeHistory?.altShadow ?? this.altShadow),
+      'alt-shadow': !(this._activeHistory?.noShadow ?? this.noShadow) && (this._activeHistory?.altShadow ?? this.altShadow),
       rotated: this.rotated,
       'no-content': this.noContent,
-      tall: this.tall,
-      wide: !this.tall
+      tall: this._activeHistory?.tall ?? this.tall,
+      wide: !(this._activeHistory?.tall ?? this.tall),
+      'structured-history': !!this._activeHistory
     };
   }
 
@@ -828,8 +897,18 @@ export class BoardgameCard extends BoardgameComponent {
    */
   private _colorStyle(): string {
     let style = '';
-    if (this.frontColor) style += `--card-front-color: ${this.frontColor};`;
-    if (this.inkColor) style += `--card-ink-color: ${this.inkColor};`;
+    const history = this._activeHistory;
+    const front = history?.frontColor ?? this.frontColor;
+    const ink = history?.inkColor ?? this.inkColor;
+    if (front) style += `--card-front-color: ${front};`;
+    if (ink) style += `--card-ink-color: ${ink};`;
+    if (history) {
+      style += `--card-aspect-ratio: ${history.aspectRatio};`;
+      style += `--card-face-font-size: calc(var(--default-component-width) * ${history.faceFontScale});`;
+      style += `--card-face-shadow: ${history.faceShadow};`;
+      style += `--card-footer-color: ${history.footerColor};`;
+      style += `--card-footer-font-size: ${history.footerFontScale}em;`;
+    }
     return style;
   }
 
@@ -839,34 +918,52 @@ export class BoardgameCard extends BoardgameComponent {
     }
   }
 
+  private _renderRanks(suit: string, rank: string): TemplateResult {
+    return html`<div id="top-rank">${suit}${rank}</div>
+      <div id="center-rank">${suit}</div>
+      <div id="bottom-rank">${suit}${rank}</div>`;
+  }
+
   override render(): TemplateResult {
     this._validateArt();
-    const hasArt = !!this.art || this._artSlotted;
+    const history = this._activeHistory;
+    const art = history?.art ?? this.art;
+    const artFit = history?.artFit ?? this.artFit;
+    const backArt = history?.backArt ?? this.backArt;
+    const suit = history?.suit ?? this.suit;
+    const rank = history?.rank ?? this.rank;
+    const hasArt = !!art || (history ? this._historyArtSlotted : this._artSlotted);
+    const hasFooter = history ? this._historyFooterSlotted : this._footerSlotted;
+    const hasCorner = history ? this._historyCornerSlotted : this._cornerSlotted;
     return html`
       <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}${this._colorStyle()}">
         <div id="inner">
           <div id="front">
-            <div id="face" part="face" class="normal ${hasArt ? 'has-art' : ''} ${this.suit === '♥' || this.suit === '♦' ? 'red-suit' : ''}">
+            <div id="face" part="face" class="normal ${hasArt ? 'has-art' : ''} ${suit === '♥' || suit === '♦' ? 'red-suit' : ''}">
               <div id="art-band" part="art" class="${hasArt ? '' : 'empty'}">
-                <slot name="art" @slotchange=${this._slotTracker(v => { this._artSlotted = v; })}
-                  >${this.art
-                    ? html`<div id="art-image" style="${artLayerStyle(this.art, this.artFit)}"></div>`
+                <slot class="live-presentation" name="art" @slotchange=${this._slotTracker(v => { this._artSlotted = v; })}
+                  >${art
+                    ? html`<div id="art-image" style="${artLayerStyle(art, artFit)}"></div>`
                     : nothing}</slot>
+                <slot class="historical-presentation" name="motion-history-art"
+                  @slotchange=${this._slotTracker(v => { this._historyArtSlotted = v; })}
+                  >${history?.art ? html`<div style="${artLayerStyle(history.art, history.artFit)}; height: 100%; width: 100%"></div>` : nothing}</slot>
               </div>
               <div id="center" part="center">
-                <slot id="front-slot">
-                  <div id="top-rank">${this.suit}${this.rank}</div>
-                  <div id="center-rank">${this.suit}</div>
-                  <div id="bottom-rank">${this.suit}${this.rank}</div>
-                </slot>
+                <slot class="live-presentation" id="front-slot">${!history ? this._renderRanks(suit, rank) : nothing}</slot>
+                <slot class="historical-presentation" name="motion-history-center">${history ? this._renderRanks(suit, rank) : nothing}</slot>
               </div>
-              <div id="footer" part="footer" class="${this._footerSlotted ? '' : 'empty'}">
-                <slot name="footer"
+              <div id="footer" part="footer" class="${hasFooter ? '' : 'empty'}">
+                <slot class="live-presentation" name="footer"
                   @slotchange=${this._slotTracker(v => { this._footerSlotted = v; })}></slot>
+                <slot class="historical-presentation" name="motion-history-footer"
+                  @slotchange=${this._slotTracker(v => { this._historyFooterSlotted = v; })}></slot>
               </div>
-              <div id="corner" part="corner" class="${this._cornerSlotted ? '' : 'empty'}">
-                <slot name="corner"
+              <div id="corner" part="corner" class="${hasCorner ? '' : 'empty'}">
+                <slot class="live-presentation" name="corner"
                   @slotchange=${this._slotTracker(v => { this._cornerSlotted = v; })}></slot>
+                <slot class="historical-presentation" name="motion-history-corner"
+                  @slotchange=${this._slotTracker(v => { this._historyCornerSlotted = v; })}></slot>
               </div>
             </div>
             <div class="fallback">
@@ -874,10 +971,10 @@ export class BoardgameCard extends BoardgameComponent {
             </div>
           </div>
           <div id="back">
-            <slot name="back">
-              ${this.backArt
+            <slot name="${history ? 'motion-history-back' : 'back'}">
+              ${backArt
                 ? html`<div id="back-art" part="back-art"
-                    style="${artLayerStyle(this.backArt, this.artFit)}"></div>`
+                    style="${artLayerStyle(backArt, artFit)}"></div>`
                 : html`<div id="default-back">
                 ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
               </div>`}

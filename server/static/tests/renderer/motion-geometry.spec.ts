@@ -1315,19 +1315,19 @@ test('structural continuity preserves legacy ordered ties and supports declared 
   }
 });
 
-test('departing motion uses a fresh inert carrier without publishing presentation', async ({ page }) => {
+test('legacy departing motion uses a fresh inert carrier without publishing presentation', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
     const result = await page.evaluate(async () => {
       await import('/src/components/boardgame-component-animator.ts');
       await import('/src/components/boardgame-component-stack.ts');
-      const { cardView } = await import('/src/client.ts');
+      const { componentView } = await import('/src/client.ts');
       const animator = document.createElement('boardgame-component-animator') as any;
       const makeStack = () => {
         const stack = document.createElement('boardgame-component-stack') as any;
         stack.style.setProperty('--animation-length', '40ms');
-        stack.componentView = cardView({});
+        stack.componentView = componentView(() => document.createElement('boardgame-card'), {});
         return stack;
       };
       const source = makeStack();
@@ -1467,18 +1467,26 @@ test('last visible card artwork survives an intervening hidden generation', asyn
       source.stack = data([], [], 2);
       destination.stack = data([visible], ['remembered-card'], 3);
       await Promise.all([source.updateComplete, destination.updateComplete]);
+      const returned = destination.Components[0] as HTMLElement & { playAnimation: (...args: any[]) => unknown };
+      const originalPlay = returned.playAnimation;
+      let textAtPlayback = '';
+      returned.playAnimation = function(...args: any[]) {
+        textAtPlayback = this.textContent ?? '';
+        return originalPlay.apply(this, args);
+      };
       await animator.animateFlip();
-      const returned = destination.Components[0] as HTMLElement;
       return {
-        text: returned.textContent,
+        textAtPlayback,
+        textAfterSettlement: returned.textContent,
         fallbackCount: returned.querySelectorAll('[slot="fallback"]').length,
         cacheSize: animator._historicalPresentationById.size,
       };
     });
 
     expect(result).toEqual({
-      text: 'remembered visible face',
-      fallbackCount: 1,
+      textAtPlayback: 'remembered visible face',
+      textAfterSettlement: '',
+      fallbackCount: 0,
       cacheSize: 1,
     });
     diagnostics.assertEmpty();

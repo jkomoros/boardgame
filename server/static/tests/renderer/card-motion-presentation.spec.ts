@@ -22,6 +22,7 @@ test('a generated card carrier preserves shared face regions, appearance, and le
                 .count=${component.Values.Pips}
                 glyph="✦"></boardgame-pips></small>
               <span slot="corner">C</span>
+              <span slot="back">printed back</span>
             `
           : null,
         properties: ({ kind }) => kind === 'visible'
@@ -121,6 +122,7 @@ test('a generated card carrier preserves shared face regions, appearance, and le
             footerSlot: pips?.parentElement?.getAttribute('slot'),
             artSlot: this.querySelector('[slot="motion-history-art"]')?.getAttribute('slot'),
             cornerSlot: this.querySelector('[slot="motion-history-corner"]')?.getAttribute('slot'),
+            backText: root.querySelector<HTMLSlotElement>('slot[name="motion-history-back"]')?.assignedElements()[0]?.textContent,
             descendantIds: this.querySelectorAll('[id]').length,
             statValue: stat?.value,
             pipCount: pips?.count,
@@ -158,6 +160,7 @@ test('a generated card carrier preserves shared face regions, appearance, and le
       footerSlot: 'motion-history-footer',
       artSlot: 'motion-history-art',
       cornerSlot: 'motion-history-corner',
+      backText: 'printed back',
       descendantIds: 0,
       statValue: 8,
       pipCount: 3,

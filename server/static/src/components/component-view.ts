@@ -94,7 +94,11 @@ export function cardView<S extends ExpandedStack<object, object>>(
   options: ComponentViewOptions<S, BoardgameCard>,
 ): ComponentView<S, BoardgameCard> {
   return componentView(
-    () => document.createElement('boardgame-card'),
+    () => {
+      const card = document.createElement('boardgame-card');
+      card.structuredHistoricalPresentation = true;
+      return card;
+    },
     options,
   );
 }

@@ -63,6 +63,7 @@ import type {
 import {
   captureHistoricalPresentation,
   installHistoricalPresentation,
+  historicalPresentationDisposer,
 } from '../motion/historical-presentation.js';
 import type { HistoricalPresentation } from '../motion/historical-presentation.js';
 import { motionPresenceHostStyle } from '../motion/presence.js';
@@ -202,11 +203,27 @@ export class BoardgameComponentAnimator extends LitElement {
   private readonly _activationMonitor = new MotionActivationMonitor();
   private readonly _releaseMonitor = new MotionReleaseMonitor();
   private readonly _explicitAnimations = new Map<Animation, HTMLElement>();
+  private readonly _historicalInstallations = new Map<HTMLElement, () => void>();
+
+  private _clearHistoricalInstallations(): void {
+    for (const dispose of this._historicalInstallations.values()) dispose();
+    this._historicalInstallations.clear();
+  }
+
+  private _installHistoricalPresentation(component: HTMLElement, presentation: HistoricalPresentation): boolean {
+    if (!installHistoricalPresentation(component, presentation)) return false;
+    if (presentation.identity === 'strip') {
+      this._historicalInstallations.set(component, historicalPresentationDisposer(component));
+    }
+    return true;
+  }
+
   private readonly _carrierFlights = new WeakMap<HTMLElement, Animation>();
 
   ancestorOffsetParent: HTMLElement | null = null;
 
   override disconnectedCallback(): void {
+    this._clearHistoricalInstallations();
     this._interruptExplicitMotion();
     this._activationMonitor.clear();
     this._releaseMonitor.clear();
@@ -327,6 +344,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
   /** Clear interrupted faux components without exposing the stack registry. */
   clearAnimatingComponents(): void {
+    this._clearHistoricalInstallations();
     for (const stack of this.stackElement._sharedStackList) {
       stack.clearAnimatingComponents();
     }
@@ -361,6 +379,7 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   prepare() {
+    this._clearHistoricalInstallations();
     this._invalidateSolvedMotionPlan();
     this._interruptExplicitMotion();
     this._activationMonitor.clear();
@@ -449,6 +468,15 @@ export class BoardgameComponentAnimator extends LitElement {
         record.beforeOpacity = component.style.opacity || '1';
 
         try {
+          // An exact hidden sighting revokes modern cached faces. Absence alone
+          // does not: collection history may still identify a known public card.
+          if (component.historicalPresentationPolicy === 'none'
+            && this._historicalPresentationById.get(component.id)?.identity === 'strip') {
+            this._historicalPresentationById.delete(component.id);
+            record.historicalPresentation = undefined;
+            result[component.id] = record;
+            continue;
+          }
           const capturedPresentation = captureHistoricalPresentation(component);
           if (capturedPresentation) {
             this._rememberHistoricalPresentation(component.id, capturedPresentation);
@@ -1260,6 +1288,13 @@ export class BoardgameComponentAnimator extends LitElement {
         if (component.id === '') continue;
         afterExact.push({ subjectId: component.id, collectionId: collection.id });
         let record = this._infoById[component.id];
+        if (component.historicalPresentationPolicy === 'none'
+          && this._historicalPresentationById.get(component.id)?.identity === 'strip') {
+          this._historicalPresentationById.delete(component.id);
+          // A currently visible before endpoint may close its already-public
+          // face during this transition. An after-only hidden host may not.
+          if (record && !this._beforeSeenIds.has(component.id)) record.historicalPresentation = undefined;
+        }
         if (!record) {
           record = {
             historicalPresentation: this._historicalPresentationById.get(component.id),
@@ -1481,7 +1516,7 @@ export class BoardgameComponentAnimator extends LitElement {
           });
 
           if (record.historicalPresentation) {
-            installHistoricalPresentation(component, record.historicalPresentation);
+            this._installHistoricalPresentation(component, record.historicalPresentation);
           }
         }
       }
@@ -1504,7 +1539,7 @@ export class BoardgameComponentAnimator extends LitElement {
       const carrier = destinationStack.newMotionCarrier();
       const component = carrier.component;
       if (record.historicalPresentation
-          && !installHistoricalPresentation(component, record.historicalPresentation)) {
+          && !this._installHistoricalPresentation(component, record.historicalPresentation)) {
         if (typeof component.beforeOrphaned === 'function') component.beforeOrphaned();
         component.remove();
         continue;
@@ -1834,7 +1869,13 @@ export class BoardgameComponentAnimator extends LitElement {
           }
         }
       }
-      settledPromises.push(item.component.settled());
+      const disposeHistory = this._historicalInstallations.get(item.component);
+      settledPromises.push(item.component.settled().finally(() => {
+        disposeHistory?.();
+        if (this._historicalInstallations.get(item.component) === disposeHistory) {
+          this._historicalInstallations.delete(item.component);
+        }
+      }));
     }
     const plannedPlan = this._solvedMotionPlan;
     if (!plannedPlan) { resolve(Promise.resolve()); return; }
