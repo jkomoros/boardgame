@@ -6,6 +6,7 @@ import type { BoundMoveAction } from '../moves/action.js';
 import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
+import { statCapacity } from './stat-values.js';
 import './boardgame-component-zone.js';
 import './boardgame-deck.js';
 import type { BoardgameComponentStack, StackSlotGeometryChangedDetail } from './boardgame-component-stack.js';
@@ -77,6 +78,8 @@ export class BoardgameMarket extends LitElement {
 
     .attachment-cell {
       box-sizing: border-box;
+      display: grid;
+      justify-items: center;
       min-width: 0;
       width: var(--boardgame-market-slot-inline-size, max-content);
     }
@@ -85,9 +88,8 @@ export class BoardgameMarket extends LitElement {
     ::slotted([slot^='attachment-']) {
       display: block;
       box-sizing: border-box;
-      width: 100%;
-      --component-width: var(--boardgame-market-component-inline-size);
-      --component-scale: 1;
+      width: max-content;
+      max-width: 100%;
     }
 
     @container (max-width: 36rem) {
@@ -118,7 +120,6 @@ export class BoardgameMarket extends LitElement {
   attachmentPosition: MarketAttachmentPosition = 'after';
 
   @state() private _slotInlineSize = 0;
-  @state() private _componentInlineSize = 0;
   @state() private _contentInset = 0;
   @query('#display-zone') private _displayZone!: HTMLElement & { stackElement?: BoardgameComponentStack | null };
   @query('#display-track') private _displayTrack!: HTMLElement;
@@ -130,7 +131,7 @@ export class BoardgameMarket extends LitElement {
   }
 
   private get _slotCount(): number {
-    return this.stack?.Components.length ?? 0;
+    return Math.max(this.stack?.Components.length ?? 0, statCapacity(this.stack) ?? 0);
   }
 
   private _attachmentAt(index: number): ExpandedStack | null {
@@ -148,9 +149,9 @@ export class BoardgameMarket extends LitElement {
   }
 
   private _displayGeometryChanged(event: CustomEvent<StackSlotGeometryChangedDetail>): void {
+    if (event.composedPath()[0] !== this.stackElement) return;
     const geometry = event.detail.geometry;
     this._slotInlineSize = geometry.inlineSize;
-    this._componentInlineSize = geometry.componentInlineSize;
     this._measureDisplayInset();
   }
 
@@ -198,6 +199,7 @@ export class BoardgameMarket extends LitElement {
                 layout="stack"
                 no-default-spacer
                 components-disabled
+                .presentationIndexOffset=${index}
                 .stack=${this._attachmentAt(index)}
                 .componentView=${this.attachmentView}>
               </boardgame-component-stack>
@@ -217,7 +219,6 @@ export class BoardgameMarket extends LitElement {
       <section id="market" part="market" aria-labelledby="label" style=${styleMap({
         '--boardgame-market-slots': String(this._slotCount),
         '--boardgame-market-slot-inline-size': this._slotInlineSize ? `${this._slotInlineSize}px` : undefined,
-        '--boardgame-market-component-inline-size': this._componentInlineSize ? `${this._componentInlineSize}px` : undefined,
         '--boardgame-market-content-inset': this._contentInset ? `${this._contentInset}px` : undefined,
       })}>
         <span id="label" part="label" role="heading" aria-level=${this.headingLevel}>${this.label.trim()}</span>

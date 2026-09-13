@@ -1942,12 +1942,15 @@ html`<boardgame-market
 
 The market measures the visible component hosts, so scaled or custom cards set
 the column width; renderers do not repeat card widths, margins, or zone padding.
+For a bounded stack, `MaxSize` (or a sized stack's `Size`) keeps those slots
+stable after its source is exhausted and the visible row can no longer refill.
 The row stays intact in a horizontally contained scroller at narrow widths.
 Named `attachment-0` through `attachment-N` slots place custom content at exact
 visible slots. For a sized one-component-per-slot stack such as payment cubes,
 pass `.attachmentStack` and `.attachmentView`; its original component IDs and
-indexes are retained for motion. The number of attachment cells always comes
-from the visible stack. Ordinary moves between `.sourceStack` and `.stack`
+slot indexes are retained for presentation and motion. Attachments keep their
+natural component size and inherited or authored scale, centered in the card
+slot. Ordinary moves between `.sourceStack` and `.stack`
 therefore remain ordinary structural animation. `.action` and `.selection`
 forward to the visible stack; `boardgame-deck` forwards the same properties to
 its source. Use the `stackElement` getter when a specialized motion-presence

@@ -27,11 +27,21 @@ test('stack geometry follows the rendered component and drives overlap and cappe
         marginRight: getComputedStyle(cards[0]).marginRight,
       };
 
-      stack.style.setProperty('--component-scale', '0.8');
+      stack.style.setProperty('--component-scale', '0.805');
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const resized = {
         geometry: stack.slotGeometry,
-        width: cards[0].offsetWidth,
+        layoutWidth: parseFloat(getComputedStyle(cards[0].shadowRoot!.querySelector('#outer')!).width),
+        marginRight: getComputedStyle(cards[0]).marginRight,
+      };
+
+      // The component border box is unchanged here. Only the stack-authored 1em
+      // margin changes, so observing the component alone cannot catch this.
+      stack.style.fontSize = '25px';
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const remargined = {
+        geometry: stack.slotGeometry,
+        marginLeft: getComputedStyle(cards[0]).marginLeft,
         marginRight: getComputedStyle(cards[0]).marginRight,
       };
 
@@ -53,16 +63,19 @@ test('stack geometry follows the rendered component and drives overlap and cappe
         zIndex: getComputedStyle(card).zIndex,
       }));
       stack.remove();
-      return { first, resized, depths };
+      return { first, resized, remargined, depths };
     });
 
     expect(result.first.width).toBe(50);
     expect(result.first.geometry?.componentInlineSize).toBe(50);
     expect(result.first.geometry?.inlineSize).toBeCloseTo(41, 0);
     expect(parseFloat(result.first.marginRight)).toBeCloseTo(-25, 0);
-    expect(result.resized.width).toBe(80);
-    expect(result.resized.geometry?.componentInlineSize).toBe(80);
-    expect(parseFloat(result.resized.marginRight)).toBeCloseTo(-40, 0);
+    expect(result.resized.layoutWidth).toBeCloseTo(80.5, 1);
+    expect(result.resized.geometry?.componentInlineSize).toBeCloseTo(result.resized.layoutWidth, 3);
+    expect(parseFloat(result.resized.marginRight)).toBeCloseTo(-40.25, 2);
+    expect(parseFloat(result.remargined.marginLeft)).toBe(25);
+    expect(parseFloat(result.remargined.marginRight)).toBeCloseTo(-40.25, 2);
+    expect(result.remargined.geometry?.inlineSize).toBeCloseTo(65.25, 2);
     expect(result.depths.map(item => item.depth)).toEqual(['0', '1', '2', '3', '4', '5', '6', '6', '6']);
     expect(result.depths[0]).toMatchObject({ top: '0px', zIndex: '10' });
     expect(result.depths[8]).toMatchObject({ top: '6px', zIndex: '4' });
@@ -78,13 +91,18 @@ test('deck and market preserve hidden sources, stable slot identity, attachments
   try {
     const result = await page.evaluate(async () => {
       const { cardView, tokenView } = await import('/src/client.ts');
-      const makeStack = (deck: string, ids: string[], components: Array<Record<string, unknown> | null>) => ({
+      const makeStack = (
+        deck: string,
+        ids: string[],
+        components: Array<Record<string, unknown> | null>,
+        maxSize = 0,
+      ) => ({
         Deck: deck,
         Indexes: components.map((_value, index) => index),
         IDs: ids,
         IDsLastSeen: Object.fromEntries(ids.map((id, index) => [id, index])),
         ShuffleCount: 0,
-        Size: components.filter(Boolean).length,
+        ...(maxSize > 0 ? { MaxSize: maxSize } : {}),
         GameName: 'fixture',
         Components: components.map((component, index) => component === null ? null : ({
           ID: ids[index], Index: index, Deck: deck, GameName: 'fixture', Values: component,
@@ -100,18 +118,24 @@ test('deck and market preserve hidden sources, stable slot identity, attachments
       market.style.setProperty('--component-scale', '0.8');
       market.sourceView = cardView({}).withProperties({ faceUp: false });
       market.componentView = cardView({}).withProperties({ faceUp: true });
-      market.attachmentView = tokenView({}).withProperties({ type: 'cube', cssColor: '#b87333' });
+      market.attachmentView = tokenView({
+        properties: ({ index }) => ({ type: 'cube', cssColor: '#b87333', title: `payment-slot-${index}` }),
+      });
       market.sourceStack = {
         ...makeStack('cards', ['hidden'], [{}]),
         Components: [{}],
       } as never;
-      market.stack = makeStack('cards', ['one', 'two', 'three'], [{}, {}, {}]) as never;
-      market.attachmentStack = makeStack('payments', ['pay-one', '', 'pay-three'], [{}, null, {}]) as never;
+      market.stack = makeStack('cards', ['one', 'two', 'three'], [{}, {}, {}], 3) as never;
+      market.attachmentStack = {
+        ...makeStack('payments', ['pay-one', '', 'pay-three'], [{}, null, {}]),
+        Size: 3,
+      } as never;
       const coins = document.createElement('boardgame-component-stack');
       coins.slot = 'attachment-0';
       coins.componentView = tokenView({}).withProperties({ type: 'chip', cssColor: 'gold' });
       coins.stack = makeStack('coins', ['coin'], [{}]) as never;
       coins.componentsDisabled = true;
+      coins.style.setProperty('--component-scale', '0.5');
       market.append(coins);
       document.body.append(market);
       await market.updateComplete;
@@ -128,9 +152,32 @@ test('deck and market preserve hidden sources, stable slot identity, attachments
       const splitStacks = cells.map(cell => cell.querySelector('boardgame-component-stack'));
       const paymentIDs = splitStacks.map(stack => stack?.stack?.IDs[0] ?? null);
       const paymentIndexes = splitStacks.map(stack => stack?.stack?.Indexes[0] ?? null);
-      const cardLefts = cards.map(card => card.getBoundingClientRect().left);
-      const paymentLefts = splitStacks.map(stack => stack?.querySelector<HTMLElement>('boardgame-token')?.getBoundingClientRect().left ?? null);
+      const paymentTokens = splitStacks.map(stack => stack?.querySelector<HTMLElement>('boardgame-token') ?? null);
+      const paymentTitles = paymentTokens.map(token => token?.title ?? null);
+      const center = (element: HTMLElement) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      };
+      const cardCenters = cards.map(center);
+      const paymentCenters = paymentTokens.map(token => token ? center(token) : null);
+      const coinToken = coins.querySelector<HTMLElement>('boardgame-token')!;
       const hiddenCard = sourceStack.querySelector<HTMLElement>('boardgame-card')!;
+      const marketSection = root.querySelector<HTMLElement>('#market')!;
+      const slotSizeBeforeNested = marketSection.style.getPropertyValue('--boardgame-market-slot-inline-size');
+
+      // A component recipe may itself contain a stack. Its composed geometry
+      // event must not replace the market's top-level card measurement.
+      const nested = document.createElement('boardgame-component-stack');
+      nested.componentView = tokenView({}).withProperties({ type: 'cube' });
+      nested.stack = makeStack('nested', ['nested'], [{}]) as never;
+      nested.componentsDisabled = true;
+      nested.style.setProperty('--component-width', '18px');
+      cards[0].append(nested);
+      await nested.updateComplete;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const slotSizeAfterNested = marketSection.style.getPropertyValue('--boardgame-market-slot-inline-size');
+      nested.remove();
+      const originalCells = cells.slice();
       const wide = {
         sourceFaceUp: (hiddenCard as HTMLElement & { faceUp: boolean }).faceUp,
         sourceItemKeys: Object.keys((hiddenCard as HTMLElement & { item: object }).item),
@@ -138,17 +185,31 @@ test('deck and market preserve hidden sources, stable slot identity, attachments
         cellCount: cells.length,
         paymentIDs,
         paymentIndexes,
-        cardLefts,
-        paymentLefts,
-        coinLeft: coins.querySelector<HTMLElement>('boardgame-token')!.getBoundingClientRect().left,
+        paymentTitles,
+        cardCenters,
+        paymentCenters,
+        cardWidth: cards[0].getBoundingClientRect().width,
+        paymentWidth: paymentTokens[0]!.getBoundingClientRect().width,
+        coinCenter: center(coinToken),
+        coinWidth: coinToken.getBoundingClientRect().width,
+        slotSizeBeforeNested,
+        slotSizeAfterNested,
       };
 
       market.sourceStack = makeStack('cards', [], []) as never;
-      market.stack = makeStack('cards', ['hidden', 'one', 'two'], [{}, {}, {}]) as never;
+      market.stack = makeStack('cards', ['hidden', 'one'], [{}, {}], 3) as never;
       await market.updateComplete;
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const refilledIDs = [...displayStack.querySelectorAll<HTMLElement>('boardgame-card')].map(card => card.id);
-      return { wide, refilledIDs };
+      const depletedCells = [...root.querySelectorAll<HTMLElement>('.attachment-cell')];
+      const exhausted = sourceZone.shadowRoot!.querySelector<HTMLElement>('#empty')?.textContent?.trim();
+      return {
+        wide,
+        refilledIDs,
+        depletedCellCount: depletedCells.length,
+        sameCells: depletedCells.every((cell, index) => cell === originalCells[index]),
+        exhausted,
+      };
     });
 
     expect(result.wide.sourceFaceUp).toBe(false);
@@ -157,10 +218,17 @@ test('deck and market preserve hidden sources, stable slot identity, attachments
     expect(result.wide.cellCount).toBe(3);
     expect(result.wide.paymentIDs).toEqual(['pay-one', '', 'pay-three']);
     expect(result.wide.paymentIndexes).toEqual([0, 1, 2]);
-    expect(result.wide.paymentLefts[0]).toBeCloseTo(result.wide.cardLefts[0], 0);
-    expect(result.wide.paymentLefts[2]).toBeCloseTo(result.wide.cardLefts[2], 0);
-    expect(result.wide.coinLeft).toBeCloseTo(result.wide.cardLefts[0], 0);
-    expect(result.refilledIDs).toEqual(['hidden', 'one', 'two']);
+    expect(result.wide.paymentTitles).toEqual(['payment-slot-0', 'payment-slot-1', 'payment-slot-2']);
+    expect(result.wide.paymentCenters[0]).toBeCloseTo(result.wide.cardCenters[0], 1);
+    expect(result.wide.paymentCenters[2]).toBeCloseTo(result.wide.cardCenters[2], 1);
+    expect(result.wide.coinCenter).toBeCloseTo(result.wide.cardCenters[0], 1);
+    expect(result.wide.paymentWidth).toBeLessThan(result.wide.cardWidth / 2);
+    expect(result.wide.coinWidth).toBeLessThan(result.wide.paymentWidth);
+    expect(result.wide.slotSizeAfterNested).toBe(result.wide.slotSizeBeforeNested);
+    expect(result.refilledIDs).toEqual(['hidden', 'one']);
+    expect(result.depletedCellCount).toBe(3);
+    expect(result.sameCells).toBe(true);
+    expect(result.exhausted).toBe('Exhausted');
 
     await page.setViewportSize(RENDERER_VIEWPORTS.phone);
     await page.waitForTimeout(50);
@@ -174,17 +242,22 @@ test('deck and market preserve hidden sources, stable slot identity, attachments
       const displayStack = displayZone.shadowRoot!.querySelector('boardgame-component-stack')!;
       const firstCard = displayStack.querySelector<HTMLElement>('boardgame-card')!;
       const firstCell = market.shadowRoot!.querySelector<HTMLElement>('.attachment-cell')!;
+      const firstToken = firstCell.querySelector<HTMLElement>('boardgame-token')!;
+      const center = (element: HTMLElement) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      };
       return {
         pageWidth,
         viewportWidth,
         scrollable: scroller.scrollWidth > scroller.clientWidth,
-        cardLeft: firstCard.getBoundingClientRect().left,
-        cellContentLeft: firstCell.querySelector<HTMLElement>('boardgame-token')!.getBoundingClientRect().left,
+        cardCenter: center(firstCard),
+        cellContentCenter: center(firstToken),
       };
     });
     expect(narrow.pageWidth).toBeLessThanOrEqual(narrow.viewportWidth + 1);
     expect(narrow.scrollable).toBe(true);
-    expect(narrow.cellContentLeft).toBeCloseTo(narrow.cardLeft, 0);
+    expect(narrow.cellContentCenter).toBeCloseTo(narrow.cardCenter, 1);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

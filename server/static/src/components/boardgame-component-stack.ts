@@ -340,6 +340,10 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   stagger = 0;
 
+  /** Offset passed only to ComponentView contexts for a projected stack slice. */
+  @property({ type: Number, attribute: false })
+  presentationIndexOffset = 0;
+
   /** Visual policy for an inferred collection endpoint with no exact host. */
   @property({ attribute: false })
   motionPresence: MotionPresencePolicy = 'scale-fade';
@@ -349,6 +353,9 @@ export class BoardgameComponentStack extends LitElement {
 
   @query('#components')
   private componentsSlot!: HTMLSlotElement;
+
+  @query('#slot-holder')
+  private slotHolder!: HTMLElement;
 
   @query('#faux-components')
   private fauxComponentsContainer!: HTMLElement;
@@ -412,6 +419,7 @@ export class BoardgameComponentStack extends LitElement {
   private _slotGeometry: StackSlotGeometry | null = null;
   private _slotGeometryObserver: ResizeObserver | null = null;
   private _slotGeometryTarget: HTMLElement | null = null;
+  private _slotGeometryBorderBox: Readonly<{ inlineSize: number; blockSize: number }> | null = null;
 
   get _sharedStackList(): BoardgameComponentStack[] {
     return sharedStackList;
@@ -553,10 +561,11 @@ export class BoardgameComponentStack extends LitElement {
     }
     if (changedProperties.has('componentView')) {
       this._componentViewChanged(changedProperties.get('componentView') as ComponentView | null | undefined);
-    } else if (changedProperties.has('stack')) {
+    } else if (changedProperties.has('stack') || changedProperties.has('presentationIndexOffset')) {
       // Reconcile only after Lit has committed every property in the template.
       // In ordinary markup .stack commonly appears before .componentView.
       this._generateChildren();
+      if (changedProperties.has('presentationIndexOffset')) this._refreshShadowViewComponents();
     }
     if (changedProperties.has('componentActions') || changedProperties.has('action')
       || changedProperties.has('selection') || changedProperties.has('unsafeComponentAttrs')
@@ -1141,7 +1150,9 @@ export class BoardgameComponentStack extends LitElement {
         anyEle.id = '';
       }
 
-      if (this.componentView) updateComponentFromView(this.componentView, anyEle, item, slotIndex);
+      if (this.componentView) {
+        updateComponentFromView(this.componentView, anyEle, item, this._presentationIndex(slotIndex));
+      }
 
       if (anyEle.instance) {
         anyEle.instance.item = item;
@@ -1184,7 +1195,9 @@ export class BoardgameComponentStack extends LitElement {
         ele.id = '';
       }
 
-      if (this.componentView) updateComponentFromView(this.componentView, ele, item, componentIndex);
+      if (this.componentView) {
+        updateComponentFromView(this.componentView, ele, item, this._presentationIndex(componentIndex));
+      }
 
       if (ele.instance) {
         ele.instance.item = componentsInfo[componentIndex];
@@ -1245,13 +1258,17 @@ export class BoardgameComponentStack extends LitElement {
   private _refreshShadowViewComponents(): void {
     if (!this.componentView) return;
     for (const [index, component] of this._fauxComponents.entries()) {
-      updateComponentFromView(this.componentView, component, undefined, index);
+      updateComponentFromView(this.componentView, component, undefined, this._presentationIndex(index));
     }
     const spacer = this.shadowRoot?.querySelector(
       '#container>[boardgame-component][spacer]',
     ) as BoardgameComponent | null;
-    if (spacer) updateComponentFromView(this.componentView, spacer, undefined, 0);
+    if (spacer) updateComponentFromView(this.componentView, spacer, undefined, this._presentationIndex(0));
     this._reconcileShadowViewComponents();
+  }
+
+  private _presentationIndex(index: number): number {
+    return index + this.presentationIndexOffset;
   }
 
   /** A different recipe may create a different host element, so rebuild shadow hosts too. */
@@ -1282,16 +1299,28 @@ export class BoardgameComponentStack extends LitElement {
     this._slotGeometryObserver?.disconnect();
     this._slotGeometryObserver = null;
     this._slotGeometryTarget = target;
+    this._slotGeometryBorderBox = null;
     if (!target) {
       this._setSlotGeometry(null);
       return;
     }
     this._measureSlotGeometry();
-    this._slotGeometryObserver = new ResizeObserver(() => this._measureSlotGeometry());
-    // Only the component's border box is observed. The geometry this stack
-    // publishes changes sibling spacing, never that box, so this cannot form a
-    // ResizeObserver feedback loop.
+    this._slotGeometryObserver = new ResizeObserver((entries) => {
+      const targetEntry = entries.find(entry => entry.target === this._slotGeometryTarget);
+      const borderBox = targetEntry?.borderBoxSize[0];
+      if (borderBox) {
+        this._slotGeometryBorderBox = Object.freeze({
+          inlineSize: borderBox.inlineSize,
+          blockSize: borderBox.blockSize,
+        });
+      }
+      this._measureSlotGeometry();
+    });
+    // The target reports its precise untransformed border box. The slot holder
+    // also changes when an inherited font or responsive rule changes the
+    // component's em-based margins without changing that border box.
     this._slotGeometryObserver.observe(target);
+    if (this.slotHolder) this._slotGeometryObserver.observe(this.slotHolder);
     // Component views may commit their sizing properties in the next microtask.
     queueMicrotask(() => {
       if (this.isConnected && this._slotGeometryTarget === target) this._measureSlotGeometry();
@@ -1302,8 +1331,8 @@ export class BoardgameComponentStack extends LitElement {
     const target = this._slotGeometryTarget;
     if (!target) return;
     const style = getComputedStyle(target);
-    const componentInlineSize = target.offsetWidth;
-    const componentBlockSize = target.offsetHeight;
+    const componentInlineSize = this._slotGeometryBorderBox?.inlineSize ?? target.offsetWidth;
+    const componentBlockSize = this._slotGeometryBorderBox?.blockSize ?? target.offsetHeight;
     if (!(componentInlineSize > 0) || !(componentBlockSize > 0)) return;
     const numeric = (value: string): number => {
       const parsed = Number.parseFloat(value);
@@ -1664,6 +1693,7 @@ export class BoardgameComponentStack extends LitElement {
     this._assertPositiveInteger('boardRows', this.boardRows);
     this._assertNonnegativeInteger('fauxComponents', this.fauxComponents);
     this._assertFiniteNonnegative('stagger', this.stagger);
+    this._assertNonnegativeInteger('presentationIndexOffset', this.presentationIndexOffset);
     if (!Array.isArray(this.spatialPositions)) {
       throw new Error('boardgame-component-stack: spatialPositions must be an array');
     }

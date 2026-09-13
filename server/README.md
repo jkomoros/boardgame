@@ -82,8 +82,9 @@ Use `boardgame-deck` for the common labelled face-down pile. Use
 the actual rendered card slot and contains the row in a horizontal scroller on
 narrow screens. Provide per-slot piles through `attachment-0`, `attachment-1`,
 and so on, or bind a sized `.attachmentStack` plus `.attachmentView` for an
-aligned payment row. Attachment cells are derived from the visible stack and
-ordinary source-to-display movement keeps its normal structural animation.
+aligned payment row. Bounded display capacity keeps slots stable after source
+exhaustion; natural-size attachments are centered without overriding their
+scale. The ordinary source-to-display movement keeps its normal structural animation.
 Both wrappers expose `stackElement` for specialized motion policy while the raw
 stack remains the escape hatch.
 
