@@ -64,17 +64,27 @@ test('a generated card carrier preserves shared face regions, appearance, and le
       await Promise.all([animator.updateComplete, source.updateComplete, destination.updateComplete]);
       const live = source.Components[0] as any;
       await live.updateComplete;
+      // Exercise relative units on the visible source and a different
+      // intrinsic basis on the fresh destination carrier. Historical capture
+      // must preserve proportions rather than parsing "6rem" as six pixels.
+      live.style.setProperty('--default-component-width', '6rem');
+      live.style.setProperty('--card-face-font-size', '1.75rem');
       const liveRoot = live.shadowRoot!;
+      const liveInner = liveRoot.querySelector<HTMLElement>('#inner')!;
       const liveCenter = liveRoot.querySelector<HTMLElement>('#center')!;
       const liveFooter = liveRoot.querySelector<HTMLElement>('#footer')!;
       const liveFront = liveRoot.querySelector<HTMLElement>('#front')!;
       const liveFace = liveRoot.querySelector<HTMLElement>('#face')!;
       const liveCenterRect = liveCenter.getBoundingClientRect();
+      const liveInnerRect = liveInner.getBoundingClientRect();
+      const liveBasis = liveInnerRect.height;
       const sourcePresentation = {
         centerColor: getComputedStyle(liveCenter).color,
         centerFontSize: getComputedStyle(liveCenter).fontSize,
-        centerWidth: liveCenterRect.width,
-        centerHeight: liveCenterRect.height,
+        basis: liveBasis,
+        centerWidthRatio: liveCenterRect.width / liveBasis,
+        centerHeightRatio: liveCenterRect.height / liveBasis,
+        fontRatio: parseFloat(getComputedStyle(liveCenter).fontSize) / liveBasis,
         footerDisplay: getComputedStyle(liveFooter).display,
         frontBackground: getComputedStyle(liveFront).backgroundColor,
         faceShadow: getComputedStyle(liveFace).boxShadow,
@@ -87,18 +97,23 @@ test('a generated card carrier preserves shared face regions, appearance, and le
         if (this.inert) {
           const root = this.shadowRoot!;
           const center = root.querySelector<HTMLElement>('#center')!;
+          const inner = root.querySelector<HTMLElement>('#inner')!;
           const footer = root.querySelector<HTMLElement>('#footer')!;
           const front = root.querySelector<HTMLElement>('#front')!;
           const face = root.querySelector<HTMLElement>('#face')!;
           const centerRect = center.getBoundingClientRect();
+          const innerRect = inner.getBoundingClientRect();
+          const basis = innerRect.height;
           const stat = this.querySelector('boardgame-stat') as any;
           const pips = this.querySelector('boardgame-pips') as any;
           carrierAtPlayback = {
             noContent: this.noContent,
             centerColor: getComputedStyle(center).color,
             centerFontSize: getComputedStyle(center).fontSize,
-            centerWidth: centerRect.width,
-            centerHeight: centerRect.height,
+            basis,
+            centerWidthRatio: centerRect.width / basis,
+            centerHeightRatio: centerRect.height / basis,
+            fontRatio: parseFloat(getComputedStyle(center).fontSize) / basis,
             footerDisplay: getComputedStyle(footer).display,
             frontBackground: getComputedStyle(front).backgroundColor,
             faceShadow: getComputedStyle(face).boxShadow,
@@ -136,7 +151,6 @@ test('a generated card carrier preserves shared face regions, appearance, and le
     expect(result.carrierAtPlayback).toMatchObject({
       noContent: true,
       centerColor: result.sourcePresentation.centerColor,
-      centerFontSize: result.sourcePresentation.centerFontSize,
       footerDisplay: result.sourcePresentation.footerDisplay,
       frontBackground: result.sourcePresentation.frontBackground,
       faceShadow: result.sourcePresentation.faceShadow,
@@ -151,12 +165,17 @@ test('a generated card carrier preserves shared face regions, appearance, and le
       publicFrontColor: '',
       publicInkColor: '',
     });
+    expect(Math.abs(result.carrierAtPlayback.basis - result.sourcePresentation.basis))
+      .toBeGreaterThan(2);
     expect(Math.abs(
-      result.carrierAtPlayback.centerWidth - result.sourcePresentation.centerWidth,
-    )).toBeLessThan(0.1);
+      result.carrierAtPlayback.centerWidthRatio - result.sourcePresentation.centerWidthRatio,
+    )).toBeLessThan(0.01);
     expect(Math.abs(
-      result.carrierAtPlayback.centerHeight - result.sourcePresentation.centerHeight,
-    )).toBeLessThan(0.1);
+      result.carrierAtPlayback.centerHeightRatio - result.sourcePresentation.centerHeightRatio,
+    )).toBeLessThan(0.01);
+    expect(Math.abs(
+      result.carrierAtPlayback.fontRatio - result.sourcePresentation.fontRatio,
+    )).toBeLessThan(0.001);
     expect(result.historyAfterSettle).toBe(0);
     diagnostics.assertEmpty();
   } finally {
