@@ -751,7 +751,7 @@ export class BoardgameComponentAnimator extends LitElement {
       animations,
     });
     this._activationMonitor.observe(
-      `explicit:${generation}:0`,
+      `explicit:${generation}:${segmentIndex}`,
       animation,
       animations[0].delayMs,
       () => this._updateExplicitMotion(generation, segmentIndex, {
@@ -760,14 +760,14 @@ export class BoardgameComponentAnimator extends LitElement {
     );
     void animation.finished.then(
       () => {
-        this._activationMonitor.cancel(`explicit:${generation}:0`);
+        this._activationMonitor.cancel(`explicit:${generation}:${segmentIndex}`);
         this._updateExplicitMotion(generation, segmentIndex, {
           status: 'active-observed', animations,
         });
         this._updateExplicitMotion(generation, segmentIndex, { status: 'finished', animations });
       },
       () => {
-        this._activationMonitor.cancel(`explicit:${generation}:0`);
+        this._activationMonitor.cancel(`explicit:${generation}:${segmentIndex}`);
         this._updateExplicitMotion(generation, segmentIndex, { status: 'cancelled', animations });
       },
     );

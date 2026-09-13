@@ -162,7 +162,10 @@ export function publishStructuralMotionPlan(
   return Object.freeze({
     source,
     generation,
-    phase: 'planned',
+    // An empty generation has no execution transitions left to observe. Mark
+    // it settled at publication so observers receive generation-settled and
+    // motion-bound effects can fail closed instead of waiting forever.
+    phase: segments.length === 0 ? 'settled' : 'planned',
     segments: Object.freeze(segments),
   });
 }

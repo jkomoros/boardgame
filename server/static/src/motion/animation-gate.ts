@@ -166,6 +166,15 @@ export class AnimationGate {
     }
   }
 
+  // Re-arm a watchdog paused by dispose() when its owner reconnects. Preserve
+  // the original absolute deadline: a temporary detach must not grant a stuck
+  // animation a fresh full budget, while a cycle that settled off-tree remains
+  // closed and needs no timer.
+  resume(): void {
+    if (this.allDoneFired || this.watchdogTimer !== null) return;
+    this.armWatchdog(Math.max(0, this.watchdogDeadlineEpoch - this.cb.now()));
+  }
+
   private armWatchdog(fromNowMs: number): void {
     if (this.watchdogTimer !== null) {
       this.cb.clearTimer(this.watchdogTimer);

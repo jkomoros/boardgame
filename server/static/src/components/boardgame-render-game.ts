@@ -330,6 +330,22 @@ class BoardgameRenderGame extends LitElement {
   // piece) so previewSpec() must be re-evaluated without a state/turn change.
   private _boundPreviewRefreshRequested?: (e: Event) => void;
 
+  constructor() {
+    super();
+
+    // These listeners belong to this element itself, so keeping them for the
+    // element's lifetime creates no external retention. Animations can settle
+    // while a retained game view is temporarily detached; their completion
+    // events still bubble through that subtree and must reach the gate.
+    this._boundComponentWillAnimate = (e: Event) => this._componentWillAnimate(e as CustomEvent);
+    this._boundComponentAnimationDone = (e: Event) => this._componentAnimationDone(e as CustomEvent);
+    this._boundPreviewRefreshRequested = () => this._scheduleRefreshPreview();
+    this.addEventListener('will-animate', this._boundComponentWillAnimate);
+    this.addEventListener('animation-done', this._boundComponentAnimationDone);
+    this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
+    this.addEventListener('projected-choices-changed', this._projectedChoicesChanged);
+  }
+
   // The animation-completion gate (see src/motion/animation-gate.ts). The
   // callbacks below preserve, verbatim, the side effects that used to live
   // inline in _resetAnimating/_notifyAnimationsDone/the watchdog timeout.
@@ -374,36 +390,10 @@ class BoardgameRenderGame extends LitElement {
     );
   }
 
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-
-    this._boundComponentWillAnimate = (e: Event) => this._componentWillAnimate(e as CustomEvent);
-    this._boundComponentAnimationDone = (e: Event) => this._componentAnimationDone(e as CustomEvent);
-
-    this.addEventListener('will-animate', this._boundComponentWillAnimate);
-    this.addEventListener('animation-done', this._boundComponentAnimationDone);
-
-    // A renderer whose previewSpec() depends on local interaction state
-    // (multi-step moves) fires this to force a debounced re-preview.
-    this._boundPreviewRefreshRequested = () => this._scheduleRefreshPreview();
-    this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
-    this.addEventListener('projected-choices-changed', this._projectedChoicesChanged);
-  }
-
   override disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener('online', this._networkStateChanged);
     window.removeEventListener('offline', this._networkStateChanged);
-    if (this._boundComponentWillAnimate) {
-      this.removeEventListener('will-animate', this._boundComponentWillAnimate);
-    }
-    if (this._boundComponentAnimationDone) {
-      this.removeEventListener('animation-done', this._boundComponentAnimationDone);
-    }
-    if (this._boundPreviewRefreshRequested) {
-      this.removeEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
-    }
-    this.removeEventListener('projected-choices-changed', this._projectedChoicesChanged);
     // Clean up watchdog timer to prevent firing after element is removed.
     this._gate.dispose();
     // Same for the debounced legality-preview timer: if we're torn down mid-
@@ -423,6 +413,7 @@ class BoardgameRenderGame extends LitElement {
     this._online = navigator.onLine;
     window.addEventListener('online', this._networkStateChanged);
     window.addEventListener('offline', this._networkStateChanged);
+    if (this.hasUpdated && this.isAnimating) this._gate.resume();
     // A module request invalidated by temporary detachment must be restarted
     // even though Lit sees no renderer-identity property change on reinsertion.
     if (this.hasUpdated && this.gameName && !this.rendererLoaded) {

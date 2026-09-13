@@ -79,6 +79,13 @@ describe('structural motion plans', () => {
     assert.equal(Object.isFrozen(plan.segments[0]), true);
   });
 
+  it('publishes a generation with no segments as already settled', () => {
+    const plan = publishStructuralMotionPlan(14, []);
+
+    assert.equal(plan.phase, 'settled');
+    assert.deepEqual(plan.segments, []);
+  });
+
   it('tracks actual start and terminal outcomes without mutating prior plans', () => {
     const draft = createStructuralMotionDraft({
       subjectId: 'card-9',

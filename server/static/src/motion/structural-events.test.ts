@@ -103,6 +103,15 @@ describe('structural motion event compilation', () => {
     assert.equal(events[0].kind === 'skipped' && events[0].segment.execution.status, 'skipped');
   });
 
+  it('emits settlement for an empty generation', () => {
+    const empty = publishStructuralMotionPlan(8, []);
+
+    assert.deepEqual(
+      compileStructuralMotionEvents(null, empty).map(event => event.kind),
+      ['generation-settled'],
+    );
+  });
+
   it('treats a new source or generation as a new event identity', () => {
     const first = planned(1);
     const second = publishStructuralMotionPlan(

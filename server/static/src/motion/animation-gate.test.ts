@@ -280,6 +280,26 @@ test('dispose() clears an armed watchdog without force-closing the gate', () => 
   assert.equal(gate.isOpen, true); // dispose only clears the timer, not state
 });
 
+test('resume() restores a disposed open cycle at its original deadline', () => {
+  const clock = new FakeClock();
+  const h = makeHarness(clock);
+  const gate = new AnimationGate(h.cb, { floorMs: 4000, marginMs: 1500 });
+  const ele = {};
+
+  gate.open(1);
+  gate.willAnimate(ele, 'detached-card');
+  clock.advance(1000);
+  gate.dispose();
+  clock.advance(2000);
+  gate.resume();
+
+  clock.advance(999);
+  assert.equal(h.watchdogCalls.length, 0);
+  clock.advance(1);
+  assert.deepEqual(h.watchdogCalls, [{ pending: ['detached-card'], budgetMs: 1000 }]);
+  assert.equal(gate.isOpen, false);
+});
+
 test('a freshly constructed gate (before any open()) starts in the unfired, no-participants state', () => {
   // Mirrors boardgame-render-game's firstUpdated(), which used to set
   // _allAnimationsDoneFired = false and a fresh _activeAnimations map
