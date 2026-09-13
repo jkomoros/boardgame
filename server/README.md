@@ -290,6 +290,14 @@ disabled reasons, native controls, empty state, and responsive stack/grid
 layout while the callback remains exact-key typed. Render candidates directly
 only when a choice row needs richer game-specific content.
 
+Generated projected choices can use native regions without rebuilding actions:
+`projectedStackChoices(set, stack)` binds sparse stack-slot candidates to
+`boardgame-component-stack` or `boardgame-component-zone`, and
+`projectedPlayerChoices(set, labelFor)` binds player candidates to
+`boardgame-target-list`. Their generic fallback is suppressed only while the
+exact current set has a connected, visible region with a rendered usable
+control.
+
 ## Adding new views
 
 You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the web component that is the root of your game rendering.

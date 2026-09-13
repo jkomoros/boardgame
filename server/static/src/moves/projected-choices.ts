@@ -113,9 +113,11 @@ const projectedPlayerBindings = new WeakSet<object>();
 export function projectedStackChoices<
   MoveName extends string,
   Projection extends { readonly field: string; readonly value: number; readonly input: object },
+  Values extends object,
+  DynamicValues extends object,
 >(
   set: ProjectedMoveChoiceSet<MoveName, Projection>,
-  stack: ExpandedStack | null | undefined,
+  stack: ExpandedStack<Values, DynamicValues> | null | undefined,
 ): ProjectedStackChoices<MoveName, Projection> {
   if (set.source !== 'stack-slots') {
     throw new Error(`projectedStackChoices: ${JSON.stringify(set.move)} is sourced from ${set.source}, not stack slots`);

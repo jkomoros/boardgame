@@ -3093,6 +3093,29 @@ game-specific rows such as a card name plus rule text, render
 `target.candidates` directly and bind each candidate's `.action`; the headless
 `TargetAction` deliberately has no layout assumptions.
 
+Generated single-field projections can move those same exact actions into the
+board instead of duplicating their candidate universe. A stack-slot projection
+uses the rendered stack's full slot array, so sparse indexes remain aligned:
+
+```typescript
+const chooseCard = this.choices?.get(MoveNames.ChooseCard) ?? null;
+const cardChoices = chooseCard ? projectedStackChoices(chooseCard, player.Hand) : null;
+
+return html`<boardgame-component-zone
+  label="Your hand"
+  .stack=${player.Hand}
+  .componentView=${this.cards}
+  .projectedChoices=${cardChoices}>
+</boardgame-component-zone>`;
+```
+
+For a projected player-index set, pass `projectedPlayerChoices(set, labelFor)`
+to `boardgame-target-list`. Both adapters reuse each candidate's existing
+snapshot-bound action. The generic projected-choice tray hides a set only while
+the adapter is connected, visible, current, and renders at least one usable
+control; it returns automatically for an empty, hidden, disconnected, or stale
+native region.
+
 For a source-then-destination board (checkers, chess, tactical movement), add a
 single Lit reactive controller. It resets selection automatically when the
 renderer snapshot changes; the ordinary target action still owns all legality

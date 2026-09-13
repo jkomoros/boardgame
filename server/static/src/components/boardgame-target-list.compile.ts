@@ -1,5 +1,5 @@
 import '../client.js';
-import { targetList, type TargetAction } from '../client.js';
+import { targetList, type ProjectedPlayerChoices, type TargetAction } from '../client.js';
 
 declare const targets: TargetAction<'alice' | 'bob', 'Vote', { VoteTarget: number }>;
 const choices = targetList(targets, key => key === 'alice' ? 'Alice' : 'Bob');
@@ -8,6 +8,8 @@ list.choices = choices;
 list.label = 'Vote to eliminate';
 list.layout = 'grid';
 list.headingLevel = 3;
+declare const projected: ProjectedPlayerChoices;
+list.choices = projected;
 
 // @ts-expect-error target label callbacks receive the exact key union
 targetList(targets, (key: 'carol') => key);
