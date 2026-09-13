@@ -53,6 +53,19 @@ type parsedStackPath struct {
 	raw string
 }
 
+// ResolveStackPath parses spec and resolves it against state. Game moves that
+// need a stack selected by one of their own fields can use this as a narrow
+// escape hatch while retaining the same grammar and errors as the reusable
+// component-moving moves. Call it from ValidConfiguration with the example
+// state as well as at runtime so invalid paths fail during manager setup.
+func ResolveStackPath(move boardgame.Move, state boardgame.State, spec string) (boardgame.Stack, error) {
+	path, err := parseStackPath(spec)
+	if err != nil {
+		return nil, err
+	}
+	return path.resolve(move, state)
+}
+
 // qualified reports whether the spec named a path kind explicitly. An
 // unqualified spec is a plain gameState property name, which is the only shape
 // the framework's other readers of these configuration keys (for example
@@ -110,38 +123,31 @@ func parseStackPath(spec string) (parsedStackPath, error) {
 		return parsedStackPath{kind: stackPathMoveField, prop: prop, moveField: field, boardIndexField: boardIndexField, raw: spec}, nil
 	}
 
-	kindStr, prop, ok := strings.Cut(spec, ".")
-
-	if !ok {
-		//An unqualified name is a gameState property, the historical spelling.
-		prop, boardIndexField, err := parseStackPropertyExpression(spec, spec)
-		if err != nil {
-			return parsedStackPath{}, err
+	for _, prefix := range []struct {
+		name string
+		kind stackPathKind
+	}{{"game", stackPathGame}, {"player", stackPathCurrentPlayer}} {
+		if prop, ok := strings.CutPrefix(spec, prefix.name+"."); ok {
+			if prop == "" {
+				return parsedStackPath{}, fmt.Errorf("invalid stack property spec %q: missing property name after %q", spec, prefix.name)
+			}
+			base, boardIndexField, err := parseStackPropertyExpression(spec, prop)
+			if err != nil {
+				return parsedStackPath{}, err
+			}
+			return parsedStackPath{kind: prefix.kind, prop: base, boardIndexField: boardIndexField, raw: spec}, nil
 		}
-		return parsedStackPath{kind: stackPathGame, prop: prop, boardIndexField: boardIndexField, raw: spec}, nil
 	}
 
-	if prop == "" {
-		return parsedStackPath{}, fmt.Errorf("invalid stack property spec %q: missing property name after %q", spec, kindStr)
+	//An unqualified name is a gameState property, the historical spelling.
+	prop, boardIndexField, err := parseStackPropertyExpression(spec, spec)
+	if err != nil {
+		return parsedStackPath{}, err
 	}
-
-	switch kindStr {
-	case "game":
-		kind := stackPathGame
-		base, boardIndexField, err := parseStackPropertyExpression(spec, prop)
-		if err != nil {
-			return parsedStackPath{}, err
-		}
-		return parsedStackPath{kind: kind, prop: base, boardIndexField: boardIndexField, raw: spec}, nil
-	case "player":
-		base, boardIndexField, err := parseStackPropertyExpression(spec, prop)
-		if err != nil {
-			return parsedStackPath{}, err
-		}
-		return parsedStackPath{kind: stackPathCurrentPlayer, prop: base, boardIndexField: boardIndexField, raw: spec}, nil
+	if kindStr, _, ok := strings.Cut(prop, "."); ok {
+		return parsedStackPath{}, fmt.Errorf("invalid stack property spec %q: unknown path kind %q (expected game, player, or players[move.Field])", spec, kindStr)
 	}
-
-	return parsedStackPath{}, fmt.Errorf("invalid stack property spec %q: unknown path kind %q (expected game, player, or players[move.Field])", spec, kindStr)
+	return parsedStackPath{kind: stackPathGame, prop: prop, boardIndexField: boardIndexField, raw: spec}, nil
 }
 
 // plainGameStackName reports whether spec names a plain gameState stack, and
