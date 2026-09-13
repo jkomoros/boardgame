@@ -71,3 +71,31 @@ func TestBoardRejectsWrongPersistedLengthAndBoundaryIndex(t *testing.T) {
 		t.Fatalf("wrong-length board error = %v", err)
 	}
 }
+
+func TestEnumBoardRejectsPersistedKeyRemapping(t *testing.T) {
+	set := enum.NewSet()
+	boardEnum := set.MustAdd("pile", map[enum.EnumKey]string{2: "Left", 10: "Right"})
+	original := NewDeck().NewBoardForEnum(boardEnum, 1)
+	blob, err := json.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamed := enum.NewSet().MustAdd("pile", map[enum.EnumKey]string{2: "Right", 10: "Left"})
+	destination := NewDeck().NewBoardForEnum(renamed, 1)
+	if err := json.Unmarshal(blob, destination); err == nil || !strings.Contains(err.Error(), "key order") {
+		t.Fatalf("silently remapped stored piles: %v", err)
+	}
+	var legacy map[string]json.RawMessage
+	if err := json.Unmarshal(blob, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	delete(legacy, "Enum")
+	delete(legacy, "Keys")
+	blob, err = json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(blob, destination); err != nil {
+		t.Fatalf("rejected pre-enum legacy board: %v", err)
+	}
+}

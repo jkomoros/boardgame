@@ -226,6 +226,17 @@ func (b *board) UnmarshalJSON(blob []byte) error {
 		return errors.New("board persisted enum " + strconv.Quote(obj.Enum) + " does not match configured board enum")
 	}
 
+	if obj.Enum != "" || obj.Keys != nil {
+		if b.enum == nil || len(obj.Keys) != len(b.spaces) {
+			return errors.New("board persisted keys do not match configured board enum")
+		}
+		for index, key := range b.enum.Values() {
+			if obj.Keys[index] != b.enum.String(key) {
+				return errors.New("board persisted key order does not match configured board enum")
+			}
+		}
+	}
+
 	for i, blob := range obj.Spaces {
 		if err := b.spaces[i].UnmarshalJSON(blob); err != nil {
 			return err

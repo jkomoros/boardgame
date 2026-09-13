@@ -10,6 +10,8 @@ import (
 
 func TestComponentChestMarshal(t *testing.T) {
 	game := testDefaultGame(t, false)
+	// This legacy fixture covers deck/enum shape; template wire behavior has its own tests.
+	game.Manager().legalTemplateTable = nil
 
 	chest := game.Manager().Chest()
 

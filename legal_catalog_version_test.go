@@ -49,17 +49,11 @@ func TestComponentChestMarshalIncludesLegalTemplates(t *testing.T) {
 }
 
 // TestComponentChestMarshalOmitsLegalTemplatesWhenEmpty pins the omitempty
-// side: a game type with no declarative-legality moves at all (an empty
-// merged template table, this package's own test fixture's normal state —
-// see TestComponentChestMarshal's golden fixture, which predates
-// LegalTemplates and must stay byte-identical) must not gain the key.
+// contract independently of which catalogs other test packages register.
 func TestComponentChestMarshalOmitsLegalTemplatesWhenEmpty(t *testing.T) {
 	game := testDefaultGame(t, false)
 	manager := game.Manager()
-	// This package's own test fixture never imports package moves (see
-	// legal_evaluable_test.go's package doc), so legalTemplateTable is nil
-	// here already; assert explicitly since that's the behavior under test.
-	assert.For(t, "empty by default").ThatActual(len(manager.legalTemplateTable)).Equals(0)
+	manager.legalTemplateTable = nil
 
 	data, err := DefaultMarshalJSON(manager.Chest())
 	assert.For(t, "marshal error").ThatActual(err).IsNil()
