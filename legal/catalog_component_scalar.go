@@ -317,11 +317,12 @@ func componentPropsPairConstructor(name, template string, negate bool) *Predicat
 			effectiveTemplate = template
 		}
 		reads, required := mergeSelectorMetadata(left, right)
+		comparableTypeGroup := name + ":" + field
 		requirements := []boardgame.LegalComponentFieldRequirement{
-			{StackPath: PropPath(left.stackPath), Field: field, AllowedTypes: []boardgame.PropertyType{boardgame.TypeString, boardgame.TypeEnum}},
+			{StackPath: PropPath(left.stackPath), Field: field, AllowedTypes: []boardgame.PropertyType{boardgame.TypeString, boardgame.TypeEnum}, ComparableTypeGroup: comparableTypeGroup},
 		}
 		if right.stackPath != left.stackPath {
-			requirements = append(requirements, boardgame.LegalComponentFieldRequirement{StackPath: PropPath(right.stackPath), Field: field, AllowedTypes: []boardgame.PropertyType{boardgame.TypeString, boardgame.TypeEnum}})
+			requirements = append(requirements, boardgame.LegalComponentFieldRequirement{StackPath: PropPath(right.stackPath), Field: field, AllowedTypes: []boardgame.PropertyType{boardgame.TypeString, boardgame.TypeEnum}, ComparableTypeGroup: comparableTypeGroup})
 		}
 		return &Predicate{
 			Name: name, Args: append([]string(nil), spec.Args...), Reads: reads, Cost: boardgame.LegalCostTrivial,

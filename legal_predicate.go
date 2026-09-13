@@ -137,6 +137,11 @@ type LegalComponentFieldRequirement struct {
 	Field             string
 	AllowedTypes      []PropertyType
 	RequiredEnumValue *string
+	// ComparableTypeGroup, when non-empty, requires every matching field in
+	// every reachable deck and every requirement with the same group to have
+	// one PropertyType. Pairwise scalar comparisons use this to fail at boot
+	// instead of returning Unknown only for a particular component pairing.
+	ComparableTypeGroup string
 }
 
 // Serializable reports whether p (and, recursively, every predicate in its
@@ -376,11 +381,12 @@ func validateLegalPredicateForBoot(pred *LegalPredicate, exampleState ImmutableS
 			return err
 		}
 	}
+	componentFieldTypes := make(map[string]PropertyType)
 	for _, requirement := range pred.RequiredComponentFields {
 		if !valueReads[requirement.StackPath] {
 			return fmt.Errorf("predicate %q requires component field %q on %q without declaring a Values read", pred.Name, requirement.Field, requirement.StackPath)
 		}
-		if err := validateLegalComponentField(requirement, exampleState, moveReader); err != nil {
+		if err := validateLegalComponentField(requirement, exampleState, moveReader, componentFieldTypes); err != nil {
 			return fmt.Errorf("predicate %q: %w", pred.Name, err)
 		}
 	}
@@ -392,7 +398,7 @@ func validateLegalPredicateForBoot(pred *LegalPredicate, exampleState ImmutableS
 	return nil
 }
 
-func validateLegalComponentField(requirement LegalComponentFieldRequirement, exampleState ImmutableState, moveReader PropertyReader) error {
+func validateLegalComponentField(requirement LegalComponentFieldRequirement, exampleState ImmutableState, moveReader PropertyReader, comparableTypes map[string]PropertyType) error {
 	if requirement.Field == "" {
 		return fmt.Errorf("component field requirement for %q has an empty field name", requirement.StackPath)
 	}
@@ -416,55 +422,96 @@ func validateLegalComponentField(requirement LegalComponentFieldRequirement, exa
 	if err != nil {
 		return err
 	}
-	var reader PropertyReader
+	var readers []PropertyReader
 	switch parsed.kind {
 	case pathGame:
-		reader = exampleState.ImmutableGameState().Reader()
+		readers = []PropertyReader{exampleState.ImmutableGameState().Reader()}
 	case pathPlayer, pathProposer, pathPlayersMoveField:
 		players := exampleState.ImmutablePlayerStates()
 		if len(players) == 0 {
 			return fmt.Errorf("component field %q on %q cannot be validated: example state has no players", requirement.Field, requirement.StackPath)
 		}
-		reader = players[0].Reader()
+		readers = make([]PropertyReader, 0, len(players))
+		for _, player := range players {
+			readers = append(readers, player.Reader())
+		}
 	case pathMove:
-		reader = moveReader
+		readers = []PropertyReader{moveReader}
 	case pathPlayersAll:
 		return fmt.Errorf("component field %q on %q uses a quantifier-only stack path", requirement.Field, requirement.StackPath)
 	}
-	stack, err := reader.ImmutableStackProp(parsed.prop)
-	if err != nil || stack == nil || stack.Deck() == nil {
-		return fmt.Errorf("cannot resolve deck for component field %q on %q", requirement.Field, requirement.StackPath)
-	}
-	components := stack.Deck().Components()
-	if len(components) == 0 {
-		return fmt.Errorf("cannot validate component field %q on %q: stack deck has no components", requirement.Field, requirement.StackPath)
-	}
-	for i, component := range components {
-		if component == nil || component.Values() == nil || component.Values().Reader() == nil {
-			return fmt.Errorf("component field %q on %q: deck component %d has no values reader", requirement.Field, requirement.StackPath, i)
+	var decks []*Deck
+	seenDecks := make(map[*Deck]bool)
+	for _, reader := range readers {
+		deck, err := legalComponentDeck(parsed, reader)
+		if err != nil {
+			return fmt.Errorf("cannot resolve deck for component field %q on %q: %w", requirement.Field, requirement.StackPath, err)
 		}
-		actual, ok := component.Values().Reader().Props()[requirement.Field]
-		if !ok {
-			return fmt.Errorf("component field %q does not exist on %q deck component %d", requirement.Field, requirement.StackPath, i)
+		if !seenDecks[deck] {
+			seenDecks[deck] = true
+			decks = append(decks, deck)
 		}
-		allowed := false
-		for _, candidate := range requirement.AllowedTypes {
-			if actual == candidate {
-				allowed = true
-				break
+	}
+	for _, deck := range decks {
+		components := deck.Components()
+		if len(components) == 0 {
+			return fmt.Errorf("cannot validate component field %q on %q: stack deck has no components", requirement.Field, requirement.StackPath)
+		}
+		for i, component := range components {
+			if component == nil || component.Values() == nil || component.Values().Reader() == nil {
+				return fmt.Errorf("component field %q on %q: deck component %d has no values reader", requirement.Field, requirement.StackPath, i)
 			}
-		}
-		if !allowed {
-			return fmt.Errorf("component field %q on %q deck component %d has PropertyType %v, expected one of %v", requirement.Field, requirement.StackPath, i, actual, requirement.AllowedTypes)
-		}
-		if actual == TypeEnum && requirement.RequiredEnumValue != nil {
-			value, err := component.Values().Reader().ImmutableEnumProp(requirement.Field)
-			if err != nil || value == nil || value.Enum() == nil || value.Enum().ValueFromString(*requirement.RequiredEnumValue) == enum.IllegalValue {
-				return fmt.Errorf("component field %q on %q deck component %d does not define enum value %q", requirement.Field, requirement.StackPath, i, *requirement.RequiredEnumValue)
+			actual, ok := component.Values().Reader().Props()[requirement.Field]
+			if !ok {
+				return fmt.Errorf("component field %q does not exist on %q deck component %d", requirement.Field, requirement.StackPath, i)
+			}
+			allowed := false
+			for _, candidate := range requirement.AllowedTypes {
+				if actual == candidate {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				return fmt.Errorf("component field %q on %q deck component %d has PropertyType %v, expected one of %v", requirement.Field, requirement.StackPath, i, actual, requirement.AllowedTypes)
+			}
+			if requirement.ComparableTypeGroup != "" {
+				if previous, ok := comparableTypes[requirement.ComparableTypeGroup]; ok && previous != actual {
+					return fmt.Errorf("component field %q on %q has PropertyType %v, which is not comparable with %v in group %q", requirement.Field, requirement.StackPath, actual, previous, requirement.ComparableTypeGroup)
+				}
+				comparableTypes[requirement.ComparableTypeGroup] = actual
+			}
+			if actual == TypeEnum && requirement.RequiredEnumValue != nil {
+				value, err := component.Values().Reader().ImmutableEnumProp(requirement.Field)
+				if err != nil || value == nil || value.Enum() == nil || value.Enum().ValueFromString(*requirement.RequiredEnumValue) == enum.IllegalValue {
+					return fmt.Errorf("component field %q on %q deck component %d does not define enum value %q", requirement.Field, requirement.StackPath, i, *requirement.RequiredEnumValue)
+				}
 			}
 		}
 	}
 	return nil
+}
+
+func legalComponentDeck(parsed parsedLegalPath, reader PropertyReader) (*Deck, error) {
+	if reader == nil {
+		return nil, fmt.Errorf("property reader was nil")
+	}
+	if parsed.boardIndexField == "" {
+		stack, err := reader.ImmutableStackProp(parsed.prop)
+		if err != nil || stack == nil || stack.Deck() == nil {
+			return nil, fmt.Errorf("stack property %q was unavailable: %v", parsed.prop, err)
+		}
+		return stack.Deck(), nil
+	}
+	board, err := reader.ImmutableBoardProp(parsed.prop)
+	if err != nil || board == nil || board.Len() == 0 {
+		return nil, fmt.Errorf("board property %q was unavailable: %v", parsed.prop, err)
+	}
+	space := board.ImmutableSpaceAt(0)
+	if space == nil || space.Deck() == nil {
+		return nil, fmt.Errorf("board property %q had no component deck", parsed.prop)
+	}
+	return space.Deck(), nil
 }
 
 // checkNoNestedAny walks pred's Sub tree (the already-resolved

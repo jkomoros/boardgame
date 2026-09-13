@@ -608,6 +608,29 @@ func TestRequiredComponentFieldsValidateAtBootAndRecurse(t *testing.T) {
 	if err := validateLegalPredicateForBoot(valid, example, nil); err != nil {
 		t.Fatalf("valid component field rejected: %v", err)
 	}
+	indexedBoard := &LegalPredicate{
+		Name:              "indexedBoardComponentScalar",
+		Reads:             []LegalRead{{Path: "game.MyBoard[move.ScoreIncrement]", Facet: LegalFacetValues}},
+		RequiredReadTypes: map[LegalPropPath]PropertyType{"game.MyBoard[move.ScoreIncrement]": TypeStack},
+		RequiredComponentFields: []LegalComponentFieldRequirement{{
+			StackPath: "game.MyBoard[move.ScoreIncrement]", Field: "String", AllowedTypes: []PropertyType{TypeString},
+		}},
+	}
+	if err := validateLegalPredicateForBoot(indexedBoard, example, manager.ExampleMoveByName("Test").Reader()); err != nil {
+		t.Fatalf("valid indexed-board component field rejected: %v", err)
+	}
+	comparisonWithMixedTypes := &LegalPredicate{
+		Name:              "mixedComponentScalarPair",
+		Reads:             valid.Reads,
+		RequiredReadTypes: valid.RequiredReadTypes,
+		RequiredComponentFields: []LegalComponentFieldRequirement{
+			{StackPath: "game.DrawDeck", Field: "String", AllowedTypes: []PropertyType{TypeString, TypeInt}, ComparableTypeGroup: "pair"},
+			{StackPath: "game.DrawDeck", Field: "Integer", AllowedTypes: []PropertyType{TypeString, TypeInt}, ComparableTypeGroup: "pair"},
+		},
+	}
+	if err := validateLegalPredicateForBoot(comparisonWithMixedTypes, example, nil); err == nil {
+		t.Fatal("component pair with incompatible field types passed boot validation")
+	}
 
 	for _, test := range []struct {
 		name string
