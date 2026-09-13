@@ -94,18 +94,6 @@ func Play(ctx context.Context, game *boardgame.Game, player boardgame.PlayerInde
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	// BuildMoveInputSchema excludes fix-ups and other engine-owned moves.
-	schema, err := boardgame.BuildMoveInputSchema(game.Manager())
-	if err != nil {
-		return err
-	}
-	allowed := false
-	for _, entry := range schema {
-		allowed = allowed || entry.Name == spec.Name
-	}
-	if !allowed {
-		return fmt.Errorf("bot selected unknown or engine-owned move %q", spec.Name)
-	}
 	move, err := game.MoveWithInput(spec.Name, spec.Input)
 	if err != nil {
 		return err

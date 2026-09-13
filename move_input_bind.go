@@ -18,6 +18,9 @@ func (g *Game) MoveWithInput(name string, input map[string]interface{}) (Move, e
 	if move == nil {
 		return nil, fmt.Errorf("unknown move %q", name)
 	}
+	if fixUp, ok := move.(interface{ IsFixUp() bool }); ok && fixUp.IsFixUp() {
+		return nil, fmt.Errorf("move %q is engine-owned and is not a creator move", name)
+	}
 	fields, err := ResolveMoveInputFields(move)
 	if err != nil {
 		return nil, err

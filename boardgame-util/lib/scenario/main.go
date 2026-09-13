@@ -254,15 +254,7 @@ func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec)
 			var move boardgame.Move
 			move, err = game.MoveWithInput(step.Move, step.Input)
 			if err == nil {
-				playerMove := false
-				for _, entry := range schema {
-					playerMove = playerMove || entry.Name == move.Info().Name()
-				}
-				if !playerMove {
-					err = fmt.Errorf("%q is not a creator move", step.Move)
-				} else {
-					err = <-game.ProposeMoveAtVersion(move, step.Player, game.Version())
-				}
+				err = <-game.ProposeMoveAtVersion(move, step.Player, game.Version())
 			}
 		}
 		if err != nil {

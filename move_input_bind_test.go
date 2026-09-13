@@ -48,4 +48,7 @@ func TestMoveWithInputUsesCreatorContract(t *testing.T) {
 	if err := <-game.ProposeMoveAtVersion(move, game.CurrentState().CurrentPlayerIndex(), game.Version()); err != nil {
 		t.Fatalf("bound move did not execute through canonical legality: %v", err)
 	}
+	if move, err := game.MoveWithInput("Capture Cards", nil); err == nil || move != nil {
+		t.Fatalf("creator binder exposed engine-owned fix-up: move=%T err=%v", move, err)
+	}
 }
