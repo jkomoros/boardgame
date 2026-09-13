@@ -548,27 +548,34 @@ func (t *timerManager) replaceGameRecords(gameID string, desired []*timerRecord)
 	}
 }
 
-func (t *timerManager) RestoreWakeups(wakeups []TimerWakeup) {
-	t.mu.Lock()
-	for id, record := range t.recordsByID {
-		if record.guard != nil {
-			heap.Remove(&t.records, record.index)
-			delete(t.recordsByID, id)
-		}
-	}
-	t.mu.Unlock()
-	byGame := make(map[string][]*timerRecord)
+func (t *timerManager) RestoreWakeups(wakeups []TimerWakeup) error {
+	records := make([]*timerRecord, 0, len(wakeups))
+	seenIDs := make(map[string]bool, len(wakeups))
 	for _, wakeup := range wakeups {
+		if wakeup.GameID == "" || wakeup.ID == "" || wakeup.Deadline.IsZero() {
+			return errors.New("durable timer wakeup was incomplete")
+		}
+		if seenIDs[wakeup.ID] {
+			return fmt.Errorf("durable timer wakeup ID %q was duplicated", wakeup.ID)
+		}
+		seenIDs[wakeup.ID] = true
 		guard := &timerGuard{Ref: wakeup.Ref, ID: wakeup.ID, Generation: wakeup.Generation}
-		byGame[wakeup.GameID] = append(byGame[wakeup.GameID], &timerRecord{
+		records = append(records, &timerRecord{
 			id: wakeup.ID, gameID: wakeup.GameID, index: -1,
 			fireTime: wakeup.Deadline, deadline: wakeup.Deadline,
 			guard: guard, now: t.now,
 		})
 	}
-	for gameID, records := range byGame {
-		t.replaceGameRecords(gameID, records)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.recordsByID) != 0 {
+		return errors.New("durable timers may only be restored into an empty startup scheduler")
 	}
+	for _, record := range records {
+		t.recordsByID[record.id] = record
+		heap.Push(&t.records, record)
+	}
+	return nil
 }
 
 func (t *timerManager) CancelTimersForGame(gameID string) {
@@ -633,6 +640,9 @@ func (t *timerManager) fire(record *timerRecord) error {
 		return nil
 	}
 	t.manager.Logger().Info("When timer failed the move could not be made: ", err, move)
+	if game.Finished() {
+		return err
+	}
 	// A storage or transient move failure leaves the durable timer active. Retry
 	// later, but do not resurrect a stale generation after cancel/restart.
 	if record.guard != nil {
@@ -665,6 +675,9 @@ func (t *timerManager) resolveRecord(record *timerRecord) (*Game, Move, bool, er
 	game := t.manager.ModifiableGame(record.gameID)
 	if game == nil {
 		return nil, nil, true, errors.New("timer game could not be loaded")
+	}
+	if game.Finished() {
+		return nil, nil, false, errors.New("timer game was already finished")
 	}
 	// Loading a cold game reconciles its state and may recreate this record.
 	// Remove that duplicate before proposing the one already popped.

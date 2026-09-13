@@ -304,6 +304,12 @@ func TestDurableTimerRestoresAndFiresOnce(t *testing.T) {
 	if !restarted.timers.TimerActive(id) {
 		t.Fatal("restart did not discover the durable timer before loading the game")
 	}
+	if err := restarted.Internals().RestoreTimers(); err == nil {
+		t.Fatal("live restore unexpectedly replaced an already initialized scheduler")
+	}
+	if !restarted.timers.TimerActive(id) {
+		t.Fatal("rejected live restore removed the existing durable timer")
+	}
 	if !restarted.timers.ForceNextTimer() {
 		t.Fatal("restored timer was not scheduled")
 	}
@@ -324,6 +330,34 @@ func TestDurableTimerRestoresAndFiresOnce(t *testing.T) {
 	}
 	if restarted.timers.ForceNextTimer() {
 		t.Fatal("timer completion was scheduled more than once")
+	}
+}
+
+func TestPoppedDurableTimerDoesNotRetryAfterGameFinishes(t *testing.T) {
+	manager, game := durableTimerTestGame(t, newTestStorageManager())
+	record := manager.timers.popNext(true)
+	if record == nil || record.guard == nil {
+		t.Fatal("fixture did not pop its durable timer")
+	}
+
+	move := game.MoveByName("Test").(*testMove)
+	move.ScoreIncrement = 5
+	if err := <-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex()); err != nil {
+		t.Fatal(err)
+	}
+	if !game.Finished() {
+		t.Fatal("fixture move did not finish the game")
+	}
+	gameState, _ := concreteStates(game.CurrentState())
+	if !gameState.Timer.Active() {
+		t.Fatal("fixture must retain the persisted active timer after game end")
+	}
+
+	if err := manager.timers.fire(record); err == nil {
+		t.Fatal("popped timer unexpectedly fired after game end")
+	}
+	if manager.timers.ForceNextTimer() {
+		t.Fatal("finished game's still-active timer was queued for retry")
 	}
 }
 

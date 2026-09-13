@@ -135,10 +135,11 @@ func (m *ManagerInternals) UseManualTimers() {
 	m.manager.stopTimerTicker()
 }
 
-// RestoreTimers rebuilds this manager's process-local timer heap from durable
-// storage without inflating games into the warm cache. Servers call it after
-// connecting storage; tests and non-server hosts may call it after swapping or
-// reconnecting a backend.
+// RestoreTimers initializes this manager's process-local timer heap from
+// durable storage without inflating games into the warm cache. It is a
+// startup-only operation: call it after storage connects and before this
+// manager creates, loads, or modifies games. It fails without changing the
+// heap if timer work is already scheduled.
 func (m *ManagerInternals) RestoreTimers() error {
 	return m.manager.restoreTimers()
 }
@@ -496,8 +497,7 @@ func (g *GameManager) restoreTimers() error {
 	if err != nil {
 		return err
 	}
-	g.timers.RestoreWakeups(wakeups)
-	return nil
+	return g.timers.RestoreWakeups(wakeups)
 }
 
 // verifyValidConfigurationOnStruct verifies that if there are any sub-structs
