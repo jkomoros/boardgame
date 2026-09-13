@@ -1982,6 +1982,12 @@ Renderer CSS selectors do not cross into the stack's shadow root. Use card
 properties and inherited theme tokens for the shared face, and put custom
 content styling in the view's markup or an encapsulated component.
 
+Cards, stats, and pip counters preserve their displayed presentation during
+automatic movement. For a custom element whose display depends on JavaScript
+properties, implement `copyHistoricalPresentationTo(target: Element)` to copy
+only its resolved display values into the cloned element. Do not copy backing
+game state or interaction handlers; historical copies are inert presentation.
+
 `layout` is a strict choice of `stack`, `grid`, `fan`, `pile`, `spread`,
 `board`, or `spatial`; misspellings fail both TypeScript and at runtime. If a UI
 selects a layout dynamically, narrow its string with the exported
