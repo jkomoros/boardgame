@@ -2452,6 +2452,12 @@ byte identical — one throw in six for a six-sided die — so a client watching
 only those would see a re-roll and a no-op as the same thing and the die would
 sit still for a roll that really happened.
 
+Binding an initial snapshot never rolls the die. Replacing the component,
+changing its faces, hiding it, or correcting its face without changing
+`RollCount` also installs the new state quietly. A newer throw cancels the old
+one; only the current throw reports its result. Authors do not need to reset
+animations or track their completion themselves.
+
 **The shape comes from the number of faces, and there is nothing to configure.**
 Four, six, eight, ten, twelve and twenty faces get the solids you would
 recognize on a table — the four Platonic ones, plus the pentagonal trapezohedron
@@ -2584,14 +2590,15 @@ after the throw.
 **The die tells you when a roll starts and when it lands.** It dispatches two
 composed, bubbling events:
 
-- `roll-start` says a tumble is in the air, and carries **no detail** (`null`).
-  It fires only when a solid actually starts moving — not under reduced motion,
+- `roll-start` says the die is moving, and carries **no detail** (`null`).
+  It fires only when the solid or fallback reel actually starts moving — not under reduced motion,
   not under `noAnimate`, and not when playback is refused, because in each of
   those the die is already at its landed pose and nothing is in flight.
 - `roll-end` says the die has stopped, and carries the result: `value` (the
   value on the landed face), `faceIndex` (which face that is), and `cocked`
-  (true if the simulator could not settle the throw flat). It fires on **every**
-  path a roll can finish by, including the ones `roll-start` skips.
+  (true if the simulator could not settle the throw flat). It fires when the
+  current throw finishes, including the paths that skip `roll-start`. A throw
+  superseded by newer state does not announce a stale result.
 
 This is the shape the whole `<verb>-start`/`<verb>-end` family holds to, and
 a later `flip-start`/`flip-end` will inherit it: the start event says a thing
@@ -2628,9 +2635,8 @@ html`<boardgame-die
 </boardgame-die>`
 ```
 
-`roll-end` fires on every path a roll can finish by, including one cut short by
-the animation cycle and one that never animated at all under reduced motion, so
-a celebration hung off it cannot be skipped. `examples/pig` does exactly this.
+`roll-end` also fires when current playback is cancelled or skipped under
+reduced motion. `examples/pig` uses it to celebrate the landed result.
 
 **What you cannot do yet**, stated plainly rather than left to be discovered:
 

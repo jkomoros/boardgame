@@ -39,6 +39,8 @@ export type MotionTrackPlayResult =
   | Readonly<{
     status: 'started';
     playbacks: readonly MotionTrackPlayback[];
+    /** False when timing policy settles the tracks without visible motion. */
+    hasActiveMotion: boolean;
   }>
   | Readonly<{
     status: 'skipped';
@@ -48,6 +50,8 @@ export type MotionTrackPlayResult =
 
 interface PlayInstrumentation {
   recordActive?: boolean;
+  /** Decorative plays share ownership and timing without adding structural traces. */
+  record?: boolean;
 }
 
 export class BoardgameAnimatableItem extends LitElement {
@@ -63,7 +67,7 @@ export class BoardgameAnimatableItem extends LitElement {
   // what lets finishGatedAnimations() force-settle a stale cycle's
   // participants (the registry sweep's job) without touching UNGATED ambient
   // loops (an infinite highlight throb), which were never cycle participants.
-  private _liveAnimations = new Map<Animation, boolean>();
+  private _liveAnimations = new Map<Animation, { gated: boolean; record: boolean }>();
   private _activeHookFrames = new Map<Animation, number>();
   private _liveGatedCount = 0;
   private _settledResolvers: Array<() => void> = [];
@@ -137,7 +141,7 @@ export class BoardgameAnimatableItem extends LitElement {
   override disconnectedCallback(): void {
     this._ambientRegistry?.unregister(this);
     this._ambientRegistry = null;
-    if (this._liveGatedCount > 0) {
+    if (this._liveAnimations.size > 0) {
       queueMicrotask(() => {
         if (!this.isConnected) this.finishAllAnimations();
       });
@@ -229,6 +233,13 @@ export class BoardgameAnimatableItem extends LitElement {
         });
       });
       const missing = bindings.find(binding => !binding.target);
+      // Resting presentation is authoritative even when playback is disabled,
+      // a sibling target is absent, or an animation fails to start.
+      for (const { track, target } of bindings) {
+        if (target && track.resting !== undefined) {
+          target.style[track.property] = track.resting;
+        }
+      }
       if (missing) {
         return Object.freeze({
           status: 'skipped',
@@ -252,23 +263,6 @@ export class BoardgameAnimatableItem extends LitElement {
             channel: binding.channel,
           });
         }
-        // Animations run with fill:'none', so the instant one settles -- by
-        // natural completion, by finish() from the cycle sweep, or by the
-        // duration-0 effect reduced motion resolves to -- the element renders
-        // its RESTING style, not the last keyframe. playAnimation writes a
-        // resting style for the host channel only; a component-owned visual
-        // channel has no framework write, which is why the card maintains its
-        // inner transform by hand. Writing the track's declared resting value
-        // here makes that structural rather than per-producer discipline. Safe
-        // to write while the animation is live: an active effect overrides the
-        // inline style for the length of its active interval.
-        if (binding.track.resting !== undefined) {
-          if (binding.track.property === 'transform') {
-            binding.target!.style.transform = binding.track.resting;
-          } else {
-            binding.target!.style.opacity = binding.track.resting;
-          }
-        }
         playbacks.push(Object.freeze({
           channel: binding.channel,
           track: binding.track,
@@ -283,6 +277,8 @@ export class BoardgameAnimatableItem extends LitElement {
     return Object.freeze({
       status: 'started',
       playbacks: Object.freeze(playbacks),
+      hasActiveMotion: playbacks.some(({ animation }) =>
+        Number(animation.effect?.getComputedTiming().activeDuration) > 0),
     });
   }
 
@@ -372,7 +368,8 @@ export class BoardgameAnimatableItem extends LitElement {
     // divides out). Do not remove or parameterize this without a test
     // that pins the same-host composite case.
     const anim = element.animate(keyframes, { ...resolution.timing, composite: 'replace' });
-    this._liveAnimations.set(anim, gated);
+    const record = instrumentation?.record !== false;
+    this._liveAnimations.set(anim, { gated, record });
     if (gated) {
       this._liveGatedCount++;
       // Tell the render-game watchdog how long this gated play is declared to
@@ -396,8 +393,8 @@ export class BoardgameAnimatableItem extends LitElement {
           detail: { ele: this, expectedSettleMs: resolution.expectedSettleMs },
         }));
     }
-    animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
-    if (instrumentation?.recordActive !== false) {
+    if (record) animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
+    if (record && instrumentation?.recordActive !== false) {
       const detail = this.tagName.toLowerCase() + (this.id ? `#${this.id}` : '');
       const delay = finiteTimingMs(resolution.timing.delay);
       const observeActive = () => {
@@ -416,19 +413,32 @@ export class BoardgameAnimatableItem extends LitElement {
       this._activeHookFrames.set(anim, requestAnimationFrame(observeActive));
     }
     // finished rejects on cancel(); both paths are settlement for us.
-    anim.finished.catch(() => {}).finally(() => this._animationSettled(anim, gated));
+    anim.finished.catch(() => {}).finally(() => this._animationSettled(anim));
     return anim;
   }
 
-  private _animationSettled(anim: Animation, gated: boolean) {
-    if (!this._liveAnimations.delete(anim)) return; // already accounted
+  /** Local decoration shares policy and cleanup without holding the state queue. */
+  protected playDecoration(element: HTMLElement, keyframes: Keyframe[], timing?: OptionalEffectTiming): Animation | null {
+    try {
+      return this.play(element, keyframes, timing,
+        { gated: false, timing: 'immediate' }, { record: false });
+    } catch (error) {
+      console.error('[animation] decoration playback failed:', error);
+      return null;
+    }
+  }
+
+  private _animationSettled(anim: Animation) {
+    const live = this._liveAnimations.get(anim);
+    if (!live) return; // already accounted
+    this._liveAnimations.delete(anim);
     const activeFrame = this._activeHookFrames.get(anim);
     if (activeFrame !== undefined) {
       cancelAnimationFrame(activeFrame);
       this._activeHookFrames.delete(anim);
     }
-    animHooks.record('settle', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
-    if (!gated) return;
+    if (live.record) animHooks.record('settle', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
+    if (!live.gated) return;
     this._liveGatedCount--;
     if (this._liveGatedCount <= 0) {
       this._liveGatedCount = 0;
@@ -481,7 +491,7 @@ export class BoardgameAnimatableItem extends LitElement {
   // ambient-animation-sweep regression (evidence pack
   // 2026-07-26-ambient-animation-sweep.md).
   finishGatedAnimations(): void {
-    for (const [anim, gated] of [...this._liveAnimations]) {
+    for (const [anim, { gated }] of [...this._liveAnimations]) {
       if (gated) this._forceSettle(anim);
     }
   }

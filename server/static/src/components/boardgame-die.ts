@@ -12,7 +12,7 @@ import {
   type BoundMoveAction,
 } from '../moves/action.js';
 import { componentMotionTracks } from '../motion/component-track.js';
-import type { ComponentMotionTarget } from '../motion/component-track.js';
+import type { ComponentMotionTarget, ComponentMotionTrackInput } from '../motion/component-track.js';
 import { dieGeometry, dot, type DieGeometry, type Vec3 } from '../motion/die-geometry.js';
 import { assignFaceValues, presentedFaceIndex, resolveReadingRule } from '../motion/die-faces.js';
 import {
@@ -246,9 +246,17 @@ interface DieItem {
    * one fact `SelectedFace` and `Value` cannot express, because a throw landing
    * on the face already showing leaves both of them alone. A die whose game does
    * not use that component reports nothing here, and falls back to the face
-   * change; see `_itemChanged`.
+   * change; see `_updateDieState`.
    */
   readonly rollCount: number | null;
+}
+
+type DieState = Pick<DieItem, 'id' | 'faces' | 'selectedFaceIndex' | 'rollCount'> & {
+  readonly source: 'item' | 'direct';
+};
+
+function sameFaces(a: readonly number[], b: readonly number[]): boolean {
+  return a.length === b.length && a.every((value, index) => Object.is(value, b[index]));
 }
 
 /**
@@ -286,7 +294,7 @@ function readDieItem(item: DieComponent | null | undefined): DieItem | null {
     id: typeof candidate.ID === 'string' ? candidate.ID : '',
     faces: faces as readonly number[],
     selectedFaceIndex:
-      typeof selected === 'number' && Number.isFinite(selected) ? Math.trunc(selected) : 0,
+      typeof selected === 'number' ? selected : 0,
     value: typeof value === 'number' && Number.isFinite(value) ? value : null,
     rollCount:
       typeof rollCount === 'number' && Number.isFinite(rollCount) ? rollCount : null,
@@ -347,8 +355,8 @@ interface DieRoll {
   /** The simulator could not settle this throw in eight attempts. */
   readonly cocked: boolean;
   readonly durationMs: number;
-  readonly curve: (progress: number) => string;
-  /** Byte-identical to `curve(1)`: see `_playRoll`. */
+  readonly track: ComponentMotionTrackInput | null;
+  /** The presentation left when playback finishes, is cancelled, or is skipped. */
   readonly resting: string;
 }
 
@@ -870,6 +878,10 @@ export class BoardgameDie extends BoardgameAnimatableItem {
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4),
                     0 1px 0 rgba(255, 255, 255, 0.2);
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        #main, #main.solid::after, .facet { transition: none; }
+      }
     `
   ];
 
@@ -1002,17 +1014,16 @@ export class BoardgameDie extends BoardgameAnimatableItem {
    */
   private _pendingRoll: DieRoll | null = null;
 
-  /** How many times an `item` has been installed; the first one is not a roll. */
-  private _itemInstalls = 0;
+  /** Both item binding and direct properties use the same transition baseline. */
+  private _dieState: DieState | null = null;
+  private _rollAnimations: readonly Animation[] = [];
+  private _settleAccent: Animation | null = null;
 
   /**
    * The roll count the current item reported, or null when it reported none.
-   * A CHANGE in it is what a roll is; see `_itemChanged`.
+   * A CHANGE in it is what a roll is; see `_updateDieState`.
    */
   private _rollCount: number | null = null;
-
-  /** Set while the face change that the FIRST item install causes is in flight. */
-  private _installingFace = false;
 
   /** The component ID the current item carries; half of a roll's seed. */
   private _componentId = '';
@@ -1080,26 +1091,13 @@ export class BoardgameDie extends BoardgameAnimatableItem {
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
 
-    // A roll planned during the PREVIOUS pass is played first, because the
-    // render that has just finished is the one carrying its face assignment.
+    // A pending roll's face assignment has now rendered. A newer snapshot can
+    // supersede it before playback, so synchronize state before starting it.
     const pending = this._pendingRoll;
-    this._pendingRoll = null;
-    if (pending) this._playRoll(pending);
-
-    if (changedProperties.has('item')) {
-      this._itemChanged(this.item);
-    } else {
-      // The face change an item install causes lands one pass later than the
-      // install itself, and installing the first item is not a roll: the die is
-      // being shown a state it was already in when it mounted.
-      const installing = this._installingFace;
-      this._installingFace = false;
-      if (!installing && !pending && changedProperties.has('selectedFaceIndex')) {
-        this._selectedFaceChanged(
-          this.selectedFaceIndex,
-          changedProperties.get('selectedFaceIndex') as number | undefined
-        );
-      }
+    this._updateDieState(changedProperties);
+    if (pending && this._pendingRoll === pending) {
+      this._pendingRoll = null;
+      this._playRoll(pending);
     }
 
     if (changedProperties.has('action')) {
@@ -1149,127 +1147,67 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     return target === 'host' ? this : this._innerElement ?? null;
   }
 
-  // A face change on a die that has already been mounted is a ROLL: the solid
-  // tumbles through the physics, and only the degenerate reel still scrolls.
-  //
-  // This is the FALLBACK trigger, reached only by a die whose item carries no
-  // `DynamicValues.RollCount` -- a die driven by hand, or by a game that does
-  // not use `components/dice`. Where a roll count is reported it is the sole
-  // trigger and `_itemChanged` throws the die directly; see there for why.
-  private _selectedFaceChanged(newValue: number, oldValue: number | undefined) {
-    if (!this._innerElement) return;
-    // On first render there's no meaningful transition to animate from.
-    if (oldValue === undefined || oldValue === newValue) return;
-    if (this._solid()) {
-      this._startRoll();
-      return;
-    }
-    this.playMotionTracks(componentMotionTracks([{
-      target: 'visual',
-      property: 'transform',
-      from: this._innerTransformForFace(oldValue),
-      to: this._innerTransformForFace(newValue),
-    }]));
-  }
-
-  /**
-   * Install a new item, which is where a roll is noticed.
-   *
-   * SANITIZED ITEMS ARRIVE HERE, and are drawn as a die with no faces rather
-   * than crashing the render pass; see `readDieItem`, which is the only place
-   * this component reads the wire shape.
-   */
-  private _itemChanged(newValue: DieComponent | null | undefined) {
-    const item = readDieItem(newValue);
-    if (!item) {
-      // A sanitized die is still a die, and a die with no item at all is not
-      // one: both are drawn with no faces, and neither carries a roll.
-      this.faces = [];
-      this.selectedFaceIndex = 0;
-      this._clearRoll();
-      this._componentId = '';
-      this._itemInstalls = 0;
-      this._rollCount = null;
-      this._announcement = '';
-      return;
-    }
-    this.faces = [...item.faces];
-    this.selectedFaceIndex = item.selectedFaceIndex;
-    // The wire carries the SAME FACT TWICE -- an index, and the value that
-    // index selects -- so when a game reports both, the pair is checkable, and
-    // a die whose index does not select its own reported value is the
-    // index/value confusion caught at the one place it is provable rather than
-    // guessed at from a wrong-looking number on screen. Only checked when both
-    // are present: a game is free to define a die deck with just one of them.
-    if (item.value !== null
-      && item.selectedFaceIndex >= 0
-      && item.selectedFaceIndex < item.faces.length
-      && item.faces[item.selectedFaceIndex] !== item.value) {
-      warnOnce(
-        `mismatch:${item.selectedFaceIndex}:${item.value}:${item.faces.join(',')}`,
-        `boardgame-die: DynamicValues.SelectedFace is ${item.selectedFaceIndex}, which `
-        + `selects the face worth ${item.faces[item.selectedFaceIndex]}, but `
-        + `DynamicValues.Value says ${item.value}. SelectedFace is an INDEX into `
-        + `Values.Faces; the die is drawing the face the index names.`,
-      );
-    }
-    const componentId = item.id;
-    // A DIFFERENT DIE on the same element, which is what a stack re-using a slot
-    // does. The old roll's face assignment and resting pose belong to a
-    // component that is no longer here, and keying that on the face COUNT alone
-    // missed the case the framework actually produces: swap a d6 for another d6
-    // and the die went on drawing -- and announcing -- the first one's numbers,
-    // self-correcting only if a throw happened to arrive.
-    const faceCount = this.faces.length;
-    if (this._roll && (this._roll.faces.length !== faceCount || componentId !== this._componentId)) {
-      this._clearRoll();
-    }
-    if (componentId !== this._componentId) {
-      // A different component's install is a FIRST install: whether the die it
-      // replaced had ever rolled says nothing about this one.
-      this._itemInstalls = 0;
-      this._rollCount = null;
-      this._announcement = '';
-    }
-    this._componentId = componentId;
-    const previousCount = this._rollCount;
-    this._rollCount = item.rollCount;
-    // The FIRST install is never a roll, whatever the counter says: the die is
-    // being shown a state it was already in when it mounted, and a die that
-    // tumbled because a page loaded would be lying about what had just
-    // happened.
-    // A THROW is what a roll is, and `DynamicValues.RollCount` is the server
-    // saying one happened. Nothing else in the die's state can: a throw landing
-    // on the face already showing leaves `SelectedFace` and `Value` untouched
-    // (one throw in six for a d6), so the face change that used to be the
-    // trigger silently skipped those rolls and the player saw the die not move.
-    //
-    // Deliberately not "the state version moved" either: the version moves for
-    // every move any player makes -- a game view mounting installs this die
-    // three times, at versions 0, 2 and 6, with the die untouched throughout --
-    // so it says nothing about whether THIS die was thrown.
-    //
-    // Where a roll count is reported it is the SOLE trigger: the face-change
-    // fallback below would otherwise fire a second time on the update pass the
-    // install schedules, and a game that rewrote a die's face without throwing
-    // it would get a tumble that never happened. `_installingFace` suppresses
-    // that pass. The FIRST install is never a roll whatever the counter says --
-    // the die is being shown a state it was already in when it mounted, and a
-    // die that tumbled because a page loaded would be lying about what had just
-    // happened.
-    const install = this._itemInstalls++;
-    if (this._rollCount !== null) {
-      this._installingFace = true;
-      if (install > 0 && previousCount !== null && this._rollCount !== previousCount) {
-        this._startRoll();
+  /** Install authoritative state, then decide whether this die was thrown. */
+  private _updateDieState(changed: Map<PropertyKey, unknown>): void {
+    if (this.item != null) {
+      const item = readDieItem(this.item);
+      const faces = item?.faces ?? [];
+      if (!Array.isArray(this.faces) || !sameFaces(this.faces, faces)) this.faces = [...faces];
+      this.selectedFaceIndex = item?.selectedFaceIndex ?? 0;
+      this._componentId = item?.id ?? '';
+      this._rollCount = item?.rollCount ?? null;
+      if (item && item.value !== null
+        && Number.isInteger(item.selectedFaceIndex)
+        && item.selectedFaceIndex >= 0 && item.selectedFaceIndex < faces.length
+        && faces[item.selectedFaceIndex] !== item.value) {
+        warnOnce(
+          `mismatch:${item.selectedFaceIndex}:${item.value}:${faces.join(',')}`,
+          `boardgame-die: DynamicValues.SelectedFace is ${item.selectedFaceIndex}, which `
+          + `selects the face worth ${faces[item.selectedFaceIndex]}, but `
+          + `DynamicValues.Value says ${item.value}. SelectedFace is an INDEX into `
+          + `Values.Faces; the die is drawing the face the index names.`,
+        );
       }
+    } else {
+      this._componentId = '';
+      this._rollCount = null;
+      // Removing an item clears it unless the same update explicitly supplies
+      // a new direct face list. Switching authoring modes is a baseline install.
+      if (changed.has('item') && changed.get('item') != null && !changed.has('faces')) {
+        this.faces = [];
+        this.selectedFaceIndex = 0;
+      }
+    }
+    const faces = Array.isArray(this.faces) ? this.faces : [];
+    const next: DieState = {
+      id: this._componentId,
+      source: this.item != null ? 'item' : 'direct',
+      faces: [...faces],
+      selectedFaceIndex: this._presentedFaceIndex(faces.length),
+      rollCount: this._rollCount,
+    };
+    const previous = this._dieState;
+    this._dieState = next;
+    // Mounts and replacement components are snapshots, not throws. Comparing
+    // the values too prevents a same-sized replacement deck keeping old ink.
+    if (!previous || previous.source !== next.source || previous.id !== next.id
+      || !sameFaces(previous.faces, next.faces)) {
+      this._clearRoll();
+      this.requestUpdate();
       return;
     }
-    // A die whose game reports no roll count falls back to the face change,
-    // which is the pre-`RollCount` behaviour and still right for a die driven by
-    // hand: it arrives one update pass after the install, which is why
-    // `_installingFace` exists.
-    if (install === 0) this._installingFace = true;
+    const faceChanged = previous.selectedFaceIndex !== next.selectedFaceIndex;
+    const thrown = next.rollCount === null
+      ? faceChanged
+      : previous.rollCount !== null && previous.rollCount !== next.rollCount;
+    if (thrown) {
+      this._startRoll(previous.selectedFaceIndex);
+    } else if (faceChanged) {
+      // Correcting a face without incrementing RollCount must change the
+      // picture, while preserving the distinction between a correction and a roll.
+      this._clearRoll();
+      this.requestUpdate();
+    }
   }
 
   /**
@@ -1310,37 +1248,26 @@ export class BoardgameDie extends BoardgameAnimatableItem {
    * `components/dice` — one driven by hand, or served by an API binary built
    * before `RollCount` existed. That die is exactly as deterministic as it was
    * before, and exactly as exposed to the remount hazard; there is no better
-   * signal available to it (see `_itemChanged`).
+   * signal available to it (see `_updateDieState`).
    */
   private _rollIdentity(): number {
     return this._rollCount ?? this._resolvedStateVersion();
   }
 
   /**
-   * Throw the die, and schedule the tumble for the pass after this one.
-   *
-   * WHEN THE FACE VALUES SWAP. The assignment is recomputed for every roll, so
-   * every face but the landed one carries a different number afterwards. That
-   * swap has to happen either as the roll starts or as it ends, and this is
-   * deliberately the start: `requestUpdate` re-renders with the new assignment
-   * and `updated` plays the tumble on the NEXT pass, so the first frame anyone
-   * sees is already both airborne and correctly numbered. Swapping at the end
-   * instead would change a number under the eye of a player who has just watched
-   * the die stop moving, which is the one moment they are certainly reading it.
-   *
-   * A roll that cannot be planned (no solid, no measurable size, a trajectory
-   * the bake refuses) leaves `_roll` null and CLEARS the pose the last roll
-   * left behind, so the die falls back to the deterministic presentation pose
-   * rather than half-rendering a physics one; see `_clearRoll`.
+   * Plan a throw, then render its face assignment before starting playback.
+   * Clearing the prior announcement here gives repeated results a new live
+   * region update. If planning fails, the ordinary reading pose shows the result.
    */
-  private _startRoll(): void {
-    const roll = this._planRoll();
-    if (!roll) {
-      this._clearRoll();
-      this.requestUpdate();
-      return;
-    }
-    this._rollGeneration++;
+  private _startRoll(previousFaceIndex: number): void {
+    this._clearRoll();
+    if (!this.faces.length) return;
+    // A failure to animate cannot discard the authoritative result. A null
+    // track leaves the ordinary reading pose in charge and still completes.
+    const roll = this._planRoll(previousFaceIndex) ?? {
+      faces: this._faceValues(), presented: this._presentedFaceIndex(this.faces.length),
+      cocked: false, durationMs: 0, resting: '', track: null,
+    };
     this._roll = roll;
     this._pendingRoll = roll;
     // From HERE, not from `_playRoll`: this is the pass that renumbers the
@@ -1356,24 +1283,19 @@ export class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   /**
-   * Give up the current roll, INCLUDING the pose it left on the element.
-   *
-   * `#inner` carries the physics pose and `#orient` the resting one, and they
-   * are mutually exclusive only because `_renderSolid` renders `#orient` as
-   * `none` whenever `_roll` is set. That invariant is one-way: `#orient` is a
-   * CHILD of `#inner`, so the two compose, and Lit re-uses the same static
-   * `#inner` node across renders with whatever inline transform was last written
-   * to it. Dropping `_roll` without this leaves the die posed by a throw it is
-   * no longer showing -- measured over 900 seeded rolls, 60 to 106px outside its
-   * own 100px slot, permanently, until some later roll happens to overwrite it.
-   *
-   * Both paths that reach it are real: a die whose item is replaced by a
-   * different component, and a roll that cannot be planned (an unmeasurable
-   * size, or a throw the simulator or the bake refuses).
+   * Invalidate the previous result before cancelling its owned animations.
+   * Clear the inline pose too: otherwise it composes with a replacement die's
+   * reading pose and leaves the new solid in the old throw's coordinate frame.
    */
   private _clearRoll(): void {
+    this._rollGeneration++;
     this._roll = null;
     this._pendingRoll = null;
+    this._announcement = '';
+    for (const animation of this._rollAnimations) animation.cancel();
+    this._rollAnimations = [];
+    this._settleAccent?.cancel();
+    this._settleAccent = null;
     // A die that is no longer showing a roll is not rolling one either; this
     // is the path a superseded or unplannable throw leaves through.
     this._rolling = false;
@@ -1406,9 +1328,19 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     };
   }
 
-  private _planRoll(): DieRoll | null {
+  private _planRoll(previousFaceIndex: number): DieRoll | null {
     const solid = this._solid();
-    if (!solid) return null;
+    if (!solid) {
+      if (!this.faces.length) return null;
+      const presented = this._presentedFaceIndex(this.faces.length);
+      const resting = this._innerTransformForFace(presented);
+      return {
+        faces: [...this.faces], presented, cocked: false,
+        durationMs: this.animationLengthMs(), resting,
+        track: { target: 'visual', property: 'transform',
+          from: this._innerTransformForFace(previousFaceIndex), to: resting },
+      };
+    }
     const geometry = solid.geometry;
     const faces = this.faces;
     const desired = faces[this._presentedFaceIndex(geometry.faceCount)];
@@ -1451,7 +1383,8 @@ export class BoardgameDie extends BoardgameAnimatableItem {
         presented,
         cocked: trajectory.cocked,
         durationMs,
-        curve: scene.transform,
+        track: { target: 'visual', property: 'transform', curve: scene.transform,
+          resolution: Math.round(durationMs / FRAME_MS), resting: scene.resting },
         // scene.transform(1) itself, so the two agree BYTE FOR BYTE. Animations
         // run with fill:'none', so the element renders this the instant the
         // tumble finishes -- or is finished early by the cycle sweep -- and a
@@ -1472,29 +1405,16 @@ export class BoardgameDie extends BoardgameAnimatableItem {
    * Play the planned tumble, and see that the die ends up in its landed pose
    * WHETHER OR NOT it does.
    *
-   * `playMotionTracks` has three early returns -- `missing-target`,
-   * `not-started`, `playback-error` -- that all fire BEFORE it writes the
-   * track's resting style. In every one of them `_roll` is already set, so
-   * `#orient` renders `none` and `#inner` has nothing: the die would draw in its
-   * raw body frame, showing whichever facet happens to have a +z normal, while
-   * `aria-label` announced the value the physics landed. Announcing one number
-   * and drawing another is the worst failure this component has, so the resting
-   * pose is written by hand here when playback does not start. (`noAnimate` is
-   * the only route that reaches it today; the kernel's own doc comment claims
-   * this hole is closed, and this is what closes it.)
+   * The kernel preserves declared resting styles even when playback skips.
+   * The fallback here also covers a curve that fails before reaching the kernel
+   * and the reel, whose resting position normally comes from CSS.
    */
   private _playRoll(roll: DieRoll): void {
     const generation = this._rollGeneration;
     let result: MotionTrackPlayResult | undefined;
     try {
       result = this.playMotionTracks(
-        componentMotionTracks([{
-          target: 'visual',
-          property: 'transform',
-          curve: roll.curve,
-          resolution: Math.round(roll.durationMs / FRAME_MS),
-          resting: roll.resting,
-        }]),
+        componentMotionTracks(roll.track ? [roll.track] : []),
         { duration: roll.durationMs },
         // REQUIRED. Under the default 'version' policy the kernel clamps the
         // duration into the cycle's slot -- a three-second bake played in 600ms is
@@ -1512,10 +1432,10 @@ export class BoardgameDie extends BoardgameAnimatableItem {
       console.error('[boardgame-die] could not compile the roll:', error);
       result = undefined;
     }
-    // Announced once the tumble is on screen -- or, below, once the die has
-    // been put where the tumble would have left it.
-    this._announcement = '';
-    if (result?.status !== 'started') {
+    if (result?.status === 'started') {
+      this._rollAnimations = result.playbacks.map(playback => playback.animation);
+    }
+    if (result?.status !== 'started' || !result.hasActiveMotion) {
       // NO `roll-start` HERE. Nothing is in the air: reduced motion resolved
       // the effect to zero, or `noAnimate` is set, or playback refused -- and
       // in every one of those the die is placed at its landed pose on this
@@ -1541,10 +1461,10 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     }));
     // The animation's own settlement is the ground truth for "the die has
     // stopped", and it resolves for a tumble finished early by the cycle sweep
-    // exactly as for one that ran to its end. A cancelled animation rejects; the
-    // die is then no longer showing this roll and must not report it.
+    // exactly as for one that ran to its end. Cancellation also exposes the
+    // resting pose; the generation guard discards superseded rolls.
     void Promise.all(result.playbacks.map((playback) => playback.animation.finished))
-      .then(() => this._finishRoll(roll, generation), () => undefined);
+      .then(() => this._finishRoll(roll, generation), () => this._finishRoll(roll, generation));
   }
 
   /**
@@ -1557,7 +1477,7 @@ export class BoardgameDie extends BoardgameAnimatableItem {
    */
   private _finishRoll(roll: DieRoll, generation: number): void {
     // A roll superseded by a later one is not this die's result any more.
-    if (generation !== this._rollGeneration || this._roll !== roll) return;
+    if (generation !== this._rollGeneration || this._roll !== roll || !this._rolling) return;
     this._rolling = false;
     const detail = this._rollDetail(roll);
     const values = this._faceValues();
@@ -1575,33 +1495,16 @@ export class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   /**
-   * THE LANDING BEAT: a short pop the instant the result arrives.
-   *
-   * Nothing used to mark the moment the die finished, and because the tail of
-   * a throw decelerates there is no frame a player can point at as the one it
-   * stopped on — the number simply becomes readable at some point. A quarter of
-   * a second of overshoot-and-settle is enough to say "this is the answer", and
-   * it is worth more than making the tumble itself bouncier.
-   *
-   * ON #STAGE, and deliberately: #inner is the roll's, #orient is the pose's,
-   * and #main's transform is the hover lift's. #stage is above the whole 3D
-   * scene and owns no transform otherwise, so a scale here composes with
-   * nothing. It is also uniform, so it cannot change any of the ANGLES the
-   * readability tests measure.
-   *
-   * PLAYED DIRECTLY, not through `play()`. It is not a gate participant — the
-   * roll it punctuates has already settled, and holding the cycle open for a
-   * flourish would delay every other player's board. Going through the kernel
-   * would also declare a `will-animate` and record a `play` in the animation
-   * hooks the parity goldens count, for an animation that is decoration. So
-   * `noAnimate` and reduced motion are honoured here by hand instead.
+   * A brief landing accent on the stage, above the die's pose and tumble.
+   * Shared decorative playback owns timing, accessibility, and cleanup;
+   * decoration never holds the state queue or enters structural traces.
    */
   private _playSettleAccent(): void {
-    if (this.noAnimate) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!this.isConnected) return;
     const stage = this._stageElement;
     if (!stage) return;
-    stage.animate(
+    this._settleAccent?.cancel();
+    this._settleAccent = this.playDecoration(stage,
       [
         { transform: 'scale(1)', offset: 0 },
         { transform: 'scale(1.06)', offset: 0.3 },
@@ -1615,7 +1518,6 @@ export class BoardgameDie extends BoardgameAnimatableItem {
         // uses it: the element must be left in its own resting style, not
         // pinned to a keyframe.
         fill: 'none',
-        composite: 'replace',
       },
     );
   }
@@ -1989,7 +1891,7 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     // did NOT fix was every other facet's depth, and on a d4 that undid the
     // lean that makes a tetrahedron read as a solid at all. The roll is a roll
     // of the picture now, inside the scene, where it cannot (see `readingPose`).
-    const orient = this._roll
+    const orient = this._roll?.track
       ? 'none'
       : readingPoseTransform(solid.geometry, this._presentedFaceIndex(solid.geometry.faceCount));
     // Which facet the player is meant to read: the one the physics landed once
@@ -2106,7 +2008,7 @@ export class BoardgameDie extends BoardgameAnimatableItem {
           aria-busy=${String(bound && action.submission.kind === 'pending')}
           ?disabled=${effectiveDisabled}
           data-cocked=${this._roll?.cocked ? 'true' : nothing}
-          style="--selected-face-index:${this.selectedFaceIndex}"
+          style="--selected-face-index:${this._presentedFaceIndex(this.faces.length)}"
           class="${this._classes(effectiveDisabled, solid !== null)}">
           ${solid ? this._renderSolid(solid) : this._renderReel()}
         </button>
