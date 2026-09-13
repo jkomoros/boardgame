@@ -329,6 +329,8 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 		return nil, errors.New("the transformation did not have a record for each player state")
 	}
 
+	sanitized.visibility = s.visibleFacets(transformation)
+
 	//We need to figure out which components that have dynamicvalues are
 	//visible after sanitizing game and player states. We'll have
 	//sanitizeStateObj tell us which ones are visible, and which player's

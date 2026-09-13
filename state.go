@@ -659,6 +659,7 @@ type state struct {
 	mutableDynamicComponentValues map[string][]SubState
 	secretMoveCount               map[string][]int
 	sanitized                     bool
+	visibility                    *StateVisibility
 	version                       int
 	game                          *Game
 	manager                       *GameManager
@@ -951,7 +952,10 @@ func (s *state) copy(sanitized bool) (*state, error) {
 	}
 
 	result.secretMoveCount = moveCounts
-	result.sanitized = sanitized
+	result.sanitized = sanitized || s.sanitized
+	if result.sanitized {
+		result.visibility = s.visibility
+	}
 	result.version = s.version
 	result.game = s.game
 	//We copy this over, because this should only be set when computed is
@@ -1189,11 +1193,11 @@ func (s *state) committed() {
 }
 
 func (s *state) StorageRecord() StateStorageRecord {
-	record, _ := s.customMarshalJSON(false, true)
+	record, _ := s.customMarshalJSON(false, true, false)
 	return record
 }
 
-func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, error) {
+func (s *state) customMarshalJSON(includeComputed bool, indent bool, includeVisibility bool) ([]byte, error) {
 	obj := map[string]interface{}{
 		"Game":    s.gameState,
 		"Players": s.playerStates,
@@ -1201,6 +1205,13 @@ func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, er
 
 	if includeComputed {
 		obj["Computed"] = s.computed()
+	}
+	if includeVisibility {
+		if s.sanitized {
+			obj["Visibility"] = s.visibility
+		} else {
+			obj["Visibility"] = s.visibleFacets(nil)
+		}
 	}
 
 	//We emit the secretMoveCount only when the state isn't sanitized. Any
@@ -1230,7 +1241,7 @@ func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, er
 }
 
 func (s *state) MarshalJSON() ([]byte, error) {
-	return s.customMarshalJSON(true, false)
+	return s.customMarshalJSON(true, false, false)
 }
 
 func (s *state) Diagram() string {

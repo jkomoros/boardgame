@@ -453,13 +453,13 @@ func (g *GameDelegate) FrameworkComputedPlayerProperties(player boardgame.Immuta
 		result["GameScore"] = score
 	}
 	// Gathering: current team/role/color selections
-	if th, ok := player.(behaviors.HasPlayerTeam); ok {
+	if th, ok := player.(behaviors.HasPlayerTeam); ok && boardgame.PropertyFacetAvailable(player, "Team", boardgame.LegalFacetValues) {
 		result["TeamValue"] = th.GetPlayerTeam().Team.String()
 	}
-	if rh, ok := player.(behaviors.HasPlayerRole); ok {
+	if rh, ok := player.(behaviors.HasPlayerRole); ok && boardgame.PropertyFacetAvailable(player, "Role", boardgame.LegalFacetValues) {
 		result["RoleValue"] = rh.GetPlayerRole().Role.String()
 	}
-	if ch, ok := player.(behaviors.HasPlayerColor); ok {
+	if ch, ok := player.(behaviors.HasPlayerColor); ok && boardgame.PropertyFacetAvailable(player, "Color", boardgame.LegalFacetValues) {
 		result["ColorValue"] = ch.GetPlayerColor().Color.String()
 	}
 	if behaviors.PlayerIsAdmin(player) {

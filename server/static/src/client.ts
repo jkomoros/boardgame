@@ -271,3 +271,6 @@ export type { TrackStep } from './components/boardgame-track.js';
 import './components/boardgame-track.js';
 import './components/boardgame-mat.js';
 export type { DieRollBudget } from './components/boardgame-die.js';
+
+export { facetAvailable, viewGameProp, viewPlayerProp } from "./state/visibility.js";
+export type { StateFacet, StateVisibility, ViewedValue } from "./state/visibility.js";

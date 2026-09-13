@@ -1,3 +1,4 @@
+import type { StateVisibility } from "../state/visibility.js";
 /**
  * Shared type definitions for generated game state types.
  * Imported by auto-generated _types.ts files in each game's client/ directory.
@@ -148,6 +149,7 @@ export interface FullGameState<
   DC extends object = Readonly<Record<string, readonly unknown[]>>,
 > {
   readonly Game: DeepReadonly<GS>;
+  readonly Visibility?: StateVisibility;
   readonly Players: readonly DeepReadonly<PS>[];
   readonly Computed?: {
     readonly Global?: DeepReadonly<GC>;

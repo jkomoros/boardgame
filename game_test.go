@@ -1088,6 +1088,25 @@ func goldenGameBlob() []byte {
 		return nil
 	}
 
+	// Admin API snapshots expose every known facet; persisted base state stays
+	// unchanged. Build this expectation from fixture property names, not runtime
+	// policy code (which has separate viewer/legality agreement tests).
+	allFacets := []string{"values", "count", "occupancy", "order", "nonempty"}
+	props := func(obj interface{}) map[string][]string {
+		result := make(map[string][]string)
+		for key := range obj.(map[string]interface{}) {
+			result[key] = allFacets
+		}
+		return result
+	}
+	players := baseStateJSON["Players"].([]interface{})
+	playerVisibility := make([]map[string][]string, len(players))
+	for i, player := range players {
+		playerVisibility[i] = props(player)
+	}
+	baseStateJSON["Visibility"] = map[string]interface{}{
+		"Game": props(baseStateJSON["Game"]), "Players": playerVisibility,
+	}
 	gameBlobJSON["CurrentState"] = baseStateJSON
 
 	blob, err := json.Marshal(gameBlobJSON)

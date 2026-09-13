@@ -281,7 +281,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) (interfac
 		"Name":               g.Name(),
 		"Finished":           g.Finished(),
 		"Winners":            g.Winners(),
-		"CurrentState":       state,
+		"CurrentState":       stateJSONForViewer(state),
 		"CurrentPlayerIndex": g.manager.delegate.CurrentPlayerIndex(state),
 		"Diagram":            state.Diagram(),
 		"ID":                 g.ID(),

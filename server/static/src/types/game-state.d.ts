@@ -1,3 +1,4 @@
+import type { StateVisibility } from "../state/visibility.js";
 /**
  * Type definitions for game state structures.
  * These types represent the core game state data structures used throughout the application.
@@ -12,6 +13,8 @@ import type { VersionAnimationContext } from '../components/companion-sync';
  * Component indices are expanded to full component objects by the selector.
  */
 export interface RawGameState {
+  /** Server-proven facets for this viewer; absent on legacy snapshots. */
+  Visibility?: StateVisibility;
   /** Optional legacy state version; authoritative version lives on GameFromServer. */
   Version?: number;
   /** Global game state */
