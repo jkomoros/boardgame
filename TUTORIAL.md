@@ -2144,6 +2144,23 @@ For a **spatial** board whose artwork has named hotspots, use
 image with normalized regions the framework can target moves at, which is a
 different and stronger thing than a decorative background.
 
+##### Tracks and small mats
+
+Use a `boardgame-track` for a labelled sequence and one current value. Its
+steps are `{ key, label, color? }` records; the current `value` matches a key.
+The track wraps to its available width, keeps the current position marked
+without animation, and exposes it to assistive technology. Darwin derives its
+climate steps from the generated enum. A missing value simply marks no step.
+
+Use `boardgame-mat` to group a small board's stats, controls, and component
+zones. Supply `label`, optional `art` / `art-alt`, place controls in the
+`actions` slot, and put game-owned content in the default slot. The illustration
+and content rearrange within the containing surface. The mat owns presentation;
+it does not expand nested raw stacks or infer game rules. Darwin's species
+boards are the first consumer. `::part(mat)` and the `--boardgame-mat-*` custom
+properties customize the frame; `boardgame-track` exposes `label`, `steps`,
+and `step` parts with `--boardgame-track-*` sizing and color properties.
+
 ##### Typed transition keys and bounded cadence
 
 Generated `_move_names.ts` exports `MoveNames` / `MoveName` for proposals and

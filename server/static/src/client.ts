@@ -262,3 +262,7 @@ import './components/boardgame-timer.js';
 import './components/boardgame-turn-status.js';
 import './components/boardgame-spatial-board.js';
 import './components/boardgame-board-viewport.js';
+
+export type { TrackStep } from './components/boardgame-track.js';
+import './components/boardgame-track.js';
+import './components/boardgame-mat.js';
