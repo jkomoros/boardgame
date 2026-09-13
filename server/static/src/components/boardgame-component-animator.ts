@@ -111,7 +111,7 @@ export interface ComponentAnimatorAPI {
   /** Ordered, replayable observation surface; does not confer animation ownership. */
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
   /** Geometry-only lookup; absent and ambiguous public subjects fail closed. */
-  captureVisibleSubjectPoint(subjectId: string): Readonly<{ x: number; y: number }> | null;
+  captureVisibleSubjectPoint(subjectId: string, scope?: ParentNode | null): Readonly<{ x: number; y: number }> | null;
 }
 
 interface ComponentRecord {
@@ -248,8 +248,8 @@ export class BoardgameComponentAnimator extends LitElement {
     return () => this._motionEventObservers.delete(observer);
   }
 
-  captureVisibleSubjectPoint(subjectId: string): Readonly<{ x: number; y: number }> | null {
-    if (!this.isConnected || typeof subjectId !== 'string' || !subjectId.trim()) return null;
+  captureVisibleSubjectPoint(subjectId: string, scope: ParentNode | null = this.getRootNode() as ParentNode): Readonly<{ x: number; y: number }> | null {
+    if (!scope || !this.isConnected || typeof subjectId !== 'string' || !subjectId.trim()) return null;
     const registry = this.shadowRoot?.querySelector<BoardgameComponentStack>('#stack');
     if (!registry) return null;
     const matches = new Set<HTMLElement>();
@@ -261,8 +261,22 @@ export class BoardgameComponentAnimator extends LitElement {
         // occupied slot is unavailable even though its card back is rendered.
         if (!isVisibleComponent((component as { item?: unknown }).item)) continue;
         if (!this._captureMotionSubject(component)) continue;
-        const style = getComputedStyle(component);
-        if (style.display === 'none' || style.visibility === 'hidden') continue;
+        // The registry is shared across the document. Resolve only within this
+        // effect layer's renderer, traversing nested component shadow roots.
+        let withinScope = false;
+        let presented = true;
+        let node: Node | null = component;
+        while (node) {
+          if (node === scope) withinScope = true;
+          if (node instanceof HTMLElement) {
+            const style = getComputedStyle(node);
+            if (style.display === 'none' || style.visibility === 'hidden'
+              || style.visibility === 'collapse' || Number(style.opacity) === 0) presented = false;
+          }
+          node = node instanceof ShadowRoot ? node.host : node.parentNode;
+        }
+        const rect = component.getBoundingClientRect();
+        if (!withinScope || !presented || rect.width <= 0 || rect.height <= 0) continue;
         matches.add(component);
       }
     }

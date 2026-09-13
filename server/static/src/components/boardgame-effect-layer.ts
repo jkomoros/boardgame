@@ -26,7 +26,7 @@ import type {
 
 interface StructuralMotionSource {
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
-  captureVisibleSubjectPoint?(subjectId: string): Readonly<{ x: number; y: number }> | null;
+  captureVisibleSubjectPoint?(subjectId: string, scope?: ParentNode | null): Readonly<{ x: number; y: number }> | null;
 }
 
 export interface EffectLayerConfiguration {
@@ -1067,7 +1067,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       return this._deferMotionPoint(anchor, start);
     }
     if (!(anchor instanceof HTMLElement) && anchor.kind === 'subject') {
-      const point = this._motionSource?.captureVisibleSubjectPoint?.(anchor.subjectId) ?? null;
+      const point = this._motionSource?.captureVisibleSubjectPoint?.(anchor.subjectId, this._configuration.anchorRoot) ?? null;
       return point ? start(point) : skipped('missing-subject');
     }
     const point = this._anchorPoint(anchor);

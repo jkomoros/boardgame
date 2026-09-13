@@ -8,7 +8,7 @@ import type { MdFilledSelect } from '@material/web/select/filled-select.js';
 import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
-import { MoveNames } from './_move_names.js';
+import { AnimationKeys, MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { styleMap } from 'lit/directives/style-map.js';
@@ -21,7 +21,7 @@ import type {
   MotionStaggerCohortSpec,
 } from '../../src/client.js';
 import type { GameState, State } from './_types.js';
-import type { MoveName } from './_move_names.js';
+import type { AnimationKey } from './_move_names.js';
 
 @registerGameRenderer
 export class BoardgameRenderGameDebuganimations extends GameRenderer {
@@ -159,17 +159,17 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
   }
 
   override motionReleaseForTransition(
-    context: EffectTransitionContext<State, MoveName>,
+    context: EffectTransitionContext<State, AnimationKey>,
   ): MotionReleaseDeclaration | null {
     if (!this.slowAnimations || context.kind === 'initial') return null;
     return motion.release({ key: 'slow-animation-cutover', progress: 0.3 });
   }
 
   override effectsForTransition(
-    context: EffectTransitionContext<State, MoveName>,
+    context: EffectTransitionContext<State, AnimationKey>,
   ): readonly EffectSpec[] {
     if (context.kind === 'initial') return [];
-    if (context.move?.AnimationKey === MoveNames.VisibleShuffle) {
+    if (context.move?.AnimationKey === AnimationKeys.VisibleShuffle) {
       const priorIndex = new Map(
         context.before.Game.FanStack.IDs.map((id, index) => [id, index]),
       );
@@ -187,7 +187,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
         }),
       })];
     }
-    if (context.move?.AnimationKey !== MoveNames.MoveToken) return [];
+    if (context.move?.AnimationKey !== AnimationKeys.MoveToken) return [];
     const beforeFrom = new Set(context.before.Game.TokensFrom.IDs);
     const movedTokenId = context.after.Game.TokensFrom.IDs.find(id => !beforeFrom.has(id))
       ?? context.before.Game.TokensFrom.IDs.find(
@@ -211,9 +211,9 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
   }
 
   override motionCohortsForTransition(
-    context: EffectTransitionContext<State, MoveName>,
+    context: EffectTransitionContext<State, AnimationKey>,
   ): readonly MotionStaggerCohortSpec[] {
-    if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.VisibleShuffle) return [];
+    if (context.kind === 'initial' || context.move?.AnimationKey !== AnimationKeys.VisibleShuffle) return [];
     return [motion.stagger({
       key: 'visible-shuffle-cascade',
       subjects: context.after.Game.FanStack.IDs,

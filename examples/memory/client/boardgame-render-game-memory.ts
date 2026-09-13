@@ -1,8 +1,8 @@
 import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
-import { MoveNames } from './_move_names.js';
+import { AnimationKeys, MoveNames } from './_move_names.js';
 import type { CardsComponentValues, GameState, State } from './_types.js';
-import type { MoveName } from './_move_names.js';
+import type { AnimationKey } from './_move_names.js';
 import { cardView, diffVisibleComponents, fx, isVisibleComponent } from '../../src/client.js';
 import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
 
@@ -68,9 +68,9 @@ export class BoardgameRenderGameMemory extends GameRenderer {
   }
 
   override effectsForTransition(
-    context: EffectTransitionContext<State, MoveName>,
+    context: EffectTransitionContext<State, AnimationKey>,
   ): readonly EffectSpec[] {
-    if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.RevealCard) return [];
+    if (context.kind === 'initial' || context.move?.AnimationKey !== AnimationKeys.RevealCard) return [];
     const revealed = context.after.Game.VisibleCards.Components
       .flatMap(card => isVisibleComponent(card) ? [card] : []);
     const diff = diffVisibleComponents(

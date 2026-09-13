@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -111,6 +112,10 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 
 	if config.Name() == "" {
 		return nil, errors.New("No name provided")
+	}
+
+	if err := validateAnimationKey(config.Name()); err != nil {
+		return nil, fmt.Errorf("move name: %w", err)
 	}
 
 	if config.Constructor() == nil {

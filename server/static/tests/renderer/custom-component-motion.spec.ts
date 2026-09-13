@@ -59,3 +59,51 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
     } finally { diagnostics.stop(); }
   });
 }
+
+test('custom view participates in real stack snapshot capture and host reuse', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { compassView } = await import('/src/examples/custom-motion-piece.ts');
+      await import('/src/components/boardgame-component-animator.ts');
+      const animator = document.createElement('boardgame-component-animator');
+      const stack = document.createElement('boardgame-component-stack');
+      stack.componentView = compassView;
+      stack.layout = 'spread';
+      stack.style.cssText = 'display:block;width:500px;--animation-length:100ms';
+      const item = (id: string, heading: number) => ({ ID: id, Index: id === 'a' ? 0 : 1,
+        Deck: 'pieces', GameName: 'compass-fixture', Values: { Heading: heading } });
+      const state = (items: ReturnType<typeof item>[]) => ({ Deck: 'pieces', GameName: 'compass-fixture',
+        Components: items, Indexes: items.map(piece => piece.Index), IDs: items.map(piece => piece.ID),
+        IDsLastSeen: {}, ShuffleCount: 0, Size: items.length });
+      stack.stack = state([item('a', 0), item('b', 0)]);
+      document.body.append(animator, stack);
+      await Promise.all([animator.updateComplete, stack.updateComplete]);
+      await Promise.all([...stack.querySelectorAll('example-compass-piece')].map(piece => piece.updateComplete));
+      const original = [...stack.querySelectorAll('example-compass-piece')];
+      const records: Array<{ before: unknown; after: unknown; channels: string[] }> = [];
+      for (const piece of stack.querySelectorAll('example-compass-piece')) {
+        const play = piece.playAnimation.bind(piece);
+        piece.playAnimation = record => {
+          records.push({ before: record.before['heading'], after: record.after['heading'],
+            channels: (record.tracks ?? piece.planMotionTracks(record)).map(track => `${track.target}:${track.property}`) });
+          return play(record);
+        };
+      }
+      animator.prepare();
+      stack.stack = state([item('b', 0), item('a', 90)]);
+      await stack.updateComplete;
+      await Promise.all([...stack.querySelectorAll('example-compass-piece')].map(piece => piece.updateComplete));
+      await animator.animateFlip();
+      return { retained: original.every(piece => [...stack.querySelectorAll('example-compass-piece')].includes(piece)),
+        heading: stack.querySelector('example-compass-piece#a')!.heading,
+        records, active: document.getAnimations().length };
+    });
+    expect(result.retained).toBe(true);
+    expect(result.heading).toBe(90);
+    expect(result.records).toContainEqual({ before: 0, after: 90, channels: ['host:transform', 'visual:transform'] });
+    expect(result.active).toBe(0);
+    diagnostics.assertEmpty();
+  } finally { diagnostics.stop(); }
+});

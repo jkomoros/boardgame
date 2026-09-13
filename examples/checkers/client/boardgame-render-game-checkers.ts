@@ -10,7 +10,7 @@ import {
 } from '../../src/client.js';
 import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
+import type { AnimationKey } from './_move_names.js';
 import type { GameState, State } from './_types.js';
 
 type VisibleChecker = Extract<
@@ -39,7 +39,7 @@ export class BoardgameRenderGameCheckers extends GameRenderer {
   });
 
   override effectsForTransition(
-    context: EffectTransitionContext<State, MoveName>,
+    context: EffectTransitionContext<State, AnimationKey>,
   ): readonly EffectSpec[] {
     if (context.kind === 'initial') return [];
     const membership = diffVisibleComponents(

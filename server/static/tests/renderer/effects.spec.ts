@@ -807,3 +807,37 @@ test('render host plans authoritative effects exactly once per installed snapsho
     diagnostics.stop();
   }
 });
+
+test('stationary subjects are scoped to one renderer and ignore hidden ancestors', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/client.ts');
+      await import('/src/components/boardgame-component-animator.ts');
+      const animator = document.createElement('boardgame-component-animator');
+      const a = document.createElement('section').attachShadow({ mode: 'open' });
+      const b = document.createElement('section').attachShadow({ mode: 'open' });
+      const add = async (root: ShadowRoot, id: string) => {
+        const zone = document.createElement('boardgame-component-zone'); zone.label = id;
+        const { tokenView } = await import('/src/client.ts'); zone.componentView = tokenView({});
+        zone.stack = { Deck: 'tokens', GameName: 'fixture', Indexes: [0], IDs: [id], IDsLastSeen: {},
+          ShuffleCount: 0, Size: 1, Components: [{ ID: id, Index: 0, Deck: 'tokens', GameName: 'fixture', Values: {} }] };
+        root.append(zone); await zone.updateComplete;
+        const stack = zone.shadowRoot!.querySelector('boardgame-component-stack')!; await stack.updateComplete;
+        await stack.querySelector('boardgame-token')!.updateComplete;
+        return zone;
+      };
+      document.body.append(animator, a.host, b.host); await animator.updateComplete;
+      const local = await add(a, 'shared'); await add(b, 'shared'); await add(b, 'foreign');
+      const localPoint = animator.captureVisibleSubjectPoint('shared', a);
+      const foreign = animator.captureVisibleSubjectPoint('foreign', a);
+      local.style.display = 'none';
+      const displayHidden = animator.captureVisibleSubjectPoint('shared', a);
+      local.style.display = ''; a.host.setAttribute('style', 'opacity:0');
+      const opacityHidden = animator.captureVisibleSubjectPoint('shared', a);
+      return { local: localPoint !== null, foreign, displayHidden, opacityHidden };
+    });
+    expect(result).toEqual({ local: true, foreign: null, displayHidden: null, opacityHidden: null });
+    diagnostics.assertEmpty();
+  } finally { diagnostics.stop(); }
+});

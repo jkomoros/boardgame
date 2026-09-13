@@ -1,7 +1,7 @@
 import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
+import type { AnimationKey } from './_move_names.js';
 import type { GameState, State } from './_types.js';
 import {
   diffVisibleComponents,
@@ -57,7 +57,7 @@ export class BoardgameRenderGameTictactoe extends GameRenderer {
   ];
 
   override effectsForTransition(
-    context: EffectTransitionContext<State, MoveName>,
+    context: EffectTransitionContext<State, AnimationKey>,
   ): readonly EffectSpec[] {
     if (context.kind === 'initial') return [];
     const winners = winningTokenIds(context.after.Game.Slots);

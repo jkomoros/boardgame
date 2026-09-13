@@ -6,7 +6,9 @@ import { styleMap } from 'lit/directives/style-map.js';
 export interface TrackStep<Key extends string | number = string | number> {
   readonly key: Key;
   readonly label: string;
+  /** Optional background; pair dark or saturated colors with a contrasting inkColor. */
   readonly color?: string;
+  readonly inkColor?: string;
 }
 
 /** A labelled sequence with one current value; game rules remain with the author. */
@@ -47,14 +49,17 @@ export class BoardgameTrack extends LitElement {
         || keys.has(step.key) || typeof step.label !== 'string' || !step.label.trim()) {
         throw new Error('boardgame-track requires unique keys and labelled steps');
       }
-      if (step.color !== undefined && !CSS.supports('color', step.color)) throw new Error('boardgame-track step color must be a CSS color');
+      for (const color of [step.color, step.inkColor]) {
+        if (color !== undefined && !CSS.supports('color', color)) throw new Error('boardgame-track step colors must be CSS colors');
+      }
+      if (step.color?.trim().toLowerCase() === 'currentcolor') throw new Error('boardgame-track background must not equal its text color');
       keys.add(step.key);
     }
     return html`<div id="label" part="label">${this.label}</div>
       <div id="steps" part="steps" role="list" aria-labelledby="label">
         ${repeat(this.steps, step => step.key, step => html`<div class="step" part="step"
           role="listitem" aria-current=${step.key === this.value ? 'step' : nothing}
-          style=${styleMap({ '--step-color': step.color ?? null })}>
+          style=${styleMap({ '--step-color': step.color ?? null, color: step.inkColor ?? null })}>
           <span class="marker" aria-hidden="true">${step.key === this.value ? '▼' : nothing}</span>
           ${step.label}</div>`)}
       </div>`;

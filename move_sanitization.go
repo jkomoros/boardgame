@@ -3,6 +3,10 @@ package boardgame
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"unicode"
+	"unicode/utf16"
+	"unicode/utf8"
 
 	"github.com/jkomoros/boardgame/enum"
 )
@@ -32,6 +36,11 @@ func configuredMoveNameSanitization(config PropertyCollection) (map[string]Polic
 	if !ok {
 		return map[string]Policy{SanitizationDefaultGroup: PolicyVisible}, "", nil
 	}
+	if configured.hiddenAnimationKey != "" {
+		if err := validateAnimationKey(configured.hiddenAnimationKey); err != nil {
+			return nil, "", fmt.Errorf("hidden animation key: %w", err)
+		}
+	}
 	if configured.err != "" {
 		return nil, "", errors.New(configured.err)
 	}
@@ -42,6 +51,18 @@ func configuredMoveNameSanitization(config PropertyCollection) (map[string]Polic
 		}
 	}
 	return policies, configured.hiddenAnimationKey, nil
+}
+
+// Keep server-emittable vocabulary within clientMoveFromWire's contract.
+// JavaScript measures strings in UTF-16 code units, not UTF-8 bytes.
+func validateAnimationKey(key string) error {
+	if !utf8.ValidString(key) || strings.TrimFunc(key, func(r rune) bool { return unicode.IsSpace(r) || r == '\ufeff' }) == "" {
+		return errors.New("animation key must be a non-empty valid string")
+	}
+	if len(utf16.Encode([]rune(key))) > 256 {
+		return errors.New("animation key exceeds 256 UTF-16 code units")
+	}
+	return nil
 }
 
 // MovePropertySanitizer is the optional override implemented by base.Move.

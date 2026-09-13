@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -72,5 +73,26 @@ func TestMoveAnimationKeys(t *testing.T) {
 	}
 	if (&MoveInfo{}).AnimationKeys() != nil || (*MoveInfo)(nil).AnimationKeys() != nil {
 		t.Fatal("uninitialized info has keys")
+	}
+}
+
+func TestAnimationKeyWireBoundary(t *testing.T) {
+	for _, key := range []string{" \t\n", "\ufeff", strings.Repeat("a", 257), strings.Repeat("🎲", 129), string([]byte{0xff})} {
+		if err := validateAnimationKey(key); err == nil {
+			t.Fatalf("accepted invalid key %q", key)
+		}
+		config := make(PropertyCollection)
+		SetMoveNameSanitization(config, "hidden", key)
+		if _, _, err := configuredMoveNameSanitization(config); err == nil {
+			t.Fatalf("accepted invalid alias %q", key)
+		}
+		if _, err := newMoveType(defaultMoveConfig{name: key}, nil); err == nil || !strings.Contains(err.Error(), "animation key") {
+			t.Fatalf("move name wasn't rejected at construction: %v", err)
+		}
+	}
+	for _, key := range []string{strings.Repeat("a", 256), strings.Repeat("中", 256), strings.Repeat("🎲", 128)} {
+		if err := validateAnimationKey(key); err != nil {
+			t.Fatalf("rejected valid key: %v", err)
+		}
 	}
 }

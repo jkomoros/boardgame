@@ -27,7 +27,7 @@ export class DiceKeepDemo extends LitElement {
     @media(max-width:600px) { .zones { grid-template-columns:1fr; } }
   `;
   @property({ attribute: false }) state = { tray: Array.from({ length: 5 }, (_, i) => makeDie(i)), kept: [] as DemoDie[] };
-  @property({ type: Number }) gameVersion = 0;
+  @property({ type: Number, attribute: false }) gameVersion = 0;
   @property({ type: Boolean }) busy = false;
   readonly gameName = 'dice-demo'; readonly gameId = 'fixture'; readonly snapshotEpoch = 0;
   readonly viewingAsPlayer = 0; readonly proposingAsPlayer = 0; readonly proposingAsAdmin = false;

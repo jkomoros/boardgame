@@ -16,3 +16,14 @@ export function checkTransitionKeys(renderer: Renderer, context: EffectTransitio
   renderer.move('Hidden Action');
   renderer.motionCohortsForTransition(context);
 }
+
+export class TransitionRenderer extends BoardgameBaseGameRenderer<State, object, 'Play', { Play: object },
+  object, object, Record<never, never>, 'Play' | 'Retire' | 'Hidden Action'> {
+  override effectsForTransition(context: EffectTransitionContext<State, 'Play' | 'Retire' | 'Hidden Action'>) {
+    if (context.move?.AnimationKey === 'Retire') {
+      // @ts-expect-error Transition-only vocabulary never becomes proposable inside a hook.
+      this.move(context.move.AnimationKey);
+    }
+    return [];
+  }
+}

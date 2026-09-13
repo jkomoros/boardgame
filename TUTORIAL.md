@@ -2179,8 +2179,9 @@ different and stronger thing than a decorative background.
 ##### Tracks and small mats
 
 Use a `boardgame-track` for a labelled sequence and one current value. Its
-steps are `{ key, label, color? }` records; the current `value` matches a key.
-The track wraps to its available width, keeps the current position marked
+steps are `{ key, label, color?, inkColor? }` records; the current `value` matches a key.
+Pair a dark or saturated background `color` with a contrasting `inkColor`; custom
+palettes own their contrast. The track wraps to its available width, keeps the current position marked
 without animation, and exposes it to assistive technology. Darwin derives its
 climate steps from the generated enum. A missing value simply marks no step.
 

@@ -12,7 +12,7 @@ test('track and mat retain labelled state and fit a narrow containing surface', 
       root.style.cssText = 'max-width:1000px;margin:auto';
       const track = document.createElement('boardgame-track');
       track.label = 'Climate';
-      track.steps = Array.from({ length: 9 }, (_, key) => ({ key, label: `Climate ${key + 1}`, color: `hsl(${220 - key * 20} 45% 85%)` }));
+      track.steps = Array.from({ length: 9 }, (_, key) => ({ key, label: `Climate ${key + 1}`, color: key === 0 ? '#000' : `hsl(${220 - key * 20} 45% 85%)`, inkColor: key === 0 ? '#fff' : '#202b32' }));
       track.value = 4;
       const mat = document.createElement('boardgame-mat');
       mat.label = 'Species 1';
@@ -39,11 +39,22 @@ test('track and mat retain labelled state and fit a narrow containing surface', 
       const geometry = await page.evaluate(() => {
         const root = document.querySelector<HTMLElement>('#arrangements')!;
         const mat = document.querySelector('boardgame-mat')!;
-        return { width: root.clientWidth, scroll: root.scrollWidth,
+        const track = document.querySelector('boardgame-track')!;
+        const box = track.shadowRoot!.querySelector('#steps')!.getBoundingClientRect();
+        const cells = [...track.shadowRoot!.querySelectorAll('.step')].map(cell => cell.getBoundingClientRect());
+        const first = track.shadowRoot!.querySelector('.step')!;
+        return { contained: cells.every(cell => cell.left >= box.left && cell.right <= box.right
+            && cell.top >= box.top && cell.bottom <= box.bottom), rows: new Set(cells.map(cell => cell.top)).size,
+          ink: getComputedStyle(first).color, background: getComputedStyle(first).backgroundColor,
+          width: root.clientWidth, scroll: root.scrollWidth,
           content: mat.shadowRoot!.querySelector('#content')!.getBoundingClientRect().width };
       });
       expect(geometry.scroll).toBeLessThanOrEqual(geometry.width + 1);
       expect(geometry.content).toBeGreaterThan(80);
+      expect(geometry.contained).toBe(true);
+      expect(geometry.rows).toBeGreaterThan(1);
+      expect(geometry.ink).toBe('rgb(255, 255, 255)');
+      expect(geometry.background).toBe('rgb(0, 0, 0)');
     }
     await page.evaluate(async () => {
       const mat = document.querySelector('boardgame-mat')!;
