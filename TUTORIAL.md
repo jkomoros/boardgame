@@ -1912,6 +1912,12 @@ its default slot for status or callout content. Drop down to
 `boardgame-component-stack` when you need board/spatial geometry or unusual
 animation plumbing.
 
+Zones work in ordinary flex rows without a width declaration. Their intrinsic
+inline size defaults to `12rem` and still shrinks to fit; override
+`--boardgame-zone-intrinsic-inline-size` when a particular collection needs a
+different starting size. A stack draws its first component on top, so a move
+that adds a new top card should use `MoveToFirstSlot`.
+
 When a renderer has one arbitrary panel per player, let
 `boardgame-player-grid` own the collection layout instead of repeating flexbox
 breakpoints in the game:
