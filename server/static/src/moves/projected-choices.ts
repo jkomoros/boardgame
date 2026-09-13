@@ -84,6 +84,8 @@ export interface ProjectedStackChoices<
   readonly set: ProjectedMoveChoiceSet<MoveName, Projection>;
   /** Full stack-slot alignment is intentional: sparse candidate indexes stay sparse. */
   readonly actions: readonly (BoundMoveAction<MoveName, Projection['input']> | null)[];
+  /** Availability is separate so disabled candidates retain their exact action and reason. */
+  readonly availableSlots: readonly boolean[];
 }
 
 export interface ProjectedPlayerChoice<
@@ -125,15 +127,21 @@ export function projectedStackChoices<
   const components = Array.isArray(stack?.Components) ? stack.Components : [];
   const actions: (BoundMoveAction<MoveName, Projection['input']> | null)[] =
     Array.from({ length: components.length }, () => null);
+  const availableSlots = Array.from({ length: components.length }, () => false);
   for (const candidate of set.candidates) {
     const index = candidate.value;
     // A renderer can momentarily hold the old stack beside a new projection (or
     // vice versa). Fail closed and leave the generic fallback available.
-    if (!candidate.available || !Number.isSafeInteger(index) || index < 0
+    if (!Number.isSafeInteger(index) || index < 0
       || index >= components.length || components[index] === null) continue;
     actions[index] = candidate.action;
+    availableSlots[index] = candidate.available;
   }
-  const binding = Object.freeze({ set, actions: Object.freeze(actions) });
+  const binding = Object.freeze({
+    set,
+    actions: Object.freeze(actions),
+    availableSlots: Object.freeze(availableSlots),
+  });
   projectedStackBindings.add(binding);
   return binding;
 }

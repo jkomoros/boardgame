@@ -86,11 +86,20 @@ export class ProjectedChoiceConsumptionController implements ReactiveController 
   }
 
   #isRendered(): boolean {
-    if (!this.#host.isConnected || this.#host.hidden
-      || this.#host.closest('[hidden], [aria-hidden="true"]')) return false;
-    const style = getComputedStyle(this.#host);
-    return style.display !== 'none' && style.visibility !== 'hidden'
-      && this.#host.getClientRects().length > 0;
+    if (!this.#host.isConnected || this.#host.getClientRects().length === 0) return false;
+    let element: Element | null = this.#host;
+    while (element) {
+      if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') return false;
+      const style = getComputedStyle(element);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
+      if (element.parentElement) {
+        element = element.parentElement;
+        continue;
+      }
+      const root = element.getRootNode();
+      element = root instanceof ShadowRoot ? root.host : null;
+    }
+    return true;
   }
 }
 

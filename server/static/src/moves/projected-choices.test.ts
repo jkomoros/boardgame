@@ -166,6 +166,15 @@ test('native adapters retain exact actions and preserve sparse source indexes', 
   // A projection beside an empty or older stack cannot manufacture a claim.
   assert.deepEqual(projectedStackChoices(cardSet, { Components: [] } as never).actions, []);
 
+  const disabledSet = buildProjectedMoveChoices<Projections>({
+    wire: { ...base, Sets: [base.Sets[2]] },
+    stateVersion: 7, schema: projectionSchema,
+    schemaFingerprint: 'projection-fingerprint', playerPresentations: [], action: actions(),
+  }).get('Choose Card')!;
+  const disabledBinding = projectedStackChoices(disabledSet, stack);
+  assert.equal(disabledBinding.actions[3], disabledSet.candidates[1].action);
+  assert.equal(disabledBinding.availableSlots[3], false);
+
   const playerSet = choices.get('Choose Player')!;
   const playerBinding = projectedPlayerChoices(playerSet, index => `Seat ${index + 1}`);
   assert.deepEqual(playerBinding.choices.map(choice => [choice.playerIndex, choice.label]), [

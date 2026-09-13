@@ -1022,7 +1022,8 @@ export class BoardgameComponentStack extends LitElement {
   private _consumableProjectedChoiceSet() {
     if (!isProjectedStackChoices(this.projectedChoices)) return null;
     const components = [...this.children].filter(element => element.hasAttribute('boardgame-component'));
-    return this.projectedChoices.actions.some((action, index) => action !== null && components[index])
+    return this.projectedChoices.actions.some((action, index) => action !== null
+      && this.projectedChoices!.availableSlots[index] && components[index])
       ? this.projectedChoices.set
       : null;
   }
