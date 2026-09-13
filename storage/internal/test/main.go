@@ -58,7 +58,40 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 	ListingTest(factory, testName, connectConfig, t)
 	TableLeaseTest(factory, connectConfig, t)
 	ProposalFrontierTest(factory, connectConfig, t)
+	AtomicGameStateMoveTest(factory, connectConfig, t)
 
+}
+
+// AtomicGameStateMoveTest verifies that a later record failure rolls back an
+// earlier game-head update in the same save operation.
+func AtomicGameStateMoveTest(factory StorageManagerFactory, connectConfig string, t *testing.T) {
+	storage := factory()
+	defer storage.Close()
+	defer storage.CleanUp()
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err)
+	}
+	manager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	failedHead := game.StorageRecord()
+	failedHead.Finished = true
+	if err := storage.SaveGameAndCurrentState(failedHead, game.CurrentState().StorageRecord(), nil); err == nil {
+		t.Fatal("duplicate state save unexpectedly succeeded")
+	}
+	stored, err := storage.Game(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Finished {
+		t.Fatal("failed save partially updated the durable game head")
+	}
 }
 
 // ProposalFrontierTest verifies the durable marker contract shared by every
