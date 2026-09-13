@@ -82,10 +82,10 @@ export class BoardgameRenderGameMemory extends GameRenderer {
     if (diff.status !== 'exact' || diff.added.length !== 1 || !isMatch) return [];
     const matchedCard = diff.added[0];
     if (!matchedCard) return [];
-    // The flip carries ordinary reveals. A completed match gets one quiet,
-    // geometry-only acknowledgment on the newly revealed public card.
+    // The flip carries ordinary reveals. A completed match gets one quiet
+    // acknowledgment only after the newly revealed card arrives.
     return [fx.pulse({
-      at: fx.subject(matchedCard),
+      at: fx.motion(matchedCard),
       tone: 'reward',
       intensity: 'subtle',
       key: 'memory-match',

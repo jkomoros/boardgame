@@ -3570,10 +3570,173 @@ test('restrained game pilots emit one stationary cue and keep the result legible
     })]);
     expect(result.winningTypes).toEqual(['token', 'token', 'token']);
     expect(result.memoryMatchEffects).toEqual([expect.objectContaining({
-      kind: 'pulse', at: { kind: 'subject', subjectId: 'memory-card-1' },
+      kind: 'pulse', at: { kind: 'motion', subjectId: 'memory-card-1', moment: 'arrival' },
       tone: 'reward', intensity: 'subtle', key: 'memory-match',
     })]);
     expect(result.memoryMismatchEffects).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('Memory match pulse waits for the real card flip arrival', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await retryRendererEvaluation(page, () => page.evaluate(async () => {
+      await Promise.all([
+        import('/game-src/memory/boardgame-render-game-memory.ts'),
+        import('/src/components/boardgame-component-animator.ts'),
+        import('/src/components/boardgame-component-stack.ts'),
+        import('/src/components/boardgame-effect-layer.ts'),
+      ]);
+      const { cardView } = await import('/src/client.ts');
+      const { createEffectTransitionContext, fx } = await import('/src/effects/effect-spec.ts');
+      const {
+        memoryRendererFixture,
+        memoryOneRevealedFixtureState,
+        memoryMatchedFixtureState,
+      } = await import('/game-src/memory/boardgame-render-fixtures-memory.ts');
+
+      const renderer = document.createElement(memoryRendererFixture.tagName) as HTMLElement & {
+        effectsForTransition(context: unknown): readonly object[];
+      };
+      const [effect] = renderer.effectsForTransition(createEffectTransitionContext({
+        before: memoryOneRevealedFixtureState,
+        after: memoryMatchedFixtureState,
+        move: { AnimationKey: 'Reveal Card', Version: 4 },
+        version: 4,
+        snapshotEpoch: 4,
+      }));
+      if (!effect) throw new Error('Memory match effect was not planned');
+
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        prepare(): void;
+        animateFlip(): Promise<void>;
+        observeStructuralMotionEvents(observer: (event: {
+          kind: string;
+          subjectId?: string;
+        }) => void): () => void;
+
+      };
+      const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        componentView: unknown;
+        stack: unknown;
+        Components: Array<HTMLElement & {
+          faceUp: boolean;
+          updateComplete: Promise<unknown>;
+        }>;
+      };
+      const layer = document.createElement('boardgame-effect-layer') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        shadowRoot: ShadowRoot;
+        configure(config: object): void;
+        beginMotionTransition(expected: boolean): void;
+        playTransition(effect: object): {
+          finished: Promise<{ status: string; reason?: string }>;
+        };
+      };
+      const card = (faceUp: boolean) => ({
+        ID: 'memory-card-1', Index: 1, Deck: 'cards', GameName: 'memory',
+        Values: { FaceUp: faceUp },
+      });
+      const stackState = (faceUp: boolean) => ({
+        Deck: 'cards', Indexes: [1], IDs: ['memory-card-1'],
+        IDsLastSeen: { 'memory-card-1': faceUp ? 4 : 3 },
+        ShuffleCount: 0, Size: 1, MaxSize: 1, GameName: 'memory',
+        Components: [faceUp ? card(true) : {}],
+      });
+      stack.style.setProperty('--animation-length', '1000ms');
+      stack.componentView = cardView<any>({
+        properties: ({ kind, component }) => ({
+          faceUp: kind === 'visible' && component.Values.FaceUp,
+        }),
+      });
+      stack.stack = stackState(false);
+      document.body.append(animator, stack, layer);
+      await Promise.all([animator.updateComplete, stack.updateComplete, layer.updateComplete]);
+      const cardElement = stack.querySelector('#memory-card-1') as (HTMLElement & {
+        faceUp: boolean;
+        updateComplete: Promise<unknown>;
+      }) | null;
+      if (!cardElement) throw new Error('Memory card was not rendered');
+      await cardElement.updateComplete;
+      layer.configure({
+        anchorRoot: document,
+        seedScope: 'memory-match-ordering',
+        theme: {},
+        animationContext: null,
+        motionSource: animator,
+      });
+
+      const lifecycle: string[] = [];
+      const stop = animator.observeStructuralMotionEvents(event => {
+        if (event.subjectId === 'memory-card-1') lifecycle.push(event.kind);
+      });
+      const beforeFaceUp = cardElement.faceUp;
+      animator.prepare();
+      stack.stack = stackState(true);
+      await stack.updateComplete;
+      await cardElement.updateComplete;
+      const afterFaceUp = cardElement.faceUp;
+      layer.beginMotionTransition(true);
+      const match = layer.playTransition(effect);
+      const flip = animator.animateFlip();
+      for (let frame = 0; frame < 30 && !lifecycle.includes('active-observed'); frame++) {
+        await new Promise(requestAnimationFrame);
+      }
+      const activeAnimations = cardElement.shadowRoot?.querySelector('#inner')?.getAnimations() ?? [];
+      const duringFlip = {
+        lifecycle: [...lifecycle],
+        activeAnimations: activeAnimations.length,
+        pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
+        faceUp: cardElement.faceUp,
+        beforeFaceUp,
+        afterFaceUp,
+
+      };
+      for (const animation of activeAnimations) animation.finish();
+      await flip;
+      for (let frame = 0; frame < 10
+        && layer.shadowRoot.querySelectorAll('.pulse').length === 0; frame++) {
+        await new Promise(requestAnimationFrame);
+      }
+      const afterArrival = {
+        lifecycle: [...lifecycle],
+        pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
+      };
+      for (const animation of layer.shadowRoot.querySelectorAll('.pulse')[0]
+        ?.getAnimations() ?? []) animation.finish();
+      const matchResult = await match.finished;
+
+      layer.beginMotionTransition(true);
+      const missing = layer.playTransition(fx.pulse({
+        at: fx.motion('missing-memory-card'),
+        advanced: { durationMs: 120 },
+      }));
+      animator.prepare();
+      await animator.animateFlip();
+      const missingResult = await missing.finished;
+      stop();
+      renderer.remove();
+      animator.remove();
+      stack.remove();
+      layer.remove();
+      return { duringFlip, afterArrival, matchResult, missingResult };
+    }));
+
+    expect(result.duringFlip.beforeFaceUp).toBe(false);
+    expect(result.duringFlip.afterFaceUp).toBe(true);
+    expect(result.duringFlip.lifecycle).toContain('active-observed');
+    expect(result.duringFlip.activeAnimations).toBeGreaterThan(0);
+    expect(result.duringFlip.pulses).toBe(0);
+    expect(result.afterArrival.lifecycle).toContain('finished');
+    expect(result.afterArrival.pulses).toBe(1);
+    expect(result.matchResult).toEqual({ status: 'finished' });
+    expect(result.missingResult).toEqual({ status: 'skipped', reason: 'missing-anchor' });
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

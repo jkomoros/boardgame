@@ -24,6 +24,7 @@ type projectedChoicesDelegate struct {
 	*legalLedgerDelegate
 	rejectAll         bool
 	projectionCount   int
+	playerCount       int
 	namePolicy        string
 	moveName          string
 	legalCalls        atomic.Int32
@@ -35,6 +36,19 @@ func newProjectedChoicesDelegate() *projectedChoicesDelegate {
 		legalLedgerDelegate: &legalLedgerDelegate{},
 		projectionCount:     1,
 	}
+}
+
+func (d *projectedChoicesDelegate) DefaultNumPlayers() int {
+	if d.playerCount > 0 {
+		return d.playerCount
+	}
+	return d.legalLedgerDelegate.DefaultNumPlayers()
+}
+func (d *projectedChoicesDelegate) LegalNumPlayers(count int) bool {
+	if d.playerCount > 0 {
+		return count >= 1 && count <= d.playerCount
+	}
+	return d.legalLedgerDelegate.LegalNumPlayers(count)
 }
 
 func (d *projectedChoicesDelegate) ConfigureMoves() []boardgame.MoveConfig {
@@ -365,12 +379,13 @@ func TestProjectedMoveChoicesFailureIsExplicitAndGeneric(t *testing.T) {
 		t.Fatalf("manager boot error = %v; want projection-set limit", err)
 	}
 
+	// Move names now fail early at manager construction. Exceed the runtime
+	// candidate budget instead, before any candidate's Legal evaluation.
 	delegate := newProjectedChoicesDelegate()
 	delegate.rejectAll = true
-	delegate.moveName = strings.Repeat("oversized", maxProjectedMoveChoicesBytes/len("oversized")+1)
+	delegate.playerCount = maxProjectedMoveCandidatesPerSet + 1
 	game := newProjectedChoicesGame(t, delegate)
 	delegate.legalCalls.Store(0)
-
 	snapshot := (&Server{}).projectedMoveChoicesForBundle(game, game.CurrentState(), 0)
 	if snapshot == nil || snapshot.Status != projectedMoveChoicesStatusFailed || len(snapshot.Sets) != 0 {
 		t.Fatalf("failed snapshot = %#v", snapshot)
@@ -386,7 +401,7 @@ func TestProjectedMoveChoicesFailureIsExplicitAndGeneric(t *testing.T) {
 		t.Fatalf("failed snapshot omitted schema identity: %#v", snapshot)
 	}
 	if delegate.legalCalls.Load() != 0 {
-		t.Fatalf("wire preflight performed %d Legal calls before failing", delegate.legalCalls.Load())
+		t.Fatalf("candidate preflight performed %d Legal calls before failing", delegate.legalCalls.Load())
 	}
 }
 
