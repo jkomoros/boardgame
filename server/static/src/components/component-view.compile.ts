@@ -109,5 +109,20 @@ const dice = dieView<ExpandedStack<{ Faces: number[] }, { SelectedFace: number; 
 dice.withProperties({ faceNames: { 6: 'Star' } });
 // @ts-expect-error identity remains stack-owned for dice
 dice.withProperties({ id: 'borrowed' });
+// @ts-expect-error stack mode cannot be disabled through a die recipe
+dice.withProperties({ stackManaged: false });
+// @ts-expect-error stack-managed dice derive their faces from the bound item
+dice.withProperties({ faces: [6, 6, 6] });
+// @ts-expect-error stack-managed dice derive their selected face from the bound item
+dice.withProperties({ selectedFaceIndex: 2 });
+// @ts-expect-error the enclosing stack owns activation for stack-managed dice
+dice.withProperties({ action: null });
 // @ts-expect-error dice do not expose card flips
 dice.withProperties({ faceUp: true });
+
+dieView<ExpandedStack<{ Faces: number[] }, { SelectedFace: number; RollCount: number }>>({
+  // @ts-expect-error dynamic recipe properties cannot take stack ownership either
+  properties: () => ({
+    stackManaged: false,
+  }),
+});

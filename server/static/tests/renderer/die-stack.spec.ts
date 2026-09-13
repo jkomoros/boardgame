@@ -210,6 +210,54 @@ test('pool budgets reject invalid bounds before they can allocate roll work', as
   expect(errors.every(message => message.includes('rollBudget requires'))).toBe(true);
 });
 
+test('die views reject stack-owned state and interaction overrides at runtime', async ({ page }) => {
+  await prepareRendererFixturePage(page);
+  const result = await page.evaluate(async () => {
+    const {
+      createComponentForView,
+      dieView,
+      updateComponentFromView,
+    } = await import('/src/components/component-view.ts');
+    const messages: string[] = [];
+    const view = dieView();
+    for (const [key, value] of Object.entries({
+      stackManaged: false,
+      action: null,
+      faces: [9, 9],
+      selectedFaceIndex: 1,
+    })) {
+      try {
+        (view as any).withProperties({ [key]: value });
+      } catch (error) {
+        messages.push(String(error));
+      }
+    }
+    const dynamic = (dieView as any)({ properties: () => ({ faces: [7, 8] }) });
+    const host = createComponentForView(dynamic);
+    let dynamicMessage = '';
+    try {
+      updateComponentFromView(dynamic, host, {
+        ID: 'die', Index: 0, Deck: 'dice', GameName: 'fixture',
+        Values: { Faces: [1, 2, 3] },
+        DynamicValues: { SelectedFace: 0, Value: 1, RollCount: 0 },
+      }, 0);
+    } catch (error) {
+      dynamicMessage = String(error);
+    }
+    const allowed = view.withProperties({ symbols: { '6': '★' } });
+    return { messages, dynamicMessage, allowed: !!allowed };
+  });
+  expect(result.messages).toHaveLength(4);
+  expect(result.messages).toEqual(expect.arrayContaining([
+    expect.stringContaining('stackManaged is owned'),
+    expect.stringContaining('action is owned'),
+    expect.stringContaining('faces is owned'),
+    expect.stringContaining('selectedFaceIndex is owned'),
+  ]));
+  expect(result.dynamicMessage).toContain('faces is owned');
+  expect(result.allowed).toBe(true);
+});
+
 test('retained hosts keep their landed pose through cosmetic recipe updates', async ({ page }) => {
   await mount(page);
   const result = await page.evaluate(async () => {

@@ -39,11 +39,12 @@ export type SettableComponentProperties<ElementType extends BoardgameComponent> 
 export interface ComponentViewOptions<
   S extends ExpandedStack<object, object>,
   ElementType extends BoardgameComponent,
+  Properties extends SettableComponentProperties<ElementType> = SettableComponentProperties<ElementType>,
 > {
   /** Render light-DOM content into a stable component host. */
   readonly render?: (context: ComponentViewContext<S>) => unknown;
   /** Set typed host properties such as card faceUp/rotated or token color. */
-  readonly properties?: (context: ComponentViewContext<S>) => SettableComponentProperties<ElementType>;
+  readonly properties?: (context: ComponentViewContext<S>) => Properties;
 }
 
 /**
@@ -54,20 +55,23 @@ export interface ComponentViewOptions<
 export interface ComponentView<
   S extends ExpandedStack<object, object> = ExpandedStack<object, object>,
   ElementType extends BoardgameComponent = BoardgameComponent,
+  Properties extends SettableComponentProperties<ElementType> = SettableComponentProperties<ElementType>,
 > {
   readonly __componentViewStack?: S;
   /** Add stack-specific, type-checked host properties without changing the recipe identity. */
-  withProperties(properties: SettableComponentProperties<ElementType>): ComponentView<S, ElementType>;
+  withProperties(properties: Properties): ComponentView<S, ElementType, Properties>;
 }
 
 interface InternalComponentView<
   S extends ExpandedStack<object, object>,
   ElementType extends BoardgameComponent,
-> extends ComponentView<S, ElementType> {
+  Properties extends SettableComponentProperties<ElementType>,
+> extends ComponentView<S, ElementType, Properties> {
   readonly create: () => ElementType;
-  readonly options: ComponentViewOptions<S, ElementType>;
-  readonly base?: InternalComponentView<S, ElementType>;
-  readonly overrides?: SettableComponentProperties<ElementType>;
+  readonly options: ComponentViewOptions<S, ElementType, Properties>;
+  readonly base?: InternalComponentView<S, ElementType, Properties>;
+  readonly overrides?: Properties;
+  readonly validateProperties?: (properties: Properties) => void;
 }
 
 const initialProperties = new WeakMap<BoardgameComponent, Map<PropertyKey, unknown>>();
@@ -82,12 +86,25 @@ export function componentView<
   create: () => ElementType,
   options: ComponentViewOptions<S, ElementType>,
 ): ComponentView<S, ElementType> {
-  let view!: InternalComponentView<S, ElementType>;
+  return createComponentView(create, options);
+}
+
+function createComponentView<
+  S extends ExpandedStack<object, object>,
+  ElementType extends BoardgameComponent,
+  Properties extends SettableComponentProperties<ElementType>,
+>(
+  create: () => ElementType,
+  options: ComponentViewOptions<S, ElementType, Properties>,
+  validateProperties?: (properties: Properties) => void,
+): ComponentView<S, ElementType, Properties> {
+  let view!: InternalComponentView<S, ElementType, Properties>;
   view = Object.freeze({
     create,
     options,
-    withProperties: (properties: SettableComponentProperties<ElementType>) => bindProperties(view, properties),
-  }) as InternalComponentView<S, ElementType>;
+    validateProperties,
+    withProperties: (properties: Properties) => bindProperties(view, properties),
+  }) as InternalComponentView<S, ElementType, Properties>;
   return view;
 }
 
@@ -116,17 +133,29 @@ export function tokenView<S extends ExpandedStack<object, object>>(
 }
 
 /** Dice use ordinary stack identity, layout, actions, and structural motion. */
+type DieViewProperties = Omit<
+  SettableComponentProperties<BoardgameDie>,
+  'action' | 'faces' | 'selectedFaceIndex' | 'stackManaged'
+>;
+
 export function dieView<S extends ExpandedStack<object, object>>(
-  options: ComponentViewOptions<S, BoardgameDie> & { readonly rollBudget?: DieRollBudget } = {},
-): ComponentView<S, BoardgameDie> {
+  options: ComponentViewOptions<S, BoardgameDie, DieViewProperties>
+    & { readonly rollBudget?: DieRollBudget } = {},
+): ComponentView<S, BoardgameDie, DieViewProperties> {
   if (options.rollBudget) validateDieRollBudget(options.rollBudget);
   const budget = options.rollBudget ? Object.freeze({ ...options.rollBudget }) : null;
-  return componentView(() => {
+  return createComponentView(() => {
     const die = document.createElement('boardgame-die');
     die.stackManaged = true;
     die.rollBudget = budget;
     return die;
-  }, options);
+  }, options, properties => {
+    for (const key of ['action', 'faces', 'selectedFaceIndex', 'stackManaged'] as const) {
+      if (Object.prototype.hasOwnProperty.call(properties, key)) {
+        throw new Error(`dieView(): ${key} is owned by the stack-managed die host`);
+      }
+    }
+  });
 }
 
 export function createComponentForView(view: ComponentView): BoardgameComponent {
@@ -155,9 +184,10 @@ export function updateComponentFromView(
 ): void {
   const internal = asInternalView(view);
   const context = contextFor(component, index);
+  const next = Object.assign({}, internal.options.properties?.(context) ?? {}, internal.overrides ?? {});
+  internal.validateProperties?.(next);
   render(internal.options.render?.(context) ?? nothing, element);
 
-  const next = Object.assign({}, internal.options.properties?.(context) ?? {}, internal.overrides ?? {});
   const initial = initialProperties.get(element) ?? new Map<PropertyKey, unknown>();
   const previous = appliedProperties.get(element) ?? new Set<PropertyKey>();
   const nextKeys = new Set<PropertyKey>(Reflect.ownKeys(next));
@@ -184,30 +214,39 @@ export function sameComponentViewRecipe(first: ComponentView | null | undefined,
 function bindProperties<
   S extends ExpandedStack<object, object>,
   ElementType extends BoardgameComponent,
+  Properties extends SettableComponentProperties<ElementType>,
 >(
-  source: InternalComponentView<S, ElementType>,
-  properties: SettableComponentProperties<ElementType>,
-): ComponentView<S, ElementType> {
+  source: InternalComponentView<S, ElementType, Properties>,
+  properties: Properties,
+): ComponentView<S, ElementType, Properties> {
+  source.validateProperties?.(properties);
   const base = source.base ?? source;
-  const overrides = Object.freeze({ ...(source.overrides ?? {}), ...properties });
+  const overrides = Object.freeze({ ...(source.overrides ?? {}), ...properties }) as Properties;
   return Object.freeze({
     create: base.create,
     options: base.options,
     base,
     overrides,
-    withProperties: (next: SettableComponentProperties<ElementType>) => bindProperties(
-      { ...source, base, overrides } as InternalComponentView<S, ElementType>,
+    validateProperties: source.validateProperties,
+    withProperties: (next: Properties) => bindProperties(
+      { ...source, base, overrides } as InternalComponentView<S, ElementType, Properties>,
       next,
     ),
-  }) as InternalComponentView<S, ElementType>;
+  }) as InternalComponentView<S, ElementType, Properties>;
 }
 
-function asInternalView(view: ComponentView): InternalComponentView<ExpandedStack<object, object>, BoardgameComponent> {
-  const candidate = view as Partial<InternalComponentView<ExpandedStack<object, object>, BoardgameComponent>>;
+function asInternalView(view: ComponentView): InternalComponentView<
+  ExpandedStack<object, object>, BoardgameComponent, SettableComponentProperties<BoardgameComponent>
+> {
+  const candidate = view as Partial<InternalComponentView<
+    ExpandedStack<object, object>, BoardgameComponent, SettableComponentProperties<BoardgameComponent>
+  >>;
   if (typeof candidate.create !== 'function' || !candidate.options || typeof candidate.withProperties !== 'function') {
     throw new Error('boardgame-component-stack: componentView must come from cardView(), tokenView(), dieView(), or componentView()');
   }
-  return candidate as InternalComponentView<ExpandedStack<object, object>, BoardgameComponent>;
+  return candidate as InternalComponentView<
+    ExpandedStack<object, object>, BoardgameComponent, SettableComponentProperties<BoardgameComponent>
+  >;
 }
 
 function contextFor(component: Component | null | undefined, index: number): ComponentViewContext<ExpandedStack<object, object>> {
