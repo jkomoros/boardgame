@@ -260,6 +260,11 @@ type MoveInfo struct {
 	initiator int
 	name      string
 	timestamp time.Time
+	// timerGuard is engine-owned optimistic concurrency metadata for a durable
+	// timer completion. It is deliberately absent from MoveStorageRecord: the
+	// timer's state record is the source of truth, while move history remains
+	// byte-compatible with ordinary proposals.
+	timerGuard *timerGuard
 }
 
 // Move is the struct that are how all modifications are made to States after

@@ -1076,6 +1076,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	currentState := g.CurrentState().(*state)
+	if guard := move.Info().timerGuard; guard != nil {
+		if err := validateTimerGuard(currentState, guard); err != nil {
+			return baseErr.WithError(err.Error())
+		}
+	}
 
 	if !proposer.Valid(currentState) {
 		return baseErr.WithError("The proposer was not valid.")
@@ -1116,6 +1121,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	newState.version = versionToSet
+	if guard := move.Info().timerGuard; guard != nil {
+		if err := consumeTimer(newState, guard); err != nil {
+			return baseErr.WithError(err.Error())
+		}
+	}
 
 	if err := applyMoveChoiceRecording(move, newState); err != nil {
 		return baseErr.WithError("The move's configured state effect returned an error:" + err.Error())

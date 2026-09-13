@@ -215,6 +215,64 @@ func compare(manager *boardgame.GameManager, rec *record.Record, storage *storag
 
 var differ = gojsondiff.New()
 
+// compareStateJSONBlobs keeps golden files from before durable timers compatible.
+// Newer goldens compare the full timer intent, except for absolute wall-clock
+// deadlines, which cannot be deterministic between runs.
+func compareStateJSONBlobs(one, two []byte) error {
+	decode := func(blob []byte) (map[string]interface{}, error) {
+		var state map[string]interface{}
+		if err := json.Unmarshal(blob, &state); err != nil {
+			return nil, err
+		}
+		return state, nil
+	}
+
+	oneState, err := decode(one)
+	if err != nil {
+		return errors.New("Couldn't normalize left state: " + err.Error())
+	}
+	twoState, err := decode(two)
+	if err != nil {
+		return errors.New("Couldn't normalize right state: " + err.Error())
+	}
+
+	expectedTimers, expectedHasTimers := twoState["Timers"]
+	if !expectedHasTimers {
+		delete(oneState, "Timers")
+	} else {
+		normalizeDeadlines := func(value interface{}) {
+			timers, ok := value.([]interface{})
+			if !ok {
+				return
+			}
+			for _, timerValue := range timers {
+				timerRecord, ok := timerValue.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				if _, ok := timerRecord["Deadline"]; ok {
+					timerRecord["Deadline"] = "<wall-clock deadline>"
+				}
+			}
+		}
+
+		if actualTimers, ok := oneState["Timers"]; ok {
+			normalizeDeadlines(actualTimers)
+		}
+		normalizeDeadlines(expectedTimers)
+	}
+
+	one, err = json.Marshal(oneState)
+	if err != nil {
+		return errors.New("Couldn't marshal normalized left state: " + err.Error())
+	}
+	two, err = json.Marshal(twoState)
+	if err != nil {
+		return errors.New("Couldn't marshal normalized right state: " + err.Error())
+	}
+	return compareJSONBlobs(one, two)
+}
+
 func compareJSONBlobs(one, two []byte) error {
 
 	diff, err := differ.Compare(one, two)

@@ -436,6 +436,8 @@ The last type of property in the states for Memory is the HideCardsTimer, which 
 
 Timers are rare because they represent parts of the game logic where the time is semantic to the rules of the game. In memory, for example, if players could leave revealed cards showing indefinitely the game would drag on as players competed to exhaustively commit the location of each card to their memory. Contrast that with animations, where the time that passes is merely presentational, to allow the state changes to be visibly demonstrated to players.
 
+Call `Start` and `Cancel` from a move's `Apply` method. The engine persists an active timer's absolute deadline, generation, and serialized completion move in the same commit as the state change. If the move is rejected or storage fails, its timer changes have no effect. Reloading a game restores active timers from storage; an overdue timer is eligible immediately. Timer completions carry the persisted generation, so a duplicate completion or one queued before a later cancel/restart is rejected inside the game's serialized move loop. These lifecycle details are storage-only: player-facing state keeps the existing `{ID, IsTimer}` reference and the separate `ActiveTimers` countdown payload.
+
 ### GameDelegate
 
 OK, so we've defined our state objects. How do we tell the engine to actually use them?

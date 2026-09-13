@@ -36,6 +36,9 @@ type GameManager struct {
 	modifiableGamesLock       sync.RWMutex
 	modifiableGames           map[string]*Game
 	timers                    *timerManager
+	timerTickerStop           chan struct{}
+	timerTickerDone           chan struct{}
+	timerTickerStopOnce       sync.Once
 	initialized               bool
 	logger                    *logrus.Logger
 	variantConfig             VariantConfig
@@ -114,7 +117,37 @@ func (m *ManagerInternals) RecreateGame(rec *GameStorageRecord) (*Game, error) {
 // fire yet. Will return true if there was a timer that was fired, false
 // otherwise.
 func (m *ManagerInternals) ForceNextTimer() bool {
-	return m.manager.timers.ForceNextTimer()
+	fired, _ := m.manager.timers.ForceNextTimerWithError()
+	return fired
+}
+
+// ForceNextTimerWithError forces the next timer and reports the completion
+// move's result. This is useful for deterministic scenario runners, which must
+// distinguish an attempted timer from a successfully committed completion.
+func (m *ManagerInternals) ForceNextTimerWithError() (bool, error) {
+	return m.manager.timers.ForceNextTimerWithError()
+}
+
+// UseManualTimers stops this manager's background timer ticker. Durable timers
+// remain scheduled and may be advanced with ForceNextTimer or
+// ForceNextTimerWithError.
+func (m *ManagerInternals) UseManualTimers() {
+	m.manager.stopTimerTicker()
+}
+
+// Close stops background timer work and freezes every resident modifiable
+// game. It is safe to call more than once.
+func (m *ManagerInternals) Close() {
+	m.manager.stopTimerTicker()
+	m.manager.modifiableGamesLock.RLock()
+	games := make([]*Game, 0, len(m.manager.modifiableGames))
+	for _, game := range m.manager.modifiableGames {
+		games = append(games, game)
+	}
+	m.manager.modifiableGamesLock.RUnlock()
+	for _, game := range games {
+		m.manager.freezeGame(game)
+	}
 }
 
 // ForceFixUp forces the engine to check if a FixUp move applies, even if no
@@ -416,20 +449,35 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	result.modifiableGames = make(map[string]*Game)
 
 	result.timers = newTimerManager(result)
+	result.timerTickerStop = make(chan struct{})
+	result.timerTickerDone = make(chan struct{})
 
 	//Start ticking timers.
 	go func() {
-		//TODO: is there a way to turn off timer ticking for a manager we want
-		//to throw out?
+		defer close(result.timerTickerDone)
+		ticker := time.NewTicker(250 * time.Millisecond)
+		defer ticker.Stop()
 		for {
-			<-time.After(250 * time.Millisecond)
-			result.timers.Tick()
+			select {
+			case <-ticker.C:
+				result.timers.Tick()
+			case <-result.timerTickerStop:
+				return
+			}
 		}
 	}()
 
 	result.initialized = true
 
 	return result, nil
+}
+
+func (g *GameManager) stopTimerTicker() {
+	if g == nil || g.timerTickerStop == nil {
+		return
+	}
+	g.timerTickerStopOnce.Do(func() { close(g.timerTickerStop) })
+	<-g.timerTickerDone
 }
 
 // verifyValidConfigurationOnStruct verifies that if there are any sub-structs
@@ -944,6 +992,13 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	g.modifiableGames[id] = game
 	g.modifiableGamesLock.Unlock()
 
+	// The timer heap is only an in-process scheduler. Rebuild it from the
+	// durable current state whenever a game is checked out after restart or
+	// eviction; overdue timers become immediately eligible on the next tick.
+	if current, ok := game.CurrentState().(*state); ok && current != nil {
+		g.timers.ReconcileState(current)
+	}
+
 	return game
 
 }
@@ -967,6 +1022,7 @@ type refriedState struct {
 	Players         []json.RawMessage
 	Components      map[string][]json.RawMessage
 	SecretMoveCount map[string][]int
+	Timers          []persistedTimerRecord
 	Version         int
 }
 
@@ -1134,6 +1190,9 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*
 				return nil, errors.New("Error unmarshaling component state for deck " + deckName + " index " + strconv.Itoa(i) + ": " + err.Error())
 			}
 		}
+	}
+	if err := restoreTimerStorageRecords(result, refried.Timers); err != nil {
+		return nil, errors.New("Restoring timers failed: " + err.Error())
 	}
 	if err := result.validateComponentConservation(); err != nil {
 		return nil, errors.New("Loaded state violated component conservation: " + err.Error())

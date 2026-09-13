@@ -135,7 +135,7 @@ func visibilityFacetName(facet LegalFacet) string {
 type viewerStateJSON struct{ state *state }
 
 func (v viewerStateJSON) MarshalJSON() ([]byte, error) {
-	return v.state.customMarshalJSON(true, false, true)
+	return v.state.customMarshalJSON(stateJSONOptions{Computed: true, Visibility: true})
 }
 
 func stateJSONForViewer(st ImmutableState) interface{} {
