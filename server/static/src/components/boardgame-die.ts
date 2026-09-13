@@ -1,8 +1,8 @@
-import {
-  BoardgameAnimatableItem,
-  type MotionTrackPlayResult,
-} from './boardgame-animatable-item.js';
+import type { MotionTrackPlayResult } from './boardgame-animatable-item.js';
+import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, nothing } from 'lit';
+import { html as staticHtml, literal } from 'lit/static-html.js';
+import type { HistoricalAppearance } from '../motion/historical-presentation.js';
 import { property } from 'lit/decorators.js';
 import { query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -360,12 +360,26 @@ interface DieRoll {
   readonly resting: string;
 }
 
-export class BoardgameDie extends BoardgameAnimatableItem {
+/** Per-stack budget: at most this many visible dice render/simulate solids. */
+export interface DieRollBudget {
+  readonly durationMs: number;
+  readonly maxSolidDice: number;
+}
+
+export function validateDieRollBudget(budget: DieRollBudget): void {
+  if (!Number.isFinite(budget.durationMs) || budget.durationMs < 0 || budget.durationMs > 5000
+    || !Number.isInteger(budget.maxSolidDice) || budget.maxSolidDice < 0 || budget.maxSolidDice > 32) {
+    throw new Error('dieView(): rollBudget requires durationMs between 0 and 5000 and integer maxSolidDice between 0 and 32');
+  }
+}
+
+export class BoardgameDie extends BoardgameComponent {
   static override styles = [
-    ...(BoardgameAnimatableItem.styles ? [BoardgameAnimatableItem.styles] : []),
+    BoardgameComponent.styles,
     css`
       :host {
-        --effective-die-scale: var(--die-scale, 1.0);
+        --effective-die-scale: var(--die-scale, var(--component-scale, 1.0));
+        --default-component-width: 50px;
       }
 
       /*
@@ -429,8 +443,11 @@ export class BoardgameDie extends BoardgameAnimatableItem {
        * bug, found the hard way.) Everything under #scaler inherits the
        * resolved values.
        */
+      #outer.spacer { visibility: hidden; }
+      #outer { width: fit-content; }
+      :host([stack-managed]) #main { cursor: inherit; }
       #scaler {
-        --die-footprint: var(--die-size, ${DEFAULT_DIE_SIZE_PX}px);
+        --die-footprint: var(--die-size, var(--component-width, ${DEFAULT_DIE_SIZE_PX}px));
         --die-nominal-size: calc(var(--die-footprint) / var(--die-solid-extent, 1));
         /*
          * How far #inner scrolls per face of the REEL. One nominal size, which
@@ -886,7 +903,24 @@ export class BoardgameDie extends BoardgameAnimatableItem {
   ];
 
   @property({ type: Object })
-  item: DieComponent | null = null;
+  override item: DieComponent | null | undefined = undefined;
+
+  /** Set by dieView: the ordinary stack host owns interaction and layout. */
+  @property({ type: Boolean, attribute: 'stack-managed', reflect: true })
+  stackManaged = false;
+
+  private _rollBudget: DieRollBudget | null = null;
+  @property({ attribute: false })
+  get rollBudget(): DieRollBudget | null { return this._rollBudget; }
+  set rollBudget(budget: DieRollBudget | null) {
+    if (budget) validateDieRollBudget(budget);
+    this._rollBudget = budget ? Object.freeze({ ...budget }) : null;
+  }
+
+  protected override _itemChanged(item: DieComponent | null | undefined): void {
+    // Inline dice retain their authored DOM identity and direct-property mode.
+    if (this.stackManaged) super._itemChanged(item);
+  }
 
   /**
    * The face VALUES this die carries, in face-index order — `[10, 20, 30]`, not
@@ -965,9 +999,6 @@ export class BoardgameDie extends BoardgameAnimatableItem {
   @property({ type: Number, attribute: 'state-version' })
   stateVersion: number | null = null;
 
-  @property({ type: Boolean })
-  disabled = false;
-
   @property({ attribute: false })
   action: BoundMoveAction<string, object> | null = null;
 
@@ -998,6 +1029,59 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     return typeof shown === 'number' ? shown : null;
   }
 
+  private _historicalAppearance: HistoricalAppearance | null = null;
+
+  override get historicalPresentationPolicy() { return 'clone-default-slot-safe' as const; }
+
+  override captureHistoricalAppearance(): HistoricalAppearance | null {
+    if (!this.faces.length || this.spacer) return null;
+    const faces = this._faceValues();
+    const appearance: Record<string, string | number | boolean> = {
+      count: faces.length,
+      presented: this._shownFaceIndex(faces.length),
+      resting: this._roll?.resting ?? '',
+      solid: this._solid() !== null,
+    };
+    faces.forEach((face, index) => {
+      appearance[`face${index}`] = face;
+      const name = this._nameForValue(face);
+      appearance[`name${index}`] = name;
+      appearance[`glyph${index}`] = this._glyphForName(name) ?? '';
+    });
+    return Object.freeze(appearance);
+  }
+
+  override installHistoricalAppearance(appearance: HistoricalAppearance): () => void {
+    const count = appearance.count;
+    if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > 100) return () => {};
+    const faces = Array.from({ length: count }, (_, index) => appearance[`face${index}`]);
+    if (!faces.every((face): face is number => typeof face === 'number' && Number.isFinite(face))) return () => {};
+    const previous = { faces: this.faces, faceNames: this.faceNames, symbols: this.symbols,
+      selected: this.selectedFaceIndex, spacer: this.spacer };
+    this._clearRoll();
+    this._historicalAppearance = appearance;
+    this.faces = faces;
+    this.faceNames = Object.fromEntries(faces.map((face, index) => [face, String(appearance[`name${index}`] ?? face)]));
+    this.symbols = Object.fromEntries(faces.map((face, index) => [this.faceNames![face], String(appearance[`glyph${index}`] ?? '')]).filter(([, glyph]) => glyph));
+    this.selectedFaceIndex = typeof appearance.presented === 'number' ? appearance.presented : 0;
+    this.spacer = false;
+    this._roll = { faces, presented: this.selectedFaceIndex, resting: String(appearance.resting ?? ''),
+      cocked: false, durationMs: 0, track: null };
+    this.requestUpdate();
+    return () => {
+      if (this._historicalAppearance !== appearance) return;
+      this._historicalAppearance = null;
+      this._clearRoll();
+      this.faces = previous.faces;
+      this.faceNames = previous.faceNames;
+      this.symbols = previous.symbols;
+      this.selectedFaceIndex = previous.selected;
+      this.spacer = previous.spacer;
+      this._dieState = null;
+      this.requestUpdate();
+    };
+  }
+
   @query('#inner')
   private _innerElement?: HTMLElement;
 
@@ -1016,6 +1100,7 @@ export class BoardgameDie extends BoardgameAnimatableItem {
 
   /** Both item binding and direct properties use the same transition baseline. */
   private _dieState: DieState | null = null;
+  private _wasSolid: boolean | null = null;
   private _rollAnimations: readonly Animation[] = [];
   private _settleAccent: Animation | null = null;
 
@@ -1080,6 +1165,10 @@ export class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   override disconnectedCallback() {
+    // Stack reconciliation can move a retained host within the same task.
+    // Preserve its settled presentation on that reconnect, but invalidate a
+    // genuinely detached host before cancelled playback can announce a result.
+    queueMicrotask(() => { if (!this.isConnected) this._clearRoll(); });
     if (this._boundHandleClick) {
       this.renderRoot.removeEventListener('click', this._boundHandleClick);
     }
@@ -1088,7 +1177,7 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     super.disconnectedCallback();
   }
 
-  override updated(changedProperties: Map<PropertyKey, unknown>) {
+  override updated(changedProperties: Map<string, unknown>) {
     super.updated(changedProperties);
 
     // A pending roll's face assignment has now rendered. A newer snapshot can
@@ -1111,6 +1200,10 @@ export class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   private _handleClick(e: Event) {
+    if (this.stackManaged) {
+      this.handleTap(e);
+      return;
+    }
     if (!isBoundMoveAction(this.action)) {
       if (this.action !== null) e.stopPropagation();
       return;
@@ -1149,6 +1242,10 @@ export class BoardgameDie extends BoardgameAnimatableItem {
 
   /** Install authoritative state, then decide whether this die was thrown. */
   private _updateDieState(changed: Map<PropertyKey, unknown>): void {
+    if (this._historicalAppearance) {
+      if (this._innerElement) this._innerElement.style.transform = this._roll?.resting ?? '';
+      return;
+    }
     if (this.item != null) {
       const item = readDieItem(this.item);
       const faces = item?.faces ?? [];
@@ -1188,6 +1285,9 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     };
     const previous = this._dieState;
     this._dieState = next;
+    const solid = this._solid() !== null;
+    const changedPresentation = this._wasSolid !== null && this._wasSolid !== solid;
+    this._wasSolid = solid;
     // Mounts and replacement components are snapshots, not throws. Comparing
     // the values too prevents a same-sized replacement deck keeping old ink.
     if (!previous || previous.source !== next.source || previous.id !== next.id
@@ -1195,6 +1295,10 @@ export class BoardgameDie extends BoardgameAnimatableItem {
       this._clearRoll();
       this.requestUpdate();
       return;
+    }
+    if (changedPresentation) {
+      this._clearRoll();
+      this.requestUpdate();
     }
     const faceChanged = previous.selectedFaceIndex !== next.selectedFaceIndex;
     const thrown = next.rollCount === null
@@ -1264,7 +1368,9 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     if (!this.faces.length) return;
     // A failure to animate cannot discard the authoritative result. A null
     // track leaves the ordinary reading pose in charge and still completes.
-    const roll = this._planRoll(previousFaceIndex) ?? {
+    const immediate = this.noAnimate || this.rollBudget?.durationMs === 0
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const roll = (immediate ? null : this._planRoll(previousFaceIndex)) ?? {
       faces: this._faceValues(), presented: this._presentedFaceIndex(this.faces.length),
       cocked: false, durationMs: 0, resting: '', track: null,
     };
@@ -1336,7 +1442,7 @@ export class BoardgameDie extends BoardgameAnimatableItem {
       const resting = this._innerTransformForFace(presented);
       return {
         faces: [...this.faces], presented, cocked: false,
-        durationMs: this.animationLengthMs(), resting,
+        durationMs: Math.min(this.animationLengthMs(), this.rollBudget?.durationMs ?? Infinity), resting,
         track: { target: 'visual', property: 'transform',
           from: this._innerTransformForFace(previousFaceIndex), to: resting },
       };
@@ -1382,7 +1488,7 @@ export class BoardgameDie extends BoardgameAnimatableItem {
         faces: assignFaceValues(geometry, faces, presented, desired),
         presented,
         cocked: trajectory.cocked,
-        durationMs,
+        durationMs: Math.min(durationMs, this.rollBudget?.durationMs ?? Infinity),
         track: { target: 'visual', property: 'transform', curve: scene.transform,
           resolution: Math.round(durationMs / FRAME_MS), resting: scene.resting },
         // scene.transform(1) itself, so the two agree BYTE FOR BYTE. Animations
@@ -1630,6 +1736,14 @@ export class BoardgameDie extends BoardgameAnimatableItem {
    * back to the reel rather than throwing during a render pass.
    */
   private _solid(): DieSolid | null {
+    if (this._historicalAppearance?.solid === false) return null;
+    if (!this._historicalAppearance && this.rollBudget && this.stackManaged && this.parentElement) {
+      // Only visible die hosts spend the allowance. DOM order is the stack's
+      // ordinary slot order; hidden/faux/empty slots do not consume it.
+      const visible = [...this.parentElement.children].filter((child): child is BoardgameDie =>
+        child instanceof BoardgameDie && readDieItem(child.item) !== null);
+      if (visible.indexOf(this) >= this.rollBudget.maxSolidDice) return null;
+    }
     const faces = this.faces;
     if (!Array.isArray(faces) || faces.length < 3) return null;
     if (!faces.every((face) => Number.isFinite(face))) return null;
@@ -1983,7 +2097,8 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     const action = this.action;
     const bound = isBoundMoveAction(action);
     const interactive = bound;
-    const effectiveDisabled = this.disabled || !interactive || (bound && !action.canActivate);
+    const surface = this.stackManaged ? literal`div` : literal`button`;
+    const effectiveDisabled = this.stackManaged ? this.disabled : this.disabled || !interactive || (bound && !action.canActivate);
     const status = this._statusMessage();
     const shown = status.loud ? status.text : null;
     const solid = this._solid();
@@ -1996,10 +2111,11 @@ export class BoardgameDie extends BoardgameAnimatableItem {
     // 300px box. Writing it always makes the CSS fallback unreachable except
     // through a bug in this line, and the name is die-scoped so nothing outside
     // the component is plausibly declaring it either.
-    return html`
+    return staticHtml`
+      <div id="outer" class=${this.stackManaged && this.spacer ? 'spacer' : ''}>
       <div id="scaler"
         style="--die-solid-extent:${num(solid ? solidExtent(solid.geometry) : 1)}">
-        <button
+        <${surface}
           id="main"
           type="button"
           aria-label=${this._ariaLabel(interactive, solid)}
@@ -2011,10 +2127,11 @@ export class BoardgameDie extends BoardgameAnimatableItem {
           style="--selected-face-index:${this._presentedFaceIndex(this.faces.length)}"
           class="${this._classes(effectiveDisabled, solid !== null)}">
           ${solid ? this._renderSolid(solid) : this._renderReel()}
-        </button>
+        </${surface}>
         ${shown ? html`<span id="action-status" class="interaction-status"
           role="status" aria-live="polite">${shown}</span>` : nothing}
         <span class="visually-hidden" role="status" aria-live="polite">${this._announcement}</span>
+      </div>
       </div>
     `;
   }

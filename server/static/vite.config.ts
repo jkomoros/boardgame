@@ -42,6 +42,7 @@ export default defineConfig({
     include: [
       'lit',
       'lit/async-directive.js',
+      'lit/static-html.js',
       'lit/decorators.js',
       'lit/directives/class-map.js',
       'lit/directives/repeat.js',

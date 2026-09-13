@@ -99,3 +99,15 @@ cardView<Cards>({
     return context.component.Values.missing;
   },
 });
+
+// Dice satisfy the same host contract without a factory cast.
+import { dieView } from '../client.js';
+const dice = dieView<ExpandedStack<{ Faces: number[] }, { SelectedFace: number; RollCount: number }>>({
+  rollBudget: { durationMs: 900, maxSolidDice: 5 },
+  properties: context => ({ symbols: context.kind === 'visible' ? { '6': '★' } : null }),
+});
+dice.withProperties({ faceNames: { 6: 'Star' } });
+// @ts-expect-error identity remains stack-owned for dice
+dice.withProperties({ id: 'borrowed' });
+// @ts-expect-error dice do not expose card flips
+dice.withProperties({ faceUp: true });

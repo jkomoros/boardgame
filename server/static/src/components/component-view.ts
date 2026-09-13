@@ -8,6 +8,8 @@ import type {
 import { isVisibleComponent } from '../types/boardgame-types.js';
 import './boardgame-card.js';
 import './boardgame-token.js';
+import { validateDieRollBudget } from './boardgame-die.js';
+import type { BoardgameDie, DieRollBudget } from './boardgame-die.js';
 import type { BoardgameComponent } from './boardgame-component.js';
 import type { BoardgameCard } from './boardgame-card.js';
 import type { BoardgameToken } from './boardgame-token.js';
@@ -113,6 +115,20 @@ export function tokenView<S extends ExpandedStack<object, object>>(
   );
 }
 
+/** Dice use ordinary stack identity, layout, actions, and structural motion. */
+export function dieView<S extends ExpandedStack<object, object>>(
+  options: ComponentViewOptions<S, BoardgameDie> & { readonly rollBudget?: DieRollBudget } = {},
+): ComponentView<S, BoardgameDie> {
+  if (options.rollBudget) validateDieRollBudget(options.rollBudget);
+  const budget = options.rollBudget ? Object.freeze({ ...options.rollBudget }) : null;
+  return componentView(() => {
+    const die = document.createElement('boardgame-die');
+    die.stackManaged = true;
+    die.rollBudget = budget;
+    return die;
+  }, options);
+}
+
 export function createComponentForView(view: ComponentView): BoardgameComponent {
   const internal = asInternalView(view);
   const base = internal.base ?? internal;
@@ -189,7 +205,7 @@ function bindProperties<
 function asInternalView(view: ComponentView): InternalComponentView<ExpandedStack<object, object>, BoardgameComponent> {
   const candidate = view as Partial<InternalComponentView<ExpandedStack<object, object>, BoardgameComponent>>;
   if (typeof candidate.create !== 'function' || !candidate.options || typeof candidate.withProperties !== 'function') {
-    throw new Error('boardgame-component-stack: componentView must come from cardView(), tokenView(), or componentView()');
+    throw new Error('boardgame-component-stack: componentView must come from cardView(), tokenView(), dieView(), or componentView()');
   }
   return candidate as InternalComponentView<ExpandedStack<object, object>, BoardgameComponent>;
 }

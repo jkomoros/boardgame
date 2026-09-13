@@ -126,7 +126,7 @@ export type {
   SpatialBoardKey,
 } from './components/spatial-board-geometry.js';
 export { piecesFromSizedStacks, rasterBoardArtwork } from './components/spatial-board-geometry.js';
-export { cardView, componentView, tokenView } from './components/component-view.js';
+export { cardView, componentView, dieView, tokenView } from './components/component-view.js';
 export type { ComponentView, ComponentViewContext, ComponentViewOptions } from './components/component-view.js';
 export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';
 export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
@@ -266,3 +266,4 @@ import './components/boardgame-board-viewport.js';
 export type { TrackStep } from './components/boardgame-track.js';
 import './components/boardgame-track.js';
 import './components/boardgame-mat.js';
+export type { DieRollBudget } from './components/boardgame-die.js';
