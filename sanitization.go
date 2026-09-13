@@ -83,7 +83,7 @@ according to the following table:
 	| PolicyVisible  | All values visible                                               | Present                     | Present       | Present        | Visible is effectively no transformation                                                              |
 	| PolicyOrder    | All values replaced by generic component                         | Present                     | Present       | Present        | PolicyOrder is similar to PolicyLen, but the order of components is observable                        |
 	| PolicyLen      | All values replaced by generic component                         | Sorted Lexicographically    | Present       | Present        | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
-	| PolicyNonEmpty | Values will be either 0 components or a single generic component | Absent                      | Present       | Absent         | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
+	| PolicyNonEmpty | Values will be either 0 components or a single generic component | Absent                      | Absent        | Absent         | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
 	| PolicyHidden   | Values are completely empty                                      | Absent                      | Absent        | Absent         | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
 
 However, in some cases it is not possible to keep track of the precise order of
@@ -740,15 +740,8 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 
 	g.shuffleCount = 0
 
-	//Anything other than PolicyVisible and PolicyLen (at least currently)
-	//will move Ids to PossibleIds.
-	for _, c := range g.Components() {
-		if c == nil {
-			continue
-		}
-		id := c.ID()
-		g.idSeen(id)
-	}
+	// Emptiness-only and hidden views must not retain membership or history.
+	g.idsLastSeen = make(map[string]int)
 
 	if policy == PolicyNonEmpty {
 		if g.NumComponents() == 0 {
@@ -869,15 +862,8 @@ func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 
 	s.shuffleCount = 0
 
-	//Anything other than PolicyVisible and PolicyLen (at least currently)
-	//will move Ids to PossibleIds.
-	for _, c := range s.Components() {
-		if c == nil {
-			continue
-		}
-		id := c.ID()
-		s.idSeen(id)
-	}
+	// Neither emptiness-only nor hidden views disclose component history.
+	s.idsLastSeen = make(map[string]int)
 
 	//if we get to here it's either PolicyHidden, PolicyNonEmpty or an unknown
 	//policy. If the latter, it's better to fail by being restrictive.
@@ -892,10 +878,6 @@ func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyNonEmpty && hasComponents {
 		s.indexes[0] = genericComponentSentinel
-	}
-
-	if policy == PolicyHidden {
-		s.idsLastSeen = make(map[string]int)
 	}
 
 	return
