@@ -428,7 +428,7 @@ func (t *timerManager) ReconcileState(state *state) {
 		if !persisted.Active() || persisted.Move == nil || persisted.ID == "" {
 			continue
 		}
-		move, err := persisted.Move.inflate(state.game)
+		move, err := persisted.Move.inflateForState(state.game, state)
 		if err != nil {
 			t.manager.Logger().Error("Could not restore timer move: ", err)
 			continue
