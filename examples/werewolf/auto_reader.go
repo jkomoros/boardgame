@@ -1553,6 +1553,7 @@ func (m *moveResolveVotes) ReadSetConfigurer() boardgame.PropertyReadSetConfigur
 var ȧutoGeneratedGameStateReaderProps = map[string]boardgame.PropertyType{
 	"Phase":       boardgame.TypeEnum,
 	"RoundNumber": boardgame.TypeInt,
+	"VoteTimer":   boardgame.TypeTimer,
 }
 
 type ȧutoGeneratedGameStateReader struct {
@@ -1609,6 +1610,8 @@ func (g *ȧutoGeneratedGameStateReader) PropMutable(name string) bool {
 	case "Phase":
 		return true
 	case "RoundNumber":
+		return true
+	case "VoteTimer":
 		return true
 	}
 
@@ -2034,11 +2037,24 @@ func (g *ȧutoGeneratedGameStateReader) BoardProp(name string) (boardgame.Board,
 
 func (g *ȧutoGeneratedGameStateReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
 
+	switch name {
+	case "VoteTimer":
+		return g.data.VoteTimer, nil
+
+	}
+
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
 func (g *ȧutoGeneratedGameStateReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
+
+	switch name {
+	case "VoteTimer":
+		g.data.VoteTimer = value
+		return nil
+
+	}
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -2046,11 +2062,23 @@ func (g *ȧutoGeneratedGameStateReader) ConfigureTimerProp(name string, value bo
 
 func (g *ȧutoGeneratedGameStateReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
 
+	switch name {
+	case "VoteTimer":
+		return boardgame.ErrPropertyImmutable
+
+	}
+
 	return errors.New("No such ImmutableTimer prop: " + name)
 
 }
 
 func (g *ȧutoGeneratedGameStateReader) TimerProp(name string) (boardgame.Timer, error) {
+
+	switch name {
+	case "VoteTimer":
+		return g.data.VoteTimer, nil
+
+	}
 
 	return nil, errors.New("No such Timer prop: " + name)
 

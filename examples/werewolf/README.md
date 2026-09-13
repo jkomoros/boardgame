@@ -27,4 +27,8 @@ The game becomes companion-capable because `boardgame-util` detects both `*-tabl
 - 4-7 players, roles: Villager (majority) vs Werewolf (1-2)
 - Day: simultaneous public vote to eliminate a suspect
 - Night: werewolves choose a target; villagers "sleep"
+- Optional **Timed Voting** variant: each day and night vote has a durable
+  45-second deadline. When it expires, the ordinary persisted resolution move
+  uses the eligible votes cast so far; a tie still follows the normal phase
+  rule. The default remains untimed.
 - Villagers win when all werewolves are eliminated; werewolves win when they equal or outnumber remaining villagers

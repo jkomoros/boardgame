@@ -59,6 +59,11 @@ export class WerewolfHandView extends HandRenderer {
         margin: 12px 0;
         color: #90caf9;
       }
+      boardgame-timer {
+        display: block;
+        max-width: 20rem;
+        margin: 0.75rem auto;
+      }
       .vote-section {
         margin: 16px auto;
         max-width: 320px;
@@ -151,6 +156,10 @@ export class WerewolfHandView extends HandRenderer {
           ${phase === 'Day' ? `Day - Round ${(game?.RoundNumber ?? 0) + 1}` : ''}
           ${phase === 'Night' ? `Night - Round ${(game?.RoundNumber ?? 0) + 1}` : ''}
         </div>
+        <boardgame-timer
+          label="Voting ends in"
+          .timer=${game?.VoteTimer ?? null}>
+        </boardgame-timer>
 
         ${phase === 'Night' && !isWerewolf ? html`
           <div class="sleep-message">Sleep tight...</div>

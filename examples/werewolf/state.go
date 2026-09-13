@@ -36,6 +36,7 @@ type gameState struct {
 	base.SubState
 	behaviors.PhaseBehavior
 	RoundNumber int
+	VoteTimer   boardgame.Timer
 }
 
 //boardgame:codegen

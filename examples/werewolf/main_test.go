@@ -57,6 +57,10 @@ func newSeatedGame(t *testing.T, numToSeat int) (*boardgame.GameManager, *boardg
 }
 
 func newSeatedGameWithSlots(t *testing.T, numSlots, numToSeat int) (*boardgame.GameManager, *boardgame.Game) {
+	return newSeatedGameWithVariant(t, numSlots, numToSeat, nil)
+}
+
+func newSeatedGameWithVariant(t *testing.T, numSlots, numToSeat int, variant map[string]string) (*boardgame.GameManager, *boardgame.Game) {
 	t.Helper()
 
 	storage := &testStorageManager{memory.NewStorageManager(), nil}
@@ -65,8 +69,11 @@ func newSeatedGameWithSlots(t *testing.T, numSlots, numToSeat int) (*boardgame.G
 	if err != nil {
 		t.Fatalf("NewGameManager: %v", err)
 	}
+	if variant != nil {
+		manager.Internals().UseManualTimers()
+	}
 
-	game, err := manager.NewGame(numSlots, nil, nil)
+	game, err := manager.NewGame(numSlots, variant, nil)
 	if err != nil {
 		t.Fatalf("NewDefaultGame: %v", err)
 	}
@@ -79,6 +86,76 @@ func newSeatedGameWithSlots(t *testing.T, numSlots, numToSeat int) (*boardgame.G
 	}
 
 	return manager, game
+}
+
+func TestTimedVotingVariantResolvesPartialVotes(t *testing.T) {
+	manager, game := newSeatedGameWithVariant(t, 5, 4, map[string]string{
+		variantKeyTimedVoting: timedVotingOn,
+	})
+	state := game.CurrentState()
+	gameState, players := concreteStates(state)
+	if !gameState.VoteTimer.Active() {
+		t.Fatal("timed variant did not start the day vote deadline")
+	}
+
+	var voter, target boardgame.PlayerIndex = -1, -1
+	for i, player := range players {
+		if behaviors.PlayerIsInactive(player) || player.Role.Value() == roleWerewolf {
+			continue
+		}
+		if voter < 0 {
+			voter = boardgame.PlayerIndex(i)
+		} else {
+			target = boardgame.PlayerIndex(i)
+			break
+		}
+	}
+	if voter < 0 || target < 0 {
+		t.Fatal("fixture did not contain two active villagers")
+	}
+	version := game.Version()
+	timeout := game.MoveByName("Resolve Day Votes on Timeout")
+	if err := <-game.ProposeMove(timeout, voter); err == nil {
+		t.Fatal("player was allowed to submit the internal deadline move")
+	}
+	if game.Version() != version {
+		t.Fatalf("rejected deadline move advanced version to %d; want %d", game.Version(), version)
+	}
+	gameState, _ = concreteStates(game.CurrentState())
+	if !gameState.VoteTimer.Active() {
+		t.Fatal("rejected deadline move canceled the durable timer")
+	}
+	vote := game.MoveByName("Cast Vote").(*moveCastVote)
+	vote.VoteTarget = target
+	if err := <-game.ProposeMove(vote, voter); err != nil {
+		t.Fatal(err)
+	}
+	if fired, err := manager.Internals().ForceNextTimerWithError(); !fired || err != nil {
+		t.Fatalf("forcing day deadline = %t, %v", fired, err)
+	}
+
+	gameState, players = concreteStates(game.CurrentState())
+	if !players[target].Eliminated {
+		t.Fatal("deadline did not resolve the partial vote plurality")
+	}
+	if gameState.Phase.Value() != phaseNight {
+		t.Fatalf("phase = %d; want night", gameState.Phase.Value())
+	}
+	if !gameState.VoteTimer.Active() {
+		t.Fatal("night phase did not receive a fresh durable vote deadline")
+	}
+}
+
+func TestTimedVotingIsExplicitlyOptIn(t *testing.T) {
+	manager, game := newSeatedGame(t, 4)
+	gameState, _ := concreteStates(game.CurrentState())
+	if gameState.VoteTimer.Active() {
+		t.Fatal("default game unexpectedly enabled timed voting")
+	}
+	manager.Internals().UseManualTimers()
+	if fired := manager.Internals().ForceNextTimer(); fired {
+		t.Fatal("default game scheduled a vote deadline")
+	}
 }
 
 func TestNewGameManager(t *testing.T) {
