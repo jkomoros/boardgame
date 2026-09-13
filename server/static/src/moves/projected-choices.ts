@@ -110,6 +110,8 @@ export interface ProjectedPlayerChoices<
 
 const projectedStackBindings = new WeakSet<object>();
 const projectedPlayerBindings = new WeakSet<object>();
+const projectedStackBindingSources = new WeakMap<object, ExpandedStack<object, object> | null>();
+const projectedSetStackSources = new WeakMap<object, ExpandedStack<object, object> | null>();
 
 /** Bind a projected stack-slot set to the exact slots of the stack being rendered. */
 export function projectedStackChoices<
@@ -128,7 +130,8 @@ export function projectedStackChoices<
   const actions: (BoundMoveAction<MoveName, Projection['input']> | null)[] =
     Array.from({ length: components.length }, () => null);
   const availableSlots = Array.from({ length: components.length }, () => false);
-  for (const candidate of set.candidates) {
+  const trustedStack = projectedSetStackSources.get(set) ?? null;
+  for (const candidate of trustedStack === stack ? set.candidates : []) {
     const index = candidate.value;
     // A renderer can momentarily hold the old stack beside a new projection (or
     // vice versa). Fail closed and leave the generic fallback available.
@@ -143,6 +146,7 @@ export function projectedStackChoices<
     availableSlots: Object.freeze(availableSlots),
   });
   projectedStackBindings.add(binding);
+  projectedStackBindingSources.set(binding, trustedStack === stack ? stack : null);
   return binding;
 }
 
@@ -185,6 +189,15 @@ export function projectedPlayerChoices<
 
 export function isProjectedStackChoices(value: unknown): value is ProjectedStackChoices {
   return typeof value === 'object' && value !== null && projectedStackBindings.has(value);
+}
+
+/** A projected binding is usable only with the exact source stack snapshot it was built for. */
+export function isProjectedStackChoicesForStack(
+  value: unknown,
+  stack: ExpandedStack<object, object> | null | undefined,
+): value is ProjectedStackChoices {
+  return isProjectedStackChoices(value) && stack != null
+    && projectedStackBindingSources.get(value) === stack;
 }
 
 export function isProjectedPlayerChoices(value: unknown): value is ProjectedPlayerChoices {
@@ -256,6 +269,12 @@ export interface BuildProjectedMoveChoicesOptions<Projections extends MoveChoice
   readonly schema: readonly MoveChoiceProjectionSchemaEntry[];
   readonly schemaFingerprint: string;
   readonly playerPresentations: readonly PlayerPresentation[];
+  /** Expanded authoritative viewer snapshot used to bind an exact native stack source. */
+  readonly state?: {
+    readonly Game: object;
+    readonly Players: readonly object[];
+  } | null;
+  readonly proposingAsPlayer?: number;
   readonly action: <MoveName extends keyof Projections & string>(
     move: MoveName,
     input: Projections[MoveName]['input'],
@@ -319,16 +338,40 @@ export function buildProjectedMoveChoices<Projections extends MoveChoiceProjecti
         action,
       });
     });
-    result.set(move, Object.freeze({
+    const set = Object.freeze({
       move,
       field: schema.fieldName,
       source: schema.source,
       stackSource: schema.stackSource ? Object.freeze({ ...schema.stackSource }) : null,
       message: options.messages?.[move] ?? defaultProjectedChoiceMessage(move, schema.fieldName),
       candidates: Object.freeze(candidates),
-    }) as AnyProjectedSet<Projections>);
+    }) as AnyProjectedSet<Projections>;
+    result.set(move, set);
+    projectedSetStackSources.set(set, resolveProjectedStackSource(
+      schema.stackSource,
+      options.state,
+      options.proposingAsPlayer,
+    ));
   }
   return ProjectedMoveChoices.ready(result);
+}
+
+function resolveProjectedStackSource(
+  source: MoveChoiceStackSourceSchema | undefined,
+  state: BuildProjectedMoveChoicesOptions<MoveChoiceProjectionTypes>['state'],
+  proposingAsPlayer: number | undefined,
+): ExpandedStack<object, object> | null {
+  if (!source || !state) return null;
+  const container = source.scope === 'game'
+    ? state.Game
+    : Number.isSafeInteger(proposingAsPlayer) && (proposingAsPlayer as number) >= 0
+      ? state.Players[proposingAsPlayer as number]
+      : undefined;
+  const candidate = (container as Readonly<Record<string, unknown>> | undefined)?.[source.property];
+  return typeof candidate === 'object' && candidate !== null
+    && Array.isArray((candidate as { Components?: unknown }).Components)
+    ? candidate as ExpandedStack<object, object>
+    : null;
 }
 
 function validateCandidateValues(

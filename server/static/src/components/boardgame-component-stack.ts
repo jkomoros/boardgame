@@ -15,7 +15,11 @@ import { compileMotionPresence } from '../motion/presence.js';
 import type { MotionPresenceFacts, MotionPresencePolicy } from '../motion/presence.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
-import { isProjectedStackChoices, type ProjectedStackChoices } from '../moves/projected-choices.js';
+import {
+  isProjectedStackChoices,
+  isProjectedStackChoicesForStack,
+  type ProjectedStackChoices,
+} from '../moves/projected-choices.js';
 import { ProjectedChoiceConsumptionController } from '../moves/projected-choice-consumption.js';
 
 // These are the random values we use. We need them to be the same for each key.
@@ -856,7 +860,7 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private get _effectiveComponentActions(): readonly (BoundMoveAction<string, object> | null)[] {
-    return isProjectedStackChoices(this.projectedChoices)
+    return isProjectedStackChoicesForStack(this.projectedChoices, this.stack)
       ? this.projectedChoices.actions
       : this.componentActions;
   }
@@ -1020,7 +1024,7 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private _consumableProjectedChoiceSet() {
-    if (!isProjectedStackChoices(this.projectedChoices)) return null;
+    if (!isProjectedStackChoicesForStack(this.projectedChoices, this.stack)) return null;
     const components = [...this.children].filter(element => element.hasAttribute('boardgame-component'));
     return this.projectedChoices.actions.some((action, index) => action !== null
       && this.projectedChoices!.availableSlots[index] && components[index])

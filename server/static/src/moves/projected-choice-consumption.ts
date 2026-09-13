@@ -24,6 +24,7 @@ export class ProjectedChoiceConsumptionController implements ReactiveController 
   readonly #currentSet: () => AnyProjectedChoiceSet | null;
   #resizeObserver: ResizeObserver | null = null;
   #attributeObserver: MutationObserver | null = null;
+  readonly #observedSlots = new Set<HTMLSlotElement>();
   #invalidate: (() => void) | null = null;
 
   constructor(
@@ -55,16 +56,17 @@ export class ProjectedChoiceConsumptionController implements ReactiveController 
       this.#resizeObserver.observe(this.#host);
     }
     if (typeof MutationObserver === 'function') {
-      this.#attributeObserver = new MutationObserver(() => this.#notify());
-      this.#attributeObserver.observe(this.#host, {
-        attributes: true,
-        attributeFilter: ['hidden', 'aria-hidden', 'class', 'style'],
+      this.#attributeObserver = new MutationObserver(() => {
+        this.#refreshVisibilityObservers();
+        this.#notify();
       });
+      this.#refreshVisibilityObservers();
     }
     queueMicrotask(() => this.#notify());
   }
 
   hostUpdated(): void {
+    this.#refreshVisibilityObservers();
     this.#notify();
   }
 
@@ -73,6 +75,7 @@ export class ProjectedChoiceConsumptionController implements ReactiveController 
     this.#resizeObserver = null;
     this.#attributeObserver?.disconnect();
     this.#attributeObserver = null;
+    this.#clearSlotObservers();
     this.#invalidate?.();
     this.#invalidate = null;
   }
@@ -92,14 +95,47 @@ export class ProjectedChoiceConsumptionController implements ReactiveController 
       if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') return false;
       const style = getComputedStyle(element);
       if (style.display === 'none' || style.visibility === 'hidden') return false;
-      if (element.parentElement) {
-        element = element.parentElement;
-        continue;
-      }
-      const root = element.getRootNode();
-      element = root instanceof ShadowRoot ? root.host : null;
+      element = this.#composedParent(element);
     }
     return true;
+  }
+
+  #refreshVisibilityObservers(): void {
+    if (!this.#attributeObserver) return;
+    this.#attributeObserver.disconnect();
+    this.#clearSlotObservers();
+    let element: Element | null = this.#host;
+    while (element) {
+      this.#attributeObserver.observe(element, {
+        attributes: true,
+        attributeFilter: ['hidden', 'aria-hidden', 'class', 'style', 'inert'],
+      });
+      const assignedSlot = element.assignedSlot;
+      if (assignedSlot && !this.#observedSlots.has(assignedSlot)) {
+        assignedSlot.addEventListener('slotchange', this.#slotChanged);
+        this.#observedSlots.add(assignedSlot);
+      }
+      element = this.#composedParent(element);
+    }
+  }
+
+  #clearSlotObservers(): void {
+    for (const slot of this.#observedSlots) {
+      slot.removeEventListener('slotchange', this.#slotChanged);
+    }
+    this.#observedSlots.clear();
+  }
+
+  readonly #slotChanged = (): void => {
+    this.#refreshVisibilityObservers();
+    this.#notify();
+  };
+
+  #composedParent(element: Element): Element | null {
+    if (element.assignedSlot) return element.assignedSlot;
+    if (element.parentElement) return element.parentElement;
+    const root = element.getRootNode();
+    return root instanceof ShadowRoot ? root.host : null;
   }
 }
 

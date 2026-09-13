@@ -466,7 +466,9 @@ export class BoardgameBaseGameRenderer<
     }
     if (changedProperties.has('projectedMoveChoicesWire')
       || changedProperties.has('gameVersion')
-      || changedProperties.has('playerPresentations')) {
+      || changedProperties.has('playerPresentations')
+      || changedProperties.has('state')
+      || changedProperties.has('proposingAsPlayer')) {
       this._installProjectedMoveChoices();
     }
   }
@@ -485,6 +487,8 @@ export class BoardgameBaseGameRenderer<
         schema: this.moveChoiceProjectionSchema,
         schemaFingerprint: this.moveChoiceProjectionSchemaFingerprint,
         playerPresentations: this.playerPresentations,
+        state: this.state,
+        proposingAsPlayer: this.proposingAsPlayer,
         action: (move, input) => {
           const builder = this.move(move as unknown as MN & string) as unknown as import('../moves/action.js').MoveActionBuilder<
             typeof move,

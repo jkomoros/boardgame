@@ -301,12 +301,14 @@ test('native player choices consume fallback only while live for the exact snaps
       list.choices = projectedPlayerChoices(
         (renderer.choices as ReturnType<typeof makeChoices>).get('Vote')!,
       );
-      renderer.shadowRoot!.append(list);
+      const wrapper = document.createElement('div');
+      wrapper.append(list);
+      renderer.shadowRoot!.append(wrapper);
       await list.updateComplete;
       await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       await host.updateComplete;
       (globalThis as unknown as { __nativeChoiceFixture: object }).__nativeChoiceFixture = {
-        host, renderer, list, makeChoices,
+        host, renderer, wrapper, list, makeChoices,
         setVersion(version: number) { currentVersion = version; },
       };
     });
@@ -314,6 +316,30 @@ test('native player choices consume fallback only while live for the exact snaps
     const host = page.locator('boardgame-render-game');
     await expect(page.getByRole('button', { name: 'Ada' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Grace' })).toBeVisible();
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.style.visibility = 'hidden';
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(1);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.style.visibility = '';
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.setAttribute('aria-hidden', 'true');
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(1);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.removeAttribute('aria-hidden');
+    });
     await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
 
     await page.evaluate(() => {

@@ -11,6 +11,7 @@ import {
 import { serializeCreatorMoveInput, validateCreatorMoveInput } from './input.ts';
 import {
   buildProjectedMoveChoices,
+  isProjectedStackChoicesForStack,
   projectedPlayerChoices,
   projectedStackChoices,
 } from './projected-choices.ts';
@@ -137,6 +138,7 @@ test('validates projections before creating exact typed ordinary actions', () =>
 
 test('native adapters retain exact actions and preserve sparse source indexes', () => {
   const base = readyWire();
+  const stack = { Components: [{}, null, {}, {}] } as never;
   const choices = buildProjectedMoveChoices<Projections>({
     wire: {
       ...base,
@@ -152,11 +154,13 @@ test('native adapters retain exact actions and preserve sparse source indexes', 
       { playerIndex: 1, label: 'Inactive' },
       { playerIndex: 2, label: 'Grace' },
     ],
+    state: { Game: {}, Players: [{ Hand: stack }] },
+    proposingAsPlayer: 0,
     action: actions(),
   });
   const cardSet = choices.get('Choose Card')!;
-  const stack = { Components: [{}, null, {}, {}] } as never;
   const stackBinding = projectedStackChoices(cardSet, stack);
+  assert.equal(isProjectedStackChoicesForStack(stackBinding, stack), true);
   assert.equal(stackBinding.actions.length, 4);
   assert.equal(stackBinding.actions[0], cardSet.candidates[0].action);
   assert.equal(stackBinding.actions[1], null);
@@ -165,11 +169,15 @@ test('native adapters retain exact actions and preserve sparse source indexes', 
 
   // A projection beside an empty or older stack cannot manufacture a claim.
   assert.deepEqual(projectedStackChoices(cardSet, { Components: [] } as never).actions, []);
+  const sameShapeWrongStack = { Components: [{}, null, {}, {}] } as never;
+  assert.deepEqual(projectedStackChoices(cardSet, sameShapeWrongStack).actions, [null, null, null, null]);
+  assert.equal(isProjectedStackChoicesForStack(stackBinding, sameShapeWrongStack), false);
 
   const disabledSet = buildProjectedMoveChoices<Projections>({
     wire: { ...base, Sets: [base.Sets[2]] },
     stateVersion: 7, schema: projectionSchema,
     schemaFingerprint: 'projection-fingerprint', playerPresentations: [], action: actions(),
+    state: { Game: {}, Players: [{ Hand: stack }] }, proposingAsPlayer: 0,
   }).get('Choose Card')!;
   const disabledBinding = projectedStackChoices(disabledSet, stack);
   assert.equal(disabledBinding.actions[3], disabledSet.candidates[1].action);
