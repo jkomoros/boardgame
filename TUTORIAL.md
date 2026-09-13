@@ -1978,6 +1978,9 @@ shape does not fit.
 The internal stack creates stable card hosts and rerenders their light-DOM content with
 Lit whenever their logical slot changes. The view is local to this renderer, so
 two games may use the same deck name without a global registration collision.
+Renderer CSS selectors do not cross into the stack's shadow root. Use card
+properties and inherited theme tokens for the shared face, and put custom
+content styling in the view's markup or an encapsulated component.
 
 `layout` is a strict choice of `stack`, `grid`, `fan`, `pile`, `spread`,
 `board`, or `spatial`; misspellings fail both TypeScript and at runtime. If a UI
