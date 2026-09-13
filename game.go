@@ -1142,6 +1142,12 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	//Check to see if that move made the game finished.
 
 	finished, winners := g.manager.Delegate().CheckGameFinished(newState)
+	// Timer.Start records a relative duration on the candidate state. Resolve
+	// it at the atomic save boundary so time spent in Apply and validation does
+	// not shorten the durable countdown.
+	if err := finalizeTimerDeadlines(newState, g.manager.timers.now()); err != nil {
+		return baseErr.WithError("Could not finalize timers: " + err.Error())
+	}
 
 	// Everything above this point is a non-durable rejection path. Keep the
 	// settled frontier advertised while a queued proposal is merely being

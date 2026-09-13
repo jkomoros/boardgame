@@ -59,7 +59,29 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 	TableLeaseTest(factory, connectConfig, t)
 	ProposalFrontierTest(factory, connectConfig, t)
 	AtomicGameStateMoveTest(factory, connectConfig, t)
+	TimerWakeupStorageTest(factory, connectConfig, t)
 
+}
+
+// TimerWakeupStorageTest verifies every first-party backend exposes its
+// storage-level discovery path and can scan an empty game-name partition.
+func TimerWakeupStorageTest(factory StorageManagerFactory, connectConfig string, t *testing.T) {
+	storage := factory()
+	defer storage.Close()
+	defer storage.CleanUp()
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err)
+	}
+	if !boardgame.SupportsTimerWakeupStorage(storage) {
+		t.Fatal("first-party storage does not support durable timer discovery")
+	}
+	wakeups, err := storage.(boardgame.TimerWakeupStorage).TimerWakeups("missing-game-type")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wakeups) != 0 {
+		t.Fatalf("empty timer partition returned %d wakeups", len(wakeups))
+	}
 }
 
 // AtomicGameStateMoveTest verifies that a later record failure rolls back an

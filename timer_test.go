@@ -298,28 +298,48 @@ func TestDurableTimerRestoresAndFiresOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	restarted.Internals().UseManualTimers()
-	reloaded := restarted.ModifiableGame(game.ID())
-	if reloaded == nil {
-		t.Fatal("reloading game failed")
+	if err := restarted.Internals().RestoreTimers(); err != nil {
+		t.Fatal(err)
 	}
-	reloadedState, _ := concreteStates(reloaded.CurrentState())
-	restored := reloadedState.Timer.(*timer)
-	if restored.ID != id || restored.Generation != generation || !restored.Deadline.Equal(deadline) ||
-		restored.Move == nil || restored.Move.Name != "Draw Card" {
-		t.Fatalf("restored timer = %+v; want id=%s generation=%d deadline=%v Draw Card", restored, id, generation, deadline)
+	if !restarted.timers.TimerActive(id) {
+		t.Fatal("restart did not discover the durable timer before loading the game")
 	}
 	if !restarted.timers.ForceNextTimer() {
 		t.Fatal("restored timer was not scheduled")
 	}
+	reloaded := restarted.ModifiableGame(game.ID())
+	if reloaded == nil {
+		t.Fatal("timer did not load the cold game")
+	}
 	if reloaded.Version() != version+1 {
 		t.Fatalf("timer completion advanced to version %d; want %d", reloaded.Version(), version+1)
 	}
-	reloadedState, _ = concreteStates(reloaded.CurrentState())
+	reloadedState, _ := concreteStates(reloaded.CurrentState())
+	restored := reloadedState.Timer.(*timer)
+	if restored.ID != id || restored.Generation != generation || !restored.Deadline.Equal(deadline) {
+		t.Fatalf("restored timer identity changed: %+v", restored)
+	}
 	if reloadedState.Timer.Active() {
 		t.Fatal("successfully fired timer remained active")
 	}
 	if restarted.timers.ForceNextTimer() {
 		t.Fatal("timer completion was scheduled more than once")
+	}
+}
+
+func TestDurableTimerSurvivesIdleEviction(t *testing.T) {
+	manager, game := durableTimerTestGame(t, newTestStorageManager())
+	version := game.Version()
+	manager.freezeGame(game)
+	if !game.Frozen() {
+		t.Fatal("game was not frozen")
+	}
+	if fired, err := manager.Internals().ForceNextTimerWithError(); !fired || err != nil {
+		t.Fatalf("cold timer firing = %t, %v", fired, err)
+	}
+	reloaded := manager.ModifiableGame(game.ID())
+	if reloaded == nil || reloaded.Version() != version+1 {
+		t.Fatalf("cold timer did not advance the stored game")
 	}
 }
 
@@ -334,11 +354,33 @@ func TestStaleTimerCompletionRejectedAfterCancel(t *testing.T) {
 		t.Fatal(err)
 	}
 	version := game.Version()
-	if err := <-game.ProposeMove(record.move, AdminPlayerIndex); err == nil {
+	if err := manager.timers.fire(&record); err == nil {
 		t.Fatal("stale timer completion unexpectedly committed")
 	}
 	if game.Version() != version {
 		t.Fatal("stale timer completion advanced the game")
+	}
+}
+
+func TestTimerDeadlineStartsAtSaveBoundary(t *testing.T) {
+	_, game := durableTimerTestGame(t, newTestStorageManager())
+	candidate, err := game.CurrentState().(*state).copy(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gameState, _ := concreteStates(candidate)
+	completion := game.MoveByNameForState("Draw Card", candidate)
+	gameState.Timer.Start(time.Minute, completion)
+	timer := gameState.Timer.(*timer)
+	if !timer.Deadline.IsZero() || timer.TimeLeft() != time.Minute {
+		t.Fatalf("candidate timer resolved before save boundary: %+v", timer)
+	}
+	boundary := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	if err := finalizeTimerDeadlines(candidate, boundary); err != nil {
+		t.Fatal(err)
+	}
+	if want := boundary.Add(time.Minute); !timer.Deadline.Equal(want) || timer.pendingDeadline {
+		t.Fatalf("deadline = %v pending=%t; want %v finalized", timer.Deadline, timer.pendingDeadline, want)
 	}
 }
 

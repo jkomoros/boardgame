@@ -358,6 +358,11 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	return s.recursiveAllGames(s.basePath)
 }
 
+// TimerWakeups discovers active durable timers without inflating games.
+func (s *StorageManager) TimerWakeups(gameName string) ([]boardgame.TimerWakeup, error) {
+	return helpers.TimerWakeupsHelper(s, gameName)
+}
+
 // ListGames returns all of the games
 func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 	return helpers.ListGamesHelper(s, max, list, userID, gameType)

@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"container/heap"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -35,7 +36,8 @@ type ImmutableTimer interface {
 type Timer interface {
 	ImmutableTimer
 	// Start begins a timer that proposes move as AdminPlayerIndex after duration.
-	// It is generally called from Move.Apply.
+	// The duration begins at the candidate state's save boundary, after Apply
+	// and validation finish. It is generally called from Move.Apply.
 	Start(time.Duration, Move)
 	// Cancel cancels a started timer. It returns whether the timer was active.
 	// It is generally called from Move.Apply.
@@ -62,6 +64,10 @@ type timer struct {
 	Status     timerStatus
 	Move       *MoveStorageRecord
 	statePtr   *state
+	// pendingDuration exists only on a candidate state between Apply and the
+	// atomic save boundary. It is never persisted or exposed to viewers.
+	pendingDuration time.Duration
+	pendingDeadline bool
 }
 
 // NewTimer returns a new blank timer, ready for use. StructInflater normally
@@ -77,6 +83,8 @@ func (t *timer) importFrom(other ImmutableTimer) error {
 	t.Generation = otherTimer.Generation
 	t.Deadline = otherTimer.Deadline
 	t.Status = otherTimer.Status
+	t.pendingDuration = otherTimer.pendingDuration
+	t.pendingDeadline = otherTimer.pendingDeadline
 	if otherTimer.Move == nil {
 		t.Move = nil
 	} else {
@@ -107,6 +115,12 @@ func (t *timer) TimeLeft() time.Duration {
 	if !t.Active() || t.statePtr == nil || t.statePtr.game == nil || t.statePtr.game.manager == nil {
 		return 0
 	}
+	if t.pendingDeadline {
+		if t.pendingDuration < 0 {
+			return 0
+		}
+		return t.pendingDuration
+	}
 	remaining := t.Deadline.Sub(t.statePtr.game.manager.timers.now())
 	if remaining < 0 {
 		return 0
@@ -132,9 +146,11 @@ func (t *timer) Start(duration time.Duration, move Move) {
 
 	t.Generation++
 	t.ID = randomString(timerIDLength, t.statePtr.Rand())
-	t.Deadline = t.statePtr.game.manager.timers.now().Add(duration)
+	t.Deadline = time.Time{}
 	t.Status = timerActive
 	t.Move = intent
+	t.pendingDuration = duration
+	t.pendingDeadline = true
 }
 
 func (t *timer) Cancel() bool {
@@ -148,6 +164,8 @@ func (t *timer) Cancel() bool {
 	t.Deadline = time.Time{}
 	t.Status = timerCanceled
 	t.Move = nil
+	t.pendingDuration = 0
+	t.pendingDeadline = false
 	return true
 }
 
@@ -164,6 +182,67 @@ type timerGuard struct {
 	Ref        StatePropertyRef
 	ID         string
 	Generation uint64
+}
+
+// TimerWakeup is the minimal non-secret record a storage backend returns to
+// rebuild the process-local timer heap. Move intent remains only in the
+// durable state and is inflated after the deadline when the game is checked
+// out for modification.
+type TimerWakeup struct {
+	GameID     string
+	Ref        StatePropertyRef
+	ID         string
+	Generation uint64
+	Deadline   time.Time
+}
+
+// TimerWakeupStorage is an optional storage capability for discovering active
+// durable timers without inflating every game into the manager's warm cache.
+type TimerWakeupStorage interface {
+	TimerWakeups(gameName string) ([]TimerWakeup, error)
+}
+
+// TimerWakeupStorageAvailability lets wrappers preserve optional support.
+type TimerWakeupStorageAvailability interface {
+	TimerWakeupStorageAvailable() bool
+}
+
+// SupportsTimerWakeupStorage reports whether storage can discover durable
+// timer wakeups, including through a capability-preserving wrapper.
+func SupportsTimerWakeupStorage(storage StorageManager) bool {
+	if storage == nil {
+		return false
+	}
+	if _, ok := storage.(TimerWakeupStorage); !ok {
+		return false
+	}
+	if availability, ok := storage.(TimerWakeupStorageAvailability); ok {
+		return availability.TimerWakeupStorageAvailable()
+	}
+	return true
+}
+
+// TimerWakeupsFromStateStorage extracts only active scheduler metadata from a
+// durable state blob. Storage implementations can use it while scanning their
+// game-head index; completion move intent is deliberately not returned.
+func TimerWakeupsFromStateStorage(gameID string, record StateStorageRecord) ([]TimerWakeup, error) {
+	var envelope struct {
+		Timers []persistedTimerRecord
+	}
+	if err := json.Unmarshal(record, &envelope); err != nil {
+		return nil, err
+	}
+	result := make([]TimerWakeup, 0, len(envelope.Timers))
+	for _, timer := range envelope.Timers {
+		if timer.Status != timerActive || timer.ID == "" || timer.Move == nil || timer.Deadline.IsZero() {
+			continue
+		}
+		result = append(result, TimerWakeup{
+			GameID: gameID, Ref: timer.Ref, ID: timer.ID,
+			Generation: timer.Generation, Deadline: timer.Deadline,
+		})
+	}
+	return result, nil
 }
 
 type timerLocation struct {
@@ -260,6 +339,23 @@ func timerStorageRecords(state *state) []persistedTimerRecord {
 		})
 	}
 	return result
+}
+
+func finalizeTimerDeadlines(state *state, now time.Time) error {
+	locations, err := timerLocations(state)
+	if err != nil {
+		return err
+	}
+	for _, location := range locations {
+		timer := location.timer
+		if !timer.Active() || !timer.pendingDeadline {
+			continue
+		}
+		timer.Deadline = now.Add(timer.pendingDuration)
+		timer.pendingDuration = 0
+		timer.pendingDeadline = false
+	}
+	return nil
 }
 
 func restoreTimerStorageRecords(state *state, records []persistedTimerRecord) error {
@@ -423,31 +519,55 @@ func (t *timerManager) ReconcileState(state *state) {
 		return
 	}
 	var desired []*timerRecord
+	if state.game.Finished() {
+		t.replaceGameRecords(state.game.ID(), desired)
+		return
+	}
 	for _, location := range locations {
 		persisted := location.timer
 		if !persisted.Active() || persisted.Move == nil || persisted.ID == "" {
 			continue
 		}
-		move, err := persisted.Move.inflateForState(state.game, state)
-		if err != nil {
-			t.manager.Logger().Error("Could not restore timer move: ", err)
-			continue
-		}
 		guard := &timerGuard{Ref: location.ref, ID: persisted.ID, Generation: persisted.Generation}
-		move.Info().timerGuard = guard
 		desired = append(desired, &timerRecord{
 			id: persisted.ID, gameID: state.game.ID(), index: -1,
 			fireTime: persisted.Deadline, deadline: persisted.Deadline,
-			game: state.game, move: move, guard: guard, now: t.now,
+			guard: guard, now: t.now,
 		})
 	}
+	t.replaceGameRecords(state.game.ID(), desired)
+}
 
+func (t *timerManager) replaceGameRecords(gameID string, desired []*timerRecord) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.cancelTimersForGameLocked(state.game.ID())
+	t.cancelTimersForGameLocked(gameID)
 	for _, record := range desired {
 		t.recordsByID[record.id] = record
 		heap.Push(&t.records, record)
+	}
+}
+
+func (t *timerManager) RestoreWakeups(wakeups []TimerWakeup) {
+	t.mu.Lock()
+	for id, record := range t.recordsByID {
+		if record.guard != nil {
+			heap.Remove(&t.records, record.index)
+			delete(t.recordsByID, id)
+		}
+	}
+	t.mu.Unlock()
+	byGame := make(map[string][]*timerRecord)
+	for _, wakeup := range wakeups {
+		guard := &timerGuard{Ref: wakeup.Ref, ID: wakeup.ID, Generation: wakeup.Generation}
+		byGame[wakeup.GameID] = append(byGame[wakeup.GameID], &timerRecord{
+			id: wakeup.ID, gameID: wakeup.GameID, index: -1,
+			fireTime: wakeup.Deadline, deadline: wakeup.Deadline,
+			guard: guard, now: t.now,
+		})
+	}
+	for gameID, records := range byGame {
+		t.replaceGameRecords(gameID, records)
 	}
 }
 
@@ -501,27 +621,82 @@ func (t *timerManager) Tick() {
 }
 
 func (t *timerManager) fire(record *timerRecord) error {
-	err := <-record.game.ProposeMove(record.move, AdminPlayerIndex)
+	game, move, retryable, err := t.resolveRecord(record)
+	if err != nil {
+		if retryable {
+			t.retry(record)
+		}
+		return err
+	}
+	err = <-game.ProposeMove(move, AdminPlayerIndex)
 	if err == nil {
 		return nil
 	}
-	t.manager.Logger().Info("When timer failed the move could not be made: ", err, record.move)
+	t.manager.Logger().Info("When timer failed the move could not be made: ", err, move)
 	// A storage or transient move failure leaves the durable timer active. Retry
 	// later, but do not resurrect a stale generation after cancel/restart.
 	if record.guard != nil {
-		state, ok := record.game.CurrentState().(*state)
+		state, ok := game.CurrentState().(*state)
 		if !ok || validateTimerGuard(state, record.guard) != nil {
 			return err
 		}
-		record.fireTime = t.now().Add(250 * time.Millisecond)
-		t.mu.Lock()
-		if t.recordsByID[record.id] == nil {
-			t.recordsByID[record.id] = record
-			heap.Push(&t.records, record)
-		}
-		t.mu.Unlock()
+		t.retry(record)
 	}
 	return err
+}
+
+func (t *timerManager) retry(record *timerRecord) {
+	record.fireTime = t.now().Add(250 * time.Millisecond)
+	t.mu.Lock()
+	if t.recordsByID[record.id] == nil {
+		t.recordsByID[record.id] = record
+		heap.Push(&t.records, record)
+	}
+	t.mu.Unlock()
+}
+
+func (t *timerManager) resolveRecord(record *timerRecord) (*Game, Move, bool, error) {
+	if record.guard == nil {
+		if record.game == nil || record.move == nil {
+			return nil, nil, false, errors.New("timer scheduler record was incomplete")
+		}
+		return record.game, record.move, false, nil
+	}
+	game := t.manager.ModifiableGame(record.gameID)
+	if game == nil {
+		return nil, nil, true, errors.New("timer game could not be loaded")
+	}
+	// Loading a cold game reconciles its state and may recreate this record.
+	// Remove that duplicate before proposing the one already popped.
+	t.removeMatching(record.id, record.guard.Generation)
+	state, ok := game.CurrentState().(*state)
+	if !ok || state == nil {
+		return nil, nil, false, errors.New("timer game had no mutable current state")
+	}
+	if err := validateTimerGuard(state, record.guard); err != nil {
+		return nil, nil, false, err
+	}
+	persisted, err := timerAtRef(state, record.guard.Ref)
+	if err != nil || persisted.Move == nil {
+		return nil, nil, false, errors.New("timer completion move was unavailable")
+	}
+	move, err := persisted.Move.inflateForState(game, state)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	move.Info().timerGuard = record.guard
+	return game, move, false, nil
+}
+
+func (t *timerManager) removeMatching(id string, generation uint64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	record := t.recordsByID[id]
+	if record == nil || record.guard == nil || record.guard.Generation != generation {
+		return
+	}
+	heap.Remove(&t.records, record.index)
+	delete(t.recordsByID, id)
 }
 
 func (t *timerManager) nextTimerFired() bool {

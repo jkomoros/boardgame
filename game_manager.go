@@ -135,6 +135,14 @@ func (m *ManagerInternals) UseManualTimers() {
 	m.manager.stopTimerTicker()
 }
 
+// RestoreTimers rebuilds this manager's process-local timer heap from durable
+// storage without inflating games into the warm cache. Servers call it after
+// connecting storage; tests and non-server hosts may call it after swapping or
+// reconnecting a backend.
+func (m *ManagerInternals) RestoreTimers() error {
+	return m.manager.restoreTimers()
+}
+
 // Close stops background timer work and freezes every resident modifiable
 // game. It is safe to call more than once.
 func (m *ManagerInternals) Close() {
@@ -478,6 +486,18 @@ func (g *GameManager) stopTimerTicker() {
 	}
 	g.timerTickerStopOnce.Do(func() { close(g.timerTickerStop) })
 	<-g.timerTickerDone
+}
+
+func (g *GameManager) restoreTimers() error {
+	if !SupportsTimerWakeupStorage(g.storage) {
+		return nil
+	}
+	wakeups, err := g.storage.(TimerWakeupStorage).TimerWakeups(g.delegate.Name())
+	if err != nil {
+		return err
+	}
+	g.timers.RestoreWakeups(wakeups)
+	return nil
 }
 
 // verifyValidConfigurationOnStruct verifies that if there are any sub-structs
@@ -900,9 +920,9 @@ func (g *GameManager) modifiableGameCreated(game *Game) error {
 	return nil
 }
 
-// freezeGame removes a game from the warm cache, cancels its timers, and
-// marks it as frozen so its mainLoop goroutine exits. It is safe to call
-// from both mainLoop's idle timeout and LRU eviction.
+// freezeGame removes a game from the warm cache and marks it as frozen so its
+// mainLoop goroutine exits. Durable timer heap records intentionally survive;
+// when due they reacquire a fresh modifiable game from storage.
 func (g *GameManager) freezeGame(game *Game) {
 	id := strings.ToUpper(game.ID())
 	g.modifiableGamesLock.Lock()
@@ -912,7 +932,6 @@ func (g *GameManager) freezeGame(game *Game) {
 		delete(g.modifiableGames, id)
 	}
 	g.modifiableGamesLock.Unlock()
-	g.timers.CancelTimersForGame(id)
 	game.markFrozen()
 }
 

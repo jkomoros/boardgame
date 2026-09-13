@@ -2820,6 +2820,12 @@ func (s *Server) Start() {
 		s.logger.Fatalln("Couldn't connect to storage manager: ", err)
 		return
 	}
+	for name, info := range s.managers {
+		if err := info.manager.Internals().RestoreTimers(); err != nil {
+			s.logger.Errorln("Couldn't restore durable timers for ", name, ": ", err)
+			return
+		}
+	}
 
 	s.notifier = newVersionNotifier(s)
 
