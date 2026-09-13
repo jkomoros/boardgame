@@ -726,6 +726,10 @@ func TestDefaultConstructors(t *testing.T) {
 		"proposerIsPlayerFromMove":         true,
 		"revealableCardAt":                 true,
 		"componentPropEqualsCurrentPlayer": true,
+		"componentPropEquals":              true,
+		"componentPropNotEquals":           true,
+		"componentPropsEqual":              true,
+		"componentPropsNotEqual":           true,
 		"inPhase":                          true,
 		"stackConstraints":                 true,
 		"stackCount":                       true,
@@ -795,6 +799,10 @@ func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 		legal.TemplatePropEquals,
 		legal.TemplatePropNotEquals,
 		legal.TemplateComponentPresentUnexpected,
+		legal.TemplateComponentPropEquals,
+		legal.TemplateComponentPropNotEquals,
+		legal.TemplateComponentPropsEqual,
+		legal.TemplateComponentPropsNotEqual,
 	}
 	keys := legal.DefaultTemplateKeys()
 	if len(keys) != len(want) {

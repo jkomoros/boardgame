@@ -121,6 +121,10 @@ var defaultTemplateKeys = []string{
 	// rather than adding a new key — see playerBoolConstructor's doc comment.
 	// componentAbsentAt gets its own key, below.
 	TemplateComponentPresentUnexpected,
+	TemplateComponentPropEquals,
+	TemplateComponentPropNotEquals,
+	TemplateComponentPropsEqual,
+	TemplateComponentPropsNotEqual,
 }
 
 // ComponentPresentAt returns a Spec for the "componentPresentAt" predicate:
@@ -872,5 +876,9 @@ func DefaultConstructors() []*PredicateConstructor {
 		stackNotEmptyConstructor(),
 		propEqualsConstructor(),
 		propNotEqualsConstructor(),
+		componentPropEqualsConstructor(),
+		componentPropNotEqualsConstructor(),
+		componentPropsEqualConstructor(),
+		componentPropsNotEqualConstructor(),
 	}
 }

@@ -49,7 +49,9 @@ ComponentPresentAt, ComponentAbsentAt, ComponentPresentAtKey, MayMoveTo,
 MayMoveToSlot, MayMoveToSameSlot, MayMoveCountTo, MayMoveFixedCountTo,
 MayMoveAllTo, MaySwapComponents,
 MaySwapComponentsByKey, Any, AllActivePlayers, RevealableCardAt,
-ComponentPropEqualsCurrentPlayer, ProposerIsCurrentPlayer, InPhase,
+ComponentPropEquals, ComponentPropNotEquals, ComponentPropsEqual,
+ComponentPropsNotEqual, ComponentPropEqualsCurrentPlayer,
+ProposerIsCurrentPlayer, InPhase,
 StackConstraints — the full, current list is DefaultConstructors()).
 At NewGameManager, every declared Spec is resolved through the registry,
 every path it references is validated (a typo is a boot error naming the
@@ -89,8 +91,8 @@ that doesn't exist:
 
  3. **No user arithmetic, loops, or lambdas in serialized form, ever.** If a
     check needs computation beyond a relation or a short hand-written branch
-    — summing a hand's value, walking a graph, comparing two runtime-chosen
-    component values — it does not belong in the catalog. Push the
+    — summing a hand's value, walking a graph, or reading dynamic component
+    state — it does not belong in the catalog. Push the
     computation into a computed state property that a relation predicate can
     then read, or use the escape hatch (LegalCustom, below). This rule is
     what keeps the catalog conformance-corpus-checkable and, eventually,
@@ -328,7 +330,7 @@ the unchanged LegalForPlayer/LegalForPlayerError/LegalForAnyone fields.
 There is no client-side (TypeScript) evaluator yet; that's a designed-for
 follow-up the wire format and Reads/Facet machinery already anticipate.
 
-# v4 limits (read honestly, not as marketing)
+# v6 limits (read honestly, not as marketing)
 
 v1 shipped counts as an unused facet (FacetCount existed, no predicate read
 it), no typed equality, no move-field-indexed player paths, and only the
@@ -366,6 +368,16 @@ respectively — and widened the composition seam. What's left, honestly:
     population counter — always needs LegalCustom. Across every game
     surveyed so far, this is the single most common reason a real move
     stays partially opaque.
+  - **Static component-value access is deliberately sealed.**
+    ComponentPropEquals/ComponentPropNotEquals compare one chest-defined
+    string or enum field with a literal; ComponentPropsEqual/
+    ComponentPropsNotEqual compare the same field on two components. A
+    ComponentSelector can only name FirstOccupied, a zero-based
+    OccupiedOrdinal, or an int-valued MoveIndex. Manager construction checks
+    the stack path, selector field, and field type against every component in
+    the deck. These predicates declare FacetValues and remain
+    ClientEvaluable=false until a TypeScript evaluator implements the same
+    closed selector semantics.
   - **The composition seam is moves.CurrentPlayer, moves.Default,
     moves.DrawToPlayer, moves.FixUp, moves.FixUpMulti,
     moves.MoveComponentToSlot, moves.RecordCurrentPlayerChoice and

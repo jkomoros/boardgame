@@ -44,7 +44,11 @@ import (
 // learns to defer to server verdicts rather than silently mis-evaluating. The
 // vocabulary each version stamps is frozen in legal/catalog_version_test.go, so
 // a future predicate cannot ship without this decision being made again.
-const LegalCatalogVersion = 5
+//
+// v5 -> v6 adds the four static component-scalar predicate names. Their
+// selectors are a closed Args vocabulary (first occupied, occupied ordinal,
+// or move-indexed slot); older clients must defer to server verdicts.
+const LegalCatalogVersion = 6
 
 // LegalOutcome is the three-valued verdict returned by legality evaluation.
 // The zero value is deliberately invalid (neither LegalPass, LegalFail, nor

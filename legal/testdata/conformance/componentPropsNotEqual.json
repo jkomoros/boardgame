@@ -1,0 +1,17 @@
+{
+  "predicate": "componentPropsNotEqual",
+  "cases": [
+    {
+      "spec": {"name": "componentPropsNotEqual", "args": ["game.VisibleCards", "first-occupied", "game.VisibleCards", "occupied-ordinal:1", "Type"]},
+      "fixture": "memoryVisibleDifferentSparse", "proposer": 0, "expect": "pass"
+    },
+    {
+      "spec": {"name": "componentPropsNotEqual", "args": ["game.VisibleCards", "first-occupied", "game.VisibleCards", "occupied-ordinal:1", "Type"]},
+      "fixture": "memoryVisibleMatchingSparse", "proposer": 0, "expect": "fail", "template": "legal.component_props_not_equal"
+    },
+    {
+      "spec": {"name": "componentPropsNotEqual", "args": ["game.VisibleCards", "first-occupied", "game.VisibleCards", "occupied-ordinal:1", "Type"]},
+      "fixture": "memoryVisibleOccupied", "proposer": 0, "expect": "unknown"
+    }
+  ]
+}

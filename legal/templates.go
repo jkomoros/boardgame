@@ -82,6 +82,10 @@ var defaultTemplates = map[string]string{
 	TemplateStackNotEmpty:                 "requires the stack to not be empty",
 	TemplatePropEquals:                    "requires the current value ({value}) to equal {want}",
 	TemplatePropNotEquals:                 "requires the current value ({value}) to not equal {want}",
+	TemplateComponentPropEquals:           "requires the component's {prop} ({value}) to equal {want}",
+	TemplateComponentPropNotEquals:        "requires the component's {prop} ({value}) to not equal {want}",
+	TemplateComponentPropsEqual:           "requires the selected components' {prop} values ({left} and {right}) to match",
+	TemplateComponentPropsNotEqual:        "requires the selected components' {prop} values ({left} and {right}) to differ",
 	legalAnyFailedTemplate:                "none of the required conditions were satisfied",
 }
 

@@ -15,7 +15,7 @@ func TestLegalCatalogVersionIsPositive(t *testing.T) {
 	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion > 0).Equals(true)
 }
 
-// TestLegalCatalogVersionIncludesFirstComponentPredicates pins the exact v5
+// TestLegalCatalogVersionIncludesComponentScalarPredicates pins the exact v6
 // value. See legal_types.go for the full version history. Unlike
 // TestLegalCatalogVersionIsPositive
 // (which stays true forever), this test is DELIBERATELY exact: it must be
@@ -27,8 +27,8 @@ func TestLegalCatalogVersionIsPositive(t *testing.T) {
 // while it happily kept pinning 4. legal/catalog_version_test.go closes that
 // by freezing the predicate vocabulary each version stamps, which is the thing
 // the number is actually about.
-func TestLegalCatalogVersionIncludesFirstComponentPredicates(t *testing.T) {
-	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(5)
+func TestLegalCatalogVersionIncludesComponentScalarPredicates(t *testing.T) {
+	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(6)
 }
 
 // TestComponentChestMarshalIncludesLegalTemplates pins that the chest JSON

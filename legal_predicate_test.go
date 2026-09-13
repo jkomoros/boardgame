@@ -593,3 +593,35 @@ func TestAllowedReadTypesRejectsInvalidMetadata(t *testing.T) {
 		}
 	}
 }
+
+func TestRequiredComponentFieldsValidateAtBootAndRecurse(t *testing.T) {
+	manager := newTestGameManger(t)
+	example := manager.ExampleState()
+	valid := &LegalPredicate{
+		Name:              "componentScalar",
+		Reads:             []LegalRead{{Path: "game.DrawDeck", Facet: LegalFacetValues}},
+		RequiredReadTypes: map[LegalPropPath]PropertyType{"game.DrawDeck": TypeStack},
+		RequiredComponentFields: []LegalComponentFieldRequirement{{
+			StackPath: "game.DrawDeck", Field: "String", AllowedTypes: []PropertyType{TypeString, TypeEnum},
+		}},
+	}
+	if err := validateLegalPredicateForBoot(valid, example, nil); err != nil {
+		t.Fatalf("valid component field rejected: %v", err)
+	}
+
+	for _, test := range []struct {
+		name string
+		pred *LegalPredicate
+	}{
+		{"missing field", &LegalPredicate{Name: "missing", Reads: valid.Reads, RequiredReadTypes: valid.RequiredReadTypes, RequiredComponentFields: []LegalComponentFieldRequirement{{StackPath: "game.DrawDeck", Field: "Missing", AllowedTypes: []PropertyType{TypeString}}}}},
+		{"wrong field type", &LegalPredicate{Name: "wrongType", Reads: valid.Reads, RequiredReadTypes: valid.RequiredReadTypes, RequiredComponentFields: []LegalComponentFieldRequirement{{StackPath: "game.DrawDeck", Field: "Integer", AllowedTypes: []PropertyType{TypeString}}}}},
+		{"non-values read", &LegalPredicate{Name: "dishonest", Reads: []LegalRead{{Path: "game.DrawDeck", Facet: LegalFacetOccupancy}}, RequiredReadTypes: valid.RequiredReadTypes, RequiredComponentFields: valid.RequiredComponentFields}},
+		{"nested invalid", &LegalPredicate{Name: "any", Sub: []*LegalPredicate{{Name: "child", Reads: valid.Reads, RequiredReadTypes: valid.RequiredReadTypes, RequiredComponentFields: []LegalComponentFieldRequirement{{StackPath: "game.DrawDeck", Field: "Missing", AllowedTypes: []PropertyType{TypeString}}}}}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if err := validateLegalPredicateForBoot(test.pred, example, nil); err == nil {
+				t.Fatal("invalid component field metadata passed boot validation")
+			}
+		})
+	}
+}
