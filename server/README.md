@@ -76,6 +76,21 @@ identity, focus, pooling, and movement animation continue to work. Use the
 lower-level `boardgame-component-stack` directly for board/spatial geometry or
 unusual animation plumbing.
 
+Use `boardgame-deck` for the common labelled face-down pile. Use
+`boardgame-market` when that pile feeds a visible fixed row: bind
+`.sourceStack`/`.sourceView` and `.stack`/`.componentView`. The market measures
+the actual rendered card slot and contains the row in a horizontal scroller on
+narrow screens. Provide per-slot piles through `attachment-0`, `attachment-1`,
+and so on, or bind a sized `.attachmentStack` plus `.attachmentView` for an
+aligned payment row. Attachment cells are derived from the visible stack and
+ordinary source-to-display movement keeps its normal structural animation.
+Both wrappers expose `stackElement` for specialized motion policy while the raw
+stack remains the escape hatch.
+
+For solid tokens whose enum presentation already has a CSS colour, bind the
+token view's `cssColor` property. This path applies only to generated solids;
+named `color` materials and authored token art retain their existing treatment.
+
 Stack layout is a closed TypeScript contract: `stack`, `grid`, `fan`, `pile`,
 `spread`, `board`, or `spatial`. Use `isStackLayout()` to narrow values from a
 dynamic control. Unknown layouts and invalid geometry fail loudly at runtime.

@@ -1918,6 +1918,42 @@ inline size defaults to `12rem` and still shrinks to fit; override
 different starting size. A stack draws its first component on top, so a move
 that adds a new top card should use `MoveToFirstSlot`.
 
+A face-down source beside a fixed visible row is the common market shape. Use
+`boardgame-deck` for the source alone, or `boardgame-market` for both stacks:
+
+```typescript
+html`<boardgame-market
+  label="Contracts"
+  source-label="Contract deck"
+  display-label="Face-up contracts"
+  attachment-label="Coins on contracts"
+  attachment-position="before"
+  .sourceStack=${game.ContractDeck}
+  .sourceView=${this.cards.withProperties({ faceUp: false })}
+  .stack=${game.Contracts}
+  .componentView=${this.cards}>
+  <boardgame-component-stack
+    slot="attachment-0"
+    .stack=${game.FirstContractCoins}
+    .componentView=${this.coins}>
+  </boardgame-component-stack>
+</boardgame-market>`
+```
+
+The market measures the visible component hosts, so scaled or custom cards set
+the column width; renderers do not repeat card widths, margins, or zone padding.
+The row stays intact in a horizontally contained scroller at narrow widths.
+Named `attachment-0` through `attachment-N` slots place custom content at exact
+visible slots. For a sized one-component-per-slot stack such as payment cubes,
+pass `.attachmentStack` and `.attachmentView`; its original component IDs and
+indexes are retained for motion. The number of attachment cells always comes
+from the visible stack. Ordinary moves between `.sourceStack` and `.stack`
+therefore remain ordinary structural animation. `.action` and `.selection`
+forward to the visible stack; `boardgame-deck` forwards the same properties to
+its source. Use the `stackElement` getter when a specialized motion-presence
+policy needs direct access, or keep using `boardgame-component-stack` for a
+layout that is not a deck or market.
+
 When a renderer has one arbitrary panel per player, let
 `boardgame-player-grid` own the collection layout instead of repeating flexbox
 breakpoints in the game:
@@ -2803,6 +2839,24 @@ Two properties do nearly all of the work. `type` is the shape, one of `token`,
 one of ten names — `red`, `blue`, `green`, `teal`, `purple`, `pink`, `yellow`,
 `orange`, `gray`, `black` — defaulting to `red`. `active` and `highlighted` are
 two independent selection styles that games use for whatever they mean locally.
+
+When an enum already supplies a CSS colour, set `cssColor` instead of translating
+it into the nearest palette name:
+
+```typescript
+private readonly metals = tokenView<GameState['Metals']>({
+  properties: ({ kind, component }) => ({
+    type: 'cube',
+    cssColor: kind === 'visible' ? MetalValueInfo[component.Values.Type].CSSColor ?? '' : '',
+  }),
+});
+```
+
+`cssColor` is an opt-in fill for generated `cube`, `token`, `chip`, and `disc`
+solids. It accepts browser CSS colours and does not recolour authored SVG,
+raster, `meeple`, or `pawn` art. Leaving it empty preserves the named material
+palette exactly. Arbitrary colour values share the shape geometry cache rather
+than creating a cache entry per colour.
 
 **Four of the six shapes are real three-dimensional solids, and two are not.
 The line is not taste; it is where CSS stops rendering correctly.**
