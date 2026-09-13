@@ -66,6 +66,13 @@ export class BoardgameGameOutcome extends BoardgameAnimatableItem {
   @property({ type: String })
   title = 'Game over!';
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (!this.hasAttribute('data-effect-anchor')) {
+      this.setAttribute('data-effect-anchor', 'game-outcome');
+    }
+  }
+
   // Latches so the arrival plays exactly once per reveal. render() returns
   // null while `!finished || animating` (#outcome only exists in the DOM
   // once revealed), so this must run in updated() -- which fires AFTER

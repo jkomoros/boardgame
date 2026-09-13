@@ -42,9 +42,16 @@ describe('effect descriptors', () => {
     assert.throws(() => fx.anchor('  '), /anchor name/);
     assert.throws(() => fx.point(Number.NaN, 0), /finite/);
     assert.throws(() => fx.motion('  '), /motion subject ID/);
+    assert.throws(() => fx.subject('  '), /effect subject ID/);
     assert.throws(() => fx.motion('card', 'middle' as never), /motion moment/);
     assert.throws(() => fx.pulse({ at: fx.point(0, 0), key: '' }), /effect key/);
     assert.throws(() => fx.sequence([], { gapMs: -1 }), /gapMs/);
+  });
+
+  it('describes a privacy-safe current visible subject point', () => {
+    const subject = fx.subject('card-17');
+    assert.deepEqual(subject, { kind: 'subject', subjectId: 'card-17' });
+    assert.equal(Object.isFrozen(subject), true);
   });
 
   it('describes privacy-safe structural departure and arrival points', () => {

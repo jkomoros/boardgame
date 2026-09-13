@@ -16,6 +16,7 @@ import {
   captureOffsetGeometry,
   captureViewportGeometry,
   composeFlipTransform,
+  geometryCenter,
   solveFlipGeometry,
 } from '../motion/geometry.js';
 import type { OffsetGeometry, ViewportGeometry } from '../motion/geometry.js';
@@ -77,6 +78,7 @@ import type {
   CompiledMotionReleaseDeclaration,
   MotionReleaseParticipant,
 } from '../motion/release.js';
+import { isVisibleComponent } from '../types/boardgame-types.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -108,6 +110,8 @@ export interface ComponentAnimatorAPI {
   ): Promise<void>;
   /** Ordered, replayable observation surface; does not confer animation ownership. */
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
+  /** Geometry-only lookup; absent and ambiguous public subjects fail closed. */
+  captureVisibleSubjectPoint(subjectId: string): Readonly<{ x: number; y: number }> | null;
 }
 
 interface ComponentRecord {
@@ -242,6 +246,31 @@ export class BoardgameComponentAnimator extends LitElement {
       }
     }
     return () => this._motionEventObservers.delete(observer);
+  }
+
+  captureVisibleSubjectPoint(subjectId: string): Readonly<{ x: number; y: number }> | null {
+    if (!this.isConnected || typeof subjectId !== 'string' || !subjectId.trim()) return null;
+    const registry = this.shadowRoot?.querySelector<BoardgameComponentStack>('#stack');
+    if (!registry) return null;
+    const matches = new Set<HTMLElement>();
+    for (const stack of registry._sharedStackList) {
+      for (const component of stack.Components) {
+        if (!(component instanceof HTMLElement) || !component.isConnected) continue;
+        if (component.id !== subjectId) continue;
+        // A face-down card may still be a public component, while an opaque
+        // occupied slot is unavailable even though its card back is rendered.
+        if (!isVisibleComponent((component as { item?: unknown }).item)) continue;
+        if (!this._captureMotionSubject(component)) continue;
+        const style = getComputedStyle(component);
+        if (style.display === 'none' || style.visibility === 'hidden') continue;
+        matches.add(component);
+      }
+    }
+    if (matches.size !== 1) return null;
+    const component = matches.values().next().value;
+    if (!component) return null;
+    const point = geometryCenter(captureViewportGeometry(component));
+    return Object.freeze({ x: point.x, y: point.y });
   }
 
   private _notifyStructuralMotion(plan: StructuralMotionPlan): void {

@@ -34,9 +34,19 @@ export interface MotionEffectAnchor {
   readonly moment: MotionEffectMoment;
 }
 
+/**
+ * The current position of one publicly identified, rendered component.
+ * Resolution exposes only geometry and fails closed when identity is absent
+ * or ambiguous.
+ */
+export interface SubjectEffectAnchor {
+  readonly kind: 'subject';
+  readonly subjectId: string;
+}
+
 /** Elements are ideal for immediate interaction feedback; named anchors are replay-safe. */
 export type EffectAnchor = NamedEffectAnchor | PointEffectAnchor | HTMLElement;
-export type EffectPointAnchor = EffectAnchor | MotionEffectAnchor;
+export type EffectPointAnchor = EffectAnchor | MotionEffectAnchor | SubjectEffectAnchor;
 
 export interface EffectBase {
   /** Stable identity within a transition or composition. */
@@ -247,6 +257,14 @@ export const fx = Object.freeze({
       kind: 'motion',
       subjectId: nonEmpty(subjectId, 'motion subject ID'),
       moment,
+    });
+  },
+
+  /** Target exactly one current visible component without exposing its DOM node. */
+  subject(subjectId: string): SubjectEffectAnchor {
+    return Object.freeze({
+      kind: 'subject',
+      subjectId: nonEmpty(subjectId, 'effect subject ID'),
     });
   },
 

@@ -16,6 +16,8 @@ export { BoardgameTableViewBase } from './components/boardgame-table-view-base.j
 export { BoardgameHandViewBase } from './components/boardgame-hand-view-base.js';
 export type { SeatPresentation } from './components/boardgame-table-view-base.js';
 export { defineEffectTheme, fx } from './effects/effect-spec.js';
+export { diffVisibleComponents } from './effects/visible-component-diff.js';
+export type { VisibleComponentDiff } from './effects/visible-component-diff.js';
 export { motion } from './motion/cohort.js';
 export type { MotionStaggerCohortSpec } from './motion/cohort.js';
 export type { MotionTransferDeclaration } from './motion/transfer.js';
@@ -45,6 +47,7 @@ export type {
   MotionEffectMoment,
   ParallelEffectSpec,
   PointEffectAnchor,
+  SubjectEffectAnchor,
   PulseEffectSpec,
   SequenceEffectSpec,
   TrailEffectSpec,
