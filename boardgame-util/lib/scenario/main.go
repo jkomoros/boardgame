@@ -4,14 +4,18 @@
 package scenario
 
 import (
+	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/bots"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/storage/filesystem"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
@@ -19,7 +23,7 @@ import (
 
 // Spec defines a reproducible setup and an explicit sequence of decisions.
 // Seed controls engine RNG identity; creator code must use State.Rand() too.
-// Agents are intentionally not enabled by this runner.
+// Legacy agents are not enabled; explicit Bot steps use detached observations.
 type Spec struct {
 	Name    string
 	Seed    string
@@ -31,7 +35,7 @@ type Spec struct {
 	MaxMoves int
 }
 
-// Step selects exactly one operation: a creator move, the next timer, or a seat.
+// Step selects exactly one operation: a creator move, bot decision, timer, or seat.
 // Input follows MoveWithInput's strict creator contract. Timer and seating
 // actions reuse the same debug hooks as golden replay.
 type Step struct {
@@ -41,6 +45,7 @@ type Step struct {
 	Input  map[string]interface{}
 	Timer  bool
 	Seat   *boardgame.PlayerIndex
+	Bot    bots.Policy
 }
 
 type MoveLegality struct {
@@ -86,6 +91,18 @@ type Result struct {
 // Its limits bound committed moves and script steps, not time spent inside an
 // arbitrary creator callback. Use process isolation for a hard execution limit.
 func Run(delegate boardgame.GameDelegate, spec Spec) (*Result, error) {
+	return RunContext(context.Background(), delegate, spec)
+}
+
+// RunContext checks cancellation between operations and passes it to bot policies.
+// Cancellation does not interrupt creator Apply/Legal callbacks.
+func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec) (*Result, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("scenario requires a context")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if delegate == nil || spec.Name == "" {
 		return nil, fmt.Errorf("scenario requires a delegate and name")
 	}
@@ -101,6 +118,9 @@ func Run(delegate boardgame.GameDelegate, spec Spec) (*Result, error) {
 	for i, step := range spec.Steps {
 		operations := 0
 		if step.Move != "" {
+			operations++
+		}
+		if step.Bot != nil {
 			operations++
 		}
 		if step.Timer {
@@ -135,6 +155,8 @@ func Run(delegate boardgame.GameDelegate, spec Spec) (*Result, error) {
 		seed = spec.Name
 	}
 	id := sha256.Sum256([]byte("boardgame scenario id:" + seed))
+	randomSeed := sha256.Sum256([]byte("boardgame scenario bot rng:" + seed))
+	random := rand.New(rand.NewSource(int64(binary.LittleEndian.Uint64(randomSeed[:8]))))
 	salt := sha256.Sum256([]byte("boardgame scenario salt:" + seed))
 	game, err := manager.Internals().RecreateGame(&boardgame.GameStorageRecord{
 		Name: delegate.Name(), ID: strings.ToUpper(hex.EncodeToString(id[:8])),
@@ -196,6 +218,9 @@ func Run(delegate boardgame.GameDelegate, spec Spec) (*Result, error) {
 		return result, err
 	}
 	for i, step := range spec.Steps {
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
 		label := step.Label
 		if label == "" {
 			label = step.Move
@@ -204,6 +229,8 @@ func Run(delegate boardgame.GameDelegate, spec Spec) (*Result, error) {
 			}
 		}
 		switch {
+		case step.Bot != nil:
+			err = bots.Play(ctx, game, step.Player, step.Bot, random)
 		case step.Timer:
 			var fired bool
 			fired, err = manager.Internals().ForceNextTimerWithError()

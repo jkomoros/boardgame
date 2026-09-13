@@ -59,3 +59,7 @@ A multi-viewer replay is a local review artifact: each individual snapshot is
 sanitized, but combining seats can reveal their private information. Publish only
 the viewer snapshots appropriate for the audience. Authoritative `History` is
 never embedded in `Replay`.
+
+For explicit bot decisions, set `Bot` and `Player` instead of `Move`/`Input` on a
+step. `RunContext` passes cancellation to policies and checks it between steps.
+See [observation bots](observation-bots.md) for the capability boundary and pilot.
