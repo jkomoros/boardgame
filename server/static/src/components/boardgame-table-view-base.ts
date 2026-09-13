@@ -106,6 +106,7 @@ export class BoardgameTableViewBase<
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
+    if (changedProperties.has('autoFlyDeals')) this._dealFlight.cancel();
     if (!changedProperties.has('state')) return;
     this._dealFlight.cancel();
     const sizes = this.state ? this._handSizes(this.state) : [];

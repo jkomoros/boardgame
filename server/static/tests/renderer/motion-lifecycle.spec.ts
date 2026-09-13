@@ -201,7 +201,7 @@ test('every delayed transfer in a batch reaches active-observed independently', 
   }
 });
 
-test('detached Hand and Table renderers do not start deferred compatibility flights', async ({ page }) => {
+test('Hand and Table cancel deferred compatibility flights when ownership changes', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
     const result = await page.evaluate(async () => {
@@ -242,11 +242,28 @@ test('detached Hand and Table renderers do not start deferred compatibility flig
       hand.remove();
       table.remove();
       await new Promise(requestAnimationFrame);
+      const detached = { handCalls: hand.calls, tableCalls: table.calls };
 
-      return { handCalls: hand.calls, tableCalls: table.calls };
+      document.body.append(hand, table);
+      hand.state = { Players: [{ Hand: { IDs: ['existing', 'incoming', 'later'] } }] } as any;
+      table.state = { Players: [{ Hand: { Indexes: [-1, -1] } }] } as any;
+      await Promise.all([hand.updateComplete, table.updateComplete]);
+      await new Promise(requestAnimationFrame);
+      hand.autoFlyIncoming = false;
+      table.autoFlyDeals = false;
+      await Promise.all([hand.updateComplete, table.updateComplete]);
+      await new Promise(requestAnimationFrame);
+
+      return {
+        detached,
+        disabled: { handCalls: hand.calls, tableCalls: table.calls },
+      };
     });
 
-    expect(result).toEqual({ handCalls: 0, tableCalls: 0 });
+    expect(result).toEqual({
+      detached: { handCalls: 0, tableCalls: 0 },
+      disabled: { handCalls: 0, tableCalls: 0 },
+    });
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

@@ -95,6 +95,7 @@ export class BoardgameHandViewBase<
       this._prevOwnCardIds = null;
       this._incomingCardFlight.cancel();
     }
+    if (changedProperties.has('autoFlyIncoming')) this._incomingCardFlight.cancel();
     const myTurn = this.isCurrentPlayer && !this.gameFinished;
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a
