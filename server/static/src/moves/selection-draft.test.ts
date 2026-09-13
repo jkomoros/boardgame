@@ -79,6 +79,23 @@ test('selection draft toggles immutable choices, undoes, and builds one exact ac
   assert.deepEqual(controller.bind(options).selected, ['clay', 'ore']);
 });
 
+test('selection draft can expose reconciled selection without choosing a commit action', () => {
+  const host = new TestHost();
+  const controller = new SelectionDraftController<string>(host);
+  const options = { candidates: ['first', 'second'], maxSelected: 1, rebase: 'keep-valid' as const };
+  let draft = controller.draft(options);
+  assert.equal('action' in draft, false);
+  draft.select('second');
+  assert.deepEqual(controller.draft(options).selected, ['second']);
+
+  host.state = {};
+  host.gameVersion++;
+  draft = controller.draft({ ...options, candidates: ['first'] });
+  assert.deepEqual(draft.selected, []);
+  assert.equal(draft.notice?.kind, 'pruned');
+  assert.deepEqual(draft.notice?.removed, ['second']);
+});
+
 test('selection draft clears safely, can keep valid stable keys, and leaves stale actions closed', async () => {
   const host = new TestHost();
   const controller = new SelectionDraftController<string>(host);

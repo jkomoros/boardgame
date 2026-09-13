@@ -1,6 +1,8 @@
 import { LitElement, css, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { BoundMoveAction } from '../moves/action.js';
+import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
+import type { TargetAction } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { ComponentView } from './component-view.js';
 import './boardgame-component-stack.js';
@@ -100,6 +102,12 @@ export class BoardgameComponentZone extends LitElement {
   @property({ type: Array, attribute: false })
   componentActions: readonly (BoundMoveAction<string, object> | null)[] = [];
 
+  @property({ attribute: false })
+  action: TargetAction<number> | null = null;
+
+  @property({ attribute: false })
+  selection: SelectionDraftSelectionBinding<number> | SelectionDraftSelectionBinding<string> | null = null;
+
   @property({ type: Boolean })
   messy = false;
 
@@ -145,13 +153,15 @@ export class BoardgameComponentZone extends LitElement {
             .stack=${this.stack}
             .componentView=${this.componentView}
             .componentActions=${this.componentActions}
+            .action=${this.action}
+            .selection=${this.selection}
             .layout=${this.layout}
             .messy=${this.messy}
             .messiness=${this.messiness}
             .noDefaultSpacer=${this.noDefaultSpacer}
             .fauxComponents=${this.fauxComponents}
             .stagger=${this.stagger}
-            .componentsDisabled=${this.componentActions.length === 0}>
+            .componentsDisabled=${this.componentActions.length === 0 && !this.action && !this.selection}>
           </boardgame-component-stack>
           ${count === 0 && !this.hideEmptyState
             ? html`<div id="empty" part="empty">${this.emptyLabel.trim()}</div>`

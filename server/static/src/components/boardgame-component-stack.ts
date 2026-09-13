@@ -1,13 +1,15 @@
 import { LitElement, html, css, TemplateResult } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import type { BoardgameComponentElement } from '../types/components';
-import type { ExpandedStack } from '../types/boardgame-types.js';
+import { isVisibleComponent, type ExpandedStack } from '../types/boardgame-types.js';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 import type { BoardgameComponent } from './boardgame-component.js';
 import type { ComponentView } from './component-view.js';
 import { createComponentForView, sameComponentViewRecipe, updateComponentFromView } from './component-view.js';
 import { compileMotionPresence } from '../motion/presence.js';
 import type { MotionPresenceFacts, MotionPresencePolicy } from '../motion/presence.js';
+import type { TargetAction } from '../moves/target-action.js';
+import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -367,6 +369,14 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Array, attribute: false })
   componentActions: readonly (BoundMoveAction<string, object> | null)[] = [];
 
+  /** One indexed target action shared by every candidate slot. */
+  @property({ attribute: false })
+  action: TargetAction<number> | null = null;
+
+  /** Controller-owned local selection, keyed by slot index or stable component ID. */
+  @property({ attribute: false })
+  selection: SelectionDraftSelectionBinding<number> | SelectionDraftSelectionBinding<string> | null = null;
+
   /** Renderer-scoped, typed Lit content for this stack's component hosts. */
   @property({ attribute: false })
   componentView: ComponentView | null = null;
@@ -378,6 +388,7 @@ export class BoardgameComponentStack extends LitElement {
     role: string | null;
     tabindex: string | null;
     ariaDisabled: string | null;
+    ariaPressed: string | null;
     title: string | null;
   }>();
   /**
@@ -527,7 +538,8 @@ export class BoardgameComponentStack extends LitElement {
       // In ordinary markup .stack commonly appears before .componentView.
       this._generateChildren();
     }
-    if (changedProperties.has('componentActions') || changedProperties.has('unsafeComponentAttrs')
+    if (changedProperties.has('componentActions') || changedProperties.has('action')
+      || changedProperties.has('selection') || changedProperties.has('unsafeComponentAttrs')
       || changedProperties.has('componentsDisabled') || changedProperties.has('stack')) {
       this._subscribeComponentActions();
       this._applyComponentActionState();
@@ -769,7 +781,7 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private readonly _componentTapped = (event: Event): void => {
-    if (!this.componentActions.length) return;
+    if (!this._hasComponentInteraction) return;
     const component = event.composedPath().find((target): target is HTMLElement =>
       target instanceof HTMLElement
         && target.parentElement === this
@@ -777,40 +789,122 @@ export class BoardgameComponentStack extends LitElement {
     if (!component) return;
     event.stopImmediatePropagation();
     const components = [...this.children].filter(child => child.hasAttribute('boardgame-component'));
-    const action = this.componentActions[components.indexOf(component)];
-    if (action?.canActivate) void action.activate();
+    this._activateComponent(components.indexOf(component));
   };
 
   private readonly _componentKeyDown = (event: KeyboardEvent): void => {
-    if (!this.componentActions.length || (event.key !== 'Enter' && event.key !== ' ')) return;
+    if (!this._hasComponentInteraction || (event.key !== 'Enter' && event.key !== ' ')) return;
     const component = event.composedPath().find((target): target is HTMLElement =>
       target instanceof HTMLElement
         && target.parentElement === this
         && target.hasAttribute('boardgame-component'));
     if (!component) return;
     const components = [...this.children].filter(child => child.hasAttribute('boardgame-component'));
-    const action = this.componentActions[components.indexOf(component)];
-    if (!action?.canActivate) return;
+    if (!this._componentCanActivate(components.indexOf(component))) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    void action.activate();
+    this._activateComponent(components.indexOf(component));
   };
 
-  private _validateComponentActions(): void {
-    if (!this.componentActions.length) return;
-    const components = this.stack?.Components;
-    if (!Array.isArray(components)) return;
-    if (this.componentActions.length !== components.length) {
-      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but stack has ${components.length} slots`);
+  private get _hasComponentInteraction(): boolean {
+    return this.componentActions.length > 0 || this.action !== null || this.selection !== null;
+  }
+
+  private _componentAction(index: number): BoundMoveAction<string, object> | null {
+    return this.componentActions.length
+      ? this.componentActions[index] ?? null
+      : this.action?.get(index)?.action ?? null;
+  }
+
+  private _selectionKey(index: number): string | number | null {
+    const selection = this.selection;
+    if (!selection || selection.candidates.length === 0) return null;
+    if (typeof selection.candidates[0] === 'number') {
+      return (selection.candidates as readonly number[]).includes(index) ? index : null;
     }
-    if (this.componentsDisabled) {
-      throw new Error('boardgame-component-stack: componentActions cannot be combined with componentsDisabled');
+    const component = this.stack?.Components[index];
+    const id = isVisibleComponent(component) ? component.ID : undefined;
+    return id !== undefined && (selection.candidates as readonly string[]).includes(id) ? id : null;
+  }
+
+  private _componentCanActivate(index: number): boolean {
+    const key = this._selectionKey(index);
+    if (key !== null) {
+      const option = this.selection!.option(key as never);
+      return !option.capacityBlocked;
+    }
+    return this._componentAction(index)?.canActivate ?? false;
+  }
+
+  private _activateComponent(index: number): void {
+    const key = this._selectionKey(index);
+    if (key !== null) {
+      const option = this.selection!.option(key as never);
+      if (!option.capacityBlocked) option.toggle();
+      return;
+    }
+    const action = this._componentAction(index);
+    if (action?.canActivate) void action.activate();
+  }
+
+  private _validateComponentActions(): void {
+    const interactions = Number(this.componentActions.length > 0)
+      + Number(this.action !== null)
+      + Number(this.selection !== null);
+    if (interactions > 1) {
+      throw new Error('boardgame-component-stack: action, selection, and componentActions are mutually exclusive');
+    }
+    if (interactions > 0 && this.componentsDisabled) {
+      throw new Error('boardgame-component-stack: actions and selection cannot be combined with componentsDisabled');
+    }
+    const components = this.stack?.Components;
+    if (this.componentActions.length && Array.isArray(components)
+      && this.componentActions.length !== components.length) {
+      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but stack has ${components.length} slots`);
     }
     this.componentActions.forEach((action, index) => {
       if (action !== null && !isBoundMoveAction(action)) {
         throw new Error(`boardgame-component-stack: componentActions[${index}] is not a bound move action or null`);
       }
     });
+    if (this.action) {
+      const invalid = this.action.candidates.find(candidate => !Number.isSafeInteger(candidate.key)
+        || candidate.key < 0 || (Array.isArray(components) && candidate.key >= components.length));
+      if (invalid) {
+        const range = Array.isArray(components) ? `0 through ${Math.max(components.length - 1, 0)}` : 'non-negative slot indexes';
+        throw new Error(`boardgame-component-stack: action target ${JSON.stringify(invalid.key)} is outside ${range}`);
+      }
+    }
+    if (this.selection) {
+      const { candidates, option } = this.selection;
+      if (!Array.isArray(candidates) || typeof option !== 'function') {
+        throw new Error('boardgame-component-stack: selection must come from SelectionDraftController.draft()');
+      }
+      const keyType = candidates.length > 0 ? typeof candidates[0] : null;
+      if (keyType !== null && candidates.some(key => typeof key !== keyType)) {
+        throw new Error('boardgame-component-stack: selection candidates must use all slot indexes or all stable component IDs');
+      }
+      if (keyType === 'number') {
+        const invalid = (candidates as readonly number[]).find(key => !Number.isSafeInteger(key)
+          || key < 0 || (Array.isArray(components) && key >= components.length));
+        if (invalid !== undefined) {
+          throw new Error(`boardgame-component-stack: selection slot ${JSON.stringify(invalid)} is outside the stack`);
+        }
+      } else if (keyType === 'string' && this.stack) {
+        const visibleIDs = this.stack.Components
+          .filter(isVisibleComponent)
+          .map(component => component.ID);
+        const duplicate = visibleIDs.find((id, index) => visibleIDs.indexOf(id) !== index);
+        if (duplicate !== undefined) {
+          throw new Error(`boardgame-component-stack: stable component ID ${JSON.stringify(duplicate)} appears in multiple visible slots`);
+        }
+        const ids = new Set(visibleIDs);
+        const invalid = (candidates as readonly string[]).find(key => !ids.has(key));
+        if (invalid !== undefined) {
+          throw new Error(`boardgame-component-stack: selection component ID ${JSON.stringify(invalid)} is not uniquely visible in the stack`);
+        }
+      }
+    }
   }
 
   private _clearComponentActionSubscriptions(): void {
@@ -822,9 +916,11 @@ export class BoardgameComponentStack extends LitElement {
     this._clearComponentActionSubscriptions();
     this._validateComponentActions();
     if (!this.isConnected) return;
-    this._componentActionUnsubscribes = [...new Set(this.componentActions
-      .filter((action): action is BoundMoveAction<string, object> => action !== null))]
-      .map(action => action.subscribe(() => {
+    const subscriptions: { subscribe(listener: () => void): () => void }[] = this.componentActions
+      .filter((action): action is BoundMoveAction<string, object> => action !== null);
+    if (this.action) subscriptions.push(this.action);
+    this._componentActionUnsubscribes = [...new Set(subscriptions)]
+      .map(subscribable => subscribable.subscribe(() => {
         this._applyComponentActionState();
         this.requestUpdate();
       }));
@@ -837,29 +933,33 @@ export class BoardgameComponentStack extends LitElement {
     for (const component of this._componentActionOriginals.keys()) {
       if (!currentComponents.has(component)) this._restoreComponentActionState(component);
     }
-    if (!this.componentActions.length) {
+    if (!this._hasComponentInteraction) {
       this._restoreAllComponentActionState();
       this._applyComponentAttrsToChildren();
       return;
     }
     this._validateComponentActions();
-    if (!this.stack && components.length !== this.componentActions.length) {
+    if (!this.stack && this.componentActions.length && components.length !== this.componentActions.length) {
       if (!this.hasUpdated && components.length === 0) return;
       throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but the stack has ${components.length} rendered components`);
     }
     components.forEach((component, index) => {
       this._captureComponentActionState(component);
-      const action = this.componentActions[index] ?? null;
-      const disabled = !action?.canActivate;
+      const action = this._componentAction(index);
+      const selectionKey = this._selectionKey(index);
+      const option = selectionKey === null ? null : this.selection!.option(selectionKey as never);
+      const disabled = option ? option.capacityBlocked : !action?.canActivate;
       (component as HTMLElement & { disabled?: boolean }).disabled = disabled;
       component.setAttribute('aria-disabled', String(disabled));
-      if (action) {
+      if (action || option) {
         component.setAttribute('role', 'button');
         component.tabIndex = disabled ? -1 : 0;
       } else {
         component.removeAttribute('role');
         component.tabIndex = -1;
       }
+      if (option) component.setAttribute('aria-pressed', String(option.selected));
+      else component.removeAttribute('aria-pressed');
       const reason = action?.reason?.message;
       if (reason) component.setAttribute('title', reason); else component.removeAttribute('title');
     });
@@ -872,6 +972,7 @@ export class BoardgameComponentStack extends LitElement {
       role: component.getAttribute('role'),
       tabindex: component.getAttribute('tabindex'),
       ariaDisabled: component.getAttribute('aria-disabled'),
+      ariaPressed: component.getAttribute('aria-pressed'),
       title: component.getAttribute('title'),
     });
   }
@@ -883,6 +984,7 @@ export class BoardgameComponentStack extends LitElement {
     this._restoreAttribute(component, 'role', original.role);
     this._restoreAttribute(component, 'tabindex', original.tabindex);
     this._restoreAttribute(component, 'aria-disabled', original.ariaDisabled);
+    this._restoreAttribute(component, 'aria-pressed', original.ariaPressed);
     this._restoreAttribute(component, 'title', original.title);
     this._componentActionOriginals.delete(component);
   }

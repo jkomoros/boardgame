@@ -154,9 +154,11 @@ export { readinessPresentation } from './status/readiness.js';
 export {
   SelectionDraftController,
   type SelectionDraftBinding,
+  type SelectionDraftSelectionBinding,
   type SelectionDraftNotice,
   type SelectionOptionBinding,
   type SelectionDraftOptions,
+  type SelectionDraftStateOptions,
   type SelectionDraftRebasePolicy,
 } from './moves/selection-draft.js';
 export {

@@ -501,6 +501,101 @@ test('component stacks bind typed actions by slot and reject ambiguous wiring', 
   }
 });
 
+test('component stacks consume indexed target actions and controller-owned local selection', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-card.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      await import('/game-src/tictactoe/boardgame-render-game-tictactoe.ts');
+      const { tictactoeRendererFixture } = await import('/game-src/tictactoe/boardgame-render-fixtures-tictactoe.ts');
+      const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+      const { html, SelectionDraftController } = await import('/src/client.ts');
+      const TicTacToeRenderer = customElements.get('boardgame-render-game-tictactoe');
+      if (!TicTacToeRenderer) throw new Error('Tic-tac-toe renderer was not registered');
+
+      class StackBindingsRenderer extends TicTacToeRenderer {
+        private readonly cardDraft = new SelectionDraftController<number>(this as never);
+
+        override render() {
+          const renderer = this as unknown as {
+            move(name: 'Place Token'): {
+              targets(keys: readonly number[], inputFor: (key: number) => { Slot: number }): unknown;
+            };
+          };
+          const action = renderer.move('Place Token').targets([1, 2], Slot => ({ Slot }));
+          const selection = this.cardDraft.draft({ candidates: [0, 1], maxSelected: 1, rebase: 'clear' });
+          const cards = (prefix: string) => [0, 1, 2].map(index => html`
+            <boardgame-card boardgame-component
+              .item=${{ ID: `${prefix}-${index}`, Values: { Rank: String(index) } }}>
+            </boardgame-card>`);
+          return html`
+            <boardgame-component-stack id="action" .action=${action}>${cards('action')}</boardgame-component-stack>
+            <boardgame-component-stack id="selection" .selection=${selection}>${cards('selection')}</boardgame-component-stack>`;
+        }
+      }
+      customElements.define('boardgame-render-game-tictactoe-stack-bindings', StackBindingsRenderer);
+      const handle = await mountRendererFixture({
+        ...tictactoeRendererFixture,
+        tagName: 'boardgame-render-game-tictactoe-stack-bindings',
+      } as never);
+      const stacks = [...handle.renderer.shadowRoot!.querySelectorAll('boardgame-component-stack')] as Array<HTMLElement & {
+        action: { ensurePreview(): Promise<unknown> } | null;
+        selection: unknown;
+        updateComplete: Promise<unknown>;
+      }>;
+      await Promise.all(stacks.map(stack => stack.updateComplete));
+      const [actionStack, selectionStack] = stacks;
+      await actionStack!.action!.ensurePreview();
+      await actionStack!.updateComplete;
+      const actionCards = [...actionStack!.querySelectorAll('boardgame-card')];
+      const selectionCards = [...selectionStack!.querySelectorAll('boardgame-card')];
+      const actionState = actionCards.map(card => ({
+        role: card.getAttribute('role'),
+        disabled: card.getAttribute('aria-disabled'),
+      }));
+      (actionCards[2]!.shadowRoot!.querySelector('#outer') as HTMLElement).click();
+      await Promise.resolve();
+      (selectionCards[1]!.shadowRoot!.querySelector('#outer') as HTMLElement).click();
+      await handle.renderer.updateComplete;
+      await selectionStack!.updateComplete;
+      const selectedState = [...selectionStack!.querySelectorAll('boardgame-card')].map(card => ({
+        pressed: card.getAttribute('aria-pressed'),
+        disabled: card.getAttribute('aria-disabled'),
+      }));
+      await handle.update({ ...tictactoeRendererFixture.snapshot, version: 5 });
+      await selectionStack!.updateComplete;
+      const rebasedState = [...selectionStack!.querySelectorAll('boardgame-card')].map(card =>
+        card.getAttribute('aria-pressed'));
+      selectionStack!.action = actionStack!.action;
+      let conflict = '<missing error>';
+      try { await selectionStack!.updateComplete; }
+      catch (error) { conflict = error instanceof Error ? error.message : String(error); }
+      handle.dispose();
+      return { actionState, selectedState, rebasedState, conflict, proposals: handle.proposals };
+    });
+
+    expect(result.actionState).toEqual([
+      { role: null, disabled: 'true' },
+      { role: 'button', disabled: 'true' },
+      { role: 'button', disabled: 'false' },
+    ]);
+    expect(result.selectedState).toEqual([
+      { pressed: 'false', disabled: 'true' },
+      { pressed: 'true', disabled: 'false' },
+      { pressed: null, disabled: 'true' },
+    ]);
+    expect(result.rebasedState).toEqual(['false', 'false', null]);
+    expect(result.conflict).toContain('mutually exclusive');
+    expect(result.proposals).toContainEqual(expect.objectContaining({
+      name: 'Place Token', arguments: { Slot: '2' },
+    }));
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('removed component proposal configuration is inert or fails loudly', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {

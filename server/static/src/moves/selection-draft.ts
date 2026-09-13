@@ -13,17 +13,20 @@ export type SelectionDraftNotice<Key extends TargetKey> =
   | { readonly kind: 'cleared'; readonly message: string; readonly removed: readonly Key[] }
   | { readonly kind: 'pruned'; readonly message: string; readonly removed: readonly Key[] };
 
-export interface SelectionDraftOptions<
-  Key extends TargetKey,
-  MoveName extends string,
-  Input extends object,
-> {
+export interface SelectionDraftStateOptions<Key extends TargetKey> {
   readonly candidates: readonly Key[];
-  readonly action: (selected: readonly Key[]) => BoundMoveAction<MoveName, Input>;
   readonly minSelected?: number;
   readonly maxSelected?: number;
   /** Clear by default; keeping still removes unavailable selections. */
   readonly rebase?: SelectionDraftRebasePolicy;
+}
+
+export interface SelectionDraftOptions<
+  Key extends TargetKey,
+  MoveName extends string,
+  Input extends object,
+> extends SelectionDraftStateOptions<Key> {
+  readonly action: (selected: readonly Key[]) => BoundMoveAction<MoveName, Input>;
 }
 
 /** One candidate's snapshot-safe presentation and interaction binding. */
@@ -34,14 +37,9 @@ export interface SelectionOptionBinding<Key extends TargetKey> {
   toggle(): void;
 }
 
-export interface SelectionDraftBinding<
-  Key extends TargetKey,
-  MoveName extends string,
-  Input extends object,
-> {
+export interface SelectionDraftSelectionBinding<Key extends TargetKey> {
   readonly candidates: readonly Key[];
   readonly selected: readonly Key[];
-  readonly action: BoundMoveAction<MoveName, Input> | null;
   readonly notice: SelectionDraftNotice<Key> | null;
   readonly minimumSelected: number;
   readonly maximumSelected: number;
@@ -59,6 +57,14 @@ export interface SelectionDraftBinding<
   undo(): void;
   dismissNotice(): void;
   isSelected(key: Key): boolean;
+}
+
+export interface SelectionDraftBinding<
+  Key extends TargetKey,
+  MoveName extends string,
+  Input extends object,
+> extends SelectionDraftSelectionBinding<Key> {
+  readonly action: BoundMoveAction<MoveName, Input> | null;
 }
 
 /** Snapshot-safe local multi-selection whose only commit is a typed move action. */
@@ -81,6 +87,28 @@ export class SelectionDraftController<Key extends TargetKey> implements Reactive
   bind<MoveName extends string, Input extends object>(
     options: SelectionDraftOptions<Key, MoveName, Input>,
   ): SelectionDraftBinding<Key, MoveName, Input> {
+    const selection = this.draft(options);
+    let action: BoundMoveAction<MoveName, Input> | null = null;
+    if (selection.selected.length >= selection.minimumSelected) {
+      try {
+        action = options.action(selection.selected);
+      } catch (error) {
+        const detail = error instanceof Error ? `: ${error.message}` : '';
+        throw new Error(`SelectionDraftController action failed${detail}`);
+      }
+      if (!isBoundMoveAction(action)) {
+        throw new Error('SelectionDraftController action must return a bound move action');
+      }
+    }
+    return Object.freeze({ ...selection, action });
+  }
+
+  /**
+   * Bind the same snapshot-safe selection state without choosing a commit.
+   * This supports one local choice that can feed several independently bound
+   * actions while keeping bind()'s exact-action contract intact.
+   */
+  draft(options: SelectionDraftStateOptions<Key>): SelectionDraftSelectionBinding<Key> {
     const candidates = validateCandidates(options.candidates);
     const minimumSelected = validateBound('minSelected', options.minSelected ?? 1, 1, MAX_SELECTIONS);
     const maximumSelected = validateBound(
@@ -105,22 +133,9 @@ export class SelectionDraftController<Key extends TargetKey> implements Reactive
     this.#snapshotKey = nextSnapshotKey;
     this.#stateObject = this.#host.state;
 
-    let action: BoundMoveAction<MoveName, Input> | null = null;
-    if (this.#selected.length >= minimumSelected) {
-      try {
-        action = options.action(this.#selected);
-      } catch (error) {
-        const detail = error instanceof Error ? `: ${error.message}` : '';
-        throw new Error(`SelectionDraftController action failed${detail}`);
-      }
-      if (!isBoundMoveAction(action)) {
-        throw new Error('SelectionDraftController action must return a bound move action');
-      }
-    }
     return Object.freeze({
       candidates,
       selected: this.#selected,
-      action,
       notice: this.#notice,
       minimumSelected,
       maximumSelected,

@@ -176,6 +176,14 @@ export interface BoardgameComponentStackElement extends BoardgameAnimatableItemE
   /** One exact bound action or explicit null for each logical stack slot. */
   componentActions: readonly (BoundMoveAction<string, object> | null)[];
 
+  /** One sparse indexed target action shared by candidate slots. */
+  action: import('../moves/target-action.js').TargetAction<number> | null;
+
+  /** Local selection keyed by slot index or stable component ID. */
+  selection: import('../moves/selection-draft.js').SelectionDraftSelectionBinding<number>
+    | import('../moves/selection-draft.js').SelectionDraftSelectionBinding<string>
+    | null;
+
   /** Currently rendered real and faux component elements. */
   readonly Components: BoardgameComponentElement[];
 }

@@ -9,6 +9,14 @@ declare const host: GameSnapshotHost;
 declare const commit: (selected: readonly Card[]) => BoundMoveAction<'Trade', { Cards: string }>;
 
 const controller = new SelectionDraftController<Card>(host);
+const selectionOnly = controller.draft({
+  candidates: ['clay', 'ore'] as const,
+  maxSelected: 1,
+  rebase: 'keep-valid',
+});
+selectionOnly.option('clay');
+// @ts-expect-error action-free drafts do not expose a commit action
+selectionOnly.action;
 const draft = controller.bind({
   candidates: ['clay', 'ore', 'wool'] as const,
   minSelected: 2,
