@@ -83,7 +83,7 @@ func ValidateTypeResult(result TypeResult) error {
 				return fmt.Errorf("%s contains duplicate field %q", owner, field.Name)
 			}
 			seen[field.Name] = true
-			if (field.Type == "TypeEnum" || field.Type == "TypeEnumSlice") && field.EnumName != "" {
+			if (field.Type == "TypeEnum" || field.Type == "TypeEnumSlice" || field.Type == "TypeBoard") && field.EnumName != "" {
 				name := toPascalCase(field.EnumName) + "Value"
 				if !typeScriptIdentifier.MatchString(name) {
 					return fmt.Errorf("%s field %q references enum %q, which generates invalid TypeScript identifier %q", owner, field.Name, field.EnumName, name)
@@ -105,7 +105,7 @@ func ValidateTypeResult(result TypeResult) error {
 				return fmt.Errorf("%s contains duplicate field %q", owner, field.Name)
 			}
 			seen[field.Name] = true
-			if (field.Type == "TypeEnum" || field.Type == "TypeEnumSlice") && field.EnumName != "" {
+			if (field.Type == "TypeEnum" || field.Type == "TypeEnumSlice" || field.Type == "TypeBoard") && field.EnumName != "" {
 				name := toPascalCase(field.EnumName) + "Value"
 				if !typeScriptIdentifier.MatchString(name) {
 					return fmt.Errorf("%s field %q references enum %q, which generates invalid TypeScript identifier %q", owner, field.Name, field.EnumName, name)

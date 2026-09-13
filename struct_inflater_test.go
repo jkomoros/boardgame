@@ -272,6 +272,33 @@ type testConstrainedBoard struct {
 	Spaces Board `stack:"test,0,reject()" board:"3"`
 }
 
+type testEnumBoard struct {
+	Spaces Board `stack:"test" board:"3" enum:"color"`
+}
+
+func (t *testEnumBoard) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testEnumBoard) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testEnumBoard) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+func TestStructInflaterAssociatesBoardEnum(t *testing.T) {
+	game := testDefaultGame(t, false)
+	inflater, err := NewStructInflater(new(testEnumBoard), nil, game.manager.Chest(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := new(testEnumBoard)
+	if err := inflater.Inflate(got, game.CurrentState()); err != nil {
+		t.Fatal(err)
+	}
+	if got.Spaces.Enum() != testColorEnum || got.Spaces.SpaceAtKey(colorBlue) != got.Spaces.SpaceAt(1) {
+		t.Fatal("inflated board was not associated with its enum")
+	}
+}
+
 func (t *testConstrainedBoard) Reader() PropertyReader { return getDefaultReader(t) }
 func (t *testConstrainedBoard) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)

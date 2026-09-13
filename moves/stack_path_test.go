@@ -7,6 +7,43 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+func TestParseIndexedStackPath(t *testing.T) {
+	tests := []struct {
+		spec, prop, playerField, boardField string
+		wantErr                             bool
+	}{
+		{"BuildPiles[move.TargetPile]", "BuildPiles", "", "TargetPile", false},
+		{"game.BuildPiles[move.TargetPile]", "BuildPiles", "", "TargetPile", false},
+		{"player.Piles[move.TargetPile]", "Piles", "", "TargetPile", false},
+		{"players[move.TargetPlayerIndex].Piles[move.TargetPile]", "Piles", "TargetPlayerIndex", "TargetPile", false},
+		{"game.BuildPiles[3]", "", "", "", true},
+		{"game.BuildPiles[move.A][move.B]", "", "", "", true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.spec, func(t *testing.T) {
+			got, err := parseStackPath(tc.spec)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("expected parse error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.prop != tc.prop || got.moveField != tc.playerField || got.boardIndexField != tc.boardField {
+				t.Fatalf("parsed = %+v", got)
+			}
+			if got.legalPath() != strings.TrimPrefix(tc.spec, "game.") && !strings.HasPrefix(tc.spec, "game.") {
+				// Unqualified paths gain legal's required game prefix.
+				if got.legalPath() != "game."+tc.spec {
+					t.Fatalf("legal path = %q", got.legalPath())
+				}
+			}
+		})
+	}
+}
+
 // playerScopedTransferInstaller configures a MoveCountComponents whose
 // destination is a stack on a PLAYER state rather than on gameState. Before the
 // stack-path grammar existed this was simply not expressible: SourceStack and

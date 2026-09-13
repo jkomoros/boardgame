@@ -100,7 +100,9 @@ export interface RawStack {
  * A raw board nested in dynamic component values. Top-level game/player
  * boards are expanded by the renderer selector and use ExpandedBoard.
  */
-export interface Board {
+export interface Board<K extends string = string> {
+  readonly Enum?: string;
+  readonly Keys?: readonly K[];
   readonly Spaces: readonly RawStack[];
 }
 
@@ -111,8 +113,12 @@ export interface Board {
 export interface ExpandedBoard<
   T extends object = Readonly<Record<string, unknown>>,
   D extends object = Readonly<Record<string, unknown>>,
+  K extends string = string,
 > {
+  readonly Enum?: string;
+  readonly Keys?: readonly K[];
   readonly Spaces: readonly ExpandedStack<T, D>[];
+  readonly SpacesByKey?: Readonly<Record<K, ExpandedStack<T, D>>>;
 }
 
 /** Stable timer identity in a renderer snapshot; live clock values are selective signals. */

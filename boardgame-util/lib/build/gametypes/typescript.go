@@ -719,6 +719,9 @@ func dynamicFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
 	case "TypeTimer":
 		return "ExpandedTimer"
 	case "TypeBoard":
+		if f.EnumName != "" {
+			return "Board<" + toPascalCase(f.EnumName) + "Value>"
+		}
 		return "Board"
 	default:
 		return baseFieldTypeToTS(f, enums)
@@ -740,7 +743,13 @@ func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string 
 	case "TypeBoard":
 		if deck, ok := findDeck(f.DeckName, decks); ok {
 			staticType, dynamicType := deckValueTypes(deck)
+			if f.EnumName != "" {
+				return "ExpandedBoard<" + staticType + ", " + dynamicType + ", " + toPascalCase(f.EnumName) + "Value>"
+			}
 			return "ExpandedBoard<" + staticType + ", " + dynamicType + ">"
+		}
+		if f.EnumName != "" {
+			return "ExpandedBoard<Readonly<Record<string, unknown>>, Readonly<Record<string, unknown>>, " + toPascalCase(f.EnumName) + "Value>"
 		}
 		return "ExpandedBoard"
 	default:

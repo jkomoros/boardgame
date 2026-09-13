@@ -45,9 +45,10 @@ const (
 )
 
 type parsedStackPath struct {
-	kind      stackPathKind
-	prop      string
-	moveField string
+	kind            stackPathKind
+	prop            string
+	moveField       string
+	boardIndexField string
 	//raw is the spec exactly as configured, for error messages.
 	raw string
 }
@@ -57,7 +58,26 @@ type parsedStackPath struct {
 // the framework's other readers of these configuration keys (for example
 // boardgame.LegalStackConstraintsCheck) understand.
 func (p parsedStackPath) qualified() bool {
-	return p.raw != p.prop
+	return p.raw != p.prop || p.boardIndexField != ""
+}
+
+func parseStackPropertyExpression(spec, expression string) (string, string, error) {
+	open := strings.Index(expression, "[")
+	if open == -1 {
+		if strings.Contains(expression, "]") {
+			return "", "", fmt.Errorf("invalid stack property spec %q: unexpected closing bracket", spec)
+		}
+		return expression, "", nil
+	}
+	if open == 0 || !strings.HasSuffix(expression, "]") || strings.Count(expression, "[") != 1 || strings.Count(expression, "]") != 1 {
+		return "", "", fmt.Errorf("invalid stack property spec %q: expected Property[move.Field]", spec)
+	}
+	selector := expression[open+1 : len(expression)-1]
+	field, ok := strings.CutPrefix(selector, "move.")
+	if !ok || field == "" || strings.ContainsAny(field, ".[]") {
+		return "", "", fmt.Errorf("invalid stack property spec %q: board selector must be move.Field", spec)
+	}
+	return expression[:open], field, nil
 }
 
 // parseStackPath parses spec per the grammar documented at the top of this
@@ -79,18 +99,26 @@ func parseStackPath(spec string) (parsedStackPath, error) {
 		if field == "" {
 			return parsedStackPath{}, fmt.Errorf("invalid stack property spec %q: missing move field name inside players[move.<Field>]", spec)
 		}
-		prop, ok := strings.CutPrefix(rest[closeIndex+1:], ".")
-		if !ok || prop == "" {
+		propExpression, ok := strings.CutPrefix(rest[closeIndex+1:], ".")
+		if !ok || propExpression == "" {
 			return parsedStackPath{}, fmt.Errorf("invalid stack property spec %q: missing property name after players[move.%s]", spec, field)
 		}
-		return parsedStackPath{kind: stackPathMoveField, prop: prop, moveField: field, raw: spec}, nil
+		prop, boardIndexField, err := parseStackPropertyExpression(spec, propExpression)
+		if err != nil {
+			return parsedStackPath{}, err
+		}
+		return parsedStackPath{kind: stackPathMoveField, prop: prop, moveField: field, boardIndexField: boardIndexField, raw: spec}, nil
 	}
 
 	kindStr, prop, ok := strings.Cut(spec, ".")
 
 	if !ok {
 		//An unqualified name is a gameState property, the historical spelling.
-		return parsedStackPath{kind: stackPathGame, prop: spec, raw: spec}, nil
+		prop, boardIndexField, err := parseStackPropertyExpression(spec, spec)
+		if err != nil {
+			return parsedStackPath{}, err
+		}
+		return parsedStackPath{kind: stackPathGame, prop: prop, boardIndexField: boardIndexField, raw: spec}, nil
 	}
 
 	if prop == "" {
@@ -99,9 +127,18 @@ func parseStackPath(spec string) (parsedStackPath, error) {
 
 	switch kindStr {
 	case "game":
-		return parsedStackPath{kind: stackPathGame, prop: prop, raw: spec}, nil
+		kind := stackPathGame
+		base, boardIndexField, err := parseStackPropertyExpression(spec, prop)
+		if err != nil {
+			return parsedStackPath{}, err
+		}
+		return parsedStackPath{kind: kind, prop: base, boardIndexField: boardIndexField, raw: spec}, nil
 	case "player":
-		return parsedStackPath{kind: stackPathCurrentPlayer, prop: prop, raw: spec}, nil
+		base, boardIndexField, err := parseStackPropertyExpression(spec, prop)
+		if err != nil {
+			return parsedStackPath{}, err
+		}
+		return parsedStackPath{kind: stackPathCurrentPlayer, prop: base, boardIndexField: boardIndexField, raw: spec}, nil
 	}
 
 	return parsedStackPath{}, fmt.Errorf("invalid stack property spec %q: unknown path kind %q (expected game, player, or players[move.Field])", spec, kindStr)
@@ -114,7 +151,7 @@ func parseStackPath(spec string) (parsedStackPath, error) {
 // from "this names a player-scoped stack I have no vocabulary for".
 func plainGameStackName(spec string) (string, bool) {
 	path, err := parseStackPath(spec)
-	if err != nil || path.kind != stackPathGame {
+	if err != nil || path.kind != stackPathGame || path.boardIndexField != "" {
 		return "", false
 	}
 	return path.prop, true
@@ -143,6 +180,17 @@ func (p parsedStackPath) resolve(move boardgame.Move, state boardgame.State) (bo
 		reader = playerState.ReadSetter()
 	}
 
+	if p.boardIndexField != "" {
+		board, err := reader.BoardProp(p.prop)
+		if err != nil {
+			return nil, fmt.Errorf("stack property %q: %w", p.raw, err)
+		}
+		if board == nil {
+			return nil, fmt.Errorf("stack property %q resolved to a nil board", p.raw)
+		}
+		return p.resolveBoardSpace(move, board)
+	}
+
 	stack, err := reader.StackProp(p.prop)
 
 	if err != nil {
@@ -153,6 +201,41 @@ func (p parsedStackPath) resolve(move boardgame.Move, state boardgame.State) (bo
 		return nil, fmt.Errorf("stack property %q resolved to a nil stack", p.raw)
 	}
 
+	return stack, nil
+}
+
+func (p parsedStackPath) resolveBoardSpace(move boardgame.Move, board boardgame.Board) (boardgame.Stack, error) {
+	if move == nil {
+		return nil, fmt.Errorf("stack property %q: no move to read board selector %q from", p.raw, p.boardIndexField)
+	}
+	moveReader := move.ReadSetter()
+	propType, ok := moveReader.Props()[p.boardIndexField]
+	if !ok {
+		return nil, fmt.Errorf("stack property %q: move field %q does not exist", p.raw, p.boardIndexField)
+	}
+	var stack boardgame.Stack
+	switch propType {
+	case boardgame.TypeInt:
+		index, err := moveReader.IntProp(p.boardIndexField)
+		if err != nil {
+			return nil, fmt.Errorf("stack property %q: could not read move field %q: %w", p.raw, p.boardIndexField, err)
+		}
+		stack = board.SpaceAt(index)
+	case boardgame.TypeEnum:
+		value, err := moveReader.ImmutableEnumProp(p.boardIndexField)
+		if err != nil || value == nil {
+			return nil, fmt.Errorf("stack property %q: could not read enum move field %q: %v", p.raw, p.boardIndexField, err)
+		}
+		if board.Enum() == nil || board.Enum() != value.Enum() {
+			return nil, fmt.Errorf("stack property %q: enum move field %q does not match board enum", p.raw, p.boardIndexField)
+		}
+		stack = board.SpaceAtKey(value.Value())
+	default:
+		return nil, fmt.Errorf("stack property %q: move field %q has PropertyType %v, expected TypeInt or TypeEnum", p.raw, p.boardIndexField, propType)
+	}
+	if stack == nil {
+		return nil, fmt.Errorf("stack property %q: board selector %q was out of range", p.raw, p.boardIndexField)
+	}
 	return stack, nil
 }
 

@@ -47,9 +47,29 @@ const (
 // path's kind, the property name to look up within that kind's reader, and
 // (pathPlayersMoveField only) the move field naming which player to index.
 type parsedLegalPath struct {
-	kind      legalPathKind
-	prop      string
-	moveField string
+	kind            legalPathKind
+	prop            string
+	moveField       string
+	boardIndexField string
+}
+
+func parseLegalPropertyExpression(path, expression string) (string, string, error) {
+	open := strings.Index(expression, "[")
+	if open == -1 {
+		if strings.Contains(expression, "]") {
+			return "", "", fmt.Errorf("boardgame: invalid legal path %q: unexpected closing bracket", path)
+		}
+		return expression, "", nil
+	}
+	if open == 0 || !strings.HasSuffix(expression, "]") || strings.Count(expression, "[") != 1 || strings.Count(expression, "]") != 1 {
+		return "", "", fmt.Errorf("boardgame: invalid legal path %q: expected Property[move.Field]", path)
+	}
+	selector := expression[open+1 : len(expression)-1]
+	field, ok := strings.CutPrefix(selector, "move.")
+	if !ok || field == "" || strings.ContainsAny(field, ".[]") {
+		return "", "", fmt.Errorf("boardgame: invalid legal path %q: board selector must be move.Field", path)
+	}
+	return expression[:open], field, nil
 }
 
 // legalPlayerIndexSource is the single internal algebra behind the public
@@ -112,7 +132,15 @@ func parseLegalPath(p LegalPropPath) (parsedLegalPath, error) {
 		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: unknown path kind %q (expected game, player, proposer, players[*], move, or players[move.Field])", s, kindStr)
 	}
 
-	return parsedLegalPath{kind: kind, prop: prop}, nil
+	base, boardIndexField, err := parseLegalPropertyExpression(s, prop)
+	if err != nil {
+		return parsedLegalPath{}, err
+	}
+	if kind == pathMove && boardIndexField != "" {
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: indexed boards must be game or player state properties", s)
+	}
+
+	return parsedLegalPath{kind: kind, prop: base, boardIndexField: boardIndexField}, nil
 }
 
 // parsePlayersMoveFieldPath parses the "players[move.<Field>].<Prop>" shape
@@ -134,12 +162,16 @@ func parsePlayersMoveFieldPath(p LegalPropPath, s string) (parsedLegalPath, erro
 	}
 
 	afterBracket := rest[closeIdx+1:]
-	prop, ok := strings.CutPrefix(afterBracket, ".")
-	if !ok || prop == "" {
+	propExpression, ok := strings.CutPrefix(afterBracket, ".")
+	if !ok || propExpression == "" {
 		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: missing property name after players[move.%s]", s, field)
 	}
+	prop, boardIndexField, err := parseLegalPropertyExpression(s, propExpression)
+	if err != nil {
+		return parsedLegalPath{}, err
+	}
 
-	return parsedLegalPath{kind: pathPlayersMoveField, moveField: field, prop: prop}, nil
+	return parsedLegalPath{kind: pathPlayersMoveField, moveField: field, prop: prop, boardIndexField: boardIndexField}, nil
 }
 
 // validateLegalPath parses p and checks that its named property actually
@@ -159,12 +191,13 @@ func validateLegalPath(p LegalPropPath, exampleState ImmutableState, moveReader 
 		return err
 	}
 
+	var reader PropertyReader
 	switch parsed.kind {
 	case pathGame:
 		if exampleState == nil {
 			return fmt.Errorf("boardgame: legal path %q: no example state provided to validate against", p)
 		}
-		return validatePropOnReader(p, parsed.prop, exampleState.ImmutableGameState().Reader())
+		reader = exampleState.ImmutableGameState().Reader()
 	case pathPlayer, pathProposer, pathPlayersAll:
 		if exampleState == nil {
 			return fmt.Errorf("boardgame: legal path %q: no example state provided to validate against", p)
@@ -173,12 +206,12 @@ func validateLegalPath(p LegalPropPath, exampleState ImmutableState, moveReader 
 		if len(players) == 0 {
 			return fmt.Errorf("boardgame: legal path %q: example state has no player states to validate against", p)
 		}
-		return validatePropOnReader(p, parsed.prop, players[0].Reader())
+		reader = players[0].Reader()
 	case pathMove:
 		if moveReader == nil {
 			return fmt.Errorf("boardgame: legal path %q: is a move.* path but no move reader was provided to validate against", p)
 		}
-		return validatePropOnReader(p, parsed.prop, moveReader)
+		reader = moveReader
 	case pathPlayersMoveField:
 		if moveReader == nil {
 			return fmt.Errorf("boardgame: legal path %q: is a players[move.*] path but no move reader was provided to validate against", p)
@@ -205,10 +238,44 @@ func validateLegalPath(p LegalPropPath, exampleState ImmutableState, moveReader 
 		if len(players) == 0 {
 			return fmt.Errorf("boardgame: legal path %q: example state has no player states to validate against", p)
 		}
-		return validatePropOnReader(p, parsed.prop, players[0].Reader())
+		reader = players[0].Reader()
 	}
-
-	return fmt.Errorf("boardgame: legal path %q: unknown path kind", p)
+	if reader == nil {
+		return fmt.Errorf("boardgame: legal path %q: unknown path kind", p)
+	}
+	if err := validatePropOnReader(p, parsed.prop, reader); err != nil {
+		return err
+	}
+	if parsed.boardIndexField == "" {
+		return nil
+	}
+	if reader.Props()[parsed.prop] != TypeBoard {
+		return fmt.Errorf("boardgame: legal path %q: property %q has PropertyType %v, expected TypeBoard before [move.%s]", p, parsed.prop, reader.Props()[parsed.prop], parsed.boardIndexField)
+	}
+	if moveReader == nil {
+		return fmt.Errorf("boardgame: legal path %q: indexed board requires a move reader", p)
+	}
+	selectorType, ok := moveReader.Props()[parsed.boardIndexField]
+	if !ok {
+		return fmt.Errorf("boardgame: legal path %q: move field %q does not exist", p, parsed.boardIndexField)
+	}
+	if selectorType != TypeInt && selectorType != TypeEnum {
+		return fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypeInt or TypeEnum", p, parsed.boardIndexField, selectorType)
+	}
+	board, err := reader.ImmutableBoardProp(parsed.prop)
+	if err != nil || board == nil {
+		return fmt.Errorf("boardgame: legal path %q: board property %q was unavailable: %v", p, parsed.prop, err)
+	}
+	if selectorType == TypeEnum {
+		selector, err := moveReader.ImmutableEnumProp(parsed.boardIndexField)
+		if err != nil || selector == nil {
+			return fmt.Errorf("boardgame: legal path %q: enum move field %q was unavailable: %v", p, parsed.boardIndexField, err)
+		}
+		if board.Enum() == nil || board.Enum() != selector.Enum() {
+			return fmt.Errorf("boardgame: legal path %q: enum move field %q does not match board enum", p, parsed.boardIndexField)
+		}
+	}
+	return nil
 }
 
 func validateLegalPathType(p LegalPropPath, expected PropertyType, exampleState ImmutableState, moveReader PropertyReader) error {
@@ -242,6 +309,9 @@ func validateLegalPathTypes(p LegalPropPath, allowed []PropertyType, exampleStat
 		reader = moveReader
 	}
 	actual := reader.Props()[parsed.prop]
+	if parsed.boardIndexField != "" {
+		actual = TypeStack
+	}
 	for _, expected := range allowed {
 		if actual == expected {
 			return nil
@@ -303,35 +373,77 @@ func resolveLegalPathForProposer(p LegalPropPath, state ImmutableState, move Mov
 
 	switch parsed.kind {
 	case pathGame:
-		return resolveProp(p, parsed.prop, state.ImmutableGameState().Reader())
+		return resolveParsedLegalProp(p, parsed, state.ImmutableGameState().Reader(), move)
 	case pathPlayer:
 		reader, err := resolveLegalPlayerReader(p, legalPlayerFromCurrent, "", state, move, proposer)
 		if err != nil {
 			return nil, TypeIllegal, err
 		}
-		return resolveProp(p, parsed.prop, reader)
+		return resolveParsedLegalProp(p, parsed, reader, move)
 	case pathProposer:
 		reader, err := resolveLegalPlayerReader(p, legalPlayerFromProposer, "", state, move, proposer)
 		if err != nil {
 			return nil, TypeIllegal, err
 		}
-		return resolveProp(p, parsed.prop, reader)
+		return resolveParsedLegalProp(p, parsed, reader, move)
 	case pathPlayersAll:
 		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: players[*] paths are quantifier-only and cannot be resolved to a single value", p)
 	case pathMove:
 		if move == nil {
 			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: is a move.* path but no move was provided to resolve against", p)
 		}
-		return resolveProp(p, parsed.prop, move.Reader())
+		return resolveParsedLegalProp(p, parsed, move.Reader(), move)
 	case pathPlayersMoveField:
 		reader, err := resolveLegalPlayerReader(p, legalPlayerFromMoveField, parsed.moveField, state, move, proposer)
 		if err != nil {
 			return nil, TypeIllegal, err
 		}
-		return resolveProp(p, parsed.prop, reader)
+		return resolveParsedLegalProp(p, parsed, reader, move)
 	}
 
 	return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: unknown path kind", p)
+}
+
+func resolveParsedLegalProp(path LegalPropPath, parsed parsedLegalPath, reader PropertyReader, move Move) (interface{}, PropertyType, error) {
+	if parsed.boardIndexField == "" {
+		return resolveProp(path, parsed.prop, reader)
+	}
+	if move == nil {
+		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: indexed board requires a move", path)
+	}
+	board, err := reader.ImmutableBoardProp(parsed.prop)
+	if err != nil || board == nil {
+		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: board property %q was unavailable: %v", path, parsed.prop, err)
+	}
+	moveReader := move.Reader()
+	selectorType, ok := moveReader.Props()[parsed.boardIndexField]
+	if !ok {
+		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q does not exist", path, parsed.boardIndexField)
+	}
+	var stack ImmutableStack
+	switch selectorType {
+	case TypeInt:
+		index, err := moveReader.IntProp(parsed.boardIndexField)
+		if err != nil {
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: could not read move field %q: %w", path, parsed.boardIndexField, err)
+		}
+		stack = board.ImmutableSpaceAt(index)
+	case TypeEnum:
+		value, err := moveReader.ImmutableEnumProp(parsed.boardIndexField)
+		if err != nil || value == nil {
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: could not read enum move field %q: %v", path, parsed.boardIndexField, err)
+		}
+		if board.Enum() == nil || board.Enum() != value.Enum() {
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: enum move field %q does not match board enum", path, parsed.boardIndexField)
+		}
+		stack = board.ImmutableSpaceAtKey(value.Value())
+	default:
+		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypeInt or TypeEnum", path, parsed.boardIndexField, selectorType)
+	}
+	if stack == nil {
+		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: board selector %q was out of range", path, parsed.boardIndexField)
+	}
+	return stack, TypeStack, nil
 }
 
 func resolveLegalPlayerReader(path LegalPropPath, source legalPlayerIndexSource, moveField string, state ImmutableState, move Move, proposer PlayerIndex) (PropertyReader, error) {

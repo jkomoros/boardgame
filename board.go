@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+
+	"github.com/jkomoros/boardgame/enum"
 )
 
 // ImmutableBoard is a version of a Board without any of the mutator methods.
@@ -11,6 +13,12 @@ import (
 type ImmutableBoard interface {
 	ImmutableSpaces() []ImmutableStack
 	ImmutableSpaceAt(index int) ImmutableStack
+	// Enum returns the enum that identifies the board's spaces, or nil when
+	// this board is indexed only by position.
+	Enum() enum.Enum
+	// ImmutableSpaceAtKey returns the space identified by key. It returns nil
+	// when this board has no associated enum or key is not part of that enum.
+	ImmutableSpaceAtKey(key enum.EnumKey) ImmutableStack
 	Len() int
 	state() *state
 	setState(st *state)
@@ -26,6 +34,8 @@ type Board interface {
 	ImmutableBoard
 	Spaces() []Stack
 	SpaceAt(index int) Stack
+	// SpaceAtKey is the mutable counterpart of ImmutableSpaceAtKey.
+	SpaceAtKey(key enum.EnumKey) Stack
 
 	applySanitizationPolicy(policy Policy)
 	//Used to copy from other boards. See mutableStack.importFrom for more about how these work.
@@ -34,6 +44,7 @@ type Board interface {
 
 type board struct {
 	spaces []*growableStack
+	enum   enum.Enum
 }
 
 // NewBoard returns a new board associated with the given deck. length is the
@@ -46,13 +57,27 @@ type board struct {
 // inflation, making direct use of this constructor unnecessary. See
 // StructInflater for more.
 func (d *Deck) NewBoard(length int, maxSize int) Board {
+	return d.newBoard(length, maxSize, nil)
+}
+
+// NewBoardForEnum returns a board with one space for each value in the enum.
+// Enum keys need not be contiguous: the enum's ascending Values order defines
+// the stable positional order used by Spaces and persisted state.
+func (d *Deck) NewBoardForEnum(theEnum enum.Enum, maxSize int) Board {
+	if theEnum == nil {
+		return nil
+	}
+	return d.newBoard(len(theEnum.Values()), maxSize, theEnum)
+}
+
+func (d *Deck) newBoard(length int, maxSize int, theEnum enum.Enum) Board {
 	if length <= 0 {
 		return nil
 	}
 
 	spaces := make([]*growableStack, length)
 
-	board := &board{}
+	board := &board{enum: theEnum}
 
 	for i := 0; i < length; i++ {
 		gStack := d.NewStack(maxSize).(*growableStack)
@@ -64,6 +89,22 @@ func (d *Deck) NewBoard(length int, maxSize int) Board {
 	board.spaces = spaces
 
 	return board
+}
+
+func (b *board) Enum() enum.Enum {
+	return b.enum
+}
+
+func (b *board) indexForKey(key enum.EnumKey) int {
+	if b.enum == nil || !b.enum.Valid(key) {
+		return -1
+	}
+	for i, candidate := range b.enum.Values() {
+		if candidate == key {
+			return i
+		}
+	}
+	return -1
 }
 
 func (b *board) setState(st *state) {
@@ -113,6 +154,10 @@ func (b *board) ImmutableSpaceAt(index int) ImmutableStack {
 	return b.spaces[index]
 }
 
+func (b *board) ImmutableSpaceAtKey(key enum.EnumKey) ImmutableStack {
+	return b.ImmutableSpaceAt(b.indexForKey(key))
+}
+
 func (b *board) Spaces() []Stack {
 	result := make([]Stack, len(b.spaces))
 
@@ -130,12 +175,18 @@ func (b *board) SpaceAt(index int) Stack {
 	return b.spaces[index]
 }
 
+func (b *board) SpaceAtKey(key enum.EnumKey) Stack {
+	return b.SpaceAt(b.indexForKey(key))
+}
+
 func (b *board) Len() int {
 	return len(b.spaces)
 }
 
 type boardJSONObj struct {
 	Spaces []json.RawMessage
+	Enum   string   `json:",omitempty"`
+	Keys   []string `json:",omitempty"`
 }
 
 func (b *board) MarshalJSON() ([]byte, error) {
@@ -151,6 +202,12 @@ func (b *board) MarshalJSON() ([]byte, error) {
 	obj := &boardJSONObj{
 		Spaces: spaces,
 	}
+	if b.enum != nil {
+		obj.Enum = b.enum.Name()
+		for _, key := range b.enum.Values() {
+			obj.Keys = append(obj.Keys, b.enum.String(key))
+		}
+	}
 
 	return json.Marshal(obj)
 
@@ -164,6 +221,9 @@ func (b *board) UnmarshalJSON(blob []byte) error {
 	}
 	if len(obj.Spaces) != len(b.spaces) {
 		return errors.New("board has " + strconv.Itoa(len(obj.Spaces)) + " persisted spaces, want " + strconv.Itoa(len(b.spaces)))
+	}
+	if obj.Enum != "" && (b.enum == nil || obj.Enum != b.enum.Name()) {
+		return errors.New("board persisted enum " + strconv.Quote(obj.Enum) + " does not match configured board enum")
 	}
 
 	for i, blob := range obj.Spaces {

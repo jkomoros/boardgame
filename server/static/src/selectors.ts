@@ -376,10 +376,18 @@ const expandLeafState = (
         }
         // Expand boards (objects with Spaces array of stacks)
         else if (Array.isArray((val as any).Spaces) && (val as any).Spaces.length > 0 && (val as any).Spaces[0]?.Deck) {
+            const spaces = (val as any).Spaces.map((space: any) =>
+                expandStack(space, wholeState, chest, gameName)
+            );
+            const keys = Array.isArray((val as any).Keys) ? (val as any).Keys : undefined;
             result[key] = {
-                Spaces: (val as any).Spaces.map((space: any) =>
-                    expandStack(space, wholeState, chest, gameName)
-                )
+                ...(val as any),
+                Spaces: spaces,
+                ...(keys?.length === spaces.length ? {
+                    SpacesByKey: Object.fromEntries(keys.map((boardKey: string, index: number) =>
+                        [boardKey, spaces[index]]
+                    )),
+                } : {}),
             };
         }
         // Expand timers (objects with IsTimer property) - skip if requested

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
 )
 
@@ -21,6 +22,28 @@ func TestBoard(t *testing.T) {
 		assert.For(t).ThatActual(space.Resizable()).IsFalse()
 	}
 
+}
+
+func TestEnumBoardUsesValueOrderRatherThanNumericKey(t *testing.T) {
+	set := enum.NewSet()
+	boardEnum := set.MustAdd("sparse", map[enum.EnumKey]string{2: "Two", 10: "Ten"})
+	deck := NewDeck()
+	board := deck.NewBoardForEnum(boardEnum, 1)
+
+	if board.SpaceAtKey(2) != board.SpaceAt(0) || board.SpaceAtKey(10) != board.SpaceAt(1) {
+		t.Fatal("enum-keyed board did not use enum.Values order")
+	}
+	if board.SpaceAtKey(3) != nil {
+		t.Fatal("enum-keyed board accepted an invalid key")
+	}
+
+	blob, err := json.Marshal(board)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(blob), `"Enum":"sparse"`) || !strings.Contains(string(blob), `"Keys":["Two","Ten"]`) {
+		t.Fatalf("board JSON did not expose enum identity: %s", blob)
+	}
 }
 
 func TestBoardRejectsWrongPersistedLengthAndBoundaryIndex(t *testing.T) {

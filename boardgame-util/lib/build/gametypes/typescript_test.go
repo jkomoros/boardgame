@@ -144,6 +144,7 @@ func TestStateFieldTypeToTS(t *testing.T) {
 		{FieldInfo{Type: "TypeStack", DeckName: "tokens"}, "ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, never>>>"},
 		{FieldInfo{Type: "TypeStack"}, "ExpandedStack"},
 		{FieldInfo{Type: "TypeBoard"}, "ExpandedBoard"},
+		{FieldInfo{Type: "TypeBoard", DeckName: "cards", EnumName: "phase"}, "ExpandedBoard<CardsComponentValues, Readonly<Record<string, never>>, PhaseValue>"},
 		{FieldInfo{Type: "TypeEnum", EnumName: "phase"}, "PhaseValue"},
 		{FieldInfo{Type: "TypeBool"}, "boolean"},
 		// Deck with both static and dynamic fields
@@ -543,6 +544,19 @@ func TestGenerateTypeScriptWithBoard(t *testing.T) {
 	}
 	if !strings.Contains(ts, "Spaces: ExpandedBoard<TokensComponentValues, Readonly<Record<string, never>>>;") {
 		t.Errorf("Board field not typed correctly, got:\n%s", ts)
+	}
+}
+
+func TestGenerateTypeScriptWithEnumBoard(t *testing.T) {
+	result := TypeResult{
+		PackageName: "boardgame",
+		GameFields:  []FieldInfo{{Name: "Spaces", Type: "TypeBoard", DeckName: "tokens", EnumName: "lane"}},
+		Decks:       []DeckInfo{{Name: "tokens"}},
+		Enums:       []EnumInfo{{Name: "lane", Values: enumValuesForTest("Left", "Right")}},
+	}
+	ts := GenerateTypeScript(result)
+	if !strings.Contains(ts, "Spaces: ExpandedBoard<Readonly<Record<string, never>>, Readonly<Record<string, never>>, LaneValue>;") {
+		t.Errorf("enum Board field not typed correctly, got:\n%s", ts)
 	}
 }
 
