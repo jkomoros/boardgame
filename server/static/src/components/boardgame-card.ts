@@ -50,7 +50,11 @@ export class BoardgameCard extends BoardgameComponent {
         display: none;
       }
 
-      #outer.no-content div.normal {
+      /* Historical motion carriers render cloned authored content through the
+         fallback slot. Keep the shared face itself so its frame and other
+         deck-wide skin travel with that content; only suppress the live face
+         regions whose state belongs to the fresh carrier host. */
+      #outer.no-content #face.normal > * {
         display: none;
       }
 
