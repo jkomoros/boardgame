@@ -35,6 +35,7 @@ type GameManager struct {
 	agentsByName              map[string]Agent
 	modifiableGamesLock       sync.RWMutex
 	modifiableGames           map[string]*Game
+	modifiableGameLoads       map[string]*modifiableGameLoad
 	timers                    *timerManager
 	timerTickerStop           chan struct{}
 	timerTickerDone           chan struct{}
@@ -456,6 +457,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	}
 
 	result.modifiableGames = make(map[string]*Game)
+	result.modifiableGameLoads = make(map[string]*modifiableGameLoad)
 
 	result.timers = newTimerManager(result)
 	result.timerTickerStop = make(chan struct{})
@@ -897,25 +899,21 @@ func (g *GameManager) modifiableGameCreated(game *Game) error {
 		return errors.New("Game is not setup yet")
 	}
 
-	g.modifiableGamesLock.RLock()
-	_, ok := g.modifiableGames[game.ID()]
-	cacheLen := len(g.modifiableGames)
-	g.modifiableGamesLock.RUnlock()
-
-	if ok {
+	id := strings.ToUpper(game.ID())
+	g.modifiableGamesLock.Lock()
+	if _, ok := g.modifiableGames[id]; ok {
+		g.modifiableGamesLock.Unlock()
 		return errors.New("modifiableGameCreated collided with existing game")
 	}
-
-	// Evict the least recently used game if the cache is at capacity.
-	if cacheLen >= maxResidentGames {
-		g.evictLeastRecentGame()
+	var evicted *Game
+	if len(g.modifiableGames) >= maxResidentGames {
+		evicted = g.evictLeastRecentGameLocked()
 	}
-
-	id := strings.ToUpper(game.ID())
-
-	g.modifiableGamesLock.Lock()
 	g.modifiableGames[id] = game
 	g.modifiableGamesLock.Unlock()
+	if evicted != nil {
+		evicted.markFrozen()
+	}
 
 	return nil
 }
@@ -939,17 +937,33 @@ func (g *GameManager) freezeGame(game *Game) {
 // freezes it. Called when the warm cache is at capacity and a new game needs
 // to be loaded.
 func (g *GameManager) evictLeastRecentGame() {
-	g.modifiableGamesLock.RLock()
+	g.modifiableGamesLock.Lock()
+	oldest := g.evictLeastRecentGameLocked()
+	g.modifiableGamesLock.Unlock()
+	if oldest != nil {
+		oldest.markFrozen()
+	}
+}
+
+// evictLeastRecentGameLocked removes and returns the least recently used
+// resident game. The caller must hold modifiableGamesLock for writing and
+// freeze the returned game after releasing the lock.
+func (g *GameManager) evictLeastRecentGameLocked() *Game {
 	var oldest *Game
 	for _, game := range g.modifiableGames {
 		if oldest == nil || game.lastActivity.Before(oldest.lastActivity) {
 			oldest = game
 		}
 	}
-	g.modifiableGamesLock.RUnlock()
 	if oldest != nil {
-		g.freezeGame(oldest)
+		delete(g.modifiableGames, strings.ToUpper(oldest.ID()))
 	}
+	return oldest
+}
+
+type modifiableGameLoad struct {
+	done chan struct{}
+	game *Game
 }
 
 // ModifiableGame returns a modifiable Game with the given ID. Either it
@@ -969,12 +983,38 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	id = strings.ToUpper(id)
 
-	g.modifiableGamesLock.RLock()
+	g.modifiableGamesLock.Lock()
 	game := g.modifiableGames[id]
-	g.modifiableGamesLock.RUnlock()
-
 	if game != nil && !game.Frozen() {
 		game.lastActivity = time.Now()
+		g.modifiableGamesLock.Unlock()
+		return game
+	}
+	if pending := g.modifiableGameLoads[id]; pending != nil {
+		g.modifiableGamesLock.Unlock()
+		<-pending.done
+		return pending.game
+	}
+	pending := &modifiableGameLoad{done: make(chan struct{})}
+	g.modifiableGameLoads[id] = pending
+	g.modifiableGamesLock.Unlock()
+
+	finishLoad := func(game *Game) *Game {
+		g.modifiableGamesLock.Lock()
+		var evicted *Game
+		if game != nil {
+			if len(g.modifiableGames) >= maxResidentGames {
+				evicted = g.evictLeastRecentGameLocked()
+			}
+			g.modifiableGames[id] = game
+		}
+		pending.game = game
+		delete(g.modifiableGameLoads, id)
+		close(pending.done)
+		g.modifiableGamesLock.Unlock()
+		if evicted != nil {
+			evicted.markFrozen()
+		}
 		return game
 	}
 
@@ -984,15 +1024,7 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	if gameRecord == nil {
 		//Nah, we've never seen that game.
-		return nil
-	}
-
-	// Evict the least recently used game if the cache is at capacity.
-	g.modifiableGamesLock.RLock()
-	cacheLen := len(g.modifiableGames)
-	g.modifiableGamesLock.RUnlock()
-	if cacheLen >= maxResidentGames {
-		g.evictLeastRecentGame()
+		return finishLoad(nil)
 	}
 
 	game = g.gameFromStorageRecord(gameRecord)
@@ -1005,11 +1037,6 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	game.proposedMoves = make(chan *proposedMoveItem, 20)
 	game.fixUpTriggered = make(chan DelayedError, 10)
 	game.done = make(chan struct{})
-	go game.mainLoop()
-
-	g.modifiableGamesLock.Lock()
-	g.modifiableGames[id] = game
-	g.modifiableGamesLock.Unlock()
 
 	// The timer heap is only an in-process scheduler. Rebuild it from the
 	// durable current state whenever a game is checked out after restart or
@@ -1017,8 +1044,9 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	if current, ok := game.CurrentState().(*state); ok && current != nil {
 		g.timers.ReconcileState(current)
 	}
+	go game.mainLoop()
 
-	return game
+	return finishLoad(game)
 
 }
 
