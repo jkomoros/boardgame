@@ -436,18 +436,30 @@ type timerManager struct {
 	mu          sync.Mutex
 	records     timerQueue
 	recordsByID map[string]*timerRecord
+	retryStates map[string]timerRetryState
 	manager     *GameManager
 	now         func() time.Time
+}
+
+type timerRetryState struct {
+	gameID     string
+	generation uint64
+	failures   uint
+	fireTime   time.Time
 }
 
 func newTimerManager(gameManager *GameManager) *timerManager {
 	return &timerManager{
 		records: make(timerQueue, 0), recordsByID: make(map[string]*timerRecord),
-		manager: gameManager, now: time.Now,
+		retryStates: make(map[string]timerRetryState), manager: gameManager, now: time.Now,
 	}
 }
 
-const timerIDLength = 16
+const (
+	timerIDLength          = 16
+	timerRetryInitialDelay = 250 * time.Millisecond
+	timerRetryMaximumDelay = 30 * time.Second
+)
 
 func (t *timerManager) ActiveTimersForGame(gameID string) map[string]*timerRecord {
 	t.mu.Lock()
@@ -541,8 +553,24 @@ func (t *timerManager) ReconcileState(state *state) {
 func (t *timerManager) replaceGameRecords(gameID string, desired []*timerRecord) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	preserved := make(map[string]timerRetryState)
+	for id, retry := range t.retryStates {
+		if retry.gameID == gameID {
+			preserved[id] = retry
+		}
+	}
 	t.cancelTimersForGameLocked(gameID)
 	for _, record := range desired {
+		if record.guard != nil {
+			retry := timerRetryState{gameID: gameID, generation: record.guard.Generation}
+			if previous, ok := preserved[record.id]; ok && previous.generation == record.guard.Generation {
+				retry = previous
+				if retry.failures > 0 {
+					record.fireTime = retry.fireTime
+				}
+			}
+			t.retryStates[record.id] = retry
+		}
 		t.recordsByID[record.id] = record
 		heap.Push(&t.records, record)
 	}
@@ -568,10 +596,13 @@ func (t *timerManager) RestoreWakeups(wakeups []TimerWakeup) error {
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if len(t.recordsByID) != 0 {
+	if len(t.recordsByID) != 0 || len(t.retryStates) != 0 {
 		return errors.New("durable timers may only be restored into an empty startup scheduler")
 	}
 	for _, record := range records {
+		t.retryStates[record.id] = timerRetryState{
+			gameID: record.gameID, generation: record.guard.Generation,
+		}
 		t.recordsByID[record.id] = record
 		heap.Push(&t.records, record)
 	}
@@ -591,12 +622,18 @@ func (t *timerManager) cancelTimersForGameLocked(gameID string) {
 			delete(t.recordsByID, id)
 		}
 	}
+	for id, retry := range t.retryStates {
+		if retry.gameID == gameID {
+			delete(t.retryStates, id)
+		}
+	}
 }
 
 func (t *timerManager) CancelTimer(id string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	record := t.recordsByID[id]
+	delete(t.retryStates, id)
 	if record == nil {
 		return
 	}
@@ -631,7 +668,9 @@ func (t *timerManager) fire(record *timerRecord) error {
 	game, move, retryable, err := t.resolveRecord(record)
 	if err != nil {
 		if retryable {
-			t.retry(record)
+			if delay, scheduled := t.retry(record); scheduled {
+				t.logTimerFailure(record, "Timer completion could not be prepared; durable intent will retry", delay)
+			}
 		}
 		return err
 	}
@@ -639,8 +678,8 @@ func (t *timerManager) fire(record *timerRecord) error {
 	if err == nil {
 		return nil
 	}
-	t.manager.Logger().Info("When timer failed the move could not be made: ", err, move)
 	if game.Finished() {
+		t.logTimerFailure(record, "Timer completion move was rejected after the game finished", 0)
 		return err
 	}
 	// A storage or transient move failure leaves the durable timer active. Retry
@@ -650,19 +689,72 @@ func (t *timerManager) fire(record *timerRecord) error {
 		if !ok || validateTimerGuard(state, record.guard) != nil {
 			return err
 		}
-		t.retry(record)
+		if delay, scheduled := t.retry(record); scheduled {
+			t.logTimerFailure(record, "Timer completion move was rejected; durable intent will retry", delay)
+		}
 	}
 	return err
 }
 
-func (t *timerManager) retry(record *timerRecord) {
-	record.fireTime = t.now().Add(250 * time.Millisecond)
-	t.mu.Lock()
-	if t.recordsByID[record.id] == nil {
-		t.recordsByID[record.id] = record
-		heap.Push(&t.records, record)
+func timerRetryDelay(failures uint) time.Duration {
+	delay := timerRetryInitialDelay
+	for i := uint(0); i < failures && delay < timerRetryMaximumDelay; i++ {
+		delay *= 2
+		if delay > timerRetryMaximumDelay {
+			delay = timerRetryMaximumDelay
+		}
 	}
-	t.mu.Unlock()
+	return delay
+}
+
+// retry reschedules only an identity which remains known to the scheduler.
+// Reconciliation removes that identity when the durable timer is canceled or
+// replaces it when its generation changes, preventing a concurrent failed
+// completion from resurrecting stale work.
+func (t *timerManager) retry(record *timerRecord) (time.Duration, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if record == nil || record.guard == nil {
+		return 0, false
+	}
+	retry, ok := t.retryStates[record.id]
+	if !ok || retry.gameID != record.gameID || retry.generation != record.guard.Generation {
+		return 0, false
+	}
+	existing := t.recordsByID[record.id]
+	if existing != nil && (existing.guard == nil || existing.guard.Generation != record.guard.Generation) {
+		return 0, false
+	}
+	delay := timerRetryDelay(retry.failures)
+	if delay < timerRetryMaximumDelay {
+		retry.failures++
+	}
+	retry.fireTime = t.now().Add(delay)
+	t.retryStates[record.id] = retry
+
+	if existing != nil {
+		existing.fireTime = retry.fireTime
+		heap.Fix(&t.records, existing.index)
+		return delay, true
+	}
+	record.fireTime = retry.fireTime
+	t.recordsByID[record.id] = record
+	heap.Push(&t.records, record)
+	return delay, true
+}
+
+func (t *timerManager) logTimerFailure(record *timerRecord, message string, retryDelay time.Duration) {
+	fields := map[string]interface{}{
+		"game_id":  record.gameID,
+		"timer_id": record.id,
+	}
+	if record.guard != nil {
+		fields["timer_generation"] = record.guard.Generation
+	}
+	if retryDelay > 0 {
+		fields["retry_delay"] = retryDelay
+	}
+	t.manager.Logger().WithFields(fields).Info(message)
 }
 
 func (t *timerManager) resolveRecord(record *timerRecord) (*Game, Move, bool, error) {
@@ -684,7 +776,7 @@ func (t *timerManager) resolveRecord(record *timerRecord) (*Game, Move, bool, er
 	t.removeMatching(record.id, record.guard.Generation)
 	state, ok := game.CurrentState().(*state)
 	if !ok || state == nil {
-		return nil, nil, false, errors.New("timer game had no mutable current state")
+		return nil, nil, true, errors.New("timer game had no mutable current state")
 	}
 	if err := validateTimerGuard(state, record.guard); err != nil {
 		return nil, nil, false, err
@@ -695,7 +787,7 @@ func (t *timerManager) resolveRecord(record *timerRecord) (*Game, Move, bool, er
 	}
 	move, err := persisted.Move.inflateForState(game, state)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, true, err
 	}
 	move.Info().timerGuard = record.guard
 	return game, move, false, nil

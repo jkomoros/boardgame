@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -358,6 +359,131 @@ func TestPoppedDurableTimerDoesNotRetryAfterGameFinishes(t *testing.T) {
 	}
 	if manager.timers.ForceNextTimer() {
 		t.Fatal("finished game's still-active timer was queued for retry")
+	}
+}
+
+func TestDurableTimerFirstFailureSchedulesInitialRetry(t *testing.T) {
+	manager, game := durableTimerTestGame(t, newTestStorageManager())
+	defer manager.Internals().Close()
+	now := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	manager.timers.now = func() time.Time { return now }
+
+	gameState, _ := concreteStates(game.CurrentState())
+	persisted := gameState.Timer.(*timer)
+	illegal := game.MoveByName("Make Illegal Phase")
+	persisted.Move = StorageRecordForMove(illegal, persisted.Move.Phase, AdminPlayerIndex)
+	if persisted.Move == nil {
+		t.Fatal("could not serialize failing timer move")
+	}
+
+	var logs bytes.Buffer
+	manager.Logger().SetOutput(&logs)
+	record := manager.timers.popNext(true)
+	if record == nil {
+		t.Fatal("fixture did not pop its durable timer")
+	}
+	if err := manager.timers.fire(record); err == nil {
+		t.Fatal("invalid timer completion unexpectedly committed")
+	}
+	manager.timers.mu.Lock()
+	retried := manager.timers.recordsByID[record.id]
+	manager.timers.mu.Unlock()
+	if retried == nil || retried.fireTime.Sub(now) != timerRetryInitialDelay {
+		t.Fatalf("first failed completion retry = %+v; want %v", retried, timerRetryInitialDelay)
+	}
+	if !strings.Contains(logs.String(), game.ID()) || !strings.Contains(logs.String(), record.id) {
+		t.Fatalf("timer failure log did not identify game and timer: %s", logs.String())
+	}
+	if strings.Contains(logs.String(), illegal.Info().Name()) || strings.Contains(logs.String(), string(persisted.Move.Blob)) {
+		t.Fatalf("timer failure log disclosed completion move input: %s", logs.String())
+	}
+}
+
+func TestDurableTimerRetryBackoffAndGenerationReset(t *testing.T) {
+	manager := newTimerManager(nil)
+	now := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	manager.now = func() time.Time { return now }
+	const id = "retry-timer"
+	const gameID = "retry-game"
+
+	recordForGeneration := func(generation uint64) *timerRecord {
+		return &timerRecord{
+			id: id, gameID: gameID, index: -1, fireTime: now,
+			guard: &timerGuard{ID: id, Generation: generation}, now: manager.now,
+		}
+	}
+	record := recordForGeneration(1)
+	manager.replaceGameRecords(gameID, []*timerRecord{record})
+
+	wants := []time.Duration{
+		250 * time.Millisecond,
+		500 * time.Millisecond,
+		time.Second,
+		2 * time.Second,
+		4 * time.Second,
+		8 * time.Second,
+		16 * time.Second,
+		30 * time.Second,
+		30 * time.Second,
+	}
+	for i, want := range wants {
+		popped := manager.popNext(true)
+		if popped == nil {
+			t.Fatalf("retry %d had no queued timer", i+1)
+		}
+		delay, scheduled := manager.retry(popped)
+		if !scheduled || delay != want {
+			t.Fatalf("retry %d = %v, %t; want %v, true", i+1, delay, scheduled, want)
+		}
+		manager.mu.Lock()
+		fireTime := manager.recordsByID[id].fireTime
+		manager.mu.Unlock()
+		if got := fireTime.Sub(now); got != want {
+			t.Fatalf("retry %d scheduled after %v; want %v", i+1, got, want)
+		}
+	}
+
+	// Reconciliation of the same durable generation keeps its accumulated
+	// backoff instead of reverting an overdue deadline to an immediate retry.
+	sameGeneration := recordForGeneration(1)
+	manager.replaceGameRecords(gameID, []*timerRecord{sameGeneration})
+	manager.mu.Lock()
+	gotFireTime := manager.recordsByID[id].fireTime
+	manager.mu.Unlock()
+	if got := gotFireTime.Sub(now); got != timerRetryMaximumDelay {
+		t.Fatalf("same-generation reconciliation reset backoff to %v", got)
+	}
+
+	// A replacement generation starts at the initial delay and prevents the
+	// already-popped old generation from putting itself back on the heap.
+	oldGeneration := manager.popNext(true)
+	replacement := recordForGeneration(2)
+	manager.replaceGameRecords(gameID, []*timerRecord{replacement})
+	if delay, scheduled := manager.retry(oldGeneration); scheduled || delay != 0 {
+		t.Fatalf("old generation was resurrected with retry %v", delay)
+	}
+	current := manager.popNext(true)
+	if delay, scheduled := manager.retry(current); !scheduled || delay != timerRetryInitialDelay {
+		t.Fatalf("replacement generation first retry = %v, %t; want %v, true", delay, scheduled, timerRetryInitialDelay)
+	}
+}
+
+func TestCanceledPoppedTimerGenerationIsNotResurrected(t *testing.T) {
+	manager := newTimerManager(nil)
+	now := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
+	manager.now = func() time.Time { return now }
+	record := &timerRecord{
+		id: "canceled-timer", gameID: "canceled-game", index: -1, fireTime: now,
+		guard: &timerGuard{ID: "canceled-timer", Generation: 3}, now: manager.now,
+	}
+	manager.replaceGameRecords(record.gameID, []*timerRecord{record})
+	popped := manager.popNext(true)
+	manager.replaceGameRecords(record.gameID, nil)
+	if delay, scheduled := manager.retry(popped); scheduled || delay != 0 {
+		t.Fatalf("canceled generation was resurrected with retry %v", delay)
+	}
+	if manager.popNext(true) != nil {
+		t.Fatal("canceled generation remained queued")
 	}
 }
 
