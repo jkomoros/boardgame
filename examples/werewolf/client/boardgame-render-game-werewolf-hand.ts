@@ -127,7 +127,7 @@ export class WerewolfHandView extends HandRenderer {
     // universe and its already-bound actions.
     const nameFor = (i: number): string => {
       const seat = this.seatPresentations.find((s) => s.playerIndex === i);
-      return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i}`;
+      return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i + 1}`;
     };
     const voteSet = phase === 'Night'
       ? this.choices?.get(MoveNames.CastNightVote)

@@ -25,3 +25,23 @@ test('real Memory replay renders reveal, mismatch, and timer cleanup for each vi
   }
   expect(failures).toEqual([]);
 });
+
+
+test('timed Werewolf replay exposes native votes and the partial-vote deadline', async ({ page }) => {
+  const failures: string[] = [];
+  page.on('pageerror', error => failures.push(error.message));
+  await page.goto('/scenario-review.html?game=werewolf&surface=hand&viewer=0');
+  await expect(page.locator('body')).toHaveAttribute('data-frame', '0');
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-frame', '4');
+  await expect(page.getByText('Vote to eliminate', { exact: true })).toBeVisible();
+  await expect(page.locator('boardgame-target-list button')).toHaveCount(4);
+  await expect(page.locator('boardgame-target-list button').nth(0)).toBeDisabled();
+  await expect(page.locator('boardgame-target-list button').nth(1)).toBeEnabled();
+  await expect(page.getByText('45s', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText(/Vote cast/)).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText(/Sleep tight/)).toBeVisible();
+  expect(failures).toEqual([]);
+});

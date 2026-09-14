@@ -182,10 +182,6 @@ func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec)
 			return result, fmt.Errorf("viewer %d must be observer or a configured player", viewer)
 		}
 	}
-	schema, err := boardgame.BuildMoveInputSchema(manager)
-	if err != nil {
-		return result, err
-	}
 	capture := func(label string) error {
 		if !game.AtProposalFrontier() {
 			return fmt.Errorf("version %d is not a settled decision boundary", game.Version())

@@ -1,4 +1,5 @@
 import type { ProjectedMoveChoicesWire } from '../types/api.js';
+import { playerPresentations } from '../status/player-presentation.js';
 import { expandGameStateSnapshot } from '../selectors.js';
 import type { GameFromServer } from '../types/game-state.js';
 import type { GameChest } from '../types/store.js';
@@ -60,6 +61,7 @@ export function scenarioFixtureSnapshot<Contract extends RendererFixtureGameCont
     ...(snapshot.projectedMoveChoices ? { projectedMoveChoices: snapshot.projectedMoveChoices } : {}),
     requireRecordedPreviews: true,
     timers: game.ActiveTimers ?? {},
+    playerPresentations: playerPresentations(game.CurrentState.Players.map(() => ({})), []),
     viewingAsPlayer: viewer,
     currentPlayerIndex: game.CurrentPlayerIndex,
     moveLegality: snapshot.moveLegality as Readonly<Record<Contract['MoveName'], RendererFixtureLegality>>,
