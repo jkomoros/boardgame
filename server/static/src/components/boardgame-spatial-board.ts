@@ -47,7 +47,7 @@ export interface SpatialPlacementDraft {
  * Example (auto-rendering):
  * ```html
  * <boardgame-spatial-board
- *   svgUrl="game-src/mygame/board.svg"
+ *   svg-url="game-src/mygame/board.svg"
  *   .pieces=${piecesFromSizedStacks(positionStacks, roomKeys)}
  *   .action=${this.move(MoveNames.MoveToRoom).targets(roomKeys, room => ({
  *     TargetLocation: room,
