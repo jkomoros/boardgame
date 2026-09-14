@@ -183,6 +183,31 @@ func (r *Record) Path() string {
 	return r.path
 }
 
+// Clone returns a detached copy suitable for staging a storage update. Saving
+// the clone publishes it to the record cache only after the filesystem write
+// succeeds.
+func (r *Record) Clone() (*Record, error) {
+	if r == nil {
+		return nil, errors.New("cannot clone a nil record")
+	}
+	result := &Record{
+		path:                    r.path,
+		fullStateEncoding:       r.fullStateEncoding,
+		preferFullStateEncoding: r.preferFullStateEncoding,
+	}
+	if r.data == nil {
+		return result, nil
+	}
+	blob, err := json.Marshal(r.data)
+	if err != nil {
+		return nil, errors.New("Couldn't encode record clone: " + err.Error())
+	}
+	result.data = new(storageRecord)
+	if err := json.Unmarshal(blob, result.data); err != nil {
+		return nil, errors.New("Couldn't decode record clone: " + err.Error())
+	}
+	return result, nil
+}
 func (r *Record) encoder() encoder {
 	if r.fullStateEncoding {
 		return fullEncoder
@@ -537,11 +562,20 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 	//Now that we've failed and expanded, actually modify the various
 	//datastrutures in ourself (otherwise we could have, for example, double
 	//moves)
-	r.data.Game = game
+	gameBlob, err := json.Marshal(game)
+	if err != nil {
+		return errors.New("Couldn't clone game record: " + err.Error())
+	}
+	gameCopy := new(boardgame.GameStorageRecord)
+	if err := json.Unmarshal(gameBlob, gameCopy); err != nil {
+		return errors.New("Couldn't decode cloned game record: " + err.Error())
+	}
+	r.data.Game = gameCopy
 
 	if move != nil {
 		moveCopy := new(boardgame.MoveStorageRecord)
 		*moveCopy = *move
+		moveCopy.Blob = append(json.RawMessage(nil), move.Blob...)
 		//Store in relative mode (see comments on storageRecord.Moves)
 		moveCopy.Initiator = -1 * (moveCopy.Version - moveCopy.Initiator)
 		moveCopy.Version = -1
@@ -551,7 +585,7 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		r.data.Moves = append(r.data.Moves, moveCopy)
 	}
 
-	r.states = append(r.states, state)
+	r.states = append(r.states, append(boardgame.StateStorageRecord(nil), state...))
 	r.data.StatePatches = append(r.data.StatePatches, patch)
 
 	return nil

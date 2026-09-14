@@ -80,7 +80,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 		return nil, errors.New("No such version for that game")
 	}
 
-	return record, nil
+	return append(boardgame.StateStorageRecord(nil), record...), nil
 
 }
 
@@ -112,7 +112,7 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 		return nil, errors.New("No such version for that game")
 	}
 
-	return record, nil
+	return cloneMoveStorageRecord(record), nil
 
 }
 
@@ -127,7 +127,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 		return nil, errors.New("No such game")
 	}
 
-	return record, nil
+	return cloneGameStorageRecord(record), nil
 }
 
 // SaveProposalFrontier atomically updates proposal-boundary evidence only when
@@ -155,6 +155,9 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	s.coreLock.Lock()
 	defer s.coreLock.Unlock()
+	if current := s.games[game.ID]; current != nil && game.Version != current.Version+1 {
+		return errors.New("Game save was not the next version")
+	}
 
 	version := game.Version
 	versionMap := s.states[game.ID]
@@ -183,11 +186,11 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		moveMap = make(map[int]*boardgame.MoveStorageRecord)
 		s.moves[game.ID] = moveMap
 	}
-	versionMap[version] = state
+	versionMap[version] = append(boardgame.StateStorageRecord(nil), state...)
 	if move != nil {
-		moveMap[version] = move
+		moveMap[version] = cloneMoveStorageRecord(move)
 	}
-	s.games[game.ID] = game
+	s.games[game.ID] = cloneGameStorageRecord(game)
 
 	return nil
 }
@@ -199,10 +202,35 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	s.coreLock.RLock()
 	defer s.coreLock.RUnlock()
 	for _, game := range s.games {
-		result = append(result, game)
+		result = append(result, cloneGameStorageRecord(game))
 	}
 
 	return result
+}
+
+func cloneGameStorageRecord(record *boardgame.GameStorageRecord) *boardgame.GameStorageRecord {
+	if record == nil {
+		return nil
+	}
+	result := *record
+	result.Winners = append([]boardgame.PlayerIndex(nil), record.Winners...)
+	result.Agents = append([]string(nil), record.Agents...)
+	if record.Variant != nil {
+		result.Variant = make(boardgame.Variant, len(record.Variant))
+		for key, value := range record.Variant {
+			result.Variant[key] = value
+		}
+	}
+	return &result
+}
+
+func cloneMoveStorageRecord(record *boardgame.MoveStorageRecord) *boardgame.MoveStorageRecord {
+	if record == nil {
+		return nil
+	}
+	result := *record
+	result.Blob = append([]byte(nil), record.Blob...)
+	return &result
 }
 
 // TimerWakeups discovers active durable timers without inflating games.

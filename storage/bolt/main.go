@@ -407,6 +407,15 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		if gBucket == nil {
 			return errors.New("Couldn't open games bucket")
 		}
+		if existing := gBucket.Get(keyForGame(game.ID)); existing != nil {
+			var current boardgame.GameStorageRecord
+			if err := json.Unmarshal(existing, &current); err != nil {
+				return errors.New("Couldn't inspect current game version: " + err.Error())
+			}
+			if game.Version != current.Version+1 {
+				return errors.New("Game save was not the next version")
+			}
+		}
 
 		mBucket := tx.Bucket(movesBucket)
 
