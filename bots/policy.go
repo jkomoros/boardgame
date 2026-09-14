@@ -50,10 +50,18 @@ func Observe(game *boardgame.Game, player boardgame.PlayerIndex) (Observation, e
 	if player < 0 || int(player) >= game.NumPlayers() {
 		return Observation{}, fmt.Errorf("bot requires a configured player")
 	}
-	if !game.AtProposalFrontier() {
+	version := game.ProposalFrontierVersion()
+	if !settledAtVersion(game, version) {
 		return Observation{}, fmt.Errorf("bot requires a settled decision boundary")
 	}
-	view, err := game.JSONForPlayer(player, nil)
+	// Load the exact durable frontier state rather than the mutable game head.
+	// JSONForPlayer builds an envelope around the supplied state, so confirm the
+	// same frontier again after marshaling before advertising this observation.
+	state := game.State(version)
+	if state == nil || state.Version() != version || !settledAtVersion(game, version) {
+		return Observation{}, fmt.Errorf("game advanced while capturing bot observation")
+	}
+	view, err := game.JSONForPlayer(player, state)
 	if err != nil {
 		return Observation{}, err
 	}
@@ -65,12 +73,21 @@ func Observe(game *boardgame.Game, player boardgame.PlayerIndex) (Observation, e
 	if err != nil {
 		return Observation{}, err
 	}
-	// Read version from the captured wire state, not a later game-head read.
-	var version struct{ Version int }
-	if err := json.Unmarshal(blob, &version); err != nil {
+	var wire struct {
+		Version      int
+		CurrentState struct{ Version int }
+	}
+	if err := json.Unmarshal(blob, &wire); err != nil {
 		return Observation{}, err
 	}
-	return Observation{Player: player, Version: version.Version, Game: blob, Chest: chest}, nil
+	if wire.Version != version || wire.CurrentState.Version != version || !settledAtVersion(game, version) {
+		return Observation{}, fmt.Errorf("game advanced while capturing bot observation")
+	}
+	return Observation{Player: player, Version: version, Game: blob, Chest: chest}, nil
+}
+
+func settledAtVersion(game *boardgame.Game, version int) bool {
+	return game.AtProposalFrontier() && game.ProposalFrontierVersion() == version
 }
 
 // Play calls one policy and submits its ordinary move against the observed
