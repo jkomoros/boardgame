@@ -22,3 +22,9 @@ func TestStorageManagerFullEncoding(t *testing.T) {
 	}, "filesystem", "", t)
 
 }
+
+func TestSequentialGameVersion(t *testing.T) {
+	test.SequentialGameVersionTest(func() test.StorageManager {
+		return NewStorageManager("test")
+	}, "", t)
+}

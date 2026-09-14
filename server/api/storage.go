@@ -130,6 +130,20 @@ func (s *ServerStorageManager) ProposalFrontierStorageAvailable() bool {
 	return boardgame.SupportsProposalFrontierStorage(s.StorageManager)
 }
 
+// TimerWakeups preserves durable timer discovery through the server wrapper.
+func (s *ServerStorageManager) TimerWakeups(gameName string) ([]boardgame.TimerWakeup, error) {
+	if storage, ok := s.StorageManager.(boardgame.TimerWakeupStorage); ok {
+		return storage.TimerWakeups(gameName)
+	}
+	return nil, nil
+}
+
+// TimerWakeupStorageAvailable prevents this wrapper from advertising support
+// that its underlying backend does not provide.
+func (s *ServerStorageManager) TimerWakeupStorageAvailable() bool {
+	return boardgame.SupportsTimerWakeupStorage(s.StorageManager)
+}
+
 // SaveChatMessage delegates to the underlying storage if it implements
 // ChatStorageManager. This allows EmitSystemMessage to work through the
 // ServerStorageManager wrapper.

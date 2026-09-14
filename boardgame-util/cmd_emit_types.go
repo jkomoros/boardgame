@@ -202,7 +202,7 @@ func validateGeneratedGameTypesTypeScript(generated []generatedGameTypeFile, sta
 	}
 	frameworkTypes := `export type Board = unknown;
 export type CatalogComponent<S = Readonly<Record<string, unknown>>> = { readonly Index: number; readonly Values: S };
-export type ExpandedBoard<S = Readonly<Record<string, unknown>>, D = Readonly<Record<string, unknown>>> = unknown;
+export type ExpandedBoard<S = Readonly<Record<string, unknown>>, D = Readonly<Record<string, unknown>>, K extends string = string> = unknown;
 export type ExpandedStack<S = Readonly<Record<string, unknown>>, D = Readonly<Record<string, unknown>>> = unknown;
 export type ExpandedTimer = unknown;
 export type FullGameState<GS, PS, GC, PC, DC> = { readonly Game: GS; readonly Players: readonly PS[]; readonly Components?: DC; readonly Computed?: { readonly Global?: GC; readonly Players?: readonly PC[] } };

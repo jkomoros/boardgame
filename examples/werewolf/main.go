@@ -50,6 +50,28 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 5
 }
 
+const (
+	variantKeyTimedVoting = "timedvoting"
+	timedVotingOff        = "off"
+	timedVotingOn         = "on"
+)
+
+func (g *gameDelegate) Variants() boardgame.VariantConfig {
+	return boardgame.VariantConfig{
+		variantKeyTimedVoting: {
+			VariantDisplayInfo: boardgame.VariantDisplayInfo{
+				DisplayName: "Timed Voting",
+				Description: "Resolve each day and night vote after 45 seconds, using the votes cast so far.",
+			},
+			Default: timedVotingOff,
+			Values: map[string]*boardgame.VariantDisplayInfo{
+				timedVotingOff: {DisplayName: "Off"},
+				timedVotingOn:  {DisplayName: "45 seconds"},
+			},
+		},
+	}
+}
+
 func (g *gameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
 	game, _ := concreteStates(state)
 	phase := game.Phase.Value()
@@ -71,6 +93,10 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 	}
 
 	return nil
+}
+
+func timedVotingEnabled(state boardgame.ImmutableState) bool {
+	return state.Game().Variant()[variantKeyTimedVoting] == timedVotingOn
 }
 
 // Role assignment deliberately does NOT happen in FinishSetUp: at that
@@ -247,6 +273,12 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moveResolveVotes),
 				moves.WithHelpText("Tallies votes, eliminates the chosen player, and transitions to the next phase."),
 			),
+			auto.MustConfig(
+				new(moveResolveVotesOnTimeout),
+				moves.WithMoveName("Resolve Day Votes on Timeout"),
+				moves.WithIsFixUp(false),
+				moves.WithHelpText("Resolves the daytime deadline using votes cast so far."),
+			),
 		),
 		moves.AddForPhase(phaseNight,
 			auto.MustConfig(
@@ -260,6 +292,12 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moveResolveVotes),
 				moves.WithMoveName("Resolve Night Votes"),
 				moves.WithHelpText("Tallies werewolf votes, eliminates the target, and transitions to day."),
+			),
+			auto.MustConfig(
+				new(moveResolveVotesOnTimeout),
+				moves.WithMoveName("Resolve Night Votes on Timeout"),
+				moves.WithIsFixUp(false),
+				moves.WithHelpText("Resolves the nighttime deadline using votes cast so far."),
 			),
 		),
 	)

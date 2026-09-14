@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Game scenario review</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #f4f1eb; color: #26312d; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 1040px; margin: auto; }
+    h1 { margin-bottom: 4px; font-size: 28px; }
+    p { margin-top: 0; }
+    nav { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px 0; }
+    button, select { font: inherit; padding: 8px 12px; border: 1px solid #bec8bf; border-radius: 8px; background: white; }
+    button:focus-visible, select:focus-visible { outline: 3px solid #2b7063; outline-offset: 3px; }
+    #frame { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 6px 28px #22352a0d; }
+    #label { min-width: 220px; flex: 1; font-weight: 600; }
+    #error { color: #a22222; white-space: pre-wrap; }
+    @media (max-width: 480px) { body { padding: 12px; } #frame { padding: 12px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1 id="title">Game scenario review</h1>
+  <p>Step through recorded engine decisions and compare what each player can see. Game controls record proposals; Next advances the recording.</p>
+  <nav aria-label="Scenario steps">
+    <button id="previous" type="button">Previous</button>
+    <span id="label" aria-live="polite"></span>
+    <button id="next" type="button">Next</button>
+    <label>View as <select id="viewer"><option value="-1">Observer</option><option value="0">Player 1</option><option value="1">Player 2</option></select></label>
+  </nav>
+  <section id="frame" aria-label="Recorded game"></section>
+  <pre id="error" role="alert"></pre>
+</main>
+<script type="module">
+  import { mountRendererFixture } from '/src/testing/renderer-fixture.ts';
+  import { scenarioFixtureSnapshot } from '/src/testing/scenario-fixture.ts';
+  const previous = document.querySelector('#previous');
+  const next = document.querySelector('#next');
+  const viewer = document.querySelector('#viewer');
+  const label = document.querySelector('#label');
+  let frameIndex = 0;
+  let handle;
+  try {
+    const gameName = new URL(location.href).searchParams.get('game') ?? 'memory';
+    if (!/^[a-z][a-z0-9]*$/.test(gameName)) throw new Error('Invalid game name');
+    const surface = new URL(location.href).searchParams.get('surface') ?? 'game';
+    if (!['game', 'table', 'hand'].includes(surface)) throw new Error('Invalid renderer surface');
+    const tagName = `boardgame-render-game-${gameName}${surface === 'game' ? '' : `-${surface}`}`;
+    await import(/* @vite-ignore */ `/game-src/${gameName}/${tagName}.ts`);
+    const response = await fetch(`/game-src/${gameName}/scenario-replay.json`);
+    if (!response.ok) throw new Error('Generate this game’s scenario replay before opening this review.');
+    const replay = await response.json();
+    document.querySelector('#title').textContent = replay.name;
+    document.title = `${replay.name} · Scenario review`;
+    viewer.replaceChildren(...replay.frames[0].viewers.map(({ viewer: index }) => {
+      const option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = index === -1 ? 'Observer' : `Player ${index + 1}`;
+      return option;
+    }));
+    const requestedViewer = new URL(location.href).searchParams.get('viewer');
+    if ([...viewer.options].some(option => option.value === requestedViewer)) viewer.value = requestedViewer;
+    async function render() {
+      const snapshot = scenarioFixtureSnapshot(replay, frameIndex, Number(viewer.value), { gameName, surface });
+      if (handle) await handle.update(snapshot);
+      else handle = await mountRendererFixture({ tagName, snapshot }, document.querySelector('#frame'));
+      label.textContent = `${frameIndex + 1} / ${replay.frames.length} · ${replay.frames[frameIndex].label}`;
+      previous.disabled = frameIndex === 0;
+      next.disabled = frameIndex === replay.frames.length - 1;
+      document.body.dataset.frame = String(frameIndex);
+    }
+    async function showFrame(index = frameIndex) {
+      previous.disabled = next.disabled = viewer.disabled = true;
+      try {
+        frameIndex = Math.max(0, Math.min(index, replay.frames.length - 1));
+        await render();
+        document.querySelector('#error').textContent = '';
+      } catch (error) { document.querySelector('#error').textContent = String(error); }
+      finally { viewer.disabled = false; }
+    }
+    previous.onclick = () => showFrame(frameIndex - 1);
+    next.onclick = () => showFrame(frameIndex + 1);
+    viewer.onchange = () => showFrame();
+    await render();
+  } catch (error) { document.querySelector('#error').textContent = String(error); }
+</script>
+</body>
+</html>

@@ -96,7 +96,7 @@ export function resolveMotionTiming(
   if (typeof timing.iterations === 'number' && Number.isNaN(timing.iterations)) {
     timing.iterations = 0;
   }
-  if ((options.postAnimationDelayMs ?? 0) > 0 && timing.endDelay === undefined) {
+  if (options.postAnimationDelayMs !== undefined && options.postAnimationDelayMs > 0 && timing.endDelay === undefined) {
     timing.endDelay = options.postAnimationDelayMs;
   }
   if (options.reducedMotion) {

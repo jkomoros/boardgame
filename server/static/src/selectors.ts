@@ -146,7 +146,7 @@ export const selectHasPendingBundles = createSelector(
 // Memoized to prevent unnecessary recalculations
 export const selectNextBundle = createSelector(
     [selectPendingBundles],
-    (bundles): StateBundle | null => bundles.length > 0 ? bundles[0] : null
+    (bundles): StateBundle | null => bundles[0] ?? null
 );
 
 // Version selectors
@@ -200,8 +200,8 @@ export const selectMoveLegality = createSelector(
             result[form.Name] = {
                 legalForPlayer: form.LegalForPlayer ?? false,
                 legalForAnyone: form.LegalForAnyone ?? false,
-                error: form.LegalForPlayerError,
-                preconditions: form.Preconditions,
+                ...(form.LegalForPlayerError !== undefined ? { error: form.LegalForPlayerError } : {}),
+                ...(form.Preconditions !== undefined ? { preconditions: form.Preconditions } : {}),
             };
         }
         return result;
@@ -225,17 +225,8 @@ export const selectExpandedGameStateWithoutTimers = createSelector(
     (rawState, chest, gameName): ExpandedGameState | null => {
         if (!rawState || !chest) return null;
 
-        // Pure expansion - returns new object tree, skips timer expansion
-        const expandedGame = expandLeafState(rawState, rawState.Game, chest, gameName, null, true);
-        const expandedPlayers = rawState.Players.map((player: any) =>
-            expandLeafState(rawState, player, chest, gameName, null, true)
-        );
+        return expandGameStateSnapshot(rawState, chest, gameName);
 
-        return {
-            ...rawState,
-            Game: expandedGame,
-            Players: expandedPlayers,
-        };
     }
 );
 
@@ -253,16 +244,8 @@ export const selectTimerExpandedGameState = createSelector(
         if (!rawState || !chest) return null;
 
         // Pure expansion with timer info included
-        const expandedGame = expandLeafState(rawState, rawState.Game, chest, gameName, timerInfos, false);
-        const expandedPlayers = rawState.Players.map((player: any) =>
-            expandLeafState(rawState, player, chest, gameName, timerInfos, false)
-        );
+        return expandGameStateSnapshot(rawState, chest, gameName, timerInfos);
 
-        return {
-            ...rawState,
-            Game: expandedGame,
-            Players: expandedPlayers,
-        };
     }
 );
 
@@ -272,6 +255,22 @@ export const selectTimerExpandedGameState = createSelector(
  * 60+ times/second due to timer ticks.
  */
 export const selectExpandedGameState = selectExpandedGameStateWithoutTimers;
+
+/** Expand an API snapshot using exactly the same path as live Redux state. */
+export function expandGameStateSnapshot(
+    rawState: RawGameState,
+    chest: GameChest,
+    gameName: string,
+    timerInfos: Record<string, TimerInfo> | null = null,
+): ExpandedGameState {
+    return {
+        ...rawState,
+        Game: expandLeafState(rawState, rawState.Game, chest, gameName, timerInfos, timerInfos === null),
+        Players: rawState.Players.map(player =>
+            expandLeafState(rawState, player, chest, gameName, timerInfos, timerInfos === null)),
+    };
+}
+
 
 /**
  * Returns a wrapper that deduplicates array results by shallow comparison.
@@ -339,9 +338,9 @@ const _selectPlayerOrder = createSelector(
     [selectExpandedGameStateWithoutTimers],
     (state): number[] | null => {
         const game = state?.Game as Readonly<Record<string, unknown>> | undefined;
-        const computed = game?.Computed;
+        const computed = game?.['Computed'];
         if (!computed || typeof computed !== 'object' || Array.isArray(computed)) return null;
-        const order = (computed as Readonly<Record<string, unknown>>).PlayerOrder;
+        const order = (computed as Readonly<Record<string, unknown>>)['PlayerOrder'];
         if (!Array.isArray(order)
             || !order.every(playerIndex => Number.isSafeInteger(playerIndex) && playerIndex >= 0)) {
             return null;
@@ -377,10 +376,18 @@ const expandLeafState = (
         }
         // Expand boards (objects with Spaces array of stacks)
         else if (Array.isArray((val as any).Spaces) && (val as any).Spaces.length > 0 && (val as any).Spaces[0]?.Deck) {
+            const spaces = (val as any).Spaces.map((space: any) =>
+                expandStack(space, wholeState, chest, gameName)
+            );
+            const keys = Array.isArray((val as any).Keys) ? (val as any).Keys : undefined;
             result[key] = {
-                Spaces: (val as any).Spaces.map((space: any) =>
-                    expandStack(space, wholeState, chest, gameName)
-                )
+                ...(val as any),
+                Spaces: spaces,
+                ...(keys?.length === spaces.length ? {
+                    SpacesByKey: Object.fromEntries(keys.map((boardKey: string, index: number) =>
+                        [boardKey, spaces[index]]
+                    )),
+                } : {}),
             };
         }
         // Expand timers (objects with IsTimer property) - skip if requested
@@ -393,7 +400,7 @@ const expandLeafState = (
     const pathToLeaf = getPathToLeaf(wholeState, leafState);
     if (pathToLeaf?.length === 2 && pathToLeaf[0] === 'Players') {
         const playerIndex = pathToLeaf[1];
-        if (wholeState.Computed?.Players?.[playerIndex]) {
+        if (playerIndex !== undefined && wholeState.Computed?.Players?.[playerIndex]) {
             result.Computed = wholeState.Computed.Players[playerIndex];
         }
     }

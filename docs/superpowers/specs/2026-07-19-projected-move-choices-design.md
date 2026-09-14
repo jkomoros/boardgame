@@ -420,12 +420,12 @@ must be sealed, boot-validated, actor-disclosure explicit, bounded on the
 pinned snapshot, and must continue to bind candidates through the canonical
 input codec before calling `Legal`.
 
-V1 also ships only the guaranteed generic fallback. A rich board-native region
-would currently duplicate it. A future consumption mechanism must be
-render-scoped and snapshot-scoped: the fallback may be suppressed for one set
-only after a region proves it contains at least one non-null bound control for
-that exact set and snapshot. Empty, stale, hidden, or disconnected regions must
-never consume the fallback.
+The guaranteed generic fallback remains available to every renderer. Opt-in
+stack and player-list adapters may consume one set inside a native region. That
+consumption is render-scoped and snapshot-scoped: the fallback is suppressed
+for one set only after a framework-owned region proves it contains at least one
+non-null bound control for that exact set and snapshot. Empty, stale, hidden, or
+disconnected regions never consume the fallback.
 
 Enum ordering and rich per-candidate descriptions are client presentation
 extensions. They should not change the server projection or its fingerprint.

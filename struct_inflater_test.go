@@ -268,6 +268,73 @@ func (t *testBoardWithoutBoardTag) ReadSetConfigurer() PropertyReadSetConfigurer
 	return getDefaultReadSetConfigurer(t)
 }
 
+type testConstrainedBoard struct {
+	Spaces Board `stack:"test,0,reject()" board:"3"`
+}
+
+type testEnumBoard struct {
+	Spaces Board `stack:"test" board:"3" enum:"color"`
+}
+
+func (t *testEnumBoard) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testEnumBoard) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testEnumBoard) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+func TestStructInflaterAssociatesBoardEnum(t *testing.T) {
+	game := testDefaultGame(t, false)
+	inflater, err := NewStructInflater(new(testEnumBoard), nil, game.manager.Chest(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := new(testEnumBoard)
+	if err := inflater.Inflate(got, game.CurrentState()); err != nil {
+		t.Fatal(err)
+	}
+	if got.Spaces.Enum() != testColorEnum || got.Spaces.SpaceAtKey(colorBlue) != got.Spaces.SpaceAt(1) {
+		t.Fatal("inflated board was not associated with its enum")
+	}
+}
+
+func (t *testConstrainedBoard) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testConstrainedBoard) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testConstrainedBoard) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+func TestStructInflaterAppliesConstraintsToEveryBoardSpace(t *testing.T) {
+	game := testDefaultGame(t, false)
+	reject := &StackConstraintConstructor{
+		Name: "reject",
+		Constructor: func([]string, *ComponentChest) (StackConstraint, error) {
+			return func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error {
+				return nil
+			}, nil
+		},
+	}
+	validator, err := NewStructInflater(new(testConstrainedBoard), nil, game.manager.Chest(), map[string]*StackConstraintConstructor{
+		"reject": reject,
+	})
+	if err != nil {
+		t.Fatal("NewStructInflater:", err)
+	}
+
+	got := new(testConstrainedBoard)
+	if err := validator.Inflate(got, game.CurrentState()); err != nil {
+		t.Fatal("Inflate:", err)
+	}
+	for i, space := range got.Spaces.Spaces() {
+		if constraints := space.(*growableStack).constraints; len(constraints) != 1 {
+			t.Fatalf("space %d constraints = %d, want 1", i, len(constraints))
+		}
+	}
+}
+
 func TestStructInflaterRejectsContradictoryStackTags(t *testing.T) {
 	game := testDefaultGame(t, false)
 	tests := []struct {

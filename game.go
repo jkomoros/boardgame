@@ -281,7 +281,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) (interfac
 		"Name":               g.Name(),
 		"Finished":           g.Finished(),
 		"Winners":            g.Winners(),
-		"CurrentState":       state,
+		"CurrentState":       stateJSONForViewer(state),
 		"CurrentPlayerIndex": g.manager.delegate.CurrentPlayerIndex(state),
 		"Diagram":            state.Diagram(),
 		"ID":                 g.ID(),
@@ -1076,6 +1076,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	currentState := g.CurrentState().(*state)
+	if guard := move.Info().timerGuard; guard != nil {
+		if err := validateTimerGuard(currentState, guard); err != nil {
+			return baseErr.WithError(err.Error())
+		}
+	}
 
 	if !proposer.Valid(currentState) {
 		return baseErr.WithError("The proposer was not valid.")
@@ -1116,6 +1121,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	newState.version = versionToSet
+	if guard := move.Info().timerGuard; guard != nil {
+		if err := consumeTimer(newState, guard); err != nil {
+			return baseErr.WithError(err.Error())
+		}
+	}
 
 	if err := applyMoveChoiceRecording(move, newState); err != nil {
 		return baseErr.WithError("The move's configured state effect returned an error:" + err.Error())
@@ -1132,6 +1142,12 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	//Check to see if that move made the game finished.
 
 	finished, winners := g.manager.Delegate().CheckGameFinished(newState)
+	// Timer.Start records a relative duration on the candidate state. Resolve
+	// it at the atomic save boundary so time spent in Apply and validation does
+	// not shorten the durable countdown.
+	if err := finalizeTimerDeadlines(newState, g.manager.timers.now()); err != nil {
+		return baseErr.WithError("Could not finalize timers: " + err.Error())
+	}
 
 	// Everything above this point is a non-durable rejection path. Keep the
 	// settled frontier advertised while a queued proposal is merely being

@@ -35,7 +35,11 @@ type GameManager struct {
 	agentsByName              map[string]Agent
 	modifiableGamesLock       sync.RWMutex
 	modifiableGames           map[string]*Game
+	modifiableGameLoads       map[string]*modifiableGameLoad
 	timers                    *timerManager
+	timerTickerStop           chan struct{}
+	timerTickerDone           chan struct{}
+	timerTickerStopOnce       sync.Once
 	initialized               bool
 	logger                    *logrus.Logger
 	variantConfig             VariantConfig
@@ -114,7 +118,46 @@ func (m *ManagerInternals) RecreateGame(rec *GameStorageRecord) (*Game, error) {
 // fire yet. Will return true if there was a timer that was fired, false
 // otherwise.
 func (m *ManagerInternals) ForceNextTimer() bool {
-	return m.manager.timers.ForceNextTimer()
+	fired, _ := m.manager.timers.ForceNextTimerWithError()
+	return fired
+}
+
+// ForceNextTimerWithError forces the next timer and reports the completion
+// move's result. This is useful for deterministic scenario runners, which must
+// distinguish an attempted timer from a successfully committed completion.
+func (m *ManagerInternals) ForceNextTimerWithError() (bool, error) {
+	return m.manager.timers.ForceNextTimerWithError()
+}
+
+// UseManualTimers stops this manager's background timer ticker. Durable timers
+// remain scheduled and may be advanced with ForceNextTimer or
+// ForceNextTimerWithError.
+func (m *ManagerInternals) UseManualTimers() {
+	m.manager.stopTimerTicker()
+}
+
+// RestoreTimers initializes this manager's process-local timer heap from
+// durable storage without inflating games into the warm cache. It is a
+// startup-only operation: call it after storage connects and before this
+// manager creates, loads, or modifies games. It fails without changing the
+// heap if timer work is already scheduled.
+func (m *ManagerInternals) RestoreTimers() error {
+	return m.manager.restoreTimers()
+}
+
+// Close stops background timer work and freezes every resident modifiable
+// game. It is safe to call more than once.
+func (m *ManagerInternals) Close() {
+	m.manager.stopTimerTicker()
+	m.manager.modifiableGamesLock.RLock()
+	games := make([]*Game, 0, len(m.manager.modifiableGames))
+	for _, game := range m.manager.modifiableGames {
+		games = append(games, game)
+	}
+	m.manager.modifiableGamesLock.RUnlock()
+	for _, game := range games {
+		m.manager.freezeGame(game)
+	}
 }
 
 // ForceFixUp forces the engine to check if a FixUp move applies, even if no
@@ -414,22 +457,49 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	}
 
 	result.modifiableGames = make(map[string]*Game)
+	result.modifiableGameLoads = make(map[string]*modifiableGameLoad)
 
 	result.timers = newTimerManager(result)
+	result.timerTickerStop = make(chan struct{})
+	result.timerTickerDone = make(chan struct{})
 
 	//Start ticking timers.
 	go func() {
-		//TODO: is there a way to turn off timer ticking for a manager we want
-		//to throw out?
+		defer close(result.timerTickerDone)
+		ticker := time.NewTicker(250 * time.Millisecond)
+		defer ticker.Stop()
 		for {
-			<-time.After(250 * time.Millisecond)
-			result.timers.Tick()
+			select {
+			case <-ticker.C:
+				result.timers.Tick()
+			case <-result.timerTickerStop:
+				return
+			}
 		}
 	}()
 
 	result.initialized = true
 
 	return result, nil
+}
+
+func (g *GameManager) stopTimerTicker() {
+	if g == nil || g.timerTickerStop == nil {
+		return
+	}
+	g.timerTickerStopOnce.Do(func() { close(g.timerTickerStop) })
+	<-g.timerTickerDone
+}
+
+func (g *GameManager) restoreTimers() error {
+	if !SupportsTimerWakeupStorage(g.storage) {
+		return nil
+	}
+	wakeups, err := g.storage.(TimerWakeupStorage).TimerWakeups(g.delegate.Name())
+	if err != nil {
+		return err
+	}
+	return g.timers.RestoreWakeups(wakeups)
 }
 
 // verifyValidConfigurationOnStruct verifies that if there are any sub-structs
@@ -829,32 +899,28 @@ func (g *GameManager) modifiableGameCreated(game *Game) error {
 		return errors.New("Game is not setup yet")
 	}
 
-	g.modifiableGamesLock.RLock()
-	_, ok := g.modifiableGames[game.ID()]
-	cacheLen := len(g.modifiableGames)
-	g.modifiableGamesLock.RUnlock()
-
-	if ok {
+	id := strings.ToUpper(game.ID())
+	g.modifiableGamesLock.Lock()
+	if _, ok := g.modifiableGames[id]; ok {
+		g.modifiableGamesLock.Unlock()
 		return errors.New("modifiableGameCreated collided with existing game")
 	}
-
-	// Evict the least recently used game if the cache is at capacity.
-	if cacheLen >= maxResidentGames {
-		g.evictLeastRecentGame()
+	var evicted *Game
+	if len(g.modifiableGames) >= maxResidentGames {
+		evicted = g.evictLeastRecentGameLocked()
 	}
-
-	id := strings.ToUpper(game.ID())
-
-	g.modifiableGamesLock.Lock()
 	g.modifiableGames[id] = game
 	g.modifiableGamesLock.Unlock()
+	if evicted != nil {
+		evicted.markFrozen()
+	}
 
 	return nil
 }
 
-// freezeGame removes a game from the warm cache, cancels its timers, and
-// marks it as frozen so its mainLoop goroutine exits. It is safe to call
-// from both mainLoop's idle timeout and LRU eviction.
+// freezeGame removes a game from the warm cache and marks it as frozen so its
+// mainLoop goroutine exits. Durable timer heap records intentionally survive;
+// when due they reacquire a fresh modifiable game from storage.
 func (g *GameManager) freezeGame(game *Game) {
 	id := strings.ToUpper(game.ID())
 	g.modifiableGamesLock.Lock()
@@ -864,7 +930,6 @@ func (g *GameManager) freezeGame(game *Game) {
 		delete(g.modifiableGames, id)
 	}
 	g.modifiableGamesLock.Unlock()
-	g.timers.CancelTimersForGame(id)
 	game.markFrozen()
 }
 
@@ -872,17 +937,33 @@ func (g *GameManager) freezeGame(game *Game) {
 // freezes it. Called when the warm cache is at capacity and a new game needs
 // to be loaded.
 func (g *GameManager) evictLeastRecentGame() {
-	g.modifiableGamesLock.RLock()
+	g.modifiableGamesLock.Lock()
+	oldest := g.evictLeastRecentGameLocked()
+	g.modifiableGamesLock.Unlock()
+	if oldest != nil {
+		oldest.markFrozen()
+	}
+}
+
+// evictLeastRecentGameLocked removes and returns the least recently used
+// resident game. The caller must hold modifiableGamesLock for writing and
+// freeze the returned game after releasing the lock.
+func (g *GameManager) evictLeastRecentGameLocked() *Game {
 	var oldest *Game
 	for _, game := range g.modifiableGames {
 		if oldest == nil || game.lastActivity.Before(oldest.lastActivity) {
 			oldest = game
 		}
 	}
-	g.modifiableGamesLock.RUnlock()
 	if oldest != nil {
-		g.freezeGame(oldest)
+		delete(g.modifiableGames, strings.ToUpper(oldest.ID()))
 	}
+	return oldest
+}
+
+type modifiableGameLoad struct {
+	done chan struct{}
+	game *Game
 }
 
 // ModifiableGame returns a modifiable Game with the given ID. Either it
@@ -902,12 +983,38 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	id = strings.ToUpper(id)
 
-	g.modifiableGamesLock.RLock()
+	g.modifiableGamesLock.Lock()
 	game := g.modifiableGames[id]
-	g.modifiableGamesLock.RUnlock()
-
 	if game != nil && !game.Frozen() {
 		game.lastActivity = time.Now()
+		g.modifiableGamesLock.Unlock()
+		return game
+	}
+	if pending := g.modifiableGameLoads[id]; pending != nil {
+		g.modifiableGamesLock.Unlock()
+		<-pending.done
+		return pending.game
+	}
+	pending := &modifiableGameLoad{done: make(chan struct{})}
+	g.modifiableGameLoads[id] = pending
+	g.modifiableGamesLock.Unlock()
+
+	finishLoad := func(game *Game) *Game {
+		g.modifiableGamesLock.Lock()
+		var evicted *Game
+		if game != nil {
+			if len(g.modifiableGames) >= maxResidentGames {
+				evicted = g.evictLeastRecentGameLocked()
+			}
+			g.modifiableGames[id] = game
+		}
+		pending.game = game
+		delete(g.modifiableGameLoads, id)
+		close(pending.done)
+		g.modifiableGamesLock.Unlock()
+		if evicted != nil {
+			evicted.markFrozen()
+		}
 		return game
 	}
 
@@ -917,15 +1024,7 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	if gameRecord == nil {
 		//Nah, we've never seen that game.
-		return nil
-	}
-
-	// Evict the least recently used game if the cache is at capacity.
-	g.modifiableGamesLock.RLock()
-	cacheLen := len(g.modifiableGames)
-	g.modifiableGamesLock.RUnlock()
-	if cacheLen >= maxResidentGames {
-		g.evictLeastRecentGame()
+		return finishLoad(nil)
 	}
 
 	game = g.gameFromStorageRecord(gameRecord)
@@ -938,13 +1037,16 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	game.proposedMoves = make(chan *proposedMoveItem, 20)
 	game.fixUpTriggered = make(chan DelayedError, 10)
 	game.done = make(chan struct{})
+
+	// The timer heap is only an in-process scheduler. Rebuild it from the
+	// durable current state whenever a game is checked out after restart or
+	// eviction; overdue timers become immediately eligible on the next tick.
+	if current, ok := game.CurrentState().(*state); ok && current != nil {
+		g.timers.ReconcileState(current)
+	}
 	go game.mainLoop()
 
-	g.modifiableGamesLock.Lock()
-	g.modifiableGames[id] = game
-	g.modifiableGamesLock.Unlock()
-
-	return game
+	return finishLoad(game)
 
 }
 
@@ -967,6 +1069,7 @@ type refriedState struct {
 	Players         []json.RawMessage
 	Components      map[string][]json.RawMessage
 	SecretMoveCount map[string][]int
+	Timers          []persistedTimerRecord
 	Version         int
 }
 
@@ -1134,6 +1237,9 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*
 				return nil, errors.New("Error unmarshaling component state for deck " + deckName + " index " + strconv.Itoa(i) + ": " + err.Error())
 			}
 		}
+	}
+	if err := restoreTimerStorageRecords(result, refried.Timers); err != nil {
+		return nil, errors.New("Restoring timers failed: " + err.Error())
 	}
 	if err := result.validateComponentConservation(); err != nil {
 		return nil, errors.New("Loaded state violated component conservation: " + err.Error())

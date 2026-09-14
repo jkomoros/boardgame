@@ -27,6 +27,24 @@ func TestFolder(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNil()
 }
 
+func TestStateComparisonHandlesDurableTimers(t *testing.T) {
+	legacy := []byte(`{"Game":{"Count":1}}`)
+	actual := []byte(`{"Game":{"Count":1},"Timers":[{"Generation":2,"Deadline":"2026-01-01T00:00:00Z","Status":"active","Move":{"Name":"Finish"}}]}`)
+	if err := compareStateJSONBlobs(actual, legacy); err != nil {
+		t.Fatalf("legacy state rejected durable timer metadata: %v", err)
+	}
+
+	expected := []byte(`{"Game":{"Count":1},"Timers":[{"Generation":2,"Deadline":"2027-01-01T00:00:00Z","Status":"active","Move":{"Name":"Finish"}}]}`)
+	if err := compareStateJSONBlobs(actual, expected); err != nil {
+		t.Fatalf("absolute timer deadline affected comparison: %v", err)
+	}
+
+	wrongIntent := []byte(`{"Game":{"Count":1},"Timers":[{"Generation":2,"Deadline":"2027-01-01T00:00:00Z","Status":"canceled","Move":{"Name":"Finish"}}]}`)
+	if err := compareStateJSONBlobs(actual, wrongIntent); err == nil {
+		t.Fatal("timer lifecycle mismatch was ignored")
+	}
+}
+
 func TestMoveAlignment(t *testing.T) {
 	tests := []struct {
 		description string

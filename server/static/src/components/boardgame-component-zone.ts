@@ -2,6 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import type { BoundMoveAction } from '../moves/action.js';
 import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
+import type { ProjectedStackChoices } from '../moves/projected-choices.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { ComponentView } from './component-view.js';
@@ -102,6 +103,10 @@ export class BoardgameComponentZone extends LitElement {
   @property({ type: Array, attribute: false })
   componentActions: readonly (BoundMoveAction<string, object> | null)[] = [];
 
+  /** Exact projected slot actions, consumed only while the inner stack renders them. */
+  @property({ attribute: false })
+  projectedChoices: ProjectedStackChoices | null = null;
+
   @property({ attribute: false })
   action: TargetAction<number> | null = null;
 
@@ -160,6 +165,7 @@ export class BoardgameComponentZone extends LitElement {
             .stack=${this.stack}
             .componentView=${this.componentView}
             .componentActions=${this.componentActions}
+            .projectedChoices=${this.projectedChoices}
             .action=${this.action}
             .selection=${this.selection}
             .layout=${this.layout}
@@ -168,7 +174,7 @@ export class BoardgameComponentZone extends LitElement {
             .noDefaultSpacer=${this.noDefaultSpacer}
             .fauxComponents=${this.fauxComponents}
             .stagger=${this.stagger}
-            .componentsDisabled=${this.componentActions.length === 0 && !this.action && !this.selection}>
+            .componentsDisabled=${this.componentActions.length === 0 && !this.projectedChoices && !this.action && !this.selection}>
           </boardgame-component-stack>
           ${count === 0 && !this.hideEmptyState
             ? html`<div id="empty" part="empty">${this.emptyLabel.trim()}</div>`
@@ -193,10 +199,11 @@ export class BoardgameComponentZone extends LitElement {
       throw new Error('boardgame-component-zone: emptyLabel must be non-empty unless hideEmptyState is enabled');
     }
     const interactions = Number(this.componentActions.length > 0)
+      + Number(this.projectedChoices !== null)
       + Number(this.action !== null)
       + Number(this.selection !== null);
     if (interactions > 1) {
-      throw new Error('boardgame-component-zone: action, selection, and componentActions are mutually exclusive');
+      throw new Error('boardgame-component-zone: action, selection, componentActions, and projectedChoices are mutually exclusive');
     }
   }
 }

@@ -6,6 +6,7 @@ performance boost from well-crafted queries to use.
 package helpers
 
 import (
+	"errors"
 	"sort"
 
 	"github.com/jkomoros/boardgame"
@@ -20,6 +21,31 @@ type AllGamesStorageManager interface {
 	api.StorageManager
 	//AllGames simply returns all games
 	AllGames() []*boardgame.GameStorageRecord
+}
+
+// TimerWakeupsHelper discovers active durable timers by scanning game-head
+// records and parsing only their stored timer metadata. It never inflates a
+// boardgame.Game or adds one to a manager's warm cache.
+func TimerWakeupsHelper(s AllGamesStorageManager, gameName string) ([]boardgame.TimerWakeup, error) {
+	if s == nil {
+		return nil, errors.New("nil storage manager")
+	}
+	var result []boardgame.TimerWakeup
+	for _, game := range s.AllGames() {
+		if game == nil || game.Name != gameName || game.Finished {
+			continue
+		}
+		state, err := s.State(game.ID, game.Version)
+		if err != nil {
+			return nil, err
+		}
+		wakeups, err := boardgame.TimerWakeupsFromStateStorage(game.ID, state)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, wakeups...)
+	}
+	return result, nil
 }
 
 // MovesHelper is an implementation for Moves() if the underlying storage

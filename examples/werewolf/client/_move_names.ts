@@ -4,7 +4,9 @@
 
 export const MoveNames = {
   CastVote: "Cast Vote",
+  ResolveDayVotesOnTimeout: "Resolve Day Votes on Timeout",
   CastNightVote: "Cast Night Vote",
+  ResolveNightVotesOnTimeout: "Resolve Night Votes on Timeout",
 } as const;
 
 export type MoveName = typeof MoveNames[keyof typeof MoveNames];
@@ -18,9 +20,11 @@ export const AnimationKeys = {
   BeginGame: "Begin Game",
   CastVote: "Cast Vote",
   ResolveVotes: "Resolve Votes",
+  ResolveDayVotesOnTimeout: "Resolve Day Votes on Timeout",
   CastNightVote: "Cast Night Vote",
   HiddenAction: "Hidden Action",
   ResolveNightVotes: "Resolve Night Votes",
+  ResolveNightVotesOnTimeout: "Resolve Night Votes on Timeout",
 } as const;
 
 export type AnimationKey = typeof AnimationKeys[keyof typeof AnimationKeys];

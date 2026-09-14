@@ -550,7 +550,7 @@ test('component stacks bind typed actions by slot and reject ambiguous wiring', 
         testState.handle.dispose();
       }
     });
-    expect(cardinalityError).toContain('componentActions has 1 entries');
+    expect(cardinalityError).toContain('component actions have 1 entries');
   } finally {
     diagnostics.stop();
   }

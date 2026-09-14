@@ -1,0 +1,17 @@
+{
+  "predicate": "componentPropEquals",
+  "cases": [
+    {
+      "spec": {"name": "componentPropEquals", "args": ["game.Spaces", "first-occupied", "Color", "Black"]},
+      "fixture": "checkersBlackFirst", "proposer": 0, "expect": "pass"
+    },
+    {
+      "spec": {"name": "componentPropEquals", "args": ["game.Spaces", "first-occupied", "Color", "Red"]},
+      "fixture": "checkersBlackFirst", "proposer": 0, "expect": "fail", "template": "legal.component_prop_equals"
+    },
+    {
+      "spec": {"name": "componentPropEquals", "args": ["game.VisibleCards", "first-occupied", "Type", "anything"]},
+      "fixture": "memoryDefault", "proposer": 0, "expect": "unknown"
+    }
+  ]
+}

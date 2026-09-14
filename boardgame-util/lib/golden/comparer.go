@@ -176,7 +176,7 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 			}
 		}
 
-		if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
+		if err := compareStateJSONBlobs(storageRec, stateToCompare); err != nil {
 			return errors.New("State " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
 		}
 

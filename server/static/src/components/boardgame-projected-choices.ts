@@ -4,6 +4,7 @@ import {
   defaultMessageResolver,
   type MessageResolver,
   type MoveChoiceProjectionTypes,
+  type ProjectedMoveChoiceSet,
   type ProjectedMoveChoices,
 } from '../moves/projected-choices.js';
 import './boardgame-action-button.js';
@@ -49,6 +50,10 @@ export class BoardgameProjectedChoices extends LitElement {
 
   @property({ type: Object, attribute: false })
   choices: ProjectedMoveChoices<MoveChoiceProjectionTypes> | null = null;
+
+  /** Exact set objects currently proven by live framework-owned native regions. */
+  @property({ attribute: false })
+  consumedSets: readonly ProjectedMoveChoiceSet<string, any>[] = [];
 
   @property({ attribute: false })
   messageResolver: MessageResolver = defaultMessageResolver;
@@ -101,7 +106,7 @@ export class BoardgameProjectedChoices extends LitElement {
       </section>`;
     }
     return html`<aside aria-label="Available game actions" aria-live="polite" aria-atomic="false">
-      ${choices.all().map(set => {
+      ${choices.all().filter(set => !this.consumedSets.includes(set)).map(set => {
       const prompt = this.resolve(set.message);
       return html`<fieldset data-projected-move=${set.move}>
         <legend>${prompt}</legend>

@@ -15,7 +15,7 @@ func TestLegalCatalogVersionIsPositive(t *testing.T) {
 	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion > 0).Equals(true)
 }
 
-// TestLegalCatalogVersionIncludesFirstComponentPredicates pins the exact v5
+// TestLegalCatalogVersionIncludesComponentScalarPredicates pins the exact v6
 // value. See legal_types.go for the full version history. Unlike
 // TestLegalCatalogVersionIsPositive
 // (which stays true forever), this test is DELIBERATELY exact: it must be
@@ -27,8 +27,8 @@ func TestLegalCatalogVersionIsPositive(t *testing.T) {
 // while it happily kept pinning 4. legal/catalog_version_test.go closes that
 // by freezing the predicate vocabulary each version stamps, which is the thing
 // the number is actually about.
-func TestLegalCatalogVersionIncludesFirstComponentPredicates(t *testing.T) {
-	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(5)
+func TestLegalCatalogVersionIncludesComponentScalarPredicates(t *testing.T) {
+	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(6)
 }
 
 // TestComponentChestMarshalIncludesLegalTemplates pins that the chest JSON
@@ -49,17 +49,11 @@ func TestComponentChestMarshalIncludesLegalTemplates(t *testing.T) {
 }
 
 // TestComponentChestMarshalOmitsLegalTemplatesWhenEmpty pins the omitempty
-// side: a game type with no declarative-legality moves at all (an empty
-// merged template table, this package's own test fixture's normal state —
-// see TestComponentChestMarshal's golden fixture, which predates
-// LegalTemplates and must stay byte-identical) must not gain the key.
+// contract independently of which catalogs other test packages register.
 func TestComponentChestMarshalOmitsLegalTemplatesWhenEmpty(t *testing.T) {
 	game := testDefaultGame(t, false)
 	manager := game.Manager()
-	// This package's own test fixture never imports package moves (see
-	// legal_evaluable_test.go's package doc), so legalTemplateTable is nil
-	// here already; assert explicitly since that's the behavior under test.
-	assert.For(t, "empty by default").ThatActual(len(manager.legalTemplateTable)).Equals(0)
+	manager.legalTemplateTable = nil
 
 	data, err := DefaultMarshalJSON(manager.Chest())
 	assert.For(t, "marshal error").ThatActual(err).IsNil()

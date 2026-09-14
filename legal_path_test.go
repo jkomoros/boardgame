@@ -9,32 +9,37 @@ import (
 
 func TestParseLegalPath(t *testing.T) {
 	tests := []struct {
-		name      string
-		path      LegalPropPath
-		wantErr   bool
-		wantKind  legalPathKind
-		wantProp  string
-		wantField string
+		name           string
+		path           LegalPropPath
+		wantErr        bool
+		wantKind       legalPathKind
+		wantProp       string
+		wantField      string
+		wantBoardField string
 	}{
-		{"game path", "game.DrawStack", false, pathGame, "DrawStack", ""},
-		{"player path", "player.CardsLeftToReveal", false, pathPlayer, "CardsLeftToReveal", ""},
-		{"proposer path", "proposer.PlayerSubmitted", false, pathProposer, "PlayerSubmitted", ""},
-		{"players[*] path", "players[*].Stood", false, pathPlayersAll, "Stood", ""},
-		{"move path", "move.CardIndex", false, pathMove, "CardIndex", ""},
-		{"nested prop is not itself rejected by parse", "game.Sub.Field", false, pathGame, "Sub.Field", ""},
-		{"players[move.Field] path", "players[move.TargetPlayerIndex].Hand", false, pathPlayersMoveField, "Hand", "TargetPlayerIndex"},
+		{"game path", "game.DrawStack", false, pathGame, "DrawStack", "", ""},
+		{"player path", "player.CardsLeftToReveal", false, pathPlayer, "CardsLeftToReveal", "", ""},
+		{"proposer path", "proposer.PlayerSubmitted", false, pathProposer, "PlayerSubmitted", "", ""},
+		{"players[*] path", "players[*].Stood", false, pathPlayersAll, "Stood", "", ""},
+		{"move path", "move.CardIndex", false, pathMove, "CardIndex", "", ""},
+		{"nested prop is not itself rejected by parse", "game.Sub.Field", false, pathGame, "Sub.Field", "", ""},
+		{"players[move.Field] path", "players[move.TargetPlayerIndex].Hand", false, pathPlayersMoveField, "Hand", "TargetPlayerIndex", ""},
+		{"game board index", "game.BuildPiles[move.TargetPile]", false, pathGame, "BuildPiles", "", "TargetPile"},
+		{"target player board index", "players[move.TargetPlayerIndex].Piles[move.TargetPile]", false, pathPlayersMoveField, "Piles", "TargetPlayerIndex", "TargetPile"},
 
-		{"wrong case kind", "Game.X", true, 0, "", ""},
-		{"concrete player index", "players[0].X", true, 0, "", ""},
-		{"unknown kind", "foo.X", true, 0, "", ""},
-		{"empty prop with trailing dot", "game.", true, 0, "", ""},
-		{"no dot at all", "game", true, 0, "", ""},
-		{"totally empty", "", true, 0, "", ""},
-		{"players wildcard wrong bracket contents", "players[1].X", true, 0, "", ""},
-		{"players[move.] empty field", "players[move.].X", true, 0, "", ""},
-		{"players[game.X] wrong index expr", "players[game.X].Y", true, 0, "", ""},
-		{"players[move.F] missing prop", "players[move.F]", true, 0, "", ""},
-		{"players[move.F] missing prop, missing dot too", "players[move.F", true, 0, "", ""},
+		{"wrong case kind", "Game.X", true, 0, "", "", ""},
+		{"concrete player index", "players[0].X", true, 0, "", "", ""},
+		{"unknown kind", "foo.X", true, 0, "", "", ""},
+		{"empty prop with trailing dot", "game.", true, 0, "", "", ""},
+		{"no dot at all", "game", true, 0, "", "", ""},
+		{"totally empty", "", true, 0, "", "", ""},
+		{"players wildcard wrong bracket contents", "players[1].X", true, 0, "", "", ""},
+		{"players[move.] empty field", "players[move.].X", true, 0, "", "", ""},
+		{"players[game.X] wrong index expr", "players[game.X].Y", true, 0, "", "", ""},
+		{"players[move.F] missing prop", "players[move.F]", true, 0, "", "", ""},
+		{"players[move.F] missing prop, missing dot too", "players[move.F", true, 0, "", "", ""},
+		{"board index must use move field", "game.Board[3]", true, 0, "", "", ""},
+		{"only one board index", "game.Board[move.A][move.B]", true, 0, "", "", ""},
 	}
 
 	for _, tc := range tests {
@@ -48,6 +53,7 @@ func TestParseLegalPath(t *testing.T) {
 			assert.For(t).ThatActual(got.kind).Equals(tc.wantKind)
 			assert.For(t).ThatActual(got.prop).Equals(tc.wantProp)
 			assert.For(t).ThatActual(got.moveField).Equals(tc.wantField)
+			assert.For(t).ThatActual(got.boardIndexField).Equals(tc.wantBoardField)
 		})
 	}
 }
@@ -62,6 +68,11 @@ func TestValidateLegalPath(t *testing.T) {
 
 	t.Run("valid game path", func(t *testing.T) {
 		err := validateLegalPath("game.DrawDeck", exampleState, nil)
+		assert.For(t).ThatActual(err).IsNil()
+	})
+
+	t.Run("valid indexed board path", func(t *testing.T) {
+		err := validateLegalPathType("game.MyBoard[move.ScoreIncrement]", TypeStack, exampleState, moveReader)
 		assert.For(t).ThatActual(err).IsNil()
 	})
 
@@ -251,6 +262,17 @@ func TestResolveLegalPath(t *testing.T) {
 		assert.For(t).ThatActual(err).IsNil()
 		assert.For(t).ThatActual(propType).Equals(TypeInt)
 		assert.For(t).ThatActual(val).Equals(7)
+	})
+
+	t.Run("indexed board resolves as a stack", func(t *testing.T) {
+		assert.For(t).ThatActual(rs.SetIntProp("ScoreIncrement", 1)).IsNil()
+		val, propType, err := resolveLegalPath("game.MyBoard[move.ScoreIncrement]", state, move)
+		assert.For(t).ThatActual(err).IsNil()
+		assert.For(t).ThatActual(propType).Equals(TypeStack)
+		board, boardErr := state.ImmutableGameState().Reader().ImmutableBoardProp("MyBoard")
+		assert.For(t).ThatActual(boardErr).IsNil()
+		assert.For(t).ThatActual(val).Equals(board.ImmutableSpaceAt(1))
+		assert.For(t).ThatActual(rs.SetIntProp("ScoreIncrement", 7)).IsNil()
 	})
 
 	t.Run("move.X round-trips bool", func(t *testing.T) {

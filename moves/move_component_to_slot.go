@@ -191,13 +191,17 @@ func intMoveFields(move boardgame.Move) []string {
 // which -- unlike this package's configuration spelling -- has no unqualified
 // form.
 func (p parsedStackPath) legalPath() string {
+	prop := p.prop
+	if p.boardIndexField != "" {
+		prop += "[move." + p.boardIndexField + "]"
+	}
 	switch p.kind {
 	case stackPathCurrentPlayer:
-		return "player." + p.prop
+		return "player." + prop
 	case stackPathMoveField:
-		return "players[move." + p.moveField + "]." + p.prop
+		return "players[move." + p.moveField + "]." + prop
 	}
-	return "game." + p.prop
+	return "game." + prop
 }
 
 // definingPrecondition returns the PreconditionName of the one atom that IS

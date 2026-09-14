@@ -46,6 +46,8 @@ export interface GameBoardLabelContext {
   readonly row: number;
   readonly col: number;
   readonly occupant: unknown;
+  /** One component per visual layer, including null for an empty layer. */
+  readonly occupants: readonly unknown[];
 }
 
 @customElement('boardgame-game-board')
@@ -244,6 +246,10 @@ export class BoardgameGameBoard extends LitElement {
   @property({ type: Object })
   stack: ExpandedStack<object, object> | null = null;
 
+  /** Multiple SizedStacks rendered as aligned layers over the same cells. */
+  @property({ type: Array, attribute: false })
+  stacks: readonly ExpandedStack<object, object>[] = [];
+
   /** Typed per-cell move actions. Candidate keys must exactly match cell indexes. */
   @property({ attribute: false })
   action: TargetAction<number> | null = null;
@@ -287,6 +293,10 @@ export class BoardgameGameBoard extends LitElement {
   /** Renderer-scoped component recipe passed to the board's inner stack. */
   @property({ attribute: false })
   componentView: ComponentView | null = null;
+
+  /** One component view per effective stack layer. */
+  @property({ type: Array, attribute: false })
+  componentViews: readonly (ComponentView | null)[] = [];
 
   /** Whether to show coordinate labels (1-8, A-H). */
   @property({ type: Boolean, reflect: true })
@@ -379,6 +389,11 @@ export class BoardgameGameBoard extends LitElement {
 
   private get _numSpaces(): number {
     return this.rows * this.cols;
+  }
+
+  private get _effectiveStacks(): readonly ExpandedStack<object, object>[] {
+    if (this.stack) return [this.stack];
+    return this.stacks;
   }
 
   private _cellClass(index: number): string {
@@ -503,11 +518,12 @@ export class BoardgameGameBoard extends LitElement {
   private _computeCellLabel(index: number): string {
     const row = Math.floor(index / this.cols);
     const col = index % this.cols;
-    const occupant = this.stack?.Components[index] ?? null;
+    const occupants = this._effectiveStacks.map(stack => stack.Components[index] ?? null);
+    const occupant = occupants[0] ?? null;
     if (this.labelFor) {
       let label: unknown;
       try {
-        label = this.labelFor({ index, row, col, occupant });
+        label = this.labelFor({ index, row, col, occupant, occupants });
       } catch (error) {
         const detail = error instanceof Error ? `: ${error.message}` : '';
         throw new Error(`boardgame-game-board labelFor failed for cell ${index}${detail}`);
@@ -517,7 +533,7 @@ export class BoardgameGameBoard extends LitElement {
       }
       return label.trim();
     }
-    return `${this._colLabel(col)}${row + 1}, ${occupant ? 'occupied' : 'empty'}`;
+    return `${this._colLabel(col)}${row + 1}, ${occupants.some(Boolean) ? 'occupied' : 'empty'}`;
   }
 
   private _cellReason(index: number): string | null {
@@ -557,11 +573,22 @@ export class BoardgameGameBoard extends LitElement {
     if (targetAction && this._numSpaces > MAX_TARGET_ACTION_CANDIDATES) {
       throw new Error(`boardgame-game-board target actions support at most ${MAX_TARGET_ACTION_CANDIDATES} cells`);
     }
-    if (this.stack && !Array.isArray(this.stack.Components)) {
-      throw new Error('boardgame-game-board stack.Components must be an array');
+    if (this.stack && this.stacks.length > 0) {
+      throw new Error('boardgame-game-board: choose stack or stacks, not both');
     }
-    if (this.stack && this.stack.Components.length !== this._numSpaces) {
-      throw new Error(`boardgame-game-board expected ${this._numSpaces} stack components but received ${this.stack.Components.length}`);
+    if (this.componentView !== null && this.componentViews.length > 0) {
+      throw new Error('boardgame-game-board: choose componentView or componentViews, not both');
+    }
+    if (this.componentViews.length > 0 && this.componentViews.length !== this._effectiveStacks.length) {
+      throw new Error(`boardgame-game-board: componentViews has ${this.componentViews.length} entries for ${this._effectiveStacks.length} effective stack layers`);
+    }
+    for (const stack of this._effectiveStacks) {
+      if (!Array.isArray(stack.Components)) {
+        throw new Error('boardgame-game-board stack.Components must be an array');
+      }
+      if (stack.Components.length !== this._numSpaces) {
+        throw new Error(`boardgame-game-board expected ${this._numSpaces} stack components but received ${stack.Components.length}`);
+      }
     }
     if (targetAction) {
       const keys = targetAction.candidates.map(candidate => candidate.key);
@@ -648,16 +675,18 @@ export class BoardgameGameBoard extends LitElement {
           </div>
 
           <!-- Component layer -->
-          <boardgame-component-stack
-            aria-hidden="true"
-            layout="board"
-            .boardCols="${this.cols}"
-            .boardRows="${this.rows}"
-            .stack="${this.stack}"
-            .componentView=${this.componentView}
-            .unsafeComponentAttrs="${this.unsafeComponentAttrs}"
-            no-default-spacer>
-          </boardgame-component-stack>
+          ${repeat(this._effectiveStacks, (_, i) => i, (stack, i) => html`
+            <boardgame-component-stack
+              aria-hidden="true"
+              layout="board"
+              .boardCols="${this.cols}"
+              .boardRows="${this.rows}"
+              .stack="${stack}"
+              .componentView=${this.componentViews.length ? this.componentViews[i] : this.componentView}
+              .unsafeComponentAttrs="${this.unsafeComponentAttrs}"
+              no-default-spacer>
+            </boardgame-component-stack>
+          `)}
 
           <!-- Optional coordinate labels -->
           ${this.labels ? html`

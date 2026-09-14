@@ -42,7 +42,14 @@ export type MoveWireInputs = {
   "Reveal Card": RevealCardWire;
 };
 
-export type MoveChoiceProjections = Record<never, never>;
+/** Exact finite choice projections keyed by move name. */
+export type MoveChoiceProjections = {
+  "Reveal Card": {
+    readonly field: "CardIndex";
+    readonly value: number;
+    readonly input: RevealCardInput;
+  };
+};
 
 export const moveInputSchema = [
   {
@@ -77,6 +84,17 @@ export const moveInputSchema = [
 
 export const moveInputSchemaFingerprint = "sha256:40b6d67e62dbc348c3dcff8b6a3957fa1a6bb4f7eb02c54b2b65f959cf90886b";
 
-export const moveChoiceProjectionSchema = [] as const;
+export const moveChoiceProjectionSchema = [
+  {
+    "moveName": "Reveal Card",
+    "fieldName": "CardIndex",
+    "source": "stack-slots",
+    "stackSource": {
+      "scope": "game",
+      "property": "HiddenCards"
+    },
+    "disclosure": "actor-exact"
+  }
+] as const;
 
-export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";
+export const moveChoiceProjectionSchemaFingerprint = "sha256:5c046960abdccaff37af1d4964959fc340eeb9649ce94e66aa842c25006dcfab";

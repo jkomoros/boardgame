@@ -213,6 +213,57 @@ func firstSpaceWithColor(t *testing.T, spaces boardgame.ImmutableStack, currentP
 	return -1
 }
 
+func memoryVisiblePair(t *testing.T, wantMatch bool) legalFixture {
+	t.Helper()
+	game, state := newMemoryGame(t)
+	gameRS := state.GameState().ReadSetter()
+	hidden, err := gameRS.StackProp("HiddenCards")
+	if err != nil {
+		t.Fatal("legal: reading HiddenCards:", err)
+	}
+	visible, err := gameRS.StackProp("VisibleCards")
+	if err != nil {
+		t.Fatal("legal: reading VisibleCards:", err)
+	}
+	leftIndex, rightIndex := -1, -1
+	for i := 0; i < hidden.Len() && leftIndex < 0; i++ {
+		left := hidden.ComponentAt(i)
+		if left == nil {
+			continue
+		}
+		leftType, err := left.Values().Reader().StringProp("Type")
+		if err != nil {
+			t.Fatal("legal: reading left memory Type:", err)
+		}
+		for j := i + 1; j < hidden.Len(); j++ {
+			right := hidden.ComponentAt(j)
+			if right == nil {
+				continue
+			}
+			rightType, err := right.Values().Reader().StringProp("Type")
+			if err != nil {
+				t.Fatal("legal: reading right memory Type:", err)
+			}
+			if (leftType == rightType) == wantMatch {
+				leftIndex, rightIndex = i, j
+				break
+			}
+		}
+	}
+	if leftIndex < 0 {
+		t.Fatalf("legal: no memory pair found (wantMatch=%t)", wantMatch)
+	}
+	left, right := hidden.ComponentAt(leftIndex), hidden.ComponentAt(rightIndex)
+	if err := left.MoveTo(visible, 3); err != nil {
+		t.Fatal("legal: moving first memory card:", err)
+	}
+	if err := right.MoveTo(visible, 7); err != nil {
+		t.Fatal("legal: moving second memory card:", err)
+	}
+	move := memoryMoveWithCardIndex(t, game, 7)
+	return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+}
+
 // legalFixtureBuilders is the named-fixture registry the conformance corpus
 // JSON files (testdata/conformance/*.json) reference by name, and that
 // catalog_test.go's unit tests also draw on directly.
@@ -273,6 +324,12 @@ var legalFixtureBuilders = map[string]func(t *testing.T) legalFixture{
 		}
 		move := memoryMoveWithCardIndex(t, game, 0)
 		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	"memoryVisibleMatchingSparse": func(t *testing.T) legalFixture {
+		return memoryVisiblePair(t, true)
+	},
+	"memoryVisibleDifferentSparse": func(t *testing.T) legalFixture {
+		return memoryVisiblePair(t, false)
 	},
 	// memoryNoMove: memoryDefault's state, but with a nil Move — exercises
 	// the Unknown-on-missing-move-context path for any predicate whose
@@ -377,6 +434,38 @@ var legalFixtureBuilders = map[string]func(t *testing.T) legalFixture{
 		}
 		move := checkersMoveWithTokenIndex(t, game, idx)
 		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	"checkersBlackFirst": func(t *testing.T) legalFixture {
+		game, state := newCheckersGame(t)
+		spaces, err := state.GameState().ReadSetter().StackProp("Spaces")
+		if err != nil {
+			t.Fatal("legal: reading Spaces:", err)
+		}
+		index := -1
+		first := firstOccupiedIndex(spaces)
+		for i := 0; i < spaces.Len(); i++ {
+			component := spaces.ComponentAt(i)
+			if component == nil {
+				continue
+			}
+			color, err := component.Values().Reader().ImmutableEnumProp("Color")
+			if err != nil {
+				t.Fatal("legal: reading token Color:", err)
+			}
+			if color.String() == "Black" {
+				index = i
+				break
+			}
+		}
+		if index < 0 {
+			t.Fatal("legal: no black checker token found")
+		}
+		if index != first {
+			if err := spaces.SwapComponents(index, first); err != nil {
+				t.Fatal("legal: moving black checker to first occupied slot:", err)
+			}
+		}
+		return legalFixture{state: state, move: checkersMoveWithTokenIndex(t, game, first), chest: game.Manager().Chest()}
 	},
 	// memoryCardAlreadyRevealed: memoryDefault, but HiddenCards[0] is moved
 	// directly to VisibleCards[0] (the mirrored slot), so at idx 0 the

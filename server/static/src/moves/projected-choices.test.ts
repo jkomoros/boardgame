@@ -9,7 +9,12 @@ import {
   type MoveActionSnapshot,
 } from './action.ts';
 import { serializeCreatorMoveInput, validateCreatorMoveInput } from './input.ts';
-import { buildProjectedMoveChoices } from './projected-choices.ts';
+import {
+  buildProjectedMoveChoices,
+  isProjectedStackChoicesForStack,
+  projectedPlayerChoices,
+  projectedStackChoices,
+} from './projected-choices.ts';
 
 type Names = 'Choose Player' | 'Guess Card' | 'Choose Card';
 type Inputs = {
@@ -124,6 +129,66 @@ test('validates projections before creating exact typed ordinary actions', () =>
   // Complete bound legality supersedes the default move form's false baseline.
   assert.equal(cards?.candidates[0].action.canPropose, true);
   assert.equal(cards?.candidates[1].action.reason?.code, 'preview-illegal');
+  assert.equal(players?.source, 'players');
+  assert.equal(choices.get('Choose Card')?.source, 'stack-slots');
+  assert.deepEqual(choices.get('Choose Card')?.stackSource, {
+    scope: 'proposing-player', property: 'Hand',
+  });
+});
+
+test('native adapters retain exact actions and preserve sparse source indexes', () => {
+  const base = readyWire();
+  const stack = { Components: [{}, null, {}, {}] } as never;
+  const choices = buildProjectedMoveChoices<Projections>({
+    wire: {
+      ...base,
+      Sets: [
+        { ...base.Sets[0], Candidates: [{ Value: 0, Available: true }, { Value: 2, Available: true }] },
+        { ...base.Sets[2], Candidates: [{ Value: 0, Available: true }, { Value: 3, Available: true }] },
+      ],
+    },
+    stateVersion: 7, schema: projectionSchema,
+    schemaFingerprint: 'projection-fingerprint',
+    playerPresentations: [
+      { playerIndex: 0, label: 'Ada' },
+      { playerIndex: 1, label: 'Inactive' },
+      { playerIndex: 2, label: 'Grace' },
+    ],
+    state: { Game: {}, Players: [{ Hand: stack }] },
+    proposingAsPlayer: 0,
+    action: actions(),
+  });
+  const cardSet = choices.get('Choose Card')!;
+  const stackBinding = projectedStackChoices(cardSet, stack);
+  assert.equal(isProjectedStackChoicesForStack(stackBinding, stack), true);
+  assert.equal(stackBinding.actions.length, 4);
+  assert.equal(stackBinding.actions[0], cardSet.candidates[0].action);
+  assert.equal(stackBinding.actions[1], null);
+  assert.equal(stackBinding.actions[2], null);
+  assert.equal(stackBinding.actions[3], cardSet.candidates[1].action);
+
+  // A projection beside an empty or older stack cannot manufacture a claim.
+  assert.deepEqual(projectedStackChoices(cardSet, { Components: [] } as never).actions, []);
+  const sameShapeWrongStack = { Components: [{}, null, {}, {}] } as never;
+  assert.deepEqual(projectedStackChoices(cardSet, sameShapeWrongStack).actions, [null, null, null, null]);
+  assert.equal(isProjectedStackChoicesForStack(stackBinding, sameShapeWrongStack), false);
+
+  const disabledSet = buildProjectedMoveChoices<Projections>({
+    wire: { ...base, Sets: [base.Sets[2]] },
+    stateVersion: 7, schema: projectionSchema,
+    schemaFingerprint: 'projection-fingerprint', playerPresentations: [], action: actions(),
+    state: { Game: {}, Players: [{ Hand: stack }] }, proposingAsPlayer: 0,
+  }).get('Choose Card')!;
+  const disabledBinding = projectedStackChoices(disabledSet, stack);
+  assert.equal(disabledBinding.actions[3], disabledSet.candidates[1].action);
+  assert.equal(disabledBinding.availableSlots[3], false);
+
+  const playerSet = choices.get('Choose Player')!;
+  const playerBinding = projectedPlayerChoices(playerSet, index => `Seat ${index + 1}`);
+  assert.deepEqual(playerBinding.choices.map(choice => [choice.playerIndex, choice.label]), [
+    [0, 'Seat 1'], [2, 'Seat 3'],
+  ]);
+  assert.equal(playerBinding.choices[1].action, playerSet.candidates[1].action);
 });
 
 test('accepts sparse occupied stack slots and rejects malformed dynamic domains', () => {

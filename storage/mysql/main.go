@@ -187,6 +187,32 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 	return (&state).ToStorageRecord(), nil
 }
 
+// TimerWakeups reads current state blobs directly and extracts only active
+// scheduler metadata. No boardgame.Game is inflated or retained.
+func (s *StorageManager) TimerWakeups(gameName string) ([]boardgame.TimerWakeup, error) {
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+	var records []struct {
+		GameID string
+		Blob   string
+	}
+	_, err := s.dbMap.Select(&records, "select g.ID as GameID, s.Blob as Blob from "+tableGames+
+		" g join "+tableStates+" s on s.GameID = g.ID and s.Version = g.Version where g.Name = ? and g.Finished = 0", gameName)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, errors.New("Couldn't discover durable timers: " + err.Error())
+	}
+	var result []boardgame.TimerWakeup
+	for _, record := range records {
+		wakeups, err := boardgame.TimerWakeupsFromStateStorage(record.GameID, boardgame.StateStorageRecord(record.Blob))
+		if err != nil {
+			return nil, errors.New("Couldn't decode durable timers: " + err.Error())
+		}
+		result = append(result, wakeups...)
+	}
+	return result, nil
+}
+
 // Moves returns the given moves
 func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
 
@@ -489,6 +515,9 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	if !s.connected {
 		return errors.New("Database not connected yet")
 	}
+	if game == nil {
+		return errors.New("No game provided")
+	}
 
 	version := game.Version
 
@@ -501,11 +530,25 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		moveRecord = newMoveStorageRecord(game.ID, version, move)
 	}
 
-	count, _ := s.dbMap.SelectInt("select count(*) from "+tableGames+" where ID=?", game.ID)
+	tx, err := s.dbMap.Begin()
+	if err != nil {
+		return errors.New("Couldn't begin game save: " + err.Error())
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	count, err := tx.SelectInt("select count(*) from "+tableGames+" where ID=?", game.ID)
+	if err != nil {
+		return errors.New("Couldn't inspect game: " + err.Error())
+	}
 
 	if count < 1 {
 		//Need to insert
-		err := s.dbMap.Insert(gameRecord)
+		err := tx.Insert(gameRecord)
 
 		if err != nil {
 			return errors.New("Couldn't update game: " + err.Error())
@@ -515,7 +558,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 		extendedRecord.ID = game.ID
 
-		err = s.dbMap.Insert(extendedRecord)
+		err = tx.Insert(extendedRecord)
 
 		if err != nil {
 			return errors.New("Couldn't insert the extended game info: " + err.Error())
@@ -523,28 +566,35 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	} else {
 		//Need to update
-		_, err := s.dbMap.Update(gameRecord)
+		updated, err := tx.Update(gameRecord)
 
 		if err != nil {
-			return errors.New("Couldn't insert game: " + err.Error())
+			return errors.New("Couldn't update game: " + err.Error())
+		}
+		if updated != 1 {
+			return errors.New("Couldn't update game: stale or missing game")
 		}
 
 	}
 
-	err := s.dbMap.Insert(stateRecord)
+	err = tx.Insert(stateRecord)
 
 	if err != nil {
 		return errors.New("Couldn't insert state: " + err.Error())
 	}
 
 	if moveRecord != nil {
-		err = s.dbMap.Insert(moveRecord)
+		err = tx.Insert(moveRecord)
 
 		if err != nil {
 			return errors.New("couldn't insert move: " + err.Error())
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return errors.New("Couldn't commit game save: " + err.Error())
+	}
+	committed = true
 	return nil
 }
 

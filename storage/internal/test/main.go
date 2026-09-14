@@ -58,7 +58,103 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 	ListingTest(factory, testName, connectConfig, t)
 	TableLeaseTest(factory, connectConfig, t)
 	ProposalFrontierTest(factory, connectConfig, t)
+	AtomicGameStateMoveTest(factory, connectConfig, t)
+	TimerWakeupStorageTest(factory, connectConfig, t)
 
+}
+
+// TimerWakeupStorageTest verifies every first-party backend exposes its
+// storage-level discovery path and can scan an empty game-name partition.
+func TimerWakeupStorageTest(factory StorageManagerFactory, connectConfig string, t *testing.T) {
+	storage := factory()
+	defer storage.Close()
+	defer storage.CleanUp()
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err)
+	}
+	if !boardgame.SupportsTimerWakeupStorage(storage) {
+		t.Fatal("first-party storage does not support durable timer discovery")
+	}
+	wakeups, err := storage.(boardgame.TimerWakeupStorage).TimerWakeups("missing-game-type")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wakeups) != 0 {
+		t.Fatalf("empty timer partition returned %d wakeups", len(wakeups))
+	}
+}
+
+// AtomicGameStateMoveTest verifies that a later record failure rolls back an
+// earlier game-head update in the same save operation.
+func AtomicGameStateMoveTest(factory StorageManagerFactory, connectConfig string, t *testing.T) {
+	storage := factory()
+	defer storage.Close()
+	defer storage.CleanUp()
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err)
+	}
+	manager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	failedHead := game.StorageRecord()
+	failedHead.Finished = true
+	if err := storage.SaveGameAndCurrentState(failedHead, game.CurrentState().StorageRecord(), nil); err == nil {
+		t.Fatal("duplicate state save unexpectedly succeeded")
+	}
+	stored, err := storage.Game(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Finished {
+		t.Fatal("failed save partially updated the durable game head")
+	}
+	stored.Finished = true
+	reloaded, err := storage.Game(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Finished {
+		t.Fatal("mutating a returned game record changed the durable game head without a save")
+	}
+}
+
+// SequentialGameVersionTest verifies that a backend rejects a durable head
+// which skips over the version it currently stores.
+func SequentialGameVersionTest(factory StorageManagerFactory, connectConfig string, t *testing.T) {
+	storage := factory()
+	defer storage.Close()
+	defer storage.CleanUp()
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err)
+	}
+	manager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer manager.Internals().Close()
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	skipped := game.StorageRecord()
+	skipped.Version += 2
+	if err := storage.SaveGameAndCurrentState(skipped, game.CurrentState().StorageRecord(), nil); err == nil {
+		t.Fatal("save which skipped a game version unexpectedly succeeded")
+	}
+	stored, err := storage.Game(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Version != game.Version() {
+		t.Fatalf("skipped save changed durable head to %d; want %d", stored.Version, game.Version())
+	}
 }
 
 // ProposalFrontierTest verifies the durable marker contract shared by every

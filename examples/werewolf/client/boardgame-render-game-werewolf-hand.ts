@@ -1,5 +1,5 @@
 import { html, css } from 'lit';
-import { glyphForSlug, targetList } from '../../src/client.js';
+import { glyphForSlug, projectedPlayerChoices, viewPlayerProp } from '../../src/client.js';
 import { HandRenderer, registerHandRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
 
@@ -43,6 +43,10 @@ export class WerewolfHandView extends HandRenderer {
         background: #b71c1c;
         color: white;
       }
+      .role-unknown {
+        background: #455a64;
+        color: white;
+      }
       .fellow-wolves {
         text-align: center;
         font-size: 14px;
@@ -54,6 +58,11 @@ export class WerewolfHandView extends HandRenderer {
         font-size: 16px;
         margin: 12px 0;
         color: #90caf9;
+      }
+      boardgame-timer {
+        display: block;
+        max-width: 20rem;
+        margin: 0.75rem auto;
       }
       .vote-section {
         margin: 16px auto;
@@ -92,7 +101,6 @@ export class WerewolfHandView extends HandRenderer {
   override render() {
     const game = this.state?.Game;
     const player = this.playerState;
-    const allPlayers = this.state?.Players ?? [];
     const phase = game?.Phase ?? 'Gathering';
 
     if (!player || phase === 'Gathering') {
@@ -103,50 +111,36 @@ export class WerewolfHandView extends HandRenderer {
       `;
     }
 
-    const isWerewolf = player.Role === 'Werewolf';
+    const role = viewPlayerProp(this.state, this.viewingAsPlayer, 'Role');
+    const isWerewolf = role.known && role.value === 'Werewolf';
     const isEliminated = player.Eliminated;
-    const hasVoted = (phase === 'Night' ? player.NightVote : player.DayVote) >= 0;
-    const myIndex = this.viewingAs;
+    const vote = phase === 'Night'
+      ? viewPlayerProp(this.state, this.viewingAsPlayer, 'NightVote')
+      : viewPlayerProp(this.state, this.viewingAsPlayer, 'DayVote');
+    const hasVoted = vote.known && vote.value >= 0;
 
     // FellowWolves is computed server-side and visible only to this player.
     // Reading other players' sanitized Role values cannot reveal teammates.
     const fellowWolves = isWerewolf ? player.FellowWolves : [];
 
-    // Build list of alive, non-inactive players for voting. Label with the
-    // avatar + display name people picked in the join flow (falling back
-    // to "Player N" if the seat has no presentation) — voters know each
-    // other as "🦊 BrightFox", not as seat indexes.
+    // Keep game-owned avatar labels while using the server-projected candidate
+    // universe and its already-bound actions.
     const nameFor = (i: number): string => {
       const seat = this.seatPresentations.find((s) => s.playerIndex === i);
-      return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i}`;
+      return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i + 1}`;
     };
-    const voteIndexes: number[] = [];
-    allPlayers.forEach((p, i) => {
-      if (p.PlayerInactive || p.Eliminated) return;
-      // The server rejects self-votes in EVERY phase (moves.go: "you
-      // cannot vote for yourself") — offering yourself at night just
-      // produces a silently-failing tap.
-      if (i === myIndex) return;
-      voteIndexes.push(i);
-    });
-
-    // Determine the correct move name for this phase
-    const moveName = phase === 'Night' ? MoveNames.CastNightVote : MoveNames.CastVote;
-    const votes = moveName === MoveNames.CastNightVote
-      ? this.move(MoveNames.CastNightVote).targets(
-        voteIndexes, VoteTarget => ({ VoteTarget }),
-      )
-      : this.move(MoveNames.CastVote).targets(
-        voteIndexes, VoteTarget => ({ VoteTarget }),
-      );
+    const voteSet = phase === 'Night'
+      ? this.choices?.get(MoveNames.CastNightVote)
+      : this.choices?.get(MoveNames.CastVote);
+    const votes = voteSet ? projectedPlayerChoices(voteSet, nameFor) : null;
 
     return html`
       ${this.renderTopEdgeAnchor()}
       <h1>Werewolf</h1>
 
       <!-- Role banner -->
-      <div class="role-banner ${isWerewolf ? 'role-werewolf' : 'role-villager'}">
-        ${isWerewolf ? 'WEREWOLF' : 'VILLAGER'}
+      <div class="role-banner ${!role.known ? 'role-unknown' : isWerewolf ? 'role-werewolf' : 'role-villager'}">
+        ${!role.known ? 'ROLE UNKNOWN' : isWerewolf ? 'WEREWOLF' : 'VILLAGER'}
       </div>
 
       ${isWerewolf && fellowWolves.length > 0 ? html`
@@ -162,6 +156,10 @@ export class WerewolfHandView extends HandRenderer {
           ${phase === 'Day' ? `Day - Round ${(game?.RoundNumber ?? 0) + 1}` : ''}
           ${phase === 'Night' ? `Night - Round ${(game?.RoundNumber ?? 0) + 1}` : ''}
         </div>
+        <boardgame-timer
+          label="Voting ends in"
+          .timer=${game?.VoteTimer ?? null}>
+        </boardgame-timer>
 
         ${phase === 'Night' && !isWerewolf ? html`
           <div class="sleep-message">Sleep tight...</div>
@@ -169,12 +167,12 @@ export class WerewolfHandView extends HandRenderer {
           ${hasVoted ? html`
             <div class="voted-message">Vote cast. Waiting for others...</div>
           ` : html`
-            <div class="vote-section">
+            ${votes ? html`<div class="vote-section">
               <boardgame-target-list
                 .label=${phase === 'Day' ? 'Vote to eliminate' : 'Choose a target'}
-                .choices=${targetList(votes, nameFor)}>
+                .choices=${votes}>
               </boardgame-target-list>
-            </div>
+            </div>` : ''}
           `}
         `}
       `}

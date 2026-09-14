@@ -209,6 +209,180 @@ test('renderer host reserves the measured fixed tray height', async ({ page }) =
   }
 });
 
+test('native player choices consume fallback only while live for the exact snapshot', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    await page.evaluate(async () => {
+      await import('/src/components/boardgame-render-game.ts');
+      await import('/src/components/boardgame-target-list.ts');
+      const { createMoveAction, MoveSubmissionGate } = await import('/src/moves/action.ts');
+      const {
+        buildProjectedMoveChoices,
+        projectedPlayerChoices,
+      } = await import('/src/moves/projected-choices.ts');
+      let currentVersion = 5;
+      const service = {
+        currentClientSchemaFingerprint: () => 'input',
+        currentServerSchemaFingerprint: () => 'input',
+        currentTransport: () => ({ submit: async () => ({ kind: 'success' as const }) }),
+        currentPreviewTransport: () => null,
+        currentTargetPreviewTransport: () => null,
+        currentGate: () => new MoveSubmissionGate(),
+        nextRequestID: () => 'native-request',
+        validate: () => [],
+        serialize: (_move: string, input: Readonly<Record<string, unknown>>) => ({
+          TargetPlayer: String(input.TargetPlayer),
+        }),
+        actionCache: new Map(),
+      };
+      const makeChoices = (version: number) => buildProjectedMoveChoices({
+        wire: {
+          StateVersion: version,
+          MoveChoiceProjectionSchemaFingerprint: 'player-choices',
+          ProjectionSchemaVersion: 1,
+          Status: 'ready' as const,
+          Sets: [{
+            MoveName: 'Vote', FieldName: 'TargetPlayer', Source: 'players' as const,
+            Candidates: [{ Value: 0, Available: true }, { Value: 2, Available: true }],
+          }],
+        },
+        stateVersion: version,
+        schemaFingerprint: 'player-choices',
+        schema: [{
+          moveName: 'Vote', fieldName: 'TargetPlayer', source: 'players' as const,
+          disclosure: 'actor-exact' as const,
+        }],
+        playerPresentations: [
+          { playerIndex: 0, label: 'Ada' },
+          { playerIndex: 1, label: 'Inactive' },
+          { playerIndex: 2, label: 'Grace' },
+        ],
+        action: (_move: 'Vote', input: { TargetPlayer: number }) => {
+          const snapshot = {
+            snapshotKey: `v${version}`, currentSnapshotKey: () => `v${currentVersion}`,
+            snapshotVersion: version, currentSnapshotVersion: () => currentVersion,
+            viewingAsPlayer: 1, proposingAsPlayer: 1, proposingAsAdmin: false,
+            currentLegality: () => ({ legalForPlayer: true, legalForAnyone: true }),
+            currentAnimating: () => false, baselineLegalityApplies: true,
+          };
+          const builder = createMoveAction('Vote', service, snapshot) as ReturnType<typeof createMoveAction> & {
+            with(value: typeof input): unknown;
+          };
+          return builder.with(input) as never;
+        },
+      });
+
+      const host = document.createElement('boardgame-render-game') as HTMLElement & {
+        rendererLoaded: boolean;
+        gameFinished: boolean;
+        renderer: HTMLElement & { choices: unknown; effectTheme(): object };
+        requestUpdate(): void;
+        updateComplete: Promise<unknown>;
+        renderRoot: ShadowRoot;
+      };
+      host.gameFinished = true;
+      document.body.append(host);
+      await host.updateComplete;
+      const renderer = document.createElement('div') as HTMLDivElement & {
+        choices: unknown;
+        effectTheme(): object;
+      };
+      renderer.attachShadow({ mode: 'open' });
+      renderer.choices = makeChoices(5);
+      renderer.effectTheme = () => ({});
+      host.rendererLoaded = true;
+      host.renderer = renderer;
+      host.renderRoot.querySelector('#container')!.append(renderer);
+      host.requestUpdate();
+      await host.updateComplete;
+
+      const list = document.createElement('boardgame-target-list');
+      list.label = 'Vote to eliminate';
+      list.choices = projectedPlayerChoices(
+        (renderer.choices as ReturnType<typeof makeChoices>).get('Vote')!,
+      );
+      const wrapper = document.createElement('div');
+      wrapper.append(list);
+      renderer.shadowRoot!.append(wrapper);
+      await list.updateComplete;
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await host.updateComplete;
+      (globalThis as unknown as { __nativeChoiceFixture: object }).__nativeChoiceFixture = {
+        host, renderer, wrapper, list, makeChoices,
+        setVersion(version: number) { currentVersion = version; },
+      };
+    });
+
+    const host = page.locator('boardgame-render-game');
+    await expect(page.getByRole('button', { name: 'Ada' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Grace' })).toBeVisible();
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.style.visibility = 'hidden';
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(1);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.style.visibility = '';
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.setAttribute('aria-hidden', 'true');
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(1);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { wrapper: HTMLElement } }).__nativeChoiceFixture;
+      fixture.wrapper.removeAttribute('aria-hidden');
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: { list: HTMLElement } }).__nativeChoiceFixture;
+      fixture.list.hidden = true;
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(1);
+
+    await page.evaluate(async () => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: any }).__nativeChoiceFixture;
+      fixture.list.hidden = false;
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
+
+    await page.evaluate(async () => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: any }).__nativeChoiceFixture;
+      fixture.setVersion(6);
+      fixture.renderer.choices = fixture.makeChoices(6);
+      fixture.host.requestUpdate();
+      await fixture.host.updateComplete;
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(1);
+
+    await page.evaluate(async () => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: any }).__nativeChoiceFixture;
+      const { projectedPlayerChoices } = await import('/src/moves/projected-choices.ts');
+      fixture.list.choices = projectedPlayerChoices(fixture.renderer.choices.get('Vote'));
+      await fixture.list.updateComplete;
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      const fixture = (globalThis as unknown as { __nativeChoiceFixture: any }).__nativeChoiceFixture;
+      fixture.list.remove();
+    });
+    await expect(host.locator('boardgame-projected-choices fieldset')).toHaveCount(1);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('explicit and invalid projected-choice states remain visibly failed', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

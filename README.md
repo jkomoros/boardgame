@@ -8,6 +8,8 @@ boardgame is under active development as a hobby project and different component
 
 A comprehensive getting started guide, including a walkthrough of all of the important concepts in a real-world example, is in the [tutorial](https://github.com/jkomoros/boardgame/blob/master/TUTORIAL.md).
 
+For reusable choices, hidden-information reads, board collections, deadlines, and executable examples, see [composing game machinery](docs/game-authoring-patterns.md).
+
 ## Demo
 ![Demo showing automatic card and token animations](demo.gif)
 

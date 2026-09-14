@@ -467,3 +467,19 @@ func projectedMoveChoiceSourceValues(state boardgame.ImmutableState, actor board
 		return nil, fmt.Errorf("unsupported choice source %q", schema.Source)
 	}
 }
+
+// ProjectMoveChoicesForViewer exports the ordinary API projection for local
+// scenario/review tooling. It never reconciles or mutates a game: callers must
+// supply a settled head. Observer/admin viewers receive no actor-only choices.
+// The returned detached JSON uses the same bounded evaluator and wire contract
+// as /info, so fixtures do not invent a second legality implementation.
+func ProjectMoveChoicesForViewer(game *boardgame.Game, viewer boardgame.PlayerIndex) (json.RawMessage, error) {
+	if game == nil || !game.AtProposalFrontier() {
+		return nil, fmt.Errorf("projected choices require a settled game")
+	}
+	snapshot, err := projectMoveChoicesSnapshot(game, game.CurrentState(), viewer, viewer)
+	if err != nil || snapshot == nil {
+		return nil, err
+	}
+	return json.Marshal(snapshot)
+}

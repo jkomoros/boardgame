@@ -31,6 +31,8 @@ type autoStackConfig struct {
 	fixedSize bool
 	//If more than 0, then a board config.
 	boardSize int
+	//boardEnum identifies board spaces by enum key. Nil for positional boards.
+	boardEnum enum.Enum
 	//constraints parsed from struct tags (e.g. max(1)).
 	constraints []StackConstraint
 }
@@ -149,6 +151,15 @@ func newStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 		switch propType {
 		case TypeStack, TypeBoard:
+			var boardEnum enum.Enum
+			if propType == TypeBoard {
+				if enumName := structTagForField(exampleObj, propName, enumStructTag); enumName != "" {
+					boardEnum = chest.Enums().Enum(enumName)
+					if boardEnum == nil {
+						return nil, errors.New(propName + " board enum tag named " + enumName + " was not a valid enum")
+					}
+				}
+			}
 
 			if propType == TypeStack {
 				stack, err := exampleReader.ImmutableStackProp(propName)
@@ -166,6 +177,9 @@ func newStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 					return nil, errors.New("Couldn't fetch board prop: " + propName)
 				}
 				if board != nil {
+					if boardEnum != nil && board.Enum() != boardEnum {
+						return nil, errors.New(propName + " was already configured with a different or missing board enum")
+					}
 					//This board prop is already non-nil, so we don't need to do
 					//any processing to tell how to inflate it.
 					continue
@@ -204,6 +218,12 @@ func newStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 				if isFixed && boardSize > 0 {
 					return nil, errors.New("provided a board tag with a sizedstack, which is invalid")
 				}
+				if boardEnum != nil && boardSize == 0 {
+					return nil, errors.New(propName + " included an enum tag but no board tag")
+				}
+				if boardEnum != nil && len(boardEnum.Values()) != boardSize {
+					return nil, errors.New(propName + " board size " + strconv.Itoa(boardSize) + " did not match enum " + boardEnum.Name() + " cardinality " + strconv.Itoa(len(boardEnum.Values())))
+				}
 
 				if tag != "" {
 
@@ -220,11 +240,12 @@ func newStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 					}
 
 					autoStackFields[propName] = &autoStackConfig{
-						deck,
-						size,
-						isFixed,
-						boardSize,
-						stackConstraints,
+						deck:        deck,
+						size:        size,
+						fixedSize:   isFixed,
+						boardSize:   boardSize,
+						boardEnum:   boardEnum,
+						constraints: stackConstraints,
 					}
 				} else {
 					if boardSize > 0 {
@@ -528,7 +549,19 @@ func (s *StructInflater) Inflate(obj ReadSetConfigurer, st ImmutableState) error
 				return errors.New("The deck for " + propName + " was unexpectedly nil")
 			}
 
-			board = config.deck.NewBoard(config.boardSize, config.size)
+			if config.boardEnum != nil {
+				board = config.deck.NewBoardForEnum(config.boardEnum, config.size)
+			} else {
+				board = config.deck.NewBoard(config.boardSize, config.size)
+			}
+
+			for _, space := range board.Spaces() {
+				for _, c := range config.constraints {
+					if err := space.AddConstraint(c); err != nil {
+						return errors.New("Couldn't add constraint to " + propName + " board space: " + err.Error())
+					}
+				}
+			}
 
 			if err := readSetConfigurer.ConfigureBoardProp(propName, board); err != nil {
 				return errors.New("Couldn't set " + propName + " to board: " + err.Error())

@@ -29,10 +29,10 @@ type StorageManager struct {
 	chatMessages map[string][]*boardgame.ChatMessage // keyed by gameID
 	chatCounter  map[string]int                      // per-game message counter for IDs
 
-	statesLock sync.RWMutex
-	movesLock  sync.RWMutex
-	gamesLock  sync.RWMutex
-	chatLock   sync.RWMutex
+	// coreLock protects games, states, and moves together. Those records form a
+	// single durable commit and must never be observed or changed piecemeal.
+	coreLock sync.RWMutex
+	chatLock sync.RWMutex
 
 	*helpers.ExtendedMemoryStorageManager
 }
@@ -67,24 +67,20 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 		return nil, errors.New("Invalid version")
 	}
 
-	s.statesLock.RLock()
-
+	s.coreLock.RLock()
+	defer s.coreLock.RUnlock()
 	versionMap, ok := s.states[gameID]
-
-	s.statesLock.RUnlock()
 
 	if !ok {
 		return nil, errors.New("No such game")
 	}
-	s.statesLock.RLock()
 	record, ok := versionMap[version]
-	s.statesLock.RUnlock()
 
 	if !ok {
 		return nil, errors.New("No such version for that game")
 	}
 
-	return record, nil
+	return append(boardgame.StateStorageRecord(nil), record...), nil
 
 }
 
@@ -103,46 +99,42 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 		return nil, errors.New("Invalid version")
 	}
 
-	s.movesLock.RLock()
-
+	s.coreLock.RLock()
+	defer s.coreLock.RUnlock()
 	versionMap, ok := s.moves[gameID]
-
-	s.movesLock.RUnlock()
 
 	if !ok {
 		return nil, errors.New("No such game")
 	}
-	s.movesLock.RLock()
 	record, ok := versionMap[version]
-	s.movesLock.RUnlock()
 
 	if !ok {
 		return nil, errors.New("No such version for that game")
 	}
 
-	return record, nil
+	return cloneMoveStorageRecord(record), nil
 
 }
 
 // Game implements that part of the core storage interface
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
-	s.gamesLock.RLock()
+	s.coreLock.RLock()
+	defer s.coreLock.RUnlock()
 	record := s.games[id]
-	s.gamesLock.RUnlock()
 
 	if record == nil {
 		return nil, errors.New("No such game")
 	}
 
-	return record, nil
+	return cloneGameStorageRecord(record), nil
 }
 
 // SaveProposalFrontier atomically updates proposal-boundary evidence only when
 // the caller's state version is still the durable head.
 func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
-	s.gamesLock.Lock()
-	defer s.gamesLock.Unlock()
+	s.coreLock.Lock()
+	defer s.coreLock.Unlock()
 	record := s.games[gameID]
 	if record == nil {
 		return errors.New("No such game")
@@ -161,59 +153,44 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("No game provided")
 	}
 
-	s.statesLock.RLock()
-	_, ok := s.states[game.ID]
-	s.statesLock.RUnlock()
-	if !ok {
-		s.statesLock.Lock()
-		s.states[game.ID] = make(map[int]boardgame.StateStorageRecord)
-		s.statesLock.Unlock()
-	}
-
-	s.movesLock.RLock()
-	_, ok = s.moves[game.ID]
-	s.movesLock.RUnlock()
-	if !ok {
-		s.movesLock.Lock()
-		s.moves[game.ID] = make(map[int]*boardgame.MoveStorageRecord)
-		s.movesLock.Unlock()
+	s.coreLock.Lock()
+	defer s.coreLock.Unlock()
+	if current := s.games[game.ID]; current != nil && game.Version != current.Version+1 {
+		return errors.New("Game save was not the next version")
 	}
 
 	version := game.Version
-
-	s.statesLock.RLock()
 	versionMap := s.states[game.ID]
-	_, ok = versionMap[version]
-	s.statesLock.RUnlock()
-
-	if ok {
-		//Wait, there was already a version stored there?
-		return errors.New("There was already a version for that game stored")
+	if versionMap != nil {
+		if _, ok := versionMap[version]; ok {
+			//Wait, there was already a version stored there?
+			return errors.New("There was already a version for that game stored")
+		}
 	}
 
-	s.movesLock.RLock()
 	moveMap := s.moves[game.ID]
-	_, ok = moveMap[version]
-	s.movesLock.RUnlock()
-
-	if ok {
-		//Wait, there was already a version stored there?
-		return errors.New("There was already a version for that game stored")
+	if moveMap != nil {
+		if _, ok := moveMap[version]; ok {
+			//Wait, there was already a version stored there?
+			return errors.New("There was already a version for that game stored")
+		}
 	}
 
-	s.statesLock.Lock()
-	versionMap[version] = state
-	s.statesLock.Unlock()
-
-	s.movesLock.Lock()
+	// Allocate only after every validation succeeds, so a failed save leaves no
+	// partial per-game maps behind either.
+	if versionMap == nil {
+		versionMap = make(map[int]boardgame.StateStorageRecord)
+		s.states[game.ID] = versionMap
+	}
+	if moveMap == nil {
+		moveMap = make(map[int]*boardgame.MoveStorageRecord)
+		s.moves[game.ID] = moveMap
+	}
+	versionMap[version] = append(boardgame.StateStorageRecord(nil), state...)
 	if move != nil {
-		moveMap[version] = move
+		moveMap[version] = cloneMoveStorageRecord(move)
 	}
-	s.movesLock.Unlock()
-
-	s.gamesLock.Lock()
-	s.games[game.ID] = game
-	s.gamesLock.Unlock()
+	s.games[game.ID] = cloneGameStorageRecord(game)
 
 	return nil
 }
@@ -222,13 +199,43 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	var result []*boardgame.GameStorageRecord
 
-	s.gamesLock.RLock()
+	s.coreLock.RLock()
+	defer s.coreLock.RUnlock()
 	for _, game := range s.games {
-		result = append(result, game)
+		result = append(result, cloneGameStorageRecord(game))
 	}
-	s.gamesLock.RUnlock()
 
 	return result
+}
+
+func cloneGameStorageRecord(record *boardgame.GameStorageRecord) *boardgame.GameStorageRecord {
+	if record == nil {
+		return nil
+	}
+	result := *record
+	result.Winners = append([]boardgame.PlayerIndex(nil), record.Winners...)
+	result.Agents = append([]string(nil), record.Agents...)
+	if record.Variant != nil {
+		result.Variant = make(boardgame.Variant, len(record.Variant))
+		for key, value := range record.Variant {
+			result.Variant[key] = value
+		}
+	}
+	return &result
+}
+
+func cloneMoveStorageRecord(record *boardgame.MoveStorageRecord) *boardgame.MoveStorageRecord {
+	if record == nil {
+		return nil
+	}
+	result := *record
+	result.Blob = append([]byte(nil), record.Blob...)
+	return &result
+}
+
+// TimerWakeups discovers active durable timers without inflating games.
+func (s *StorageManager) TimerWakeups(gameName string) ([]boardgame.TimerWakeup, error) {
+	return helpers.TimerWakeupsHelper(s, gameName)
 }
 
 // ListGames will return game objects for up to max number of games

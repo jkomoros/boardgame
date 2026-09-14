@@ -169,6 +169,25 @@ func (t *testStorageManager) SaveProposalFrontier(gameID string, stateVersion, f
 	return nil
 }
 
+func (t *testStorageManager) TimerWakeups(gameName string) ([]TimerWakeup, error) {
+	var result []TimerWakeup
+	for _, game := range t.games {
+		if game == nil || game.Name != gameName || game.Finished {
+			continue
+		}
+		state, err := t.State(game.ID, game.Version)
+		if err != nil {
+			return nil, err
+		}
+		wakeups, err := TimerWakeupsFromStateStorage(game.ID, state)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, wakeups...)
+	}
+	return result, nil
+}
+
 type conditionalFrontierStorage struct {
 	StorageManager
 	available bool
@@ -193,6 +212,15 @@ func TestSupportsProposalFrontierStorageHonorsWrappers(t *testing.T) {
 	}
 	if !SupportsProposalFrontierStorage(&conditionalFrontierStorage{available: true}) {
 		t.Fatal("wrapper hid available frontier storage")
+	}
+}
+
+func TestSupportsTimerWakeupStorage(t *testing.T) {
+	if !SupportsTimerWakeupStorage(newTestStorageManager()) {
+		t.Fatal("direct timer wakeup storage was not detected")
+	}
+	if SupportsTimerWakeupStorage(&availabilityOnlyStorage{}) {
+		t.Fatal("availability marker without timer wakeup storage was accepted")
 	}
 }
 

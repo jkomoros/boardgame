@@ -44,7 +44,19 @@ func (m *MoveStorageRecord) inflate(game *Game) (Move, error) {
 		return nil, errors.New("Game was nil")
 	}
 
-	move := game.MoveByName(m.Name)
+	return m.inflateForState(game, game.CurrentState())
+}
+
+// inflateForState restores a move using defaults from the supplied state.
+// Callers that already hold the relevant snapshot can avoid reloading the
+// current state from storage.
+func (m *MoveStorageRecord) inflateForState(game *Game, state ImmutableState) (Move, error) {
+
+	if game == nil {
+		return nil, errors.New("Game was nil")
+	}
+
+	move := game.MoveByNameForState(m.Name, state)
 
 	if move == nil {
 		return nil, errors.New("Couldn't find a move with name: " + m.Name)

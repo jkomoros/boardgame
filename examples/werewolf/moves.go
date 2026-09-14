@@ -2,12 +2,15 @@ package werewolf
 
 import (
 	"errors"
+	"time"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
+
+const voteDuration = 45 * time.Second
 
 // moveBeginGame transitions gathering → day AND assigns roles. Role
 // assignment must happen here — not in FinishSetUp — because games with
@@ -75,6 +78,23 @@ func (m *moveBeginGame) Apply(state boardgame.State) error {
 
 	populateFellowWolves(players)
 
+	return startVoteTimer(state)
+}
+
+func startVoteTimer(state boardgame.State) error {
+	if !timedVotingEnabled(state) {
+		return nil
+	}
+	game, _ := concreteStates(state)
+	moveName := "Resolve Day Votes on Timeout"
+	if game.Phase.Value() == phaseNight {
+		moveName = "Resolve Night Votes on Timeout"
+	}
+	completion := state.Game().MoveByNameForState(moveName, state)
+	if completion == nil {
+		return errors.New("timed vote resolver was not configured")
+	}
+	game.VoteTimer.Start(voteDuration, completion)
 	return nil
 }
 
@@ -265,7 +285,6 @@ func (m *moveResolveVotes) Legal(state boardgame.ImmutableState, proposer boardg
 	if phase != phaseDay && phase != phaseNight {
 		return errors.New("not in a voting phase")
 	}
-
 	// Check that all eligible voters have voted
 	for _, p := range players {
 		if behaviors.PlayerIsInactive(p) {
@@ -287,6 +306,48 @@ func (m *moveResolveVotes) Legal(state boardgame.ImmutableState, proposer boardg
 }
 
 func (m *moveResolveVotes) Apply(state boardgame.State) error {
+	return finishVoteResolution(state)
+}
+
+// moveResolveVotesOnTimeout deliberately has a distinct move identity but no
+// author input. Embedding the ordinary resolver reuses its generated property
+// plumbing while Legal keeps the partial-vote path exclusive to the timer's
+// AdminPlayerIndex proposal.
+type moveResolveVotesOnTimeout struct {
+	moveResolveVotes
+}
+
+func (m *moveResolveVotesOnTimeout) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
+		return err
+	}
+	if proposer != boardgame.AdminPlayerIndex {
+		return errors.New("only the timer may resolve incomplete votes")
+	}
+	game, _ := concreteStates(state)
+	if !timedVotingEnabled(state) || !game.VoteTimer.Active() {
+		return errors.New("timed vote resolution is not active")
+	}
+	return nil
+}
+
+func (m *moveResolveVotesOnTimeout) Apply(state boardgame.State) error {
+	return finishVoteResolution(state)
+}
+
+func finishVoteResolution(state boardgame.State) error {
+	game, _ := concreteStates(state)
+	game.VoteTimer.Cancel()
+	if err := resolveVotes(state); err != nil {
+		return err
+	}
+	if finished, _ := state.Manager().Delegate().CheckGameFinished(state); finished {
+		return nil
+	}
+	return startVoteTimer(state)
+}
+
+func resolveVotes(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	phase := game.Phase.Value()

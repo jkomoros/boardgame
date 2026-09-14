@@ -220,7 +220,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 		return nil, err
 	}
 
-	return boardgame.StateStorageRecord(result), nil
+	return append(boardgame.StateStorageRecord(nil), result...), nil
 
 }
 
@@ -232,7 +232,13 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 		return nil, err
 	}
 
-	return rec.Move(version)
+	result, err := rec.Move(version)
+	if err != nil {
+		return nil, err
+	}
+	copy := *result
+	copy.Blob = append([]byte(nil), result.Blob...)
+	return &copy, nil
 }
 
 // Moves returns all of the moves
@@ -249,7 +255,11 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 		return nil, err
 	}
 
-	return rec.Game(), nil
+	clone, err := rec.Clone()
+	if err != nil {
+		return nil, err
+	}
+	return clone.Game(), nil
 }
 
 // SaveGameAndCurrentState saves the game and current state.
@@ -266,13 +276,28 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		} else {
 			rec = &record.Record{}
 		}
+	} else {
+		current := rec.Game()
+		if current == nil {
+			return errors.New("Stored game record was nil")
+		}
+		if game.Version != current.Version+1 {
+			return errors.New("Game save was not the next version")
+		}
+		rec, err = rec.Clone()
+		if err != nil {
+			return errors.New("Couldn't stage record: " + err.Error())
+		}
 	}
 
 	if err := rec.AddGameAndCurrentState(game, state, move); err != nil {
 		return errors.New("Couldn't add state: " + err.Error())
 	}
 
-	return s.saveRecordForID(game.ID, rec)
+	if err := s.saveRecordForID(game.ID, rec); err != nil {
+		return err
+	}
+	return nil
 
 }
 
@@ -287,6 +312,10 @@ func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, front
 	if err != nil {
 		return err
 	}
+	rec, err = rec.Clone()
+	if err != nil {
+		return errors.New("Couldn't stage record: " + err.Error())
+	}
 	game := rec.Game()
 	if game == nil {
 		return errors.New("Game record was nil")
@@ -296,7 +325,10 @@ func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, front
 	}
 	game.ProposalFrontierKnown = frontierVersion >= 0
 	game.ProposalFrontierVersion = frontierVersion
-	return s.saveRecordForID(gameID, rec)
+	if err := s.saveRecordForID(gameID, rec); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CombinedGame returns the combined game
@@ -356,6 +388,11 @@ func (s *StorageManager) recursiveAllGames(basePath string) []*boardgame.GameSto
 // AllGames returns all games
 func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	return s.recursiveAllGames(s.basePath)
+}
+
+// TimerWakeups discovers active durable timers without inflating games.
+func (s *StorageManager) TimerWakeups(gameName string) ([]boardgame.TimerWakeup, error) {
+	return helpers.TimerWakeupsHelper(s, gameName)
 }
 
 // ListGames returns all of the games

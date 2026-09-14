@@ -436,6 +436,8 @@ The last type of property in the states for Memory is the HideCardsTimer, which 
 
 Timers are rare because they represent parts of the game logic where the time is semantic to the rules of the game. In memory, for example, if players could leave revealed cards showing indefinitely the game would drag on as players competed to exhaustively commit the location of each card to their memory. Contrast that with animations, where the time that passes is merely presentational, to allow the state changes to be visibly demonstrated to players.
 
+Call `Start` and `Cancel` from a move's `Apply` method. The engine resolves a new timer's duration at the state save boundary, then persists its absolute deadline, generation, and serialized completion move in the same commit as the state change. If the move is rejected or storage fails, its timer changes have no effect. The server discovers active timers after storage connects without keeping every game resident; when a timer becomes due, it loads only that game. An overdue timer is eligible immediately, including after a process restart or idle eviction. A non-server host can invoke `manager.Internals().RestoreTimers()` after connecting storage and before that manager creates, loads, or modifies games; restore is deliberately startup-only and fails without replacing already scheduled work. Timer completions carry the persisted generation, so a duplicate completion or one queued before a later cancel/restart is rejected inside the game's serialized move loop. Finished games discard pending wakeups even if their last state still contains an active timer. These lifecycle details are storage-only: player-facing state keeps the existing `{ID, IsTimer}` reference and the separate `ActiveTimers` countdown payload.
+
 ### GameDelegate
 
 OK, so we've defined our state objects. How do we tell the engine to actually use them?
@@ -3090,6 +3092,29 @@ blank labels, invalid heading levels, and unknown layouts fail loudly. For rich
 game-specific rows such as a card name plus rule text, render
 `target.candidates` directly and bind each candidate's `.action`; the headless
 `TargetAction` deliberately has no layout assumptions.
+
+Generated single-field projections can move those same exact actions into the
+board instead of duplicating their candidate universe. A stack-slot projection
+uses the rendered stack's full slot array, so sparse indexes remain aligned:
+
+```typescript
+const chooseCard = this.choices?.get(MoveNames.ChooseCard) ?? null;
+const cardChoices = chooseCard ? projectedStackChoices(chooseCard, player.Hand) : null;
+
+return html`<boardgame-component-zone
+  label="Your hand"
+  .stack=${player.Hand}
+  .componentView=${this.cards}
+  .projectedChoices=${cardChoices}>
+</boardgame-component-zone>`;
+```
+
+For a projected player-index set, pass `projectedPlayerChoices(set, labelFor)`
+to `boardgame-target-list`. Both adapters reuse each candidate's existing
+snapshot-bound action. The generic projected-choice tray hides a set only while
+the adapter is connected, visible, current, and renders at least one usable
+control; it returns automatically for an empty, hidden, disconnected, or stale
+native region.
 
 For a source-then-destination board (checkers, chess, tactical movement), add a
 single Lit reactive controller. It resets selection automatically when the

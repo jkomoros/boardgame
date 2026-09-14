@@ -12,3 +12,9 @@ func TestStorageManager(t *testing.T) {
 	}, "bolt", "", t)
 
 }
+
+func TestSequentialGameVersion(t *testing.T) {
+	test.SequentialGameVersionTest(func() test.StorageManager {
+		return NewStorageManager(".testdb")
+	}, "", t)
+}

@@ -90,8 +90,8 @@ func (m *moveRevealCard) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-// VisibleCards==2 is declarative. Timer state and component-value comparison
-// remain in LegalCustom because neither is a persisted path relation.
+// VisibleCards==2 and the static Type mismatch are declarative. Only the
+// timer's runtime state remains in LegalCustom.
 //
 //boardgame:codegen
 type moveStartHideCardsTimer struct {
@@ -103,21 +103,6 @@ func (m *moveStartHideCardsTimer) LegalCustom(state boardgame.ImmutableState, pr
 
 	if game.HideCardsTimer.Active() {
 		return errors.New("the timer is already active")
-	}
-
-	var revealedCards []boardgame.Component
-
-	for _, c := range game.VisibleCards.Components() {
-		if c != nil {
-			revealedCards = append(revealedCards, c)
-		}
-	}
-
-	cardOneType := revealedCards[0].Values().(*cardValue).Type
-	cardTwoType := revealedCards[1].Values().(*cardValue).Type
-
-	if cardOneType == cardTwoType {
-		return errors.New("The two revealed cards are of the same type")
 	}
 
 	return nil
@@ -139,33 +124,11 @@ func (m *moveStartHideCardsTimer) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-// VisibleCards==2 is declarative; the component-value comparison remains in
-// LegalCustom because component Values are outside the path grammar.
+// VisibleCards==2 and the two static Type values matching are declarative.
 //
 //boardgame:codegen
 type moveCaptureCards struct {
 	moves.FixUp
-}
-
-func (m *moveCaptureCards) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	game, _ := concreteStates(state)
-
-	var revealedCards []boardgame.Component
-
-	for _, c := range game.VisibleCards.Components() {
-		if c != nil {
-			revealedCards = append(revealedCards, c)
-		}
-	}
-
-	cardOneType := revealedCards[0].Values().(*cardValue).Type
-	cardTwoType := revealedCards[1].Values().(*cardValue).Type
-
-	if cardOneType != cardTwoType {
-		return errors.New("The two revealed cards are not of the same type")
-	}
-
-	return nil
 }
 
 func (m *moveCaptureCards) Apply(state boardgame.State) error {

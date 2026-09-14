@@ -12,6 +12,9 @@ const board = document.createElement('boardgame-game-board');
 board.rows = 2;
 board.cols = 2;
 board.placementDraft = placement;
+board.stacks = [];
+board.componentViews = [null];
+board.labelFor = ({ occupant, occupants }) => `${String(occupant)} of ${occupants.length}`;
 
 // @ts-expect-error a plain target list cannot bypass the placement controller
 board.placementDraft = [0, 1, 2, 3];

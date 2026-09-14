@@ -28,10 +28,24 @@ export interface CastVoteWire {
   readonly VoteTarget: string;
 }
 
+export type ResolveDayVotesOnTimeoutInput = Record<string, never>;
+
+export type ResolveDayVotesOnTimeoutResolved = Record<string, never>;
+
+export type ResolveDayVotesOnTimeoutWire = Record<string, never>;
+
+export type ResolveNightVotesOnTimeoutInput = Record<string, never>;
+
+export type ResolveNightVotesOnTimeoutResolved = Record<string, never>;
+
+export type ResolveNightVotesOnTimeoutWire = Record<string, never>;
+
 /** Maps move names to creator-facing native inputs. */
 export type MoveInputs = {
   "Cast Night Vote": CastNightVoteInput;
   "Cast Vote": CastVoteInput;
+  "Resolve Day Votes on Timeout": ResolveDayVotesOnTimeoutInput;
+  "Resolve Night Votes on Timeout": ResolveNightVotesOnTimeoutInput;
 };
 
 /** @deprecated Use MoveInputs. */
@@ -40,11 +54,15 @@ export type MoveArgs = MoveInputs;
 export type ResolvedMoveInputs = {
   "Cast Night Vote": CastNightVoteResolved;
   "Cast Vote": CastVoteResolved;
+  "Resolve Day Votes on Timeout": ResolveDayVotesOnTimeoutResolved;
+  "Resolve Night Votes on Timeout": ResolveNightVotesOnTimeoutResolved;
 };
 
 export type MoveWireInputs = {
   "Cast Night Vote": CastNightVoteWire;
   "Cast Vote": CastVoteWire;
+  "Resolve Day Votes on Timeout": ResolveDayVotesOnTimeoutWire;
+  "Resolve Night Votes on Timeout": ResolveNightVotesOnTimeoutWire;
 };
 
 /** Exact finite choice projections keyed by move name. */
@@ -95,10 +113,18 @@ export const moveInputSchema = [
         "codec": "player-index"
       }
     ]
+  },
+  {
+    "name": "Resolve Day Votes on Timeout",
+    "fields": null
+  },
+  {
+    "name": "Resolve Night Votes on Timeout",
+    "fields": null
   }
 ] as const;
 
-export const moveInputSchemaFingerprint = "sha256:fe90abd22e1ff339ef23f29e7f4a60f0bda0c110187c89206ef1fc6ae375e583";
+export const moveInputSchemaFingerprint = "sha256:673a642c1f281b46fd84576f285ac3942108c798387b9ca09848e3e51240d749";
 
 export const moveChoiceProjectionSchema = [
   {

@@ -659,6 +659,7 @@ type state struct {
 	mutableDynamicComponentValues map[string][]SubState
 	secretMoveCount               map[string][]int
 	sanitized                     bool
+	visibility                    *StateVisibility
 	version                       int
 	game                          *Game
 	manager                       *GameManager
@@ -678,11 +679,6 @@ type state struct {
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
 	calculatingComputed bool
-	//If TimerProp.Start() is called, it prepares a timer, but doesn't
-	//actually start ticking it until this state is committed. This is where
-	//we accumulate the timers that still need to be fully started at that
-	//point.
-	timersToStart []string
 	//callbacks that have been installed by AddCommittedCallback()
 	pendingCallbacks []func()
 }
@@ -951,7 +947,10 @@ func (s *state) copy(sanitized bool) (*state, error) {
 	}
 
 	result.secretMoveCount = moveCounts
-	result.sanitized = sanitized
+	result.sanitized = sanitized || s.sanitized
+	if result.sanitized {
+		result.visibility = s.visibility
+	}
 	result.version = s.version
 	result.game = s.game
 	//We copy this over, because this should only be set when computed is
@@ -1179,9 +1178,7 @@ func validateReaderBeforeSave(reader PropertyReader, name string, state State) e
 // triggered during the state manipulation. currently that is timers and
 // committed callbacks.
 func (s *state) committed() {
-	for _, id := range s.timersToStart {
-		s.game.manager.timers.StartTimer(id)
-	}
+	s.game.manager.timers.ReconcileState(s)
 	for _, callback := range s.pendingCallbacks {
 		callback()
 	}
@@ -1189,18 +1186,35 @@ func (s *state) committed() {
 }
 
 func (s *state) StorageRecord() StateStorageRecord {
-	record, _ := s.customMarshalJSON(false, true)
+	record, _ := s.customMarshalJSON(stateJSONOptions{Indent: true, Timers: true})
 	return record
 }
 
-func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, error) {
+type stateJSONOptions struct {
+	Computed   bool
+	Indent     bool
+	Visibility bool
+	Timers     bool
+}
+
+func (s *state) customMarshalJSON(options stateJSONOptions) ([]byte, error) {
 	obj := map[string]interface{}{
 		"Game":    s.gameState,
 		"Players": s.playerStates,
 	}
 
-	if includeComputed {
+	if options.Computed {
 		obj["Computed"] = s.computed()
+	}
+	if options.Visibility {
+		if s.sanitized {
+			obj["Visibility"] = s.visibility
+		} else {
+			obj["Visibility"] = s.visibleFacets(nil)
+		}
+	}
+	if options.Timers {
+		obj["Timers"] = timerStorageRecords(s)
 	}
 
 	//We emit the secretMoveCount only when the state isn't sanitized. Any
@@ -1221,7 +1235,7 @@ func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, er
 		obj["Components"] = map[string]interface{}{}
 	}
 
-	if indent {
+	if options.Indent {
 		return DefaultMarshalJSON(obj)
 	}
 
@@ -1230,7 +1244,7 @@ func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, er
 }
 
 func (s *state) MarshalJSON() ([]byte, error) {
-	return s.customMarshalJSON(true, false)
+	return s.customMarshalJSON(stateJSONOptions{Computed: true})
 }
 
 func (s *state) Diagram() string {

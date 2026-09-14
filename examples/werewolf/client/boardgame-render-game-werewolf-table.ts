@@ -45,6 +45,11 @@ export class WerewolfTableView extends TableRenderer {
         background: #455a64;
         color: #e0e0e0;
       }
+      boardgame-timer {
+        display: block;
+        max-width: 20rem;
+        margin: 0.75rem auto;
+      }
       .players-circle {
         display: flex;
         flex-wrap: wrap;
@@ -156,6 +161,10 @@ export class WerewolfTableView extends TableRenderer {
       <div class="phase-banner ${phaseClass}">
         ${phase === 'Gathering' ? 'Waiting for players...' : `${phase} - Round ${round}`}
       </div>
+      <boardgame-timer
+        label="Voting ends in"
+        .timer=${game?.VoteTimer ?? null}>
+      </boardgame-timer>
 
       ${phase === 'Night' && !this.gameFinished ? html`
         <div class="night-message">Night time -- werewolves are choosing...</div>

@@ -310,6 +310,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	revealCardConfig := auto.MustConfig(
 		new(moveRevealCard),
+		moves.WithChoices("CardIndex", moves.FromGameStack("HiddenCards")),
 		moves.WithHelpText("Reveals the card at the specified location"),
 		// Reveal Card IS moves.MoveComponentToSlot -- "move the card the
 		// player named out of HiddenCards and into the mirrored slot of
@@ -387,6 +388,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
 			moves.WithLegalPreconditions(
 				legal.StackCount("game.VisibleCards", legal.OpEqual, 2).WithMessage("memory.two_cards_required"),
+				legal.ComponentPropsEqual(legal.FirstOccupied("game.VisibleCards"), legal.OccupiedOrdinal("game.VisibleCards", 1), "Type").WithMessage("memory.cards_must_match"),
 			),
 		),
 		auto.MustConfig(
@@ -394,6 +396,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
 			moves.WithLegalPreconditions(
 				legal.StackCount("game.VisibleCards", legal.OpEqual, 2).WithMessage("memory.two_cards_required"),
+				legal.ComponentPropsNotEqual(legal.FirstOccupied("game.VisibleCards"), legal.OccupiedOrdinal("game.VisibleCards", 1), "Type").WithMessage("memory.cards_must_differ"),
 			),
 		),
 	)
@@ -421,6 +424,8 @@ func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 		"hide.cards_still_to_reveal": "You still have to reveal more cards before your turn is over",
 		"hide.no_cards_to_hide":      "no cards left to hide",
 		"memory.two_cards_required":  "there aren't two cards showing",
+		"memory.cards_must_match":    "The two revealed cards are not of the same type",
+		"memory.cards_must_differ":   "The two revealed cards are of the same type",
 	}
 }
 
