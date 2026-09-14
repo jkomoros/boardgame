@@ -55,6 +55,7 @@ type MoveLegality = api.ViewerMoveLegality
 // MoveLegality describes default-bound moves, as the ordinary /info tray does;
 // it is not a claim that every possible argument to that move is legal.
 type ViewerSnapshot struct {
+	ZeroInputMoves       []string                `json:"zeroInputMoves"`
 	Viewer               boardgame.PlayerIndex   `json:"viewer"`
 	Game                 json.RawMessage         `json:"game"`
 	MoveLegality         map[string]MoveLegality `json:"moveLegality"`
@@ -161,8 +162,15 @@ func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec)
 		Name: delegate.Name(), ID: strings.ToUpper(hex.EncodeToString(id[:8])),
 		SecretSalt: hex.EncodeToString(salt[:]), NumPlayers: spec.Players, Variant: spec.Variant,
 	})
-	history, _ := storage.RecordForID(strings.ToUpper(hex.EncodeToString(id[:8])))
-	result := &Result{History: history, Replay: Replay{SchemaVersion: 1, Name: spec.Name, GameName: delegate.Name()}}
+	result := &Result{Replay: Replay{SchemaVersion: 1, Name: spec.Name, GameName: delegate.Name()}}
+	defer func() {
+		// Storage may publish a new immutable record after each successful save.
+		// Fetch the final committed prefix even when a later script step fails.
+		result.History, _ = storage.RecordForID(strings.ToUpper(hex.EncodeToString(id[:8])))
+		if result.History != nil {
+			result.History.SetDescription(spec.Name)
+		}
+	}()
 	if err != nil {
 		return result, fmt.Errorf("scenario setup: %w", err)
 	}
@@ -182,19 +190,34 @@ func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec)
 			return result, fmt.Errorf("viewer %d must be observer or a configured player", viewer)
 		}
 	}
+	schema, err := boardgame.BuildMoveInputSchema(manager)
+	if err != nil {
+		return result, err
+	}
 	capture := func(label string) error {
 		if !game.AtProposalFrontier() {
 			return fmt.Errorf("version %d is not a settled decision boundary", game.Version())
 		}
 		frame := Frame{Label: label, Version: game.Version()}
+		state := game.State(frame.Version)
+		if state == nil || state.Version() != frame.Version {
+			return fmt.Errorf("scenario state version is unavailable")
+		}
 		for _, viewer := range spec.Viewers {
-			view, err := game.JSONForPlayer(viewer, nil)
+			view, err := game.JSONForPlayer(viewer, state)
 			if err != nil {
 				return err
 			}
 			blob, err := json.Marshal(view)
 			if err != nil {
 				return err
+			}
+			var wireVersion struct{ Version int }
+			if err := json.Unmarshal(blob, &wireVersion); err != nil {
+				return err
+			}
+			if wireVersion.Version != frame.Version {
+				return fmt.Errorf("viewer %d snapshot spans different state versions", viewer)
 			}
 			legality, err := api.MoveLegalityForViewer(game, viewer)
 			if err != nil {
@@ -204,7 +227,22 @@ func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec)
 			if err != nil {
 				return err
 			}
-			frame.Viewers = append(frame.Viewers, ViewerSnapshot{Viewer: viewer, Game: blob, MoveLegality: legality, ProjectedMoveChoices: choices})
+			zeroInputMoves := []string{}
+			for _, move := range schema {
+				if _, visible := legality[move.Name]; !visible {
+					continue
+				}
+				hasInput := false
+				for _, field := range move.Fields {
+					if field.Disposition == string(boardgame.MoveInputRequired) || field.Disposition == string(boardgame.MoveInputUnsupported) {
+						hasInput = true
+					}
+				}
+				if !hasInput {
+					zeroInputMoves = append(zeroInputMoves, move.Name)
+				}
+			}
+			frame.Viewers = append(frame.Viewers, ViewerSnapshot{ZeroInputMoves: zeroInputMoves, Viewer: viewer, Game: blob, MoveLegality: legality, ProjectedMoveChoices: choices})
 		}
 		result.Replay.Frames = append(result.Replay.Frames, frame)
 		return nil
@@ -260,7 +298,6 @@ func RunContext(ctx context.Context, delegate boardgame.GameDelegate, spec Spec)
 			return result, fmt.Errorf("step %d capture: %w", i+1, err)
 		}
 	}
-	result.History.SetDescription(spec.Name)
 	return result, nil
 }
 

@@ -68,7 +68,7 @@ See [observation bots](observation-bots.md) for the capability boundary and pilo
 
 Replays include the API's actor-only candidate projections and default move-tray
 legality, using the same visibility filtering as live `/info`. Recorded controls
-use exact candidate inputs; inputs without recorded evidence stay disabled.
+use exact candidate inputs and explicit evidence for moves needing no input; inputs without recorded evidence stay disabled.
 Declare an ordinary bounded choice with `moves.WithChoices` to make it available
 both to native controls and replay previews. Handcrafted renderer fixtures retain
 their explicit simulated preview behavior.

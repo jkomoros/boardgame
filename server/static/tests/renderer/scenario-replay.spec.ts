@@ -45,3 +45,38 @@ test('timed Werewolf replay exposes native votes and the partial-vote deadline',
   await expect(page.getByText(/Sleep tight/)).toBeVisible();
   expect(failures).toEqual([]);
 });
+
+test('recorded transports reject stale actors and inputs without exact legal evidence', async ({ page }) => {
+  await page.goto('/scenario-review.html');
+  await expect(page.locator('body')).toHaveAttribute('data-frame', '0');
+  const result = await page.evaluate(async () => {
+    const { scenarioFixtureSnapshot } = await import('/src/testing/scenario-fixture.ts');
+    const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+    const replay = await (await fetch('/game-src/memory/scenario-replay.json')).json();
+    const snapshot = scenarioFixtureSnapshot(replay, 1, 0, { gameName: 'memory' });
+    const handle = await mountRendererFixture({ tagName: 'boardgame-render-game-memory', snapshot });
+    const request = {
+      requestID: 'review', snapshotVersion: snapshot.version, viewingAsPlayer: 0,
+      proposingAsPlayer: 0, proposingAsAdmin: false, name: 'Reveal Card', arguments: { CardIndex: '1' },
+    };
+    const invalid = [
+      { ...request, snapshotVersion: snapshot.version - 1 },
+      { ...request, viewingAsPlayer: 1 },
+      { ...request, proposingAsPlayer: 1 },
+      { ...request, proposingAsAdmin: true },
+      { ...request, arguments: { CardIndex: '0' } },
+      { ...request, arguments: {} },
+      { ...request, arguments: { CardIndex: '1', Unexpected: 'yes' } },
+      { ...request, arguments: { CardIndex: 1 } },
+    ];
+    const rejected = await Promise.all(invalid.map(candidate => handle.renderer.moveTransport.submit(candidate)));
+    const preview = await handle.renderer.movePreviewTransport.preview({ ...request, proposingAsPlayer: 1, candidateKey: 'wrong', signal: new AbortController().signal });
+    const targets = await handle.renderer.targetPreviewTransport.previewTargets({ ...request, snapshotVersion: snapshot.version - 1, candidates: [{ id: 'one', arguments: request.arguments }], signal: new AbortController().signal });
+    const accepted = await handle.renderer.moveTransport.submit(request);
+    const proposals = handle.proposals.length;
+    handle.dispose();
+    const disposed = await handle.renderer.moveTransport.submit(request);
+    return { rejected: rejected.map(value => value.kind), preview: preview.kind, targets: targets.kind, accepted: accepted.kind, disposed: disposed.kind, proposals };
+  });
+  expect(result).toEqual({ rejected: Array(8).fill('server-rejection'), preview: 'failure', targets: 'failure', accepted: 'success', disposed: 'server-rejection', proposals: 1 });
+});

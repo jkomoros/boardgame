@@ -903,6 +903,9 @@
       "version": 0,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {},
@@ -1768,6 +1771,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {},
@@ -2728,6 +2734,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {},
@@ -3605,6 +3614,9 @@
       "version": 1,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {},
@@ -4474,6 +4486,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {},
@@ -5434,6 +5449,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {},
@@ -6315,6 +6333,9 @@
       "version": 3,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {
@@ -7190,6 +7211,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {
@@ -8071,6 +8095,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {
@@ -8958,6 +8985,9 @@
       "version": 5,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {},
@@ -9829,6 +9859,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {},
@@ -10706,6 +10739,9 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Hide Cards"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {},

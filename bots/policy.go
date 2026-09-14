@@ -73,14 +73,11 @@ func Observe(game *boardgame.Game, player boardgame.PlayerIndex) (Observation, e
 	if err != nil {
 		return Observation{}, err
 	}
-	var wire struct {
-		Version      int
-		CurrentState struct{ Version int }
-	}
+	var wire struct{ Version int }
 	if err := json.Unmarshal(blob, &wire); err != nil {
 		return Observation{}, err
 	}
-	if wire.Version != version || wire.CurrentState.Version != version || !settledAtVersion(game, version) {
+	if wire.Version != version || !settledAtVersion(game, version) {
 		return Observation{}, fmt.Errorf("game advanced while capturing bot observation")
 	}
 	return Observation{Player: player, Version: version, Game: blob, Chest: chest}, nil

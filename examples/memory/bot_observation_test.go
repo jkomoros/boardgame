@@ -79,4 +79,11 @@ func TestBotObservationRejectsAdvanceDuringViewerSerialization(t *testing.T) {
 	if err := <-observed; err == nil {
 		t.Fatal("observation spanning a committed move was accepted")
 	}
+	observation, err := bots.Observe(game, player)
+	if err != nil {
+		t.Fatalf("settled observation after the commit: %v", err)
+	}
+	if observation.Version != game.Version() || observation.Version == 0 {
+		t.Fatalf("expected the nonzero committed version, got %d", observation.Version)
+	}
 }

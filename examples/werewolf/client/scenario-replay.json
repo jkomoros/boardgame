@@ -77,6 +77,10 @@
       "version": 0,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {},
@@ -386,6 +390,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {},
@@ -720,6 +728,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {},
@@ -1054,6 +1066,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 2,
           "game": {
             "ActiveTimers": {},
@@ -1388,6 +1404,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 3,
           "game": {
             "ActiveTimers": {},
@@ -1728,6 +1748,10 @@
       "version": 2,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {},
@@ -2037,6 +2061,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {},
@@ -2371,6 +2399,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {},
@@ -2705,6 +2737,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 2,
           "game": {
             "ActiveTimers": {},
@@ -3039,6 +3075,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 3,
           "game": {
             "ActiveTimers": {},
@@ -3379,6 +3419,10 @@
       "version": 4,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {},
@@ -3688,6 +3732,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {},
@@ -4022,6 +4070,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {},
@@ -4356,6 +4408,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 2,
           "game": {
             "ActiveTimers": {},
@@ -4690,6 +4746,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 3,
           "game": {
             "ActiveTimers": {},
@@ -5030,6 +5090,10 @@
       "version": 6,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {},
@@ -5339,6 +5403,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {},
@@ -5673,6 +5741,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {},
@@ -6007,6 +6079,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 2,
           "game": {
             "ActiveTimers": {},
@@ -6341,6 +6417,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 3,
           "game": {
             "ActiveTimers": {},
@@ -6681,6 +6761,10 @@
       "version": 10,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {
@@ -6994,6 +7078,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {
@@ -7357,6 +7445,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {
@@ -7720,6 +7812,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 2,
           "game": {
             "ActiveTimers": {
@@ -8083,6 +8179,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 3,
           "game": {
             "ActiveTimers": {
@@ -8452,6 +8552,10 @@
       "version": 11,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {
@@ -8765,6 +8869,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {
@@ -9103,6 +9211,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {
@@ -9466,6 +9578,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 2,
           "game": {
             "ActiveTimers": {
@@ -9829,6 +9945,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 3,
           "game": {
             "ActiveTimers": {
@@ -10198,6 +10318,10 @@
       "version": 12,
       "viewers": [
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": -1,
           "game": {
             "ActiveTimers": {
@@ -10511,6 +10635,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 0,
           "game": {
             "ActiveTimers": {
@@ -10849,6 +10977,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 1,
           "game": {
             "ActiveTimers": {
@@ -11187,6 +11319,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 2,
           "game": {
             "ActiveTimers": {
@@ -11525,6 +11661,10 @@
           }
         },
         {
+          "zeroInputMoves": [
+            "Resolve Day Votes on Timeout",
+            "Resolve Night Votes on Timeout"
+          ],
           "viewer": 3,
           "game": {
             "ActiveTimers": {

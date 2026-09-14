@@ -23,6 +23,7 @@ export interface ScenarioReplay {
     readonly viewers: readonly {
       readonly viewer: number;
       readonly game: GameFromServer;
+      readonly zeroInputMoves?: readonly string[];
       readonly projectedMoveChoices?: ProjectedMoveChoicesWire;
       readonly moveLegality: Readonly<Record<string, RendererFixtureLegality>>;
     }[];
@@ -60,6 +61,7 @@ export function scenarioFixtureSnapshot<Contract extends RendererFixtureGameCont
     state: expandGameStateSnapshot(game.CurrentState, replay.chest, replay.gameName, game.ActiveTimers) as Contract['State'],
     ...(snapshot.projectedMoveChoices ? { projectedMoveChoices: snapshot.projectedMoveChoices } : {}),
     requireRecordedPreviews: true,
+    recordedZeroInputMoves: snapshot.zeroInputMoves ?? [],
     timers: game.ActiveTimers ?? {},
     playerPresentations: playerPresentations(game.CurrentState.Players.map(() => ({})), []),
     viewingAsPlayer: viewer,
