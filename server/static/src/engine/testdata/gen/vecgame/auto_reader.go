@@ -318,6 +318,7 @@ var ȧutoGeneratedCardDynamicReaderProps = map[string]boardgame.PropertyType{
 	"Counter": boardgame.TypeInt,
 	"Held":    boardgame.TypeStack,
 	"Mark":    boardgame.TypeEnum,
+	"Nest":    boardgame.TypeStack,
 }
 
 type ȧutoGeneratedCardDynamicReader struct {
@@ -376,6 +377,8 @@ func (c *ȧutoGeneratedCardDynamicReader) PropMutable(name string) bool {
 	case "Held":
 		return true
 	case "Mark":
+		return true
+	case "Nest":
 		return true
 	}
 
@@ -756,6 +759,8 @@ func (c *ȧutoGeneratedCardDynamicReader) ImmutableStackProp(name string) (board
 	switch name {
 	case "Held":
 		return c.data.Held, nil
+	case "Nest":
+		return c.data.Nest, nil
 
 	}
 
@@ -773,6 +778,9 @@ func (c *ȧutoGeneratedCardDynamicReader) ConfigureStackProp(name string, value 
 		}
 		c.data.Held = slotValue
 		return nil
+	case "Nest":
+		c.data.Nest = value
+		return nil
 
 	}
 
@@ -784,6 +792,8 @@ func (c *ȧutoGeneratedCardDynamicReader) ConfigureImmutableStackProp(name strin
 
 	switch name {
 	case "Held":
+		return boardgame.ErrPropertyImmutable
+	case "Nest":
 		return boardgame.ErrPropertyImmutable
 
 	}
@@ -797,6 +807,8 @@ func (c *ȧutoGeneratedCardDynamicReader) StackProp(name string) (boardgame.Stac
 	switch name {
 	case "Held":
 		return c.data.Held, nil
+	case "Nest":
+		return c.data.Nest, nil
 
 	}
 

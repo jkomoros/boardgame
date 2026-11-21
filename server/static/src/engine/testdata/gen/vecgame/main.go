@@ -38,7 +38,7 @@ var GroupEnum = Enums.MustCombine("group", ColorEnum)
 
 // NumCards and NumTokens are the deck sizes.
 const (
-	NumCards  = 12
+	NumCards  = 24
 	NumTokens = 6
 )
 
@@ -61,7 +61,10 @@ type cardDynamic struct {
 	base.ComponentValues
 	Counter int
 	Held    boardgame.SizedStack `sizedstack:"tokens,1"`
-	Mark    enum.Val             `enum:"color"`
+	// Nest holds other cards, so visibility of dynamic values has to be
+	// followed transitively.
+	Nest boardgame.Stack `stack:"cards"`
+	Mark enum.Val        `enum:"color"`
 }
 
 //boardgame:codegen

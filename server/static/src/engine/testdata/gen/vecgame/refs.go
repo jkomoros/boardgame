@@ -52,6 +52,7 @@ func AllStackRefs(numPlayers int) []StackRef {
 	}
 	for i := 0; i < 3; i++ {
 		out = append(out, StackRef{Group: "dynamic", Deck: "cards", Index: i, Prop: "Held"})
+		out = append(out, StackRef{Group: "dynamic", Deck: "cards", Index: i, Prop: "Nest"})
 	}
 	return out
 }
@@ -95,6 +96,9 @@ func Resolve(st boardgame.State, ref StackRef) (boardgame.Stack, error) {
 	case "dynamic":
 		if ref.Prop == "Held" {
 			return CardDynamic(st, ref.Index).Held, nil
+		}
+		if ref.Prop == "Nest" {
+			return CardDynamic(st, ref.Index).Nest, nil
 		}
 	}
 	return nil, errors.New("unknown stack ref " + ref.Path())

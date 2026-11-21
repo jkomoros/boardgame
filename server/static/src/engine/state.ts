@@ -35,8 +35,9 @@ export interface StateJSON {
 	SecretMoveCount?: Record<string, number[]>;
 	/** Present only on per-viewer JSON. */
 	Visibility?: VisibilityJSON;
-	/** Passed through untouched; timers and computed values are not core. */
+	/** Timer storage records. Passed through untouched; timers are not core. */
 	Timers?: unknown;
+	/** Present only on JSON for a viewer. Derived; dropped on load. */
 	Computed?: unknown;
 }
 
@@ -129,6 +130,8 @@ export class EngineState {
 	readonly data: StateJSON;
 	version: number;
 	readonly sanitized: boolean;
+	/** On a sanitized state: which facets of each property survived. */
+	visibility: VisibilityJSON | null = null;
 
 	private memoizedRand: GoRand | null = null;
 	private readonly stacksByPath: Record<string, Stack> = {};
@@ -159,6 +162,9 @@ export class EngineState {
 	): EngineState {
 		const data = cloneJSON(json);
 		if (!data.Components) data.Components = {};
+		// Derived, never state: Go's loader ignores both.
+		delete data.Computed;
+		delete data.Visibility;
 		const sanitized = options.sanitized === true;
 		if (sanitized) delete data.SecretMoveCount;
 		else if (!data.SecretMoveCount) data.SecretMoveCount = {};

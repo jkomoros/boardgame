@@ -2,8 +2,56 @@
 	"Name": "vecgame",
 	"Decks": {
 		"cards": {
-			"Size": 12,
+			"Size": 24,
 			"Components": [
+				{
+					"Rank": 1,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 2,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 3,
+					"Suit": "spades"
+				},
+				{
+					"Rank": 4,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 1,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 2,
+					"Suit": "spades"
+				},
+				{
+					"Rank": 3,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 4,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 1,
+					"Suit": "spades"
+				},
+				{
+					"Rank": 2,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 3,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 4,
+					"Suit": "spades"
+				},
 				{
 					"Rank": 1,
 					"Suit": "clubs"
@@ -367,6 +415,13 @@
 						"all": "visible"
 					},
 					"Enum": "color"
+				},
+				"Nest": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards"
 				}
 			}
 		}
