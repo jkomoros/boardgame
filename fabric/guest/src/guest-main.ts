@@ -3,8 +3,6 @@
  * and installs the document-level things the webapp's index.html provides:
  * theme tokens and base typography.
  */
-import themeCss from '@client/styles/md3-theme.css?inline';
-
 import {
   envelope,
   isGuestMessage,
@@ -13,6 +11,7 @@ import {
   type MessageBody,
 } from '../protocol.js';
 import { bundledGames } from './games.js';
+import { installGuestDocument } from './guest-document.js';
 import { GuestHost } from './guest-host.js';
 import { setServerCallReporter } from './shims/api.js';
 
@@ -30,30 +29,7 @@ function report(text: string): void {
   post(envelope<GuestToHostMessage>({ type: 'error', message: text } as MessageBody<GuestToHostMessage>));
 }
 
-// Theme tokens (FINDINGS F10). The webapp links this stylesheet from
-// index.html; a guest has no document to inherit it from.
-const theme = document.createElement('style');
-theme.textContent = themeCss + `
-  html, body { margin: 0; padding: 0; }
-  body {
-    /* Web fonts are omitted (FINDINGS F9). These stacks give the theme's
-       named families a local fallback of the same class. */
-    --md-sys-typescale-display-small-font: 'Crimson Text', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
-    font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  }
-  /* The webapp's game view sets the default animation length on itself
-     (FINDINGS F11). Without it every animation runs at a 250ms fallback. */
-  #guest-root { padding: 12px; box-sizing: border-box; --animation-length: 0.5s; }
-  .guest-seats { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; margin-bottom: 8px; }
-  .guest-seats:empty { display: none; }
-  .guest-seat { display: flex; gap: 8px; align-items: center; }
-  .guest-seat-name { font-weight: 600; border-bottom: 2px solid var(--seat-color, transparent); }
-`;
-document.head.append(theme);
-
-const root = document.createElement('div');
-root.id = 'guest-root';
-document.body.append(root);
+const root = installGuestDocument();
 
 const host = new GuestHost(root, post, bundledGames);
 

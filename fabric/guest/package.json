@@ -11,7 +11,8 @@
     "serve": "node tools/serve.mjs",
     "replay": "cd ../.. && ./scripts/go-local run ./fabric/guest/tools/export-replay -out fabric/guest/replays/memory-full.json",
     "test": "npm run build && playwright test",
-    "test:only": "playwright test"
+    "test:only": "playwright test",
+    "build:fabric": "vite build --config vite.fabric.config.ts"
   },
   "dependencies": {
     "lit": "3.3.3",

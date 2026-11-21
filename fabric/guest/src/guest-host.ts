@@ -115,6 +115,8 @@ export class GuestHost {
   private snapshotEpoch = 0;
   /** Bumped by every reset so stale async continuations can tell. */
   private generation = 0;
+  /** Counts `init` messages. Playback resets do not cancel a mount. */
+  private mountGeneration = 0;
 
   private readonly timerService = new TimerService();
   private timers = new Map<string, RunningTimer>();
@@ -186,7 +188,9 @@ export class GuestHost {
     this.init = message;
     this.viewer = message.viewer;
     this.mounted = false;
-    const generation = this.generation;
+    // Not `generation`: a `state` for a new epoch arriving while the renderer
+    // is still mounting resets playback, and must not cancel the mount.
+    const mount = ++this.mountGeneration;
 
     this.root.replaceChildren();
     // The webapp's game view publishes seat colours as custom properties.
@@ -255,7 +259,7 @@ export class GuestHost {
     this.root.append(seats, render);
 
     void this.waitForRenderer(render).then(() => {
-      if (generation !== this.generation || this.render !== render) return;
+      if (mount !== this.mountGeneration || this.render !== render) return;
       this.mounted = true;
       this.send({ type: 'ready', stage: 'mounted', games: this.bundledGames });
       this.pump();
