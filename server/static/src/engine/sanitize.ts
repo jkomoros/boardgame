@@ -98,7 +98,7 @@ function enumKeyOf(e: EnumDef, text: unknown): string | null {
  * each of their enum properties whose enum is a subset of the group enum.
  * Returns group-enum keys (decimal strings), or null for no membership.
  */
-function playerGroupKeys(def: GameDefinition, player: SubStateJSON | null): string[] | null {
+export function playerGroupKeys(def: GameDefinition, player: SubStateJSON | null): string[] | null {
 	const groupEnum = groupEnumOf(def);
 	if (player === null || groupEnum === null) return null;
 	const members: string[] = [];
@@ -116,7 +116,7 @@ function playerGroupKeys(def: GameDefinition, player: SubStateJSON | null): stri
 }
 
 /** groupMembershipForPlayerState: the named groups, plus "all". */
-function stringMembership(def: GameDefinition, keys: string[] | null): Record<string, boolean> {
+export function stringMembership(def: GameDefinition, keys: string[] | null): Record<string, boolean> {
 	const result: Record<string, boolean> = {};
 	const groupEnum = groupEnumOf(def);
 	if (keys !== null && groupEnum !== null) {
@@ -146,7 +146,7 @@ function computedPlayerGroupNames(def: GameDefinition): string[] {
 }
 
 /** GameManager.computedPlayerGroupMembership + the base delegate's. */
-function computedGroupMembership(
+export function computedGroupMembership(
 	def: GameDefinition,
 	groupName: string,
 	player: number,
