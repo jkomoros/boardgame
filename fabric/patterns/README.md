@@ -6,7 +6,7 @@ engine (`server/static/src/engine`). There are two:
 - [`memory/`](memory/README.md) plays in a browser, for two to six people.
   Its README has the commands to test, deploy and play it.
 - [`blackjack/`](blackjack/README.md) has hidden hands, so each seat has its
-  own view. It passes its tests and waits on the guest to be playable.
+  own view. It plays in a browser too, slowly: its README has the numbers.
 
 ```
 patterns/
@@ -61,8 +61,6 @@ patterns/
 
 - **Release to a seat.** A seat's view cannot yet be released to that seat's
   occupants alone (blackjack's README, "What is not held today").
-- **A guest that reads a view a seat**, and a lobby that is not Memory's
-  (blackjack's README, "What the guest needs").
 - **Speed.** A move takes seconds, in proportion to the size of the state
   (Memory's `FINDINGS.md`, "Latency"). Blackjack's deal with two players is
   ten versions in one input, a 181 KB view.

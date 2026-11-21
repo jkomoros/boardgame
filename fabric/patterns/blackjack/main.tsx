@@ -5,10 +5,10 @@
  * watcher's view, each seat's own view, the game's public facts, the
  * viewer's own principal, and the two verbs a browser may send.
  *
- * The guest that ships in `fabric/guest` cannot play this yet: it has no
- * blackjack renderer, and its bridge reads one shared `view`, where this
- * table has one a seat. `README.md` lists what the guest needs. Until then
- * this piece deploys and its guest shows the lobby and nothing after it.
+ * The guest is the generic boardgame guest of `fabric/guest`. Its bridge
+ * reads `view` to learn who is seated and then the one `seat<N>` that is the
+ * viewer's own; `info.seatViews` tells it there is a view a seat
+ * (`fabric/guest/PROTOCOL.md`, "Inside a `cf-iframe`").
  */
 import {
   computed,

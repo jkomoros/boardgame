@@ -1,20 +1,28 @@
 /**
  * The guest's side of a Common Fabric `cf-iframe`.
  *
- * A pattern hands the guest five named resources (see
- * `fabric/patterns/memory/main.tsx`):
+ * A pattern hands the guest these named resources (see
+ * `fabric/patterns/memory/main.tsx` and `fabric/patterns/blackjack/main.tsx`):
  *
- *   view      cell, read-only   the table's released view (`TableView`)
+ *   view      cell, read-only   what whoever only watches may see (`TableView`)
+ *   seat<N>   cell, read-only   seat N's own view, for N below `info.seatViews`
  *   info      cell, read-only   the game's public facts (`TableInfo`)
  *   me        cell, read-only   the viewer's own principal
  *   move      stream            a `Proposal` to the table's one writer
  *   identify  stream            asks the pattern to fill in `me`
  *
+ * A game whose seats all see the same (Memory) hands over `view` alone and
+ * says `seatViews: 0`. A game with hidden hands (blackjack) also hands over
+ * one view a seat. The bridge reads `view` for who is seated, finds the
+ * viewer's seat from `me`, and then reads that one seat's cell and no other:
+ * it never asks for a seat that is not the viewer's.
+ *
  * This module turns those into the message protocol of `PROTOCOL.md`, which
- * the renderer host (`GuestHost`) already speaks: the latest value of `view`
- * becomes an `init` (when the table, the seat or the deal changes) and a
- * `state` window; a `propose-move` or a `tick` from the host becomes an
- * event on `move`. Before the deal it draws the seats itself.
+ * the renderer host (`GuestHost`) already speaks: the latest value of the
+ * view becomes an `init` (when the table, the viewer or the deal changes) and
+ * a `state` window; a `propose-move` or a `tick` from the host becomes an
+ * event on `move`. Before the deal it draws the seats itself, with the
+ * game's name and setup options from `info`.
  *
  * The proposer is never sent. The pattern takes it from the runtime.
  */
@@ -167,17 +175,17 @@ export function startFabricBridge(
   const nameField = element('input', { placeholder: 'Your name', maxLength: 24, autocomplete: 'off' });
   const sit = element('button', { type: 'button', textContent: 'Sit down' });
   const leave = element('button', { type: 'button', textContent: 'Stand up' });
-  const size = element('select', {},
-    element('option', { value: 'small', textContent: '10 cards' }),
-    element('option', { value: 'medium', textContent: '20 cards' }),
-    element('option', { value: 'large', textContent: '40 cards' }));
+  // One select for each setup option the game declares in `info`.
+  const options = element('div', { className: 'row' });
   const start = element('button', { type: 'button', textContent: 'Deal' });
   const lobbyNote = element('div', { className: 'note' });
+  const title = element('h1');
   const lobby = element('div', { id: 'fabric-lobby', hidden: true },
-    element('h1', { textContent: 'Memory' }),
+    title,
     seatList,
     element('div', { className: 'row' }, nameField, sit, leave),
-    element('div', { className: 'row' }, size, start),
+    options,
+    element('div', { className: 'row' }, start),
     lobbyNote);
   document.body.insertBefore(status, board);
   document.body.insertBefore(lobby, board);
@@ -190,6 +198,13 @@ export function startFabricBridge(
   let initKey = '';
   let sending = false;
   let lastStamp = '';
+  /** The setup options the lobby's selects were last built from. */
+  let optionsKey = '';
+  /** The viewer's own seat's cell, when the game has one a seat. */
+  let ownSeat = OBSERVER;
+  let ownCell: ReturnType<typeof fabric.cell<View>> | undefined;
+  let stopOwn: (() => void) | undefined;
+  let ownRefusal: CellReadRefusal | undefined;
 
   const host = makeHost(message => onHostMessage(message));
 
@@ -203,6 +218,33 @@ export function startFabricBridge(
     return view.seats.findIndex(seat => seat.principal === me);
   }
 
+  /**
+   * Reads the one seat's view that is the viewer's, and stops reading any
+   * other. `seat` is `OBSERVER` for a watcher and for a game with one view.
+   */
+  function readOwnSeat(seat: number): void {
+    if (seat === ownSeat) return;
+    stopOwn?.();
+    ownSeat = seat;
+    ownCell = undefined;
+    stopOwn = undefined;
+    ownRefusal = undefined;
+    if (seat === OBSERVER) return;
+    const cell = fabric.cell<View>(`seat${seat}`);
+    ownCell = cell;
+    stopOwn = cell.sink(() => { ownRefusal = undefined; sync(); }, {
+      onRefused: cause => { ownRefusal = cause; sync(); },
+    });
+    void cell.pull().then(() => sync(), cause => {
+      problem.textContent = describe(cause);
+    });
+  }
+
+  /** The cell the board is being drawn from right now. */
+  function sourceCell(): ReturnType<typeof fabric.cell<View>> {
+    return ownCell !== undefined && ownCell.get() !== undefined ? ownCell : viewCell;
+  }
+
   // ----- pattern to host ---------------------------------------------------
 
   function sync(): void {
@@ -211,21 +253,33 @@ export function startFabricBridge(
       who.textContent = 'Loading…';
       return;
     }
-    const view = viewCell.get();
+    // `watch` is what everyone may see: it says who is seated, and so which
+    // seat is the viewer's.
+    const watch = viewCell.get();
     const info = infoCell.get();
-    const seat = seatOf(view);
+    const seat = seatOf(watch);
+    const seatViews = info?.seatViews ?? 0;
+    readOwnSeat(seat !== OBSERVER && seat < seatViews ? seat : OBSERVER);
+    // The seat's own view, once it has arrived for this deal. Until then a
+    // seated player is shown what a watcher is, as a watcher: nothing is ever
+    // drawn for a viewer it was not computed for.
+    const own = ownCell?.get();
+    const ownReady = own !== undefined && watch !== undefined && own.epoch === watch.epoch &&
+      own.phase !== 'seating';
+    const view = ownReady ? own : watch;
+    const viewer = seatViews > 0 && !ownReady ? OBSERVER : seat;
     again.hidden = true;
-    const stamp = `${view?.revision}:${view?.epoch}:${view?.version}`;
+    const stamp = `${viewer}:${view?.revision}:${view?.epoch}:${view?.version}`;
     if (view && stamp !== lastStamp) {
       lastStamp = stamp;
-      logged({ what: 'view', revision: view.revision, epoch: view.epoch, version: view.version });
+      logged({ what: 'view', revision: view.revision, epoch: view.epoch, version: view.version, detail: `viewer ${viewer}` });
     }
 
     if (!view || view.phase === 'seating' || !info) {
       initKey = '';
       board.hidden = true;
       lobby.hidden = false;
-      drawLobby(view, seat);
+      drawLobby(view, seat, info);
       if (refusal) {
         // The runtime would not hand over the view. Before the table's
         // first proposal there may be nothing it can release, so sitting
@@ -238,27 +292,30 @@ export function startFabricBridge(
 
     lobby.hidden = true;
     board.hidden = false;
-    const key = `${view.gameName}:${view.epoch}:${seat}:${view.seats.length}`;
+    const key = `${view.gameName}:${view.epoch}:${viewer}:${view.seats.length}`;
     if (key !== initKey) {
       initKey = key;
       toHost({
         type: 'init',
         gameName: view.gameName,
         chest: copy(info.chest) as never,
-        viewer: seat,
+        viewer,
         players: view.seats.map((held, index) => ({
           playerIndex: index,
           label: held.label,
           color: info.seatColors[index % info.seatColors.length],
         })),
+        // The engine's own fingerprint of its move inputs, so the renderer
+        // checks itself against the table it is actually playing at.
+        moveInputSchemaFingerprint: info.moveInputSchemaFingerprint,
       });
     }
     if (view.entries.length > 0) {
       toHost({
         type: 'state',
-        viewer: seat,
+        viewer,
         epoch: view.epoch,
-        entries: view.entries.map(entry => entryFor(entry, seat)),
+        entries: view.entries.map(entry => entryFor(entry, viewer)),
       });
     }
 
@@ -272,9 +329,25 @@ export function startFabricBridge(
     } else if (head) {
       note.textContent = head.currentPlayerIndex === seat ? 'Your turn.' : `${turn}'s turn.`;
     }
+    if (seat !== OBSERVER && viewer === OBSERVER) {
+      note.textContent = ownRefusal
+        ? `Your own view was withheld by ${ownRefusal.refusedBy ?? 'the runtime'}; you are shown what a watcher is.`
+        : 'Waiting for your own view…';
+    }
   }
 
-  function drawLobby(view: Readonly<View> | undefined, seat: number): void {
+  function drawLobby(view: Readonly<View> | undefined, seat: number, info: Readonly<Info> | undefined): void {
+    title.textContent = info?.displayName ?? '';
+    const key = JSON.stringify(info?.setupOptions ?? []);
+    if (key !== optionsKey) {
+      optionsKey = key;
+      options.replaceChildren(...(info?.setupOptions ?? []).map(option => {
+        const select = element('select', { name: option.name, title: option.displayName },
+          ...option.values.map(value => element('option', { value: value.name, textContent: value.displayName })));
+        select.value = option.default;
+        return element('label', {}, `${option.displayName} `, select);
+      }));
+    }
     const seats = view?.seats ?? [];
     seatList.replaceChildren(...seats.map((held, index) =>
       element('li', { textContent: held.label + (index === seat ? ' (you)' : '') })));
@@ -290,7 +363,7 @@ export function startFabricBridge(
     leave.hidden = seat === OBSERVER;
     leave.disabled = sending;
     start.disabled = sending || seat === OBSERVER || seats.length < min;
-    size.disabled = start.disabled;
+    for (const select of options.querySelectorAll('select')) select.disabled = start.disabled;
     lobbyNote.textContent = seats.length === 0
       ? 'Nobody is seated yet.'
       : seats.length < min
@@ -333,11 +406,14 @@ export function startFabricBridge(
 
   sit.addEventListener('click', () => void act({ kind: 'sit', label: nameField.value }));
   leave.addEventListener('click', () => void act({ kind: 'leave' }));
-  start.addEventListener('click', () => void act({ kind: 'start', options: { numcards: size.value } }));
+  start.addEventListener('click', () => void act({
+    kind: 'start',
+    options: Object.fromEntries([...options.querySelectorAll('select')].map(select => [select.name, select.value])),
+  }));
   again.addEventListener('click', () => void act({ kind: 'restart' }));
 
   async function onProposal(message: Extract<GuestToHostMessage, { type: 'propose-move' }>): Promise<void> {
-    const epoch = viewCell.get()?.epoch;
+    const epoch = sourceCell().get()?.epoch;
     const sent = await propose({
       kind: 'play',
       name: message.name,
@@ -346,7 +422,7 @@ export function startFabricBridge(
     // A refused proposal writes nothing and says nothing, so the only sign
     // of one is that the table did not move on. A newer state settles the
     // proposal by itself; this is for the case where none comes.
-    const view = sent ? await viewCell.pull().catch(() => undefined) : undefined;
+    const view = sent ? await sourceCell().pull().catch(() => undefined) : undefined;
     const advanced = view !== undefined &&
       (view.epoch !== epoch || view.version > message.snapshotVersion);
     if (!advanced) {
@@ -428,6 +504,7 @@ export function startFabricBridge(
   })();
 
   globalThis.addEventListener('pagehide', () => {
+    stopOwn?.();
     stops.forEach(stop => stop());
     fabric.disconnect();
   }, { once: true });

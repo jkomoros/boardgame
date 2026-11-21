@@ -167,12 +167,47 @@ Nothing depends on the host reading it.
 
 A Common Fabric pattern does not post these messages. It hands the guest
 named cells and streams, and `src/fabric-bridge.ts` speaks this protocol to
-the renderer host on the pattern's behalf, in the same document:
+the renderer host on the pattern's behalf, in the same document.
+
+### What the pattern hands over
+
+The types are in `fabric/patterns/toolkit/view.ts`.
+
+| Name | Kind | Holds |
+|---|---|---|
+| `view` | cell, read-only | A `TableView` for whoever only watches: who is seated, the phase, and a window of entries computed for the observer. Always present |
+| `seat0` to `seat<N-1>` | cells, read-only | One `TableView` a seat, computed for that seat alone, where `N` is `info.seatViews`. Absent when `info.seatViews` is 0 |
+| `info` | cell, read-only | A `TableInfo`: the game's name and display name, its chest, the engine's `moveInputSchemaFingerprint`, seat colours, `setupOptions` for the lobby, and `seatViews` |
+| `me` | cell, read-only | The viewer's own principal, once `identify` has run |
+| `move` | stream | A `Proposal`. No proposer is sent |
+| `identify` | stream | Asks the pattern to fill in `me` |
+
+### One view, or one a seat
+
+- **`info.seatViews` is 0** (Memory): every seat sees the same state. The
+  bridge draws from `view`, and takes the viewer's legality from each entry's
+  `viewers[<seat>]`.
+- **`info.seatViews` is positive** (blackjack): seats see different states.
+  The bridge reads `view` to learn who is seated, finds the viewer's seat
+  from `me`, and then reads `seat<that seat>` and draws from it. **It never
+  reads another seat's cell.** A watcher, and a seat at or past `seatViews`,
+  draw from `view`.
+- A seated viewer whose own view has not arrived for the current deal is
+  drawn as the observer, from `view`, with the status line saying so. Nothing
+  is ever drawn for a viewer it was not computed for. When the seat's view
+  arrives the bridge sends a new `init` for that seat, which cuts to it.
+
+This is what an unmodified guest does. It is not what keeps a seat's view
+from another reader of the space: that is the pattern's release rule, and
+`fabric/patterns/blackjack/README.md` says what that rule does and does not
+hold today.
+
+### How the protocol's messages are produced
 
 | Protocol | In a `cf-iframe` |
 |---|---|
-| `init` | Built from the `info` cell (game name, chest, seat colours) and the `view` cell's seats. Sent again when the deal (`epoch`), the viewer's seat or the number of seats changes |
-| `state` | Every new value of the `view` cell: its `entries` are the window, its `epoch` the epoch. `viewer` is the seat whose principal equals the `me` cell, or `-1` |
+| `init` | Built from `info` (game name, chest, seat colours, `moveInputSchemaFingerprint`) and the seats of the view being drawn. Sent again when the deal (`epoch`), the viewer being drawn or the number of seats changes |
+| `state` | Every new value of the view being drawn: its `entries` are the window, its `epoch` the epoch. `viewer` is the seat the entries were computed for, or `-1` |
 | `propose-move` | An event on the `move` stream, `{ kind: "play", name, arguments }`. No proposer is sent |
 | `move-result` | The pattern sends none. After `send()` resolves the bridge reads the view again, and reports a failure if the table did not advance |
 | `tick` | An event on the `move` stream, `{ kind: "tick", timerId }`, repeated a few times while that version is still the head, since the table's clock may be behind the guest's |

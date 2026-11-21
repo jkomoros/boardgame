@@ -193,6 +193,8 @@ await shot(bob, '01-lobby');
 
 // The deal. Record every view the dealer's bridge sees, to tell whether a
 // locally speculated deal was shown before the server's.
+// The lobby offers the game's own setup options; play the ten-card board.
+await alice.frame.locator('#fabric-lobby select[name="numcards"]').selectOption('small');
 await alice.frame.getByRole('button', { name: 'Deal' }).click();
 for (const who of players) {
   await waitFor(async () => (await boardOf(who)).length > 0, `${who.name} to see the board`);

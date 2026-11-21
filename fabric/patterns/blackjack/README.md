@@ -5,9 +5,11 @@ on the TypeScript engine's port of `examples/blackjack`. It is the first
 table whose seats see different things: each player sees their own hole card
 and nobody else's.
 
-It runs to the end of a game in `cf test`. It does not yet play in a
-browser: the guest has no blackjack renderer and reads one shared view (see
-"What the guest needs").
+It plays in a browser: three identities and a watcher have played whole
+games through the deployed piece, each handed its own hole card and nobody
+else's (see "In a browser"). What that does and does not prove about secrecy
+is under "What is not held today": an unmodified guest asks only for its own
+seat's view, and nothing yet stops a modified one from asking for another's.
 
 | File | What |
 |---|---|
@@ -94,29 +96,52 @@ The last takes about four minutes and ends with `92 passed, 0 failed`.
 - **Refusals.** A move out of turn, a forged proposer, a move by someone
   with no seat, and an engine-owned move proposed by a player.
 
-## What the guest needs
+## What the guest does
 
-To play this in a browser, `fabric/guest` needs:
+Agreed between this pattern and `fabric/guest`, and written up in
+`fabric/guest/PROTOCOL.md` ("Inside a `cf-iframe`"):
 
-1. **A blackjack renderer in the bundle**: `examples/blackjack/client`,
-   added to `src/games.ts`. Today the guest says `this guest has no renderer
-   for "blackjack"`.
-2. **A bridge that reads one view a seat.** The pattern hands the guest
-   `view` (the watcher's) and `seat0` to `seat6`. The bridge should read
-   `view` for the seats, find the viewer's seat from `me`, and then take its
-   entries from `seat<N>` once seated. Each seat view is a `TableView` whose
-   entries' `viewers` hold only that seat's key. Memory hands a guest `view`
-   alone, with every seat's legality under `viewers`; a bridge that falls
-   back to `view` when there is no `seat<N>` serves both.
-3. **A lobby that is not Memory's.** The bridge's lobby is titled "Memory"
-   and offers Memory's three board sizes. Blackjack's one option is
-   `maxrounds`, 1 to 10. The options could come from `info`.
-4. **Nothing for timers or art.** Blackjack has no timer, and the engine's
+1. **The bundle holds blackjack's renderer**, chosen by the view's
+   `gameName`.
+2. **The bridge reads one view a seat.** The pattern hands over `view` (the
+   watcher's) and `seat0` to `seat6`, and says so with `info.seatViews: 7`
+   (`TableInfo`, `../toolkit/view.ts`). The bridge reads `view` for the
+   seats, finds the viewer's seat from `me`, and then reads that one seat's
+   cell and no other. Memory says `seatViews: 0` and is drawn from `view`.
+3. **The lobby is built from `info`**: its title is `info.displayName` and
+   it offers `info.setupOptions`, which are the engine's variants. Blackjack's
+   one option is `maxrounds`, 1 to 10.
+4. **`info.moveInputSchemaFingerprint` is passed in `init`**, so the renderer
+   checks itself against the engine it is playing on.
+5. **Nothing for timers or art.** Blackjack has no timer, and the engine's
    chest carries each card's suit and rank.
 
-What was seen in a browser (labs `4815052651`, local servers): the piece
-deploys, two CLI identities sat and dealt, and a browser identity's guest
-was handed the watcher's view of the dealt game (181 KB, ten versions),
-showed "Watching" and whose turn it was, and reported the missing renderer.
-That a seat's own view is handed over was not looked at; it is released by
-the same rule.
+## In a browser
+
+With labs' local servers running and the guest built (Memory's README,
+"Running it", steps 1 to 3, deploying `fabric/patterns/blackjack/main.tsx`):
+
+```bash
+ROUNDS=2 node fabric/patterns/blackjack/tools/play-three-users.mjs "$CF_API_URL/$CF_SPACE/blackjack"
+```
+
+It registers four fresh identities in four browser contexts (Alice, Bob and
+Carol sit; Dave watches), deals, and plays to the end, hitting below 15 and
+standing otherwise. Before every move, and after the deal, it reads from
+each unmodified client both the state its renderer host was handed and the
+cards on screen, and checks that every hole card still hidden is given to,
+and shown face up to, its own seat, is given to nobody else, is shown face
+down to everybody else, and appears nowhere else in what anybody else was
+given. It exits non-zero if any check fails.
+
+On 2026-11-21 against labs `4815052651`
+(`fix/served-handler-write-identity`): two whole games. The second, two
+rounds: nine moves (three hits, six stands), the same winner on all four
+screens, 145 of 145 checks, more than a thousand animations in each guest
+and no watchdog firing. Screenshots are in `screenshots/`.
+
+**It is slow.** A proposal took a median of 18.6 s to come back to the
+mover's guest (12.5 to 48.4 s), and the deal took 27 s to reach everyone.
+Each input rewrites eight views (the watcher's and seven seats'), each
+holding every version of the last input; the deal alone is eleven versions.
+Memory, with one view, takes about 3 s a move on the same servers.
