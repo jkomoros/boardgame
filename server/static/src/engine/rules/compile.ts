@@ -417,6 +417,8 @@ export function compileGame(spec: GameSpec): CompiledGame {
 	// are validated against (Go: manager.ExampleState()).
 	const moves: CompiledMove[] = [];
 	const movesByName: Record<string, CompiledMove> = {};
+	const canonicalMoveNames: Record<string, string> = {};
+	for (const move of spec.moves) canonicalMoveNames[move.name.toLowerCase()] = move.name;
 	const game: CompiledGame = {
 		spec,
 		def,
@@ -424,6 +426,7 @@ export function compileGame(spec: GameSpec): CompiledGame {
 		components: components as ComponentSchema,
 		moves,
 		movesByName,
+		canonicalMoveNames,
 		phaseEnum,
 		templates,
 		registry,

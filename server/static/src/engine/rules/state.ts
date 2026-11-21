@@ -58,7 +58,10 @@ export interface CompiledGame {
 	readonly enums: EnumRegistry;
 	readonly components: ComponentSchema;
 	readonly moves: readonly CompiledMove[];
+	/** By the move's own name. */
 	readonly movesByName: Readonly<Record<string, CompiledMove>>;
+	/** Lower-cased name to the move's own name: Go matches move names without regard to case. */
+	readonly canonicalMoveNames: Readonly<Record<string, string>>;
 	/** delegate.PhaseEnum(): the enum named "phase" (or "Phase"), or null. */
 	readonly phaseEnum: BoundEnum | null;
 	/** The merged legal message templates (defaults plus the game's own). */
@@ -438,8 +441,9 @@ export class RulesState {
 	 * MoveByNameForState). Null for an unknown name.
 	 */
 	newMove(name: string): (MoveInstance & { version: number; initiator: number }) | null {
-		const compiled = this.game.movesByName[name];
+		const compiled = findMove(this.game, name);
 		if (!compiled) return null;
+		name = compiled.spec.name;
 		const fields: Record<string, unknown> = {};
 		for (const fieldName of compiled.fieldNames) {
 			const field = compiled.fields[fieldName];
@@ -523,6 +527,12 @@ export class RulesState {
 		if (record === null) throw new Error('timer property no longer exists');
 		return new TimerHandle(this, record, this.players[player][prop] as { ID: string; IsTimer: true });
 	}
+}
+
+/** GameManager.moveTypeByName: the move type of that name, compared without regard to case. */
+export function findMove(game: CompiledGame, name: string): CompiledMove | undefined {
+	const canonical = game.canonicalMoveNames[name.toLowerCase()];
+	return canonical === undefined ? undefined : game.movesByName[canonical];
 }
 
 /** The RulesState a LegalContext was built from (for a plan's custom check). */

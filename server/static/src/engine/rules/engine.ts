@@ -11,7 +11,7 @@ import { ADMIN_PLAYER_INDEX, OBSERVER_PLAYER_INDEX } from '../legal/types.ts';
 import { EngineState } from '../state.ts';
 import type { StateJSON } from '../state.ts';
 import { GameSpecError, emptyStateJSON, newVariant } from './compile.ts';
-import { type CompiledGame, type CompiledMove, type Environment, RulesState } from './state.ts';
+import { type CompiledGame, type CompiledMove, type Environment, RulesState, findMove } from './state.ts';
 import {
 	type TimerGuard,
 	type TimerRecord,
@@ -251,7 +251,9 @@ function applyMove(run: Run, current: RulesState, move: MoveInstance, proposer: 
 	if (recurseCount > MAX_FIX_UP_RECURSION) return ERR_TOO_MANY_FIX_UPS;
 	if (run.finished) return null;
 
-	const committed = new RulesState(run.game, next.engine, run.record, run.history, run.env);
+	// Go reads the committed state back from storage, so nothing built while
+	// applying the move (the component index in particular) carries over.
+	const committed = new RulesState(run.game, next.engine.copy(versionToSet), run.record, run.history, run.env);
 	const fixUp = committed.proposeFixUpMove();
 	if (fixUp !== null) {
 		const err = applyMove(run, committed, fixUp, ADMIN_PLAYER_INDEX, true, recurseCount + 1, initiator, null);
@@ -269,14 +271,16 @@ function applyMove(run: Run, current: RulesState, move: MoveInstance, proposer: 
  * supplies ('required' and 'server-defaulted') are accepted.
  */
 export function moveWithInput(state: RulesState, name: string, input: Readonly<Record<string, unknown>>): { move: MoveInstance | null; error?: string } {
-	const compiled = state.game.movesByName[name];
+	const compiled = findMove(state.game, name);
 	const move = state.newMove(name);
 	if (!compiled || move === null) return { move: null, error: 'unknown move ' + JSON.stringify(name) };
 	if (compiled.spec.fixUp) return { move: null, error: 'move ' + JSON.stringify(name) + ' is engine-owned and is not a creator move' };
+	// Go ranges over the input map here, so with several unacceptable fields
+	// the one it names is arbitrary. The first in sorted order is named.
 	for (const fieldName of Object.keys(input).sort()) {
 		const field = compiled.inputFields.find(candidate => candidate.name === fieldName);
 		if (!field || (field.disposition !== 'required' && field.disposition !== 'server-defaulted')) {
-			return { move: null, error: 'move ' + JSON.stringify(name) + ' does not accept creator field ' + JSON.stringify(fieldName) };
+			return { move: null, error: 'move ' + JSON.stringify(compiled.spec.name) + ' does not accept creator field ' + JSON.stringify(fieldName) };
 		}
 	}
 	for (const field of compiled.inputFields) {
@@ -332,9 +336,10 @@ export function moveWithInput(state: RulesState, name: string, input: Readonly<R
 	return { move };
 }
 
+/** How encoding/json names a value it could not put into a Go type. */
 function jsonKind(value: unknown): string {
 	if (typeof value === 'string') return 'string';
-	if (typeof value === 'number') return 'number';
+	if (typeof value === 'number') return value === Math.floor(value) ? 'number' : 'number ' + String(value);
 	if (typeof value === 'boolean') return 'bool';
 	if (Array.isArray(value)) return 'array';
 	return 'object';
@@ -344,7 +349,7 @@ function jsonKind(value: unknown): string {
 export function moveFromRecord(state: RulesState, name: string, fields: Readonly<Record<string, unknown>>): MoveInstance | null {
 	const move = state.newMove(name);
 	if (move === null) return null;
-	const compiled = state.game.movesByName[name];
+	const compiled = state.game.movesByName[move.name];
 	for (const fieldName of compiled.fieldNames) {
 		if (Object.prototype.hasOwnProperty.call(fields, fieldName)) move.fields[fieldName] = fields[fieldName];
 	}
@@ -470,7 +475,7 @@ export function propose(game: CompiledGame, snapshot: GameSnapshot, input: Input
 			move = bound.move;
 		} else {
 			move = moveFromRecord(current, input.name, input.fields);
-			if (move === null) return done("Couldn't find a move with name: " + input.name);
+			if (move === null) return done(run.finished ? 'Game was already finished' : 'That move is not configured for this game.');
 		}
 		if (input.expectedVersion !== undefined && input.expectedVersion !== current.version) {
 			return done('move proposal used stale game version ' + input.expectedVersion + '; current version is ' + current.version);
