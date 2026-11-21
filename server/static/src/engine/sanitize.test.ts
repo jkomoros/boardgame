@@ -4,14 +4,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { EngineState, cloneJSON } from './state.ts';
+import { cloneJSON, loadEngineState } from './state.ts';
+import type { EngineState } from './state.ts';
 import type { StateJSON } from './state.ts';
 import type { GameDefinition, PolicyName, SubStateDef } from './definition.ts';
 import { parseSanitizeTag, policyFromString } from './definition.ts';
 import {
-	sanitizedForPlayer, viewFor, resolveSanitizationPolicy, sanitizationTransformation, facetSurvives,
-	SanitizeError, OBSERVER_PLAYER_INDEX, ADMIN_PLAYER_INDEX, ANY_PLAYER_INDEX,
+  sanitizedForPlayer,
+  viewFor,
+  resolveSanitizationPolicy,
+  sanitizationTransformation,
+  facetSurvives,
+  OBSERVER_PLAYER_INDEX,
+  ADMIN_PLAYER_INDEX,
+  ANY_PLAYER_INDEX,
+  isSanitizeError,
 } from './sanitize.ts';
+import type { SanitizeError } from './sanitize.ts';
 
 const read = (name: string) => JSON.parse(readFileSync(new URL('./testdata/' + name, import.meta.url), 'utf8'));
 const baseDef = read('defs/vecgame.def.json') as GameDefinition;
@@ -45,7 +54,7 @@ function defFor(c: Case): GameDefinition {
 
 function stateFor(c: Case): EngineState {
 	const vs = vectors.States[c.State];
-	return EngineState.load(defFor(c), { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
+	return loadEngineState(defFor(c), { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
 }
 
 const withoutComponents = (view: StateJSON) => {
@@ -127,7 +136,7 @@ test('errors and panics: the engine refuses where Go fails every time', () => {
 		checked++;
 		const outcome = c.Outcomes[0];
 		assert.throws(() => viewFor(stateFor(c), c.Viewer), (err: unknown) => {
-			assert.ok(err instanceof SanitizeError, c.Label);
+			assert.ok(isSanitizeError(err), c.Label);
 			if (!outcome.Panic) {
 				// Game.JSONForPlayer prefixes state.SanitizedForPlayer's error.
 				assert.equal("Couldn't sanitize state: " + err.message, outcome.Err, c.Label);
@@ -207,7 +216,7 @@ test('a tag string and its parsed map sanitize identically', () => {
 	(tagged.Player.Props.Secret as { Sanitize: unknown }).Sanitize = 'hidden';
 	(tagged.Game.Props.TagRedOnly as { Sanitize: unknown }).Sanitize = 'all:hidden,Red:visible';
 	delete (tagged.Game.Props.Draw as { Sanitize?: unknown }).Sanitize;
-	const state = EngineState.load(tagged, { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
+	const state = loadEngineState(tagged, { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
 	assert.deepEqual(viewFor(state, 1), c.Outcomes[0].View);
 });
 
@@ -235,10 +244,10 @@ test('an unknown computed group is an error, as in Go', () => {
 	const vs = vectors.States[c.State];
 	const def: GameDefinition = cloneJSON(baseDef);
 	(def.Player.Props.Score as { Sanitize: unknown }).Sanitize = { 'sideways-color': 'hidden' };
-	const state = EngineState.load(def, { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
+	const state = loadEngineState(def, { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
 	assert.throws(() => viewFor(state, 0), /sideways was used as a computed group name function/);
 	(def.Player.Props.Score as { Sanitize: unknown }).Sanitize = { nonsense: 'hidden' };
-	const state2 = EngineState.load(def, { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
+	const state2 = loadEngineState(def, { gameId: vs.GameID, secretSalt: vs.SecretSalt }, vs.Version, vs.State);
 	assert.throws(() => viewFor(state2, 0), /Unsupported group name: nonsense/);
 });
 
@@ -269,7 +278,7 @@ test('a view Go produced loads as a sanitized state and serializes back unchange
 		const vs = vectors.States[c.State];
 		const view = c.Outcomes[0].View;
 		if (c.Viewer >= vs.NumPlayers) continue;
-		const state = EngineState.load(defFor(c), { gameId: vs.GameID, secretSalt: '' }, vs.Version, view, { sanitized: true });
+		const state = loadEngineState(defFor(c), { gameId: vs.GameID, secretSalt: '' }, vs.Version, view, { sanitized: true });
 		assert.equal(state.sanitized, true);
 		assert.deepEqual(state.visibility, view.Visibility);
 		assert.deepEqual({ ...state.toJSON(), Visibility: state.visibility }, view, c.Label);

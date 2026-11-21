@@ -66,6 +66,22 @@ export const setup = pattern<Record<string, never>, Setup>(() => ({
 
 type Entry = MemoryTableView["entries"][number];
 
+/** The part of Memory's state these tests read, as a viewer is sent it. */
+interface Shown {
+  Game: {
+    HiddenCards: { Indexes: number[] };
+    VisibleCards: { Indexes: number[] };
+    Cards: { Indexes: number[] };
+  };
+  Players: { WonCards: { Indexes: number[] } }[];
+}
+
+/** A view carries the engine's state as JSON; this names what is read. */
+function shown(entry: Entry): Shown {
+  const state: unknown = entry.state;
+  return state as Shown;
+}
+
 function head(view: MemoryTableView | undefined): Entry | undefined {
   const entries = view?.entries ?? [];
   return entries[entries.length - 1];
@@ -79,7 +95,7 @@ function head(view: MemoryTableView | undefined): Entry | undefined {
 function showsNoHiddenFace(view: MemoryTableView | undefined): boolean {
   if (view === undefined) return false;
   for (const entry of view.entries) {
-    const game = entry.state.Game;
+    const game = shown(entry).Game;
     if (game.HiddenCards.Indexes.some((index) => index >= 0)) return false;
     for (let slot = 0; slot < game.Cards.Indexes.length; slot++) {
       const shown = game.Cards.Indexes[slot] >= 0;
@@ -96,7 +112,7 @@ const pairOf = (deckIndex: number) => Math.floor(deckIndex / 2);
 function noted(seen: readonly number[], view: MemoryTableView): number[] {
   const next = seen.slice();
   for (const entry of view.entries) {
-    entry.state.Game.VisibleCards.Indexes.forEach((deckIndex, slot) => {
+    shown(entry).Game.VisibleCards.Indexes.forEach((deckIndex, slot) => {
       if (deckIndex >= 0) next[slot] = pairOf(deckIndex);
     });
   }
@@ -121,7 +137,7 @@ function nextProposal(
     return { kind: "play", name: "Hide Cards", arguments: {} };
   }
   if (!part?.moveLegality["Reveal Card"]?.legalForPlayer) return undefined;
-  const game = entry.state.Game;
+  const game = shown(entry).Game;
   const hidden: number[] = [];
   game.HiddenCards.Indexes.forEach((index, slot) => {
     if (index !== -1) hidden.push(slot);
@@ -148,19 +164,28 @@ function nextProposal(
   };
 }
 
-/** The slots turned face-up by reveals after version `since`, in order. */
-function revealedSince(view: MemoryTableView, since: number): number[] {
+/**
+ * The slots turned face-up by reveals after version `since`, in order, or
+ * `undefined` when the view does not hold every version after `since` and
+ * so cannot say. `visibleAtSince` is what was face-up at `since`.
+ */
+function revealedSince(
+  view: MemoryTableView,
+  since: number,
+  visibleAtSince: readonly number[],
+): number[] | undefined {
   const slots: number[] = [];
-  let before: number[] | undefined;
+  let before: readonly number[] = visibleAtSince;
+  let expected = since + 1;
   for (const entry of view.entries) {
-    const visible = entry.state.Game.VisibleCards.Indexes;
-    if (
-      entry.version > since && entry.move?.AnimationKey === "Reveal Card" &&
-      before !== undefined
-    ) {
+    if (entry.version <= since) continue;
+    if (entry.version !== expected) return undefined;
+    expected += 1;
+    const visible = shown(entry).Game.VisibleCards.Indexes;
+    if (entry.move?.AnimationKey === "Reveal Card") {
       const previous = before;
       visible.forEach((index, slot) => {
-        if (index >= 0 && previous[slot] < 0) slots.push(slot);
+        if (index >= 0 && (previous[slot] ?? -1) < 0) slots.push(slot);
       });
     }
     before = visible;
@@ -178,6 +203,8 @@ interface Notes {
   seen: number[];
   /** The head version at the last step. */
   lastVersion: number;
+  /** What was face-up at that version, by slot. */
+  lastVisible: number[];
   /** The slot this player worked out would be turned next, or -1. */
   expected: number;
   /** Whether every card turned so far was the one worked out. */
@@ -189,6 +216,7 @@ interface Notes {
 const NO_NOTES: Notes = {
   seen: [],
   lastVersion: 0,
+  lastVisible: [],
   expected: -1,
   agreed: true,
   checked: 0,
@@ -207,8 +235,8 @@ function stepped(
   const entry = head(view);
   if (view === undefined || entry === undefined) return { notes };
   let { agreed, checked } = notes;
-  const turned = revealedSince(view, notes.lastVersion);
-  if (notes.expected >= 0 && turned.length > 0) {
+  const turned = revealedSince(view, notes.lastVersion, notes.lastVisible);
+  if (notes.expected >= 0 && turned !== undefined && turned.length > 0) {
     if (turned[0] !== notes.expected) agreed = false;
     checked += 1;
   }
@@ -218,6 +246,7 @@ function stepped(
   const next: Notes = {
     seen,
     lastVersion: entry.version,
+    lastVisible: shown(entry).Game.VisibleCards.Indexes.slice(),
     expected: proposal?.name === "Reveal Card"
       ? Number(proposal.arguments?.["CardIndex"])
       : -1,
@@ -251,10 +280,15 @@ function rounds(
   return steps;
 }
 
+const dealtCards = (view: MemoryTableView | undefined) => {
+  const entry = view?.entries[0];
+  return entry === undefined ? -1 : shown(entry).Game.HiddenCards.Indexes.length;
+};
+
 const finishedWithEveryCardWon = (view: MemoryTableView | undefined) => {
   const entry = head(view);
   if (view === undefined || entry === undefined) return false;
-  const won = entry.state.Players.reduce(
+  const won = shown(entry).Players.reduce(
     (sum, seat) => sum + seat.WonCards.Indexes.length,
     0,
   );
@@ -316,8 +350,7 @@ export const alice = pattern<{ setup: Setup }>(({ setup }) => {
     table.view?.phase === "playing" && table.view?.version === 0 &&
     table.view?.entries.length === 1 &&
     table.view?.entries[0]?.currentPlayerIndex === 0 &&
-    table.view?.entries[0]?.state.Game.HiddenCards.Indexes.length ===
-      2 * PAIRS
+    dealtCards(table.view) === 2 * PAIRS
   );
   const unmoved = assert(() => table.view?.revision === noteRevision.get());
   const over = assert(() => finishedWithEveryCardWon(table.view));

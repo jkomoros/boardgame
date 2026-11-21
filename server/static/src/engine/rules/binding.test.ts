@@ -18,13 +18,16 @@ import type { GameDefinition, PropDef, PropType, SubStateDef } from '../definiti
 import type { LegalContext, LegalFramework } from '../legal/access.ts';
 import { defaultLegalRegistry } from '../legal/catalog.ts';
 import { goQuote } from '../legal/goformat.ts';
-import { type LegalPredicate, LegalSpecError, evalLegalPredicate, resolveLegalSpecs } from '../legal/predicate.ts';
+import { type LegalPredicate, evalLegalPredicate, resolveLegalSpecs, legalSpecError } from '../legal/predicate.ts';
+import type { LegalSpecError } from '../legal/predicate.ts';
 import type { WireFixture, WireGame, WireSubState } from '../legal/testing/fixtures.ts';
 import type { LegalOutcome, LegalSpec, LegalVerdict, PropertyType } from '../legal/types.ts';
-import { EngineState } from '../state.ts';
+import { loadEngineState } from '../state.ts';
+import type { EngineState } from '../state.ts';
 import type { StateJSON } from '../state.ts';
 import { type ComponentSchema, type ValuePropDef, bindLegalMove, bindLegalState } from './binding.ts';
-import { EnumRegistry } from './enums.ts';
+import { newEnumRegistry } from './enums.ts';
+import type { EnumRegistry } from './enums.ts';
 
 function repoRoot(): string {
 	let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -117,7 +120,7 @@ function bind(name: string): Bound {
 	for (const [enumName, e] of Object.entries(game.chest.Enums ?? {})) enumDefs[enumName] = { Values: e.Values, DefaultValue: 0 };
 	const otherDefs: Record<string, { Values: Record<string, string>; DefaultValue: number }> = {};
 	for (const [enumName, values] of Object.entries(game.otherEnums ?? {})) otherDefs[enumName] = { Values: values, DefaultValue: 0 };
-	const enums = new EnumRegistry(enumDefs, otherDefs);
+	const enums = newEnumRegistry(enumDefs, otherDefs);
 
 	const decks: GameDefinition['Decks'] = {};
 	const components: Record<string, Record<string, ValuePropDef>> = {};
@@ -147,7 +150,7 @@ function bind(name: string): Bound {
 		DynamicComponentValues: dynamic,
 	};
 
-	const state = EngineState.load(def, { gameId: 'fixture', secretSalt: 'salt' }, 0, stateJSON, { skipConservation: true });
+	const state = loadEngineState(def, { gameId: 'fixture', secretSalt: 'salt' }, 0, stateJSON, { skipConservation: true });
 	const legalState = bindLegalState(
 		state,
 		{ enums, components: components as ComponentSchema },
@@ -224,7 +227,7 @@ const vectors = JSON.parse(readFileSync(path.join(testdata, 'vectors.json'), 'ut
 
 function resolveDirect(spec: LegalSpec): LegalPredicate {
 	const ctor = registry.get(spec.name);
-	if (ctor === undefined) throw new LegalSpecError(`legal: unknown predicate name ${goQuote(spec.name)}`);
+	if (ctor === undefined) throw legalSpecError(`legal: unknown predicate name ${goQuote(spec.name)}`);
 	return ctor.construct(spec, null, resolveDirect);
 }
 

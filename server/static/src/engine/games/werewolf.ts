@@ -101,25 +101,27 @@ function finishVoteResolution(state: RulesState): void {
 	startVoteTimer(state);
 }
 
-const beginGame: MoveSpec = startPhase({
-	phase: PHASE_DAY,
-	phaseName: 'Day',
-	name: 'Begin Game',
-	helpText: 'Starts the day phase and assigns roles among seated players.',
-	apply(state) {
-		state.setPhase(PHASE_DAY);
-		const active: number[] = [];
-		for (let i = 0; i < state.numPlayers(); i++) if (!state.playerIsInactive(i)) active.push(i);
-		const numWerewolves = active.length >= 6 ? 2 : 1;
-		// One draw: a permutation whose first entries name the werewolves.
-		const indices = state.rand().perm(active.length);
-		active.forEach((player, i) => {
-			state.players[player].Role = indices.slice(0, numWerewolves).indexOf(i) >= 0 ? WEREWOLF : VILLAGER;
-		});
-		populateFellowWolves(state);
-		startVoteTimer(state);
-	},
-});
+function beginGame(): MoveSpec {
+	return startPhase({
+		phase: PHASE_DAY,
+		phaseName: 'Day',
+		name: 'Begin Game',
+		helpText: 'Starts the day phase and assigns roles among seated players.',
+		apply(state) {
+			state.setPhase(PHASE_DAY);
+			const active: number[] = [];
+			for (let i = 0; i < state.numPlayers(); i++) if (!state.playerIsInactive(i)) active.push(i);
+			const numWerewolves = active.length >= 6 ? 2 : 1;
+			// One draw: a permutation whose first entries name the werewolves.
+			const indices = state.rand().perm(active.length);
+			active.forEach((player, i) => {
+				state.players[player].Role = indices.slice(0, numWerewolves).indexOf(i) >= 0 ? WEREWOLF : VILLAGER;
+			});
+			populateFellowWolves(state);
+			startVoteTimer(state);
+		},
+	});
+}
 
 /** One spec for both votes: the phase it is installed in decides which vote it casts. */
 function castVote(options: Pick<MoveSpec, 'name' | 'helpText' | 'nameSanitization' | 'hiddenAnimationKey'>): MoveSpec {
@@ -197,116 +199,118 @@ function resolveOnTimeout(options: Pick<MoveSpec, 'name' | 'helpText'>): MoveSpe
 
 const ROLES = { Values: { 0: VILLAGER, 1: WEREWOLF }, DefaultValue: 0 };
 
-export const werewolf: GameSpec = {
-	name: 'werewolf',
-	minNumPlayers: 4,
-	maxNumPlayers: 7,
-	defaultNumPlayers: 5,
+export function werewolf(): GameSpec {
+	return {
+		name: 'werewolf',
+		minNumPlayers: 4,
+		maxNumPlayers: 7,
+		defaultNumPlayers: 5,
 
-	decks: {},
-	enums: {
-		phase: { Values: { 0: 'Gathering', 1: 'Day', 2: 'Night' }, DefaultValue: 0 },
-		role: ROLES,
-		// The enum named "group" makes its values sanitization groups: a
-		// property or move may be visible to "same-role" players.
-		group: ROLES,
-	},
-
-	game: {
-		props: { ...phaseProps, RoundNumber: { Type: 'int' }, VoteTimer: { Type: 'timer' } },
-	},
-	player: {
-		props: {
-			...seatProps,
-			...inactivePlayerProps,
-			...eliminationProps,
-			...roleProps,
-			DayVote: { Type: 'playerIndex' },
-			NightVote: { Type: 'playerIndex', Sanitize: 'other:hidden' },
-			FellowWolves: { Type: 'playerIndexSlice', Sanitize: 'other:hidden' },
+		decks: {},
+		enums: {
+			phase: { Values: { 0: 'Gathering', 1: 'Day', 2: 'Night' }, DefaultValue: 0 },
+			role: ROLES,
+			// The enum named "group" makes its values sanitization groups: a
+			// property or move may be visible to "same-role" players.
+			group: ROLES,
 		},
-		// -1 means "has not voted".
-		initial: () => ({ DayVote: -1, NightVote: -1 }),
-		traits: { seat: true, inactive: true, elimination: true, role: true },
-	},
 
-	variants: {
-		timedvoting: {
-			displayName: 'Timed Voting',
-			description: 'Resolve each day and night vote after 45 seconds, using the votes cast so far.',
-			default: 'off',
-			values: { off: { displayName: 'Off' }, on: { displayName: '45 seconds' } },
+		game: {
+			props: { ...phaseProps, RoundNumber: { Type: 'int' }, VoteTimer: { Type: 'timer' } },
 		},
-	},
+		player: {
+			props: {
+				...seatProps,
+				...inactivePlayerProps,
+				...eliminationProps,
+				...roleProps,
+				DayVote: { Type: 'playerIndex' },
+				NightVote: { Type: 'playerIndex', Sanitize: 'other:hidden' },
+				FellowWolves: { Type: 'playerIndexSlice', Sanitize: 'other:hidden' },
+			},
+			// -1 means "has not voted".
+			initial: () => ({ DayVote: -1, NightVote: -1 }),
+			traits: { seat: true, inactive: true, elimination: true, role: true },
+		},
 
-	moves: combine(
-		add(seatPlayer()),
-		addOrderedForPhase(
-			PHASE_GATHERING,
-			optional(activateInactivePlayer({ nameSuffix: 'Gathering' })),
-			waitForEnoughPlayers({ nameSuffix: 'Gathering' }),
-			optional(inactivateEmptySeat({ nameSuffix: 'Gathering' })),
-			beginGame,
+		variants: {
+			timedvoting: {
+				displayName: 'Timed Voting',
+				description: 'Resolve each day and night vote after 45 seconds, using the votes cast so far.',
+				default: 'off',
+				values: { off: { displayName: 'Off' }, on: { displayName: '45 seconds' } },
+			},
+		},
+
+		moves: combine(
+			add(seatPlayer()),
+			addOrderedForPhase(
+				PHASE_GATHERING,
+				optional(activateInactivePlayer({ nameSuffix: 'Gathering' })),
+				waitForEnoughPlayers({ nameSuffix: 'Gathering' }),
+				optional(inactivateEmptySeat({ nameSuffix: 'Gathering' })),
+				beginGame(),
+			),
+			addForPhase(
+				PHASE_DAY,
+				castVote({ name: 'Cast Vote', helpText: 'Vote for a player to eliminate.' }),
+				resolveVotesMove({ name: 'Resolve Votes', helpText: 'Tallies votes, eliminates the chosen player, and transitions to the next phase.' }),
+				resolveOnTimeout({ name: DAY_TIMEOUT, helpText: 'Resolves the daytime deadline using votes cast so far.' }),
+			),
+			addForPhase(
+				PHASE_NIGHT,
+				castVote({
+					name: 'Cast Night Vote',
+					helpText: 'Werewolves choose a target to eliminate.',
+					// Villagers must not learn that a werewolf acted, or who did.
+					nameSanitization: 'self:visible,same-role:visible',
+					hiddenAnimationKey: 'Hidden Action',
+				}),
+				resolveVotesMove({ name: 'Resolve Night Votes', helpText: 'Tallies werewolf votes, eliminates the target, and transitions to day.' }),
+				resolveOnTimeout({ name: NIGHT_TIMEOUT, helpText: 'Resolves the nighttime deadline using votes cast so far.' }),
+			),
 		),
-		addForPhase(
-			PHASE_DAY,
-			castVote({ name: 'Cast Vote', helpText: 'Vote for a player to eliminate.' }),
-			resolveVotesMove({ name: 'Resolve Votes', helpText: 'Tallies votes, eliminates the chosen player, and transitions to the next phase.' }),
-			resolveOnTimeout({ name: DAY_TIMEOUT, helpText: 'Resolves the daytime deadline using votes cast so far.' }),
-		),
-		addForPhase(
-			PHASE_NIGHT,
-			castVote({
-				name: 'Cast Night Vote',
-				helpText: 'Werewolves choose a target to eliminate.',
-				// Villagers must not learn that a werewolf acted, or who did.
-				nameSanitization: 'self:visible,same-role:visible',
-				hiddenAnimationKey: 'Hidden Action',
-			}),
-			resolveVotesMove({ name: 'Resolve Night Votes', helpText: 'Tallies werewolf votes, eliminates the target, and transitions to day.' }),
-			resolveOnTimeout({ name: NIGHT_TIMEOUT, helpText: 'Resolves the nighttime deadline using votes cast so far.' }),
-		),
-	),
 
-	setUp: {
-		begin(state) {
-			for (const player of state.players) {
-				player.DayVote = -1;
-				player.NightVote = -1;
-			}
+		setUp: {
+			begin(state) {
+				for (const player of state.players) {
+					player.DayVote = -1;
+					player.NightVote = -1;
+				}
+			},
+			distribute: () => {
+				throw new Error('DistributeComponentToStarterStack was called, but the component was not stored in a stack');
+			},
 		},
-		distribute: () => {
-			throw new Error('DistributeComponentToStarterStack was called, but the component was not stored in a stack');
-		},
-	},
 
-	// Everyone acts at once while a vote is open; nobody may act while gathering.
-	currentPlayerIndex: state => {
-		const phase = state.currentPhaseKey();
-		return phase === PHASE_DAY || phase === PHASE_NIGHT ? ANY_PLAYER_INDEX : OBSERVER_PLAYER_INDEX;
-	},
-
-	end: {
-		// Villagers win when no werewolf is left; werewolves when they are
-		// at least as many as the villagers.
-		check(state) {
-			if (state.currentPhaseKey() === PHASE_GATHERING) return { finished: false, winners: [] };
-			let wolves = 0;
-			let villagers = 0;
-			for (let i = 0; i < state.numPlayers(); i++) {
-				if (state.playerIsInactive(i) || eliminated(state, i)) continue;
-				if (isWerewolf(state, i)) wolves++;
-				else villagers++;
-			}
-			const villagersWin = wolves === 0;
-			const werewolvesWin = !villagersWin && wolves >= villagers;
-			if (!villagersWin && !werewolvesWin) return { finished: false, winners: [] };
-			const winners: number[] = [];
-			for (let i = 0; i < state.numPlayers(); i++) {
-				if (state.playerIsInactive(i)) continue;
-				if (villagersWin !== isWerewolf(state, i)) winners.push(i);
-			}
-			return { finished: true, winners };
+		// Everyone acts at once while a vote is open; nobody may act while gathering.
+		currentPlayerIndex: state => {
+			const phase = state.currentPhaseKey();
+			return phase === PHASE_DAY || phase === PHASE_NIGHT ? ANY_PLAYER_INDEX : OBSERVER_PLAYER_INDEX;
 		},
-	},
-};
+
+		end: {
+			// Villagers win when no werewolf is left; werewolves when they are
+			// at least as many as the villagers.
+			check(state) {
+				if (state.currentPhaseKey() === PHASE_GATHERING) return { finished: false, winners: [] };
+				let wolves = 0;
+				let villagers = 0;
+				for (let i = 0; i < state.numPlayers(); i++) {
+					if (state.playerIsInactive(i) || eliminated(state, i)) continue;
+					if (isWerewolf(state, i)) wolves++;
+					else villagers++;
+				}
+				const villagersWin = wolves === 0;
+				const werewolvesWin = !villagersWin && wolves >= villagers;
+				if (!villagersWin && !werewolvesWin) return { finished: false, winners: [] };
+				const winners: number[] = [];
+				for (let i = 0; i < state.numPlayers(); i++) {
+					if (state.playerIsInactive(i)) continue;
+					if (villagersWin !== isWerewolf(state, i)) winners.push(i);
+				}
+				return { finished: true, winners };
+			},
+		},
+	};
+}

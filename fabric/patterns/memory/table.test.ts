@@ -1,37 +1,53 @@
 /**
- * Memory's rules and the table around them, with the clock and the
- * randomness supplied by the test. Run with Node 24:
+ * The table around Memory, with the clock and the randomness supplied by the
+ * test: seating and dealing as proposals, every kind of refusal, card ids
+ * across a reveal, and the hide-cards timer against a clock the test moves.
  *
- *   node --test fabric/patterns/memory/rules.test.ts
+ *   node --test fabric/patterns/memory/table.test.ts
  *
- * The pattern test beside this file (`multi-user.test.tsx`) plays the same
- * rules through the sealed cell and the runtime's own principals. This one
- * covers what needs a clock that can be moved: the hide-cards timer.
+ * That the game itself is Go's is `parity.test.ts`. That all of this holds
+ * through the sealed cell and the runtime's own principals is
+ * `multi-user.test.tsx`.
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
   emptyTable,
+  held,
   stepTable,
   type TableState,
   viewOf,
-  WINDOW,
 } from "../toolkit/table.ts";
 import type { Proposal, TableView } from "../toolkit/view.ts";
-import {
-  HIDE_CARDS_MS,
-  type MemoryGame,
-  memoryRules,
-  type MemoryView,
-} from "./rules.ts";
+import { memoryGame } from "./game.ts";
 
-const RULES = memoryRules();
+const GAME = memoryGame();
+const HIDE_CARDS_MS = 4000;
+
+interface Stack {
+  Indexes: number[];
+  IDs: string[];
+  IDsLastSeen: Record<string, number>;
+}
+interface Shown {
+  Game: {
+    HiddenCards: Stack;
+    VisibleCards: Stack;
+    Cards: Stack;
+    HideCardsTimer: { ID: string };
+    CurrentPlayer: number;
+  };
+  Players: { WonCards: Stack; CardsLeftToReveal: number }[];
+  Computed: { Players: { GameScore: number }[] };
+}
+const shownState = (entry: TableView["entries"][number]): Shown =>
+  entry.state as unknown as Shown;
 
 /** A table driven by named people, with a clock the test moves. */
 class Harness {
-  table: TableState<MemoryGame> = emptyTable();
-  now = 1_000_000;
+  table: TableState = emptyTable();
+  now = 1_700_000_000_000;
   private seed: number;
 
   constructor(seed = 1) {
@@ -46,7 +62,7 @@ class Harness {
 
   /** Proposes as `who`; returns the refusal, or `""`. */
   propose(who: string, proposal: Proposal): string {
-    const result = stepTable(RULES, this.table, proposal, {
+    const result = stepTable(GAME, this.table, proposal, {
       proposer: who,
       now: this.now,
       entropy: this.entropy,
@@ -55,8 +71,8 @@ class Harness {
     return result.error;
   }
 
-  get view(): TableView<MemoryView> {
-    return viewOf(RULES, this.table);
+  get view(): TableView {
+    return viewOf(GAME, this.table);
   }
 
   get head() {
@@ -64,9 +80,13 @@ class Harness {
     return entries[entries.length - 1];
   }
 
+  get shown(): Shown {
+    return shownState(this.head);
+  }
+
   /** The unsanitized head, which only the test may look at. */
-  get secret(): MemoryGame {
-    return this.table.recent[this.table.recent.length - 1].game;
+  get secret(): Shown {
+    return held(this.table).at(-1)!.state as unknown as Shown;
   }
 
   reveal(who: string, slot: number): string {
@@ -107,9 +127,9 @@ class Harness {
   }
 }
 
-function assertNoHiddenFace(view: TableView<MemoryView>): void {
+function assertNoHiddenFace(view: TableView): void {
   for (const entry of view.entries) {
-    const game = entry.state.Game;
+    const game = shownState(entry).Game;
     assert.ok(
       game.HiddenCards.Indexes.every((index) => index === -1 || index === -2),
       `version ${entry.version} shows a hidden card's face`,
@@ -135,7 +155,10 @@ test("seating and the deal are proposals like any other", () => {
   ]);
   assert.equal(harness.propose("bob", { kind: "leave" }), "");
   assert.equal(harness.propose("bob", { kind: "sit", label: "Bob" }), "");
-  assert.equal(harness.propose("bob", { kind: "start" }), "");
+  assert.equal(
+    harness.propose("bob", { kind: "start", options: { numcards: "small" } }),
+    "",
+  );
   assert.equal(harness.view.phase, "playing");
   assert.equal(harness.view.version, 0);
   assert.match(harness.propose("carol", { kind: "sit" }), /started/);
@@ -143,7 +166,7 @@ test("seating and the deal are proposals like any other", () => {
   assert.match(harness.propose("", { kind: "sit" }), /no one/);
 });
 
-test("the deal lays out whole pairs and depends only on the salt", () => {
+test("the deal depends only on the drawn identity", () => {
   const one = Harness.dealt(1);
   const hidden = one.secret.Game.HiddenCards;
   assert.equal(hidden.Indexes.length, 10);
@@ -167,73 +190,84 @@ test("the view of a fresh deal shows no face and offers every slot", () => {
   const head = harness.head;
   assert.equal(head.move, undefined);
   assert.equal(head.currentPlayerIndex, 0);
-  assert.deepEqual(
-    head.state.Game.HiddenCards.Indexes,
-    new Array(10).fill(-2),
-  );
-  assert.deepEqual(head.state.Game.HiddenCards.IDs, head.state.Game.Cards.IDs);
+  assert.deepEqual(harness.shown.Game.HiddenCards.Indexes, new Array(10).fill(-2));
+  assert.deepEqual(harness.shown.Game.HiddenCards.IDs, harness.shown.Game.Cards.IDs);
   assert.equal(head.viewers["0"].moveLegality["Reveal Card"].legalForPlayer, true);
   assert.equal(head.viewers["1"].moveLegality["Reveal Card"].legalForPlayer, false);
   assert.equal(head.viewers["1"].moveLegality["Reveal Card"].legalForAnyone, true);
   assert.equal(head.viewers["-1"].moveLegality["Reveal Card"].legalForPlayer, false);
+  assert.deepEqual(head.viewers["0"].zeroInputMoves, ["Hide Cards"]);
   assert.equal(head.viewers["0"].projectedMoveChoices.Sets[0].Candidates.length, 10);
   assert.equal(head.viewers["1"].projectedMoveChoices.Sets.length, 0);
-  // Nothing of the salt or the layout is in what readers get.
+  // Nothing of the salt or of the layout is in what readers get.
   const text = JSON.stringify(harness.view);
-  assert.ok(!text.includes(harness.table.secretSalt));
+  assert.ok(!text.includes(harness.table.record.secretSalt));
   assert.ok(!text.includes("SecretMoveCount"));
+  assert.ok(!text.includes('"Timers"'));
 });
 
-test("illegal and out-of-turn moves are refused and change nothing", () => {
+test("illegal and out-of-turn moves are refused, in Go's words, and change nothing", () => {
   const harness = Harness.dealt();
   const before = JSON.stringify(harness.table);
-  assert.match(harness.reveal("bob", 0), /not your turn/);
+  assert.equal(harness.reveal("bob", 0), "it's not your turn");
   assert.match(harness.reveal("carol", 0), /no seat/);
-  assert.match(harness.reveal("alice", 99), /no card/);
-  assert.match(harness.reveal("alice", -1), /no card/);
+  assert.match(harness.reveal("alice", 99), /not an occupied slot|no card/);
   assert.match(
     harness.propose("alice", {
       kind: "play",
       name: "Reveal Card",
       arguments: { CardIndex: "1; drop" },
     }),
-    /no card/,
+    /cannot unmarshal string/,
   );
-  assert.match(
+  assert.equal(
     harness.propose("alice", { kind: "play", name: "Hide Cards" }),
-    /reveal more/,
+    "You still have to reveal more cards before your turn is over",
   );
   for (const name of ["Capture Cards", "Finish Turn", "Start Hide Cards Timer"]) {
     assert.match(
       harness.propose("alice", { kind: "play", name }),
-      /cannot be proposed/,
+      /engine-owned/,
     );
   }
+  assert.match(
+    harness.propose("alice", { kind: "play", name: "No Such Move" }),
+    /unknown move/,
+  );
+  assert.match(
+    harness.propose("alice", {
+      kind: "play",
+      name: "Reveal Card",
+      arguments: { CardIndex: "0", TargetPlayerIndex: "1" },
+    }),
+    /does not accept/,
+  );
   assert.match(harness.propose("alice", { kind: "play" }), /no name/);
   assert.match(harness.propose("alice", { kind: "restart" }), /not over/);
   assert.match(
     harness.propose("alice", { kind: "tick", timerId: "X" }),
-    /no such timer/,
+    /stale|already handled/,
   );
+  assert.match(harness.propose("alice", { kind: "tick" }), /names no timer/);
   assert.equal(JSON.stringify(harness.table), before);
 });
 
 test("a card keeps its id when it is turned over and back", () => {
   const harness = Harness.dealt();
   const { mismatch } = harness.slots();
-  const id = harness.head.state.Game.HiddenCards.IDs[mismatch[0]];
+  const id = harness.shown.Game.HiddenCards.IDs[mismatch[0]];
   assert.equal(harness.reveal("alice", mismatch[0]), "");
-  let game = harness.head.state.Game;
+  let game = harness.shown.Game;
   assert.equal(game.VisibleCards.IDs[mismatch[0]], id);
   assert.equal(game.HiddenCards.IDs[mismatch[0]], "");
   assert.equal(game.Cards.IDs[mismatch[0]], id);
   assert.ok(game.VisibleCards.Indexes[mismatch[0]] >= 0);
   assert.equal(game.VisibleCards.IDsLastSeen[id], 1);
-  assert.match(harness.reveal("alice", mismatch[0]), /already been revealed/);
+  assert.match(harness.reveal("alice", mismatch[0]), /not an occupied slot/);
   assert.equal(harness.reveal("alice", mismatch[1]), "");
   assert.match(harness.reveal("alice", 5), /no cards left/);
   assert.equal(harness.propose("alice", { kind: "play", name: "Hide Cards" }), "");
-  game = harness.head.state.Game;
+  game = harness.shown.Game;
   assert.equal(game.HiddenCards.IDs[mismatch[0]], id);
   assert.equal(game.HiddenCards.Indexes[mismatch[0]], -2);
   assertNoHiddenFace(harness.view);
@@ -250,29 +284,28 @@ test("a mismatch starts the timer; a tick is checked against the clock", () => {
       entry.move?.AnimationKey,
       entry.settled,
     ]),
+    // The versions of the last input: the reveal and its one fix-up.
     [
-      [0, undefined, true],
-      [1, "Reveal Card", true],
       [2, "Reveal Card", false],
       [3, "Start Hide Cards Timer", true],
     ],
   );
   const head = harness.head;
-  const timerId = head.state.Game.HideCardsTimer.ID;
+  const timerId = harness.shown.Game.HideCardsTimer.ID;
   assert.match(timerId, /^[0-9A-F]{16}$/);
   assert.deepEqual(head.timers, { [timerId]: { TimeLeft: HIDE_CARDS_MS } });
   assert.equal(head.viewers["0"].moveLegality["Hide Cards"].legalForPlayer, true);
 
   // Anyone may ask; nobody may make the clock run faster.
   const before = harness.table.revision;
-  assert.match(
+  assert.equal(
     harness.propose("bob", { kind: "tick", timerId }),
-    /not run out/,
+    "timer deadline has not passed",
   );
   harness.now += HIDE_CARDS_MS - 1;
-  assert.match(
+  assert.equal(
     harness.propose("carol", { kind: "tick", timerId }),
-    /not run out/,
+    "timer deadline has not passed",
   );
   assert.equal(harness.table.revision, before);
 
@@ -283,14 +316,13 @@ test("a mismatch starts the timer; a tick is checked against the clock", () => {
     ["Hide Cards", "Finish Turn"],
   );
   assert.equal(harness.head.currentPlayerIndex, 1);
-  assert.equal(harness.head.state.Game.HideCardsTimer.ID, "");
+  assert.equal(harness.shown.Game.HideCardsTimer.ID, "");
   assert.deepEqual(harness.head.timers, {});
-  assert.equal(harness.table.timers.length, 0);
-  assert.equal(harness.table.history.at(-2)?.seat, -2);
+  assert.equal(harness.table.history.at(-2)?.["Proposer"], -2);
   // The same tick again, as a second browser would send it.
   assert.match(
     harness.propose("bob", { kind: "tick", timerId }),
-    /no such timer/,
+    /stale|already handled/,
   );
   assertNoHiddenFace(harness.view);
 });
@@ -300,17 +332,16 @@ test("hiding by hand cancels the timer", () => {
   const { mismatch } = harness.slots();
   harness.reveal("alice", mismatch[0]);
   harness.reveal("alice", mismatch[1]);
-  const timerId = harness.head.state.Game.HideCardsTimer.ID;
-  assert.match(
+  const timerId = harness.shown.Game.HideCardsTimer.ID;
+  assert.equal(
     harness.propose("bob", { kind: "play", name: "Hide Cards" }),
-    /not your turn/,
+    "it's not your turn",
   );
   assert.equal(harness.propose("alice", { kind: "play", name: "Hide Cards" }), "");
-  assert.equal(harness.table.timers.length, 0);
   harness.now += 2 * HIDE_CARDS_MS;
   assert.match(
     harness.propose("alice", { kind: "tick", timerId }),
-    /no such timer/,
+    /stale|already handled/,
   );
 });
 
@@ -323,12 +354,10 @@ test("a match is captured and the turn passes", () => {
     harness.view.entries.slice(-3).map((entry) => entry.move?.AnimationKey),
     ["Reveal Card", "Capture Cards", "Finish Turn"],
   );
-  const head = harness.head;
-  assert.equal(head.state.Players[0].WonCards.Indexes.length, 2);
-  assert.equal(head.state.Computed.Players[0].GameScore, 2);
-  assert.equal(head.currentPlayerIndex, 1);
-  assert.equal(head.state.Players[1].CardsLeftToReveal, 2);
-  assert.equal(harness.table.timers.length, 0);
+  assert.equal(harness.shown.Players[0].WonCards.Indexes.length, 2);
+  assert.equal(harness.shown.Computed.Players[0].GameScore, 2);
+  assert.equal(harness.head.currentPlayerIndex, 1);
+  assert.equal(harness.shown.Players[1].CardsLeftToReveal, 2);
 });
 
 test("a whole game: bounded window, full history, a winner, a new deal", () => {
@@ -342,39 +371,34 @@ test("a whole game: bounded window, full history, a winner, a new deal", () => {
     if (part.moveLegality["Hide Cards"].legalForPlayer) {
       harness.now += HIDE_CARDS_MS;
       const timerId = Object.keys(head.timers)[0] ??
-        head.state.Game.HideCardsTimer.ID;
+        harness.shown.Game.HideCardsTimer.ID;
       assert.equal(harness.propose("bob", { kind: "tick", timerId }), "");
     } else {
       const { match, mismatch } = harness.slots();
-      const turned = head.state.Game.VisibleCards.Indexes.findIndex((index) =>
-        index >= 0
-      );
-      // Alternate: complete a pair on even turns, miss on odd ones.
+      const visible = harness.shown.Game.VisibleCards.Indexes;
+      const turned = visible.findIndex((index) => index >= 0);
+      const wantMatch = harness.table.version % 4 < 2;
+      const hidden = harness.secret.Game.HiddenCards.Indexes;
+      // Alternate: complete a pair on some turns, miss on others.
       const slot = turned >= 0
-        ? harness.secret.Game.HiddenCards.Indexes.findIndex((index, at) =>
-          index >= 0 &&
-          (harness.table.version % 4 < 2) ===
-            (Math.floor(index / 2) ===
-              Math.floor(head.state.Game.VisibleCards.Indexes[turned] / 2)) &&
-          at !== turned
+        ? hidden.findIndex((index, at) =>
+          index >= 0 && at !== turned &&
+          wantMatch === (Math.floor(index / 2) === Math.floor(visible[turned] / 2))
         )
-        : (harness.table.version % 4 < 2 ? match[0] : mismatch[0]);
-      const pick = slot >= 0
-        ? slot
-        : harness.secret.Game.HiddenCards.Indexes.findIndex((index) =>
-          index >= 0
-        );
+        : (wantMatch ? match[0] : mismatch[0]);
+      const pick = slot >= 0 ? slot : hidden.findIndex((index) => index >= 0);
       assert.equal(harness.reveal(names[mover], pick), "");
     }
     assertNoHiddenFace(harness.view);
-    assert.ok(harness.view.entries.length <= WINDOW);
+    // One input's versions at most: a reveal with its two fix-ups.
+    assert.ok(harness.view.entries.length <= 3);
     assert.equal(harness.table.history.length, harness.table.version);
   }
   const view = harness.view;
   assert.equal(view.phase, "finished");
   const head = harness.head;
   assert.equal(head.outcome.finished, true);
-  const scores = head.state.Players.map((seat) => seat.WonCards.Indexes.length);
+  const scores = harness.shown.Players.map((seat) => seat.WonCards.Indexes.length);
   assert.equal(scores[0] + scores[1], 10);
   assert.deepEqual(
     head.outcome.winners,
@@ -382,7 +406,7 @@ test("a whole game: bounded window, full history, a winner, a new deal", () => {
   );
   assert.match(harness.reveal("alice", 0), /no game/);
   assert.deepEqual(
-    harness.table.history.map((entry) => entry.version),
+    harness.table.history.map((entry) => entry["Version"]),
     harness.table.history.map((_, index) => index + 1),
   );
 

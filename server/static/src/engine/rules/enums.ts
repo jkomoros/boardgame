@@ -62,27 +62,34 @@ export function bindEnum(name: string, def: EnumDef): BoundEnum {
 }
 
 /** Every enum a game names, chest enums first. Identity is the name. */
-export class EnumRegistry {
-	private readonly byName: Record<string, BoundEnum> = {};
-	private readonly chestNames: string[] = [];
-
-	constructor(chest: Readonly<Record<string, EnumDef>>, other: Readonly<Record<string, EnumDef>> = {}) {
-		for (const name of Object.keys(chest).sort()) {
-			this.byName[name] = bindEnum(name, chest[name]);
-			this.chestNames.push(name);
-		}
-		for (const name of Object.keys(other)) {
-			if (!this.byName[name]) this.byName[name] = bindEnum(name, other[name]);
-		}
-	}
-
-	get(name: string | undefined): BoundEnum | null {
-		if (name === undefined) return null;
-		return this.byName[name] ?? null;
-	}
-
+export interface EnumRegistry {
+	readonly byName: Record<string, BoundEnum>;
+	readonly chestNames: string[];
+	get(name: string | undefined): BoundEnum | null;
 	/** ComponentChest.Enums(): only the enums the chest ships. */
-	chestEnums(): BoundEnum[] {
-		return this.chestNames.map(name => this.byName[name]);
-	}
+	chestEnums(): BoundEnum[];
+}
+
+/** Creates an `EnumRegistry`. */
+export function newEnumRegistry(chest: Readonly<Record<string, EnumDef>>, other: Readonly<Record<string, EnumDef>> = {}): EnumRegistry {
+	const self: EnumRegistry = {
+		byName: {},
+		chestNames: [],
+		get(name: string | undefined): BoundEnum | null {
+			if (name === undefined) return null;
+			return this.byName[name] ?? null;
+		},
+		/** ComponentChest.Enums(): only the enums the chest ships. */
+		chestEnums(): BoundEnum[] {
+			return this.chestNames.map(name => this.byName[name]);
+		},
+	};
+	for (const name of Object.keys(chest).sort()) {
+			self.byName[name] = bindEnum(name, chest[name]);
+			self.chestNames.push(name);
+		}
+	for (const name of Object.keys(other)) {
+			if (!self.byName[name]) self.byName[name] = bindEnum(name, other[name]);
+		}
+	return self;
 }

@@ -36,7 +36,7 @@ const dir = corpusDir();
 const index = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8')) as { file: string; game: string; name: string }[];
 
 // The four games this layer set out to port, and the two stretch games.
-const specs: Record<string, GameSpec> = { memory, blackjack, tictactoe, pig, debuganimations, werewolf };
+const specs: Record<string, GameSpec> = { memory: memory(), blackjack: blackjack(), tictactoe: tictactoe(), pig: pig(), debuganimations: debuganimations(), werewolf: werewolf() };
 const compiled: Record<string, CompiledGame> = {};
 const results: DocumentResult[] = [];
 

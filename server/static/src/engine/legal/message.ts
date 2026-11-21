@@ -1,17 +1,60 @@
 // Turning a verdict into text: Go's RenderLegalMessage, LegalError.Error()
 // and LegalTemplatePlaceholders.
 //
-// The renderer itself is NOT reimplemented here. It already exists as
-// src/legal/renderLegalMessage.ts, the client's byte-for-byte mirror of Go's
-// RenderLegalMessage, shared with the ledger UI. The dependency runs one
-// way: engine/legal imports src/legal. Nothing in src/legal imports the
-// engine.
+// The renderer is the same function as src/legal/renderLegalMessage.ts, the
+// client's byte-for-byte mirror of Go's RenderLegalMessage. It is written
+// out here, not imported, because the engine has to load in a Common Fabric
+// pattern, and that module cannot: it keeps a global regular expression at
+// module scope, which the pattern sandbox refuses as stateful data, and it
+// imports a declaration file by an extensionless path. message.test.ts holds
+// the two to the same answers.
+//
+// TODO(client): src/legal/renderLegalMessage.ts should re-export this one,
+// so there is a single renderer again.
 
-import { type LegalTemplateTable, renderLegalMessage } from '../../legal/renderLegalMessage.ts';
-import type { LegalVerdict } from './types.ts';
+import type { LegalMessage, LegalVerdict } from './types.ts';
 
-export { renderLegalMessage };
-export type { LegalTemplateTable };
+/** The merged template table (chest LegalTemplates: key -> body). */
+export type LegalTemplateTable = Record<string, string>;
+
+/**
+ * Go: RenderLegalMessage. A nil message renders ''. The body is
+ * `table[template]`, or the raw key when the table has none (a present but
+ * empty body stays ''). Each `{name}` is replaced by its binding; a missing
+ * binding renders the bare name.
+ */
+export function renderLegalMessage(
+  message: LegalMessage | null | undefined,
+  table: LegalTemplateTable | undefined,
+): string {
+  if (!message) {
+    return '';
+  }
+  const body =
+    table && Object.prototype.hasOwnProperty.call(table, message.template)
+      ? table[message.template]
+      : message.template;
+  const bindings = message.bindings;
+  // Mirrors legalPlaceholderPattern in legal_error.go. Built per call: a
+  // global regular expression carries state, so it cannot live at module
+  // scope in a pattern.
+  return body.replace(/\{([A-Za-z0-9_]+)\}/g, (_match: string, name: string): string => {
+    if (!bindings || !Object.prototype.hasOwnProperty.call(bindings, name)) {
+      return name;
+    }
+    const val = bindings[name];
+    switch (typeof val) {
+      case 'string':
+        return val;
+      case 'number':
+        return String(val);
+      case 'boolean':
+        return String(val);
+      default:
+        return name;
+    }
+  });
+}
 
 /**
  * Go: LegalTemplatePlaceholders. The distinct {name} placeholders a template

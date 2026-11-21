@@ -25,7 +25,8 @@ import {
   evaluateLegalPlan,
   legalPlanError,
 } from './plan.ts';
-import { type LegalPredicateConstructor, LegalSpecError, newLegalPredicate } from './predicate.ts';
+import { type LegalPredicateConstructor, newLegalPredicate, isLegalSpecError } from './predicate.ts';
+import type { LegalSpecError } from './predicate.ts';
 import * as fx from './testing/fixtures.ts';
 import type { LegalRead, LegalSpec, LegalVerdict } from './types.ts';
 
@@ -386,7 +387,7 @@ test('assembly errors match Go', () => {
           templates: { ...bound.templates, ...c.templates },
         }),
       (err: unknown) => {
-        assert.ok(err instanceof LegalSpecError, `${c.name}: ${String(err)}`);
+        assert.ok(isLegalSpecError(err), `${c.name}: ${String(err)}`);
         assert.equal(err.message, c.error, c.name);
         return true;
       },

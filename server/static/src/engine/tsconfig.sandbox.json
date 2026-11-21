@@ -1,0 +1,17 @@
+{
+  // Type-checks the engine the way a Common Fabric pattern compiles it:
+  // labs' compiler adds `exactOptionalPropertyTypes` to strict mode
+  // (labs base/js-compiler/typescript/options.ts). Run from server/static:
+  //
+  //   npx tsc --noEmit -p src/engine/tsconfig.sandbox.json
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false,
+    "rootDir": "../.."
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["./**/*.test.ts", "./testing/**", "./testdata/**"]
+}

@@ -1,5 +1,10 @@
 # Memory on Common Fabric: status
 
+**Superseded in part by [`engine-fabric.md`](engine-fabric.md)**: Memory now
+runs on the TypeScript engine, and the latency, test counts and labs commit
+there are the current ones. What follows is the record of the first build,
+with hand-written rules.
+
 Stream B, steps 1 and 2 joined, of [`../PROPOSAL.md`](../PROPOSAL.md): Memory
 as a Common Fabric pattern, drawn by the boardgame guest in a `cf-iframe`.
 Branch `claude/fabric-b-memory-pattern-70154b`. Nothing pushed, no PR,

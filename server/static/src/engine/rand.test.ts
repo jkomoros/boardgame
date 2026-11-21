@@ -4,7 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { GoRand } from './rand.ts';
+import { newGoRand } from './rand.ts';
+import type { GoRand } from './rand.ts';
 import { fnv1_64 } from './fnv.ts';
 import { i64ToDecimal, u64FromDecimal, u64ToDecimal, int64FromNumber, utf8Bytes } from './u64.ts';
 
@@ -30,7 +31,7 @@ const vectors = JSON.parse(readFileSync(new URL('./testdata/rand.vectors.json', 
 	FNV: FnvVec[];
 };
 
-const fresh = (v: SeedVec) => new GoRand(u64FromDecimal(v.Seed));
+const fresh = (v: SeedVec) => newGoRand(u64FromDecimal(v.Seed));
 
 test('u64 decimal round trip agrees with BigInt', () => {
 	for (const text of ['0', '1', '-1', '18446744073709551615', '9223372036854775807', '-9223372036854775808', '1234567890123456789']) {
@@ -68,7 +69,7 @@ test('numeric and decomposed seeds agree', () => {
 	for (const seed of [0, 1, -1, 42, 2147483647, 2147483648, -2147483647, 2 ** 40 + 12345]) {
 		const v = vectors.Seeds.find(s => s.Seed === String(seed));
 		assert.ok(v, `vector for seed ${seed}`);
-		const r = new GoRand(seed);
+		const r = newGoRand(seed);
 		assert.equal(u64ToDecimal(r.uint64()), v.Uint64[0]);
 	}
 });
@@ -155,7 +156,7 @@ test('interleaved calls on one generator continue one sequence', () => {
 });
 
 test('invalid arguments throw, as Go panics', () => {
-	const r = new GoRand(1);
+	const r = newGoRand(1);
 	assert.throws(() => r.int31n(0));
 	assert.throws(() => r.intn(0));
 	assert.throws(() => r.intn(-3));
@@ -169,6 +170,6 @@ test('FNV-1 64 matches hash/fnv New64, and seeds the generator as state.Rand doe
 		const sum = fnv1_64(v.Input);
 		assert.equal(u64ToDecimal(sum), v.Sum64, JSON.stringify(v.Input));
 		assert.equal(i64ToDecimal(sum), v.Seed, JSON.stringify(v.Input));
-		assert.deepEqual(new GoRand(sum).perm(5), v.Perm5, JSON.stringify(v.Input));
+		assert.deepEqual(newGoRand(sum).perm(5), v.Perm5, JSON.stringify(v.Input));
 	}
 });

@@ -16,7 +16,8 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { defaultLegalConstructors, defaultLegalRegistry } from './catalog.ts';
 import { goQuote } from './goformat.ts';
-import { type LegalPredicate, LegalSpecError, legalPredicateSerializable, resolveLegalSpecs } from './predicate.ts';
+import { type LegalPredicate, legalPredicateSerializable, resolveLegalSpecs, legalSpecError, isLegalSpecError } from './predicate.ts';
+import type { LegalSpecError } from './predicate.ts';
 import { type BoundFixture, type WireFixture, type WireGame, bindWireFixture } from './testing/fixtures.ts';
 import type { LegalSpec, LegalVerdict } from './types.ts';
 
@@ -79,7 +80,7 @@ const registry = defaultLegalRegistry();
 function resolveDirect(spec: LegalSpec): LegalPredicate {
   const ctor = registry.get(spec.name);
   if (ctor === undefined) {
-    throw new LegalSpecError(`legal: unknown predicate name ${goQuote(spec.name)}`);
+    throw legalSpecError(`legal: unknown predicate name ${goQuote(spec.name)}`);
   }
   return ctor.construct(spec, null, resolveDirect);
 }
@@ -189,7 +190,7 @@ test('constructor errors match Go for every rejected spec', () => {
     assert.throws(
       () => resolveDirect(spec),
       (err: unknown) => {
-        assert.ok(err instanceof LegalSpecError, String(err));
+        assert.ok(isLegalSpecError(err), String(err));
         assert.equal(err.message, error, JSON.stringify(spec));
         return true;
       },

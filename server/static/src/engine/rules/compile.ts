@@ -9,20 +9,34 @@ import { defaultLegalRegistry } from '../legal/catalog.ts';
 import { type LegalCustom, buildLegalPlan, contributedPreconditions } from '../legal/plan.ts';
 import { mergeLegalTemplates } from '../legal/templates.ts';
 import type { LegalSpec } from '../legal/types.ts';
-import { EngineState } from '../state.ts';
+import { loadEngineState } from '../state.ts';
+import type { EngineState } from '../state.ts';
 import type { StateJSON, SubStateJSON } from '../state.ts';
 import { type ComponentSchema, type ValuePropDef, bindLegalChest, bindLegalMove } from './binding.ts';
-import { EnumRegistry } from './enums.ts';
+import { newEnumRegistry } from './enums.ts';
+import type { EnumRegistry } from './enums.ts';
 import { sha256Hex } from './sha256.ts';
-import { type ChoiceSchemaItem, type CompiledGame, type CompiledMove, type InputField, RulesState, rulesOf } from './state.ts';
+import { type ChoiceSchemaItem, type CompiledGame, type CompiledMove, type InputField, rulesOf, newRulesState } from './state.ts';
+import type { RulesState } from './state.ts';
 import { syncTimerRecords } from './timers.ts';
 import type { GameRecord, GameSpec, InputCodec, MoveFieldSpec, MoveSpec, SubStateSpec, VariantKeySpec } from './types.ts';
 
-export class GameSpecError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = 'GameSpecError';
-	}
+export interface GameSpecError extends Error {
+	readonly name: 'GameSpecError';
+}
+
+/**
+ * Creates a `GameSpecError`. An ordinary `Error` named `GameSpecError`, not a subclass:
+ * a Common Fabric pattern module may not declare a class (see README.md,
+ * "No classes").
+ */
+export function gameSpecError(message: string): GameSpecError {
+	return Object.assign(new Error(message), { name: 'GameSpecError' as const });
+}
+
+/** Whether `thrown` is a `GameSpecError`. */
+export function isGameSpecError(thrown: unknown): thrown is GameSpecError {
+	return thrown instanceof Error && thrown.name === 'GameSpecError';
 }
 
 // ----- the empty state ----------------------------------------------------
@@ -63,7 +77,7 @@ function emptySubState(spec: SubStateSpec, enums: Readonly<Record<string, EnumDe
 				break;
 			case 'enum': {
 				const e = prop.Enum ? enums[prop.Enum] : undefined;
-				if (!e) throw new GameSpecError('property ' + name + ' names unknown enum ' + prop.Enum);
+				if (!e) throw gameSpecError('property ' + name + ' names unknown enum ' + prop.Enum);
 				node[name] = e.Values[String(e.DefaultValue)];
 				break;
 			}
@@ -192,7 +206,7 @@ function compileMove(
 		fieldPolicies[name] = parseSanitizeTag(field.sanitize ?? '', GROUP_ALL, 'hidden');
 		for (const group of Object.keys(fieldPolicies[name])) {
 			if (fieldPolicies[name][group] === 'invalid') {
-				throw new GameSpecError('Move ' + spec.name + ' property ' + name + ' had invalid sanitization policy for group ' + group);
+				throw gameSpecError('Move ' + spec.name + ' property ' + name + ' had invalid sanitization policy for group ' + group);
 			}
 		}
 		const disposition = field.input ?? 'required';
@@ -204,7 +218,7 @@ function compileMove(
 		namePolicy = parseSanitizeTag(spec.nameSanitization, GROUP_ALL, 'hidden');
 		for (const group of Object.keys(namePolicy)) {
 			if (namePolicy[group] !== 'visible' && namePolicy[group] !== 'hidden') {
-				throw new GameSpecError('move name sanitization group ' + JSON.stringify(group) + ' must use visible or hidden');
+				throw gameSpecError('move name sanitization group ' + JSON.stringify(group) + ' must use visible or hidden');
 			}
 		}
 	}
@@ -273,9 +287,9 @@ function choiceSchema(moves: readonly CompiledMove[], enums: EnumRegistry): Choi
 		const choice = move.spec.choices;
 		if (!choice) continue;
 		const name = move.spec.name;
-		if (move.spec.fixUp) throw new GameSpecError('fix-up move ' + JSON.stringify(name) + ' cannot publish projected choices');
+		if (move.spec.fixUp) throw gameSpecError('fix-up move ' + JSON.stringify(name) + ' cannot publish projected choices');
 		const fail = (reason: string): never => {
-			throw new GameSpecError('move ' + JSON.stringify(name) + ' choice projection: ' + reason);
+			throw gameSpecError('move ' + JSON.stringify(name) + ' choice projection: ' + reason);
 		};
 		const required = move.inputFields.filter(field => field.disposition === 'required');
 		const input = move.inputFields.find(field => field.name === choice.field);
@@ -361,9 +375,9 @@ export function newVariant(spec: GameSpec, given: Readonly<Record<string, string
 	}
 	for (const key of Object.keys(result).sort()) {
 		const config = variants[key];
-		if (!config) throw new GameSpecError('configuration had a property called ' + key + " that isn't expected");
+		if (!config) throw gameSpecError('configuration had a property called ' + key + " that isn't expected");
 		if (!config.values[result[key]]) {
-			throw new GameSpecError("configuration's " + displayName(key, config.displayName) + " property had a value that wasn't allowed: " + result[key]);
+			throw gameSpecError("configuration's " + displayName(key, config.displayName) + " property had a value that wasn't allowed: " + result[key]);
 		}
 	}
 	return Object.keys(result).length === 0 ? null : result;
@@ -402,7 +416,7 @@ export function compileGame(spec: GameSpec): CompiledGame {
 		Player: subStateDef(spec.player),
 		DynamicComponentValues: dynamic,
 	};
-	const enums = new EnumRegistry(chestEnums, componentEnums);
+	const enums = newEnumRegistry(chestEnums, componentEnums);
 	const phaseEnum = enums.get(chestEnums.phase ? 'phase' : 'Phase');
 	const templates = mergeLegalTemplates(spec.legalTemplates);
 	const registry = defaultLegalRegistry();
@@ -410,8 +424,8 @@ export function compileGame(spec: GameSpec): CompiledGame {
 	const names: Record<string, boolean> = {};
 	const noProgressionMoves: Record<string, boolean> = {};
 	for (const move of spec.moves) {
-		if (move.name === '') throw new GameSpecError('No name provided');
-		if (names[move.name.toLowerCase()]) throw new GameSpecError('a move named ' + move.name + ' is configured more than once');
+		if (move.name === '') throw gameSpecError('No name provided');
+		if (names[move.name.toLowerCase()]) throw gameSpecError('a move named ' + move.name + ' is configured more than once');
 		names[move.name.toLowerCase()] = true;
 		if (!move.progression) noProgressionMoves[move.name] = true;
 	}
@@ -440,14 +454,27 @@ export function compileGame(spec: GameSpec): CompiledGame {
 		choiceSchemaFingerprint: '',
 	};
 	const exampleRecord: GameRecord = { name: spec.name, id: '', secretSalt: '', numPlayers: spec.defaultNumPlayers, variant: null, agents: [], seating: false };
-	const exampleEngine = EngineState.load(def, { gameId: '', secretSalt: '' }, 0, emptyStateJSON(game, spec.defaultNumPlayers), { skipConservation: true });
+	const exampleEngine = loadEngineState(def, { gameId: '', secretSalt: '' }, 0, emptyStateJSON(game, spec.defaultNumPlayers), { skipConservation: true });
 	syncTimerRecords(exampleEngine);
-	const example = new RulesState(game, exampleEngine, exampleRecord, [], { pendingSeat: null });
+	const example = newRulesState(game, exampleEngine, exampleRecord, [], { pendingSeat: null });
 
 	// Fields first, so a move's defaults can be computed while plans compile.
 	for (let i = 0; i < spec.moves.length; i++) {
 		const fields = moveFields(spec.moves[i]);
-		movesByName[spec.moves[i].name] = { spec: spec.moves[i], index: i, fields, fieldNames: Object.keys(fields).sort() } as unknown as CompiledMove;
+		// A whole record with nothing compiled yet: no schema, no policies and
+		// an empty plan. The second pass replaces every one.
+		movesByName[spec.moves[i].name] = {
+			spec: spec.moves[i],
+			index: i,
+			fields,
+			fieldNames: Object.keys(fields).sort(),
+			schema: {},
+			fieldPolicies: {},
+			namePolicy: {},
+			declared: false,
+			plan: { moveName: spec.moves[i].name, steps: [], custom: null, allReads: [], specs: [] },
+			inputFields: [],
+		};
 	}
 	for (let i = 0; i < spec.moves.length; i++) {
 		const compiled = compileMove(spec.moves[i], i, { enums, registry, templates, example });

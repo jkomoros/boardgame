@@ -24,7 +24,7 @@ import {
 } from "commonfabric";
 
 import type { Proposal, TableInfo } from "../toolkit/view.ts";
-import { type CardValues, memoryInfo } from "./rules.ts";
+import { memoryInfo } from "./game.ts";
 import {
   EMPTY_TABLE,
   type MemoryTableView,
@@ -51,7 +51,7 @@ export interface MemoryOutput {
   /** What the policy releases to the table's readers. */
   view: MemoryTableView | undefined;
   /** The deck and message texts, which are public. */
-  info: TableInfo<CardValues>;
+  info: TableInfo;
   /** Propose something as whoever sends it. */
   move: Stream<Proposal>;
   /** Record the sender's principal where only they read it. */
