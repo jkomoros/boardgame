@@ -1,16 +1,12 @@
 // Turning a verdict into text: Go's RenderLegalMessage, LegalError.Error()
 // and LegalTemplatePlaceholders.
 //
-// The renderer is the same function as src/legal/renderLegalMessage.ts, the
-// client's byte-for-byte mirror of Go's RenderLegalMessage. It is written
-// out here, not imported, because the engine has to load in a Common Fabric
-// pattern, and that module cannot: it keeps a global regular expression at
-// module scope, which the pattern sandbox refuses as stateful data, and it
-// imports a declaration file by an extensionless path. message.test.ts holds
-// the two to the same answers.
-//
-// TODO(client): src/legal/renderLegalMessage.ts should re-export this one,
-// so there is a single renderer again.
+// This is the only TypeScript renderer. The client had a copy of its own
+// (src/legal/renderLegalMessage.ts); nothing in the client imported it, and
+// it could not load in a Common Fabric pattern (it kept a global regular
+// expression at module scope, which the pattern sandbox refuses as stateful
+// data), so it was removed and its tests moved here as
+// render-message.test.ts.
 
 import type { LegalMessage, LegalVerdict } from './types.ts';
 

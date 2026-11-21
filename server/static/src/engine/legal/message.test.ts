@@ -1,11 +1,10 @@
-// Proves the engine's renderLegalMessage and the client's
-// (src/legal/renderLegalMessage.ts) give the same text. The engine carries
-// its own copy because the client's module cannot load in a Common Fabric
-// pattern; see message.ts.
+// The engine's renderLegalMessage over a table of edge cases, with the text
+// each must give. These answers were first established by comparing this
+// renderer with the client's former copy (src/legal/renderLegalMessage.ts),
+// case by case; that copy is gone and the expected text is written out.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { renderLegalMessage as clientRender } from '../../legal/renderLegalMessage.ts';
 import { renderLegalMessage } from './message.ts';
 
 const TABLE = { k: '{who} has {n} ({flag}) {missing}', empty: '', plain: 'no placeholders', twice: '{a}{a} {b}' };
@@ -23,9 +22,23 @@ const CASES: { name: string; message: Parameters<typeof renderLegalMessage>[0]; 
   { name: 'own-property names', message: { template: '{toString} {constructor}' }, table: {} },
 ];
 
-test('the engine renders a legal message exactly as the client does', () => {
-  for (const c of CASES) {
-    assert.equal(renderLegalMessage(c.message, c.table), clientRender(c.message, c.table), c.name);
-  }
-  assert.equal(renderLegalMessage(CASES[2].message, TABLE), 'ana has 3 (false) missing');
+// One expected text per case above, in order.
+const EXPECTED = [
+  '',
+  '',
+  'ana has 3 (false) missing',
+  'who has n (flag) missing',
+  'nope 1',
+  '',
+  'k',
+  'no placeholders',
+  'xx true',
+  'toString constructor',
+];
+
+test('the engine renders each edge case to its established text', () => {
+  assert.equal(EXPECTED.length, CASES.length);
+  CASES.forEach((c, index) => {
+    assert.equal(renderLegalMessage(c.message, c.table), EXPECTED[index], c.name);
+  });
 });

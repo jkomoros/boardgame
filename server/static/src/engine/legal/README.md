@@ -92,10 +92,10 @@ Go. `table` has the shape the chest ships as `LegalTemplates`;
 `defaultLegalTemplates()` is the built-in English and `mergeLegalTemplates`
 overlays a game's own entries.
 
-Rendering is not reimplemented here. `message.ts` imports
-`src/legal/renderLegalMessage.ts`, the client's existing mirror of Go's
-`RenderLegalMessage`. The dependency runs one way: `engine/legal` imports
-`src/legal`, and nothing in `src/legal` imports the engine.
+`message.ts` holds the one TypeScript mirror of Go's `RenderLegalMessage`.
+The client used to carry a copy at `src/legal/renderLegalMessage.ts`; it had
+no importer in the client and could not load in a pattern, so it was removed
+and its tests are `render-message.test.ts` here.
 
 ### The base checks whose logic lives elsewhere
 
