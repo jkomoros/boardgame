@@ -174,6 +174,7 @@
     "src/solid/prism.ts": "elements",
     "src/solid/reading-pose.ts": "elements",
     "src/solid/screen-frame.ts": "elements",
+    "src/state/expand.ts": "elements",
     "src/state/visibility.ts": "elements",
     "src/status/player-presentation.ts": "elements",
     "src/status/readiness.ts": "elements",
@@ -243,6 +244,7 @@
       "src/legal/previewLegality.ts -> src/api.ts": "S4 (step 5): preview transport types move out of api.ts.",
       "src/legal/renderLegalMessage.ts -> src/types/api.d.ts": "S8 (step 4): wire types split from store/API types.",
       "src/moves/projected-choices.ts -> src/types/api.d.ts": "S8 (step 4): wire types split from store/API types.",
+      "src/state/expand.ts -> src/types/store.d.ts": "S8 (step 4): wire types split from store/API types.",
       "src/types/components.d.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
       "src/types/game-state.d.ts -> src/components/companion-sync.ts": "S8 (step 4): companion timing types move to a layer-1 type module.",
       "src/types/game-state.d.ts -> src/types/api.d.ts": "S8 (step 4): wire types split from store/API types."
