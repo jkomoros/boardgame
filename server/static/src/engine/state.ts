@@ -162,13 +162,16 @@ export class EngineState {
 	): EngineState {
 		const data = cloneJSON(json);
 		if (!data.Components) data.Components = {};
-		// Derived, never state: Go's loader ignores both.
+		// Derived, never stored: Go's loader ignores both. (A sanitized
+		// state keeps its visibility beside the data, as Go does.)
+		const visibility = data.Visibility ?? null;
 		delete data.Computed;
 		delete data.Visibility;
 		const sanitized = options.sanitized === true;
 		if (sanitized) delete data.SecretMoveCount;
 		else if (!data.SecretMoveCount) data.SecretMoveCount = {};
 		const state = new EngineState(def, identity, version, data, sanitized);
+		if (sanitized) state.visibility = visibility;
 		state.index();
 		if (!sanitized) {
 			for (const stack of state.stackList) stack.syncIds();
@@ -187,6 +190,7 @@ export class EngineState {
 	 */
 	copy(version: number = this.version): EngineState {
 		const state = new EngineState(this.def, this.identity, version, cloneJSON(this.data), this.sanitized);
+		state.visibility = this.visibility;
 		state.index();
 		return state;
 	}

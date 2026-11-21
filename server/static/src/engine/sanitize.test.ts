@@ -259,3 +259,21 @@ test('a sanitized state cannot be sanitized again or modified', () => {
 	assert.throws(() => sanitized.gameStack('Draw').shuffle(), /state is sanitized/);
 	assert.equal(sanitized.conservationError(), null, 'sanitized states are exempt from conservation');
 });
+
+test('a view Go produced loads as a sanitized state and serializes back unchanged', () => {
+	// What a client holds. Merged stacks are recomputed from the sanitized
+	// parts, so this also checks the views agree with Go after sanitization.
+	let checked = 0;
+	for (const c of vectors.Cases) {
+		if (c.Outcomes.length !== 1 || !c.Outcomes[0].View || c.Viewer < -1) continue;
+		const vs = vectors.States[c.State];
+		const view = c.Outcomes[0].View;
+		if (c.Viewer >= vs.NumPlayers) continue;
+		const state = EngineState.load(defFor(c), { gameId: vs.GameID, secretSalt: '' }, vs.Version, view, { sanitized: true });
+		assert.equal(state.sanitized, true);
+		assert.deepEqual(state.visibility, view.Visibility);
+		assert.deepEqual({ ...state.toJSON(), Visibility: state.visibility }, view, c.Label);
+		checked++;
+	}
+	assert.ok(checked > 80, String(checked));
+});
