@@ -22,7 +22,17 @@
 //     (LegalBindingValue): a string renders verbatim, an integer via its
 //     decimal form (Go strconv.Itoa — the wire only ever ships integers), a
 //     boolean as "true"/"false" (Go strconv.FormatBool).
-import type { PreconditionMessage } from '../types/wire';
+
+// This module sits in the lowest layer (see scripts/layers.json): the
+// TypeScript engine under src/engine imports it, so it imports nothing. The
+// message shape is declared here and is the same shape as the wire's
+// PreconditionMessage (types/wire.d.ts), which is structurally assignable.
+export interface PreconditionMessage {
+  /** Template key to look up in the chest's LegalTemplates table. */
+  template: string;
+  /** Named values substituted into the template body. */
+  bindings?: Record<string, string | number | boolean>;
+}
 
 // Mirrors legalPlaceholderPattern in legal_error.go: `\{([A-Za-z0-9_]+)\}`.
 // The global flag makes String.prototype.replace substitute every match, like

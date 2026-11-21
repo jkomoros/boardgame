@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderLegalMessage } from './renderLegalMessage.ts';
-import type { PreconditionMessage } from '../types/api';
+import type { PreconditionMessage } from './renderLegalMessage.ts';
 
 const msg = (
   template: string,

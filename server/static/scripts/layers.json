@@ -125,7 +125,7 @@
     "src/effects/visible-component-diff.ts": "kit",
     "src/join/join-session.ts": "host",
     "src/legal/previewLegality.ts": "kit",
-    "src/legal/renderLegalMessage.ts": "kit",
+    "src/legal/renderLegalMessage.ts": "engine",
     "src/motion/activation.ts": "elements",
     "src/motion/animatable-registry.ts": "elements",
     "src/motion/animation-gate.ts": "elements",
