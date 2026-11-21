@@ -1,0 +1,16 @@
+/* Shared page styling. Everything here is ordinary light-DOM CSS: the
+   elements are styled only through inherited custom properties. */
+body { font-family: system-ui, sans-serif; margin: 16px; background: #f6f1e7; color: #2a2118; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+p.note { margin: 0 0 12px; max-width: 70ch; font-size: 14px; color: #5a4d3f; }
+.controls { display: flex; gap: 8px; align-items: center; margin: 8px 0 12px; font-size: 14px; }
+.controls button { font: inherit; padding: 4px 12px; }
+bg-table { border: 1px solid #d8cdb8; border-radius: 12px; padding: 12px; background: #fffaf0; }
+.board { position: relative; }
+.won { display: flex; justify-content: space-around; align-items: flex-start; --component-scale: 0.7; }
+.pile { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 160px; }
+.pile .label { font-weight: 600; font-size: 14px; }
+.status { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 8px; }
+#log { font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; margin-top: 8px; color: #5a4d3f; }
+bg-turn-status { display: block; min-width: 14em; }
+.pile { min-height: 110px; }
