@@ -18,17 +18,36 @@ Go source changed. `./scripts/go-local build ./...` and
 | Go plan scenarios | 1,848 of 1,848 match |
 | Go boot errors | 30 of 30 plan-assembly errors and 82 of 82 constructor errors match, text for text |
 | Go evaluability | 25 of 25 policy and facet cells, 2,880 of 2,880 read cases match |
-| `npm run type-check` | passes |
+| `npm run type-check` (Node 24.22.3) | passes, exit 0 |
+| `npm run test:unit` (Node 24.22.3) | 1,029 of 1,029 pass, exit 0 |
 | Tests in this directory | 112 top-level, 242 counting conformance subtests; all pass |
 
-**`npm run test:unit` was not run as written.** It needs Node 22.18 or later
-to strip TypeScript types (CI uses 24). This machine has Node 18, 20 and 21,
-and the script fails there at baseline before reaching any test. The tests
-were run by compiling this directory with the repository's own `tsc` and
-running the output with `node --test` on Node 20. Compiling with
-`--verbatimModuleSyntax --erasableSyntaxOnly` reports nothing for this
-directory, so the files should run under Node's type stripping unchanged. That
-last step is unverified until someone runs the real script on Node 22.18+.
+### Which commands ran under which Node
+
+Final results are from Node v24.22.3, with the repository's real commands, run
+in `server/static`:
+
+| Command | Node | Result |
+|---|---|---|
+| `npm run type-check` | 24.22.3 | exit 0 |
+| `npm run test:unit` | 24.22.3 | 1,029 tests, 1,029 pass, 0 fail, exit 0 |
+| `node --test --test-timeout=20000 --import=./scripts/test-budget.mjs 'src/engine/legal/**/*.test.ts'` | 24.22.3 | 242 tests, 242 pass |
+
+The 1,029 are this directory's 242 plus 787 that were there before; the
+client-layers session counted 787 at baseline.
+
+History, for the record. Node 24 was installed partway through. Before that
+the machine had only Node 18, 20 and 21:
+
+- `npm run test:unit` could not run as written on any of them. It failed at
+  baseline, before reaching a test: Node 20 does not expand the script's glob
+  (`Could not find '.../src/**/*.test.ts'`), and none of the three strips
+  TypeScript types.
+- `npm ci` and `npm run type-check` ran as written on Node 20 and 21.
+- As a stopgap, this directory's tests were compiled with the repository's
+  own `tsc` to a throwaway directory and run with `node --test` on Node 20,
+  and once on Node 21.7.1. 242 passed each time. That stopgap is no longer
+  used and left nothing in the tree.
 
 ## Commits
 
