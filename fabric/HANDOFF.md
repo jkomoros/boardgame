@@ -47,6 +47,10 @@ From [status/integration.md](status/integration.md), on commit `1d7668c4`:
   effort. The other three are load-dependent; one of them
   (`waapi-gate.spec.ts:120`) was not run alone, so it is not shown to be a
   flake.
+- The JSX-board pattern was rerun afterwards on the integrated branch
+  ([status/declarative-pattern.md](status/declarative-pattern.md), "Rerun on
+  the integrated branch"): three import breaks from the merge fixed, the
+  two-identity game replayed, and a card recorded mid-flight.
 - The browser games were played one commit before `1d7668c4`; that commit
   adds two opt-in members to the stack element which the guest does not set.
 
