@@ -14,6 +14,8 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/memory"
+	"github.com/jkomoros/boardgame/examples/pig"
+	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/jkomoros/boardgame/server/static/src/engine/testdata/gen/vecgame"
 	memstore "github.com/jkomoros/boardgame/storage/memory"
 	"github.com/sirupsen/logrus"
@@ -26,7 +28,7 @@ func check(err error) {
 }
 
 func main() {
-	delegates := []boardgame.GameDelegate{&vecgame.Delegate{}, memory.NewDelegate(), blackjack.NewDelegate()}
+	delegates := []boardgame.GameDelegate{&vecgame.Delegate{}, memory.NewDelegate(), blackjack.NewDelegate(), pig.NewDelegate(), tictactoe.NewDelegate()}
 	for _, delegate := range delegates {
 		manager, err := boardgame.NewGameManager(delegate, memstore.NewStorageManager())
 		check(err)

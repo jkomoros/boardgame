@@ -1,0 +1,117 @@
+{
+	"Name": "tictactoe",
+	"Decks": {
+		"tokens": {
+			"Size": 10,
+			"Components": [
+				{
+					"Value": "X"
+				},
+				{
+					"Value": "X"
+				},
+				{
+					"Value": "X"
+				},
+				{
+					"Value": "X"
+				},
+				{
+					"Value": "X"
+				},
+				{
+					"Value": "O"
+				},
+				{
+					"Value": "O"
+				},
+				{
+					"Value": "O"
+				},
+				{
+					"Value": "O"
+				},
+				{
+					"Value": "O"
+				}
+			]
+		}
+	},
+	"Enums": {
+		"phase": {
+			"Values": {
+				"0": "Before First Move",
+				"1": "After First Move"
+			},
+			"DefaultValue": 0
+		}
+	},
+	"GroupEnum": "",
+	"Game": {
+		"Props": {
+			"CurrentPlayer": {
+				"Type": "playerIndex",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Phase": {
+				"Type": "enum",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Enum": "phase"
+			},
+			"Slots": {
+				"Type": "sizedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "tokens",
+				"Size": 9
+			}
+		}
+	},
+	"Player": {
+		"Props": {
+			"PlayerInactive": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatClosed": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatFilled": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"TokenValue": {
+				"Type": "string",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"TokensToPlaceThisTurn": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"UnusedTokens": {
+				"Type": "stack",
+				"Sanitize": {
+					"other": "visible"
+				},
+				"Deck": "tokens"
+			}
+		}
+	},
+	"DynamicComponentValues": {}
+}

@@ -1,0 +1,122 @@
+{
+	"Name": "pig",
+	"Decks": {
+		"dice": {
+			"Size": 1,
+			"Components": [
+				{
+					"Faces": [
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			]
+		}
+	},
+	"Enums": {},
+	"GroupEnum": "",
+	"Game": {
+		"Props": {
+			"CurrentPlayer": {
+				"Type": "playerIndex",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Die": {
+				"Type": "sizedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "dice",
+				"Size": 1
+			},
+			"TargetScore": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "visible"
+				}
+			}
+		}
+	},
+	"Player": {
+		"Props": {
+			"DieCounted": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Done": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Eliminated": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"PlayerInactive": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"RoundScore": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Score": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatClosed": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatFilled": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			}
+		}
+	},
+	"DynamicComponentValues": {
+		"dice": {
+			"Props": {
+				"RollCount": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"SelectedFace": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"Value": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				}
+			}
+		}
+	}
+}
