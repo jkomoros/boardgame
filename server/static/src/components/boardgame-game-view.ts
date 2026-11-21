@@ -663,6 +663,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       <div class="card">
         <boardgame-player-roster
           id="player"
+          .rendererHost=${this._rendererHost}
           .loggedIn=${this._loggedIn}
           .gameRoute=${this._gameRoute}
           .viewingAsPlayer=${this.viewingAsPlayer}

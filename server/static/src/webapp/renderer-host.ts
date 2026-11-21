@@ -11,6 +11,7 @@ import { surfaceForGame } from '../utils/companion-surface.js';
 import type { TimerService } from '../timers/timer-service.js';
 import type {
   BoardPreviewTransport,
+  PlayerInfoModuleRequest,
   RendererGameRef,
   RendererHost,
   RendererModuleRequest,
@@ -80,6 +81,12 @@ export function rendererModulePath(request: RendererModuleRequest): string {
   return request.attempt > 0 ? `${base}?retry=${request.attempt}` : base;
 }
 
+/** The player-info renderer module for a game, in the same `game-src` tree. */
+export function playerInfoModulePath(request: PlayerInfoModuleRequest): string {
+  const base = `../../game-src/${request.gameName}/boardgame-render-player-info-${request.gameName}.ts`;
+  return request.attempt > 0 ? `${base}?retry=${request.attempt}` : base;
+}
+
 export interface WebappRendererHostOptions {
   /** The state queue: the page's boardgame-game-state-manager. */
   readonly stateQueue?: RendererStateQueue;
@@ -102,6 +109,7 @@ export function createWebappRendererHost(options: WebappRendererHostOptions = {}
     ...(options.timerService ? { timerService: options.timerService } : {}),
     resolveSurface: request => surfaceForGame(request.gameId, request.companionMode),
     loadRendererModule: request => importModule(rendererModulePath(request)),
+    loadPlayerInfoModule: request => importModule(playerInfoModulePath(request)),
     boardPreview: webappBoardPreview,
     tableActions: webappTableActions,
   };

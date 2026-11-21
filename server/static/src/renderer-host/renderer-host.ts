@@ -95,6 +95,13 @@ export interface RendererModuleRequest {
   readonly attempt: number;
 }
 
+/** A request for a game's player-info renderer module. */
+export interface PlayerInfoModuleRequest {
+  readonly gameName: string;
+  /** 0 for the first load; a fresh positive number for each retry. */
+  readonly attempt: number;
+}
+
 // ---- The state queue ----
 
 /**
@@ -148,6 +155,14 @@ export interface RendererHost {
    * defined, however the host gets the code (a dynamic import, a bundle).
    */
   loadRendererModule?(request: RendererModuleRequest): Promise<unknown>;
+  /**
+   * Makes the game's player-info renderer available: resolves once
+   * `boardgame-render-player-info-<gameName>` is defined. A host mounts one
+   * per seat with `mountPlayerInfo()` (components/boardgame-render-player-info.ts),
+   * wherever its own layout puts player summaries; the webapp's roster is one
+   * such place, not the only one.
+   */
+  loadPlayerInfoModule?(request: PlayerInfoModuleRequest): Promise<unknown>;
   /** Board-target legality preview. Absent means the host offers none, and no target is grayed by preview. */
   readonly boardPreview?: BoardPreviewTransport;
   /** Table actions for a Table surface. Absent means the controls report that they are unavailable. */
