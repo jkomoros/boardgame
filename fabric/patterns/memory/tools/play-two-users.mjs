@@ -251,6 +251,18 @@ for (let guard = 0; guard < 200; guard++) {
   const start = Date.now();
   let face;
   let clicks = 0;
+  // Web Animations running in the mover's guest while the move plays.
+  let animating = 0;
+  const watch = setInterval(() => {
+    mover.frame.evaluate(() => {
+      const renderer = document.querySelector('boardgame-render-game')?.renderer;
+      let count = 0;
+      for (const card of renderer?.shadowRoot?.querySelectorAll('boardgame-card') ?? []) {
+        count += card.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length;
+      }
+      return count;
+    }).then(count => { animating = Math.max(animating, count); }, () => {});
+  }, 50);
   for (; clicks < 8 && !face; clicks++) {
     await mover.frame.locator(GRID).nth(slot).click({ force: true });
     if (!shotReveal) {
@@ -272,15 +284,20 @@ for (let guard = 0; guard < 200; guard++) {
   }, `${other.name} to see the card`);
   const others = Date.now() - start;
   if (face && face !== 'captured') seen[slot] = face;
-  latencies.push({ move: ++moves, by: mover.name, slot, clicks, ownMs: own, otherMs: others });
+  await sleep(600);
+  clearInterval(watch);
+  latencies.push({ move: ++moves, by: mover.name, slot, clicks, ownMs: own, otherMs: others, runningAnimations: animating });
   console.log(JSON.stringify(latencies[latencies.length - 1]));
 
   if (turned >= 0) {
     const matched = seen[slot] === board[turned].face;
     if (matched && !shotCapture) {
-      await sleep(350);
-      await shot(mover, '05-capturing');
-      await shot(other, '05-capturing');
+      // The reveal plays first, then the capture: catch the cards in flight.
+      for (const [index, wait] of [250, 300, 300, 300, 300, 300, 300, 300].entries()) {
+        await sleep(wait);
+        await shot(mover, `05-capturing-${index + 1}`);
+      }
+      await shot(other, '05-capturing-8');
       shotCapture = true;
     }
     if (!matched && !shotTimer) {
@@ -315,6 +332,12 @@ await sleep(1500);
 await shot(alice, '06-finished');
 await shot(bob, '06-finished');
 const end = await Promise.all(players.map(statusOf));
+// The client's own counters: animation cycles opened, animations played, and
+// how often the watchdog had to end a cycle that never reported done.
+const motion = await Promise.all(players.map(who => who.frame.evaluate(() => {
+  const hooks = globalThis.__bgAnimTestHooks ?? {};
+  return { gateOpens: hooks.gateOpens, plays: hooks.plays, watchdogFirings: hooks.watchdogFirings };
+})));
 
 // The same moves as the two bridges saw them, without the animation: from a
 // proposal leaving the mover's guest to the view that carries its version
@@ -347,6 +370,7 @@ const median = list => list[Math.floor(list.length / 2)];
 console.log(JSON.stringify({
   moves,
   result: end.map(status => `${status.who}: ${status.note}`),
+  motion,
   // Click to the card's face showing, animation included.
   clickToFaceMs: { own: { median: median(ownMs), max: ownMs[ownMs.length - 1] }, other: { median: median(otherMs), max: otherMs[otherMs.length - 1] } },
   // Proposal sent to the new view arriving, as each guest's bridge timed it.

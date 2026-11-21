@@ -15,6 +15,10 @@ Background: [`../PROPOSAL.md`](../PROPOSAL.md), stream B, step 2.
 | `src/version-queue.ts` | Overlapping windows in, each version once and in order out |
 | `src/games.ts` | The renderers compiled into the bundle |
 | `src/shims/api.ts` | Stands in for the HTTP API, and refuses |
+| `src/guest-main.ts` | Entry point of the standalone guest: `postMessage` in and out |
+| `src/fabric-main.ts`, `src/fabric-bridge.ts` | Entry point of the guest inside a Common Fabric `cf-iframe`: cells and streams in place of `postMessage`, and a lobby before the deal |
+| `src/guest-document.ts` | Theme and root element, shared by both entry points |
+| `tools/vendor-fabric-client.sh` | Bundles Common Fabric's guest client out of a labs checkout into `vendor/` |
 | `harness.html` | Embeds the built guest and plays a recording by posting messages |
 | `tools/export-replay` | Go: records a complete Memory game, every version, every viewer |
 | `tools/serve.mjs` | Static server for the harness, port 8719 |
@@ -55,6 +59,26 @@ is the unit to hand over, and it works from `srcdoc`, from a `file:` URL, or
 served. `dist/guest.js` is the same code as a file, for a host that would
 rather reference a script than allow an inline one. `dist/bundle-report.json`
 lists every module and its size.
+
+## The Common Fabric build
+
+```bash
+tools/vendor-fabric-client.sh /path/to/labs
+```
+
+```bash
+npm run build:fabric
+```
+
+This writes `../patterns/guest/guest.js` and `guest.html`, which a pattern
+reads with `dataFile()` and hands to `cf-iframe` as `script` and `src`. It is
+the same renderer host and the same bundled renderers as the standalone
+guest. The transport differs: `src/fabric-bridge.ts` reads the pattern's
+`view`, `info` and `me` cells, turns each new `view` into the `init` and
+`state` messages of [`PROTOCOL.md`](PROTOCOL.md), and sends the host's
+`propose-move` and `tick` to the pattern's `move` stream. Neither build
+output nor `vendor/` is checked in. The pattern that uses it is
+[`../patterns/memory`](../patterns/memory/README.md).
 
 ## Harness controls
 
