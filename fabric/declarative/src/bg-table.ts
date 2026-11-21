@@ -25,13 +25,13 @@
  */
 import { LitElement, html, css } from 'lit';
 import { property } from 'lit/decorators.js';
-import '../../../server/static/src/components/boardgame-component-animator.js';
-import type { BoardgameComponentAnimator } from '../../../server/static/src/components/boardgame-component-animator.js';
-import { BoardgameComponentStack } from '../../../server/static/src/components/boardgame-component-stack.js';
-import { AnimatableRegistry } from '../../../server/static/src/motion/animatable-registry.js';
-import { captureOffsetGeometry, captureViewportGeometry } from '../../../server/static/src/motion/geometry.js';
-import { captureHistoricalPresentation } from '../../../server/static/src/motion/historical-presentation.js';
-import type { MotionStaggerCohortSpec } from '../../../server/static/src/motion/cohort.js';
+import '@boardgame/elements/components/boardgame-component-animator.js';
+import type { BoardgameComponentAnimator } from '@boardgame/elements/components/boardgame-component-animator.js';
+import { BoardgameComponentStack } from '@boardgame/elements/components/boardgame-component-stack.js';
+import { AnimatableRegistry } from '@boardgame/elements/motion/animatable-registry.js';
+import { captureOffsetGeometry, captureViewportGeometry } from '@boardgame/elements/motion/geometry.js';
+import { captureHistoricalPresentation } from '@boardgame/elements/motion/historical-presentation.js';
+import type { MotionStaggerCohortSpec } from '@boardgame/elements/motion/cohort.js';
 import { expandStack, resolvePath, isWireStack } from './expand.js';
 import type { Chest, WireStack, WireView } from './expand.js';
 import { frameOf, isTableView, seatOf } from './table-view.js';

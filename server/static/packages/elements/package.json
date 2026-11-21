@@ -55,6 +55,7 @@
     "./motion/component-track.js": "./src/motion/component-track.ts",
     "./motion/deferred-motion.js": "./src/motion/deferred-motion.ts",
     "./motion/geometry.js": "./src/motion/geometry.ts",
+    "./motion/historical-presentation.js": "./src/motion/historical-presentation.ts",
     "./motion/legacy-overlap.js": "./src/motion/legacy-overlap.ts",
     "./motion/release.js": "./src/motion/release.ts",
     "./motion/structural-events.js": "./src/motion/structural-events.ts",

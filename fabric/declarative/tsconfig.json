@@ -12,6 +12,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "types": ["node"],
+    "preserveSymlinks": true,
     "baseUrl": ".",
     "paths": {
       "lit": ["./node_modules/lit/index.d.ts"],

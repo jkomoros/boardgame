@@ -11,7 +11,7 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   root: here,
-  resolve: { dedupe: ['lit'], preserveSymlinks: true },
+  resolve: { dedupe: ['lit', '@boardgame/elements'], preserveSymlinks: true },
   build: {
     outDir: resolve(here, 'dist'),
     emptyOutDir: true,

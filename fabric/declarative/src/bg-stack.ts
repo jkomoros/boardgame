@@ -11,10 +11,10 @@
  */
 import { LitElement, html, css, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
-import '../../../server/static/src/components/boardgame-component-stack.js';
-import type { BoardgameComponentStack } from '../../../server/static/src/components/boardgame-component-stack.js';
-import { cardView, tokenView } from '../../../server/static/src/components/component-view.js';
-import type { ComponentView } from '../../../server/static/src/components/component-view.js';
+import '@boardgame/elements/components/boardgame-component-stack.js';
+import type { BoardgameComponentStack } from '@boardgame/elements/components/boardgame-component-stack.js';
+import { cardView, tokenView } from '@boardgame/elements/components/component-view.js';
+import type { ComponentView } from '@boardgame/elements/components/component-view.js';
 import { adoptEarlyProperties, findTable } from './bg-table.js';
 import type { BgTable, TableChild } from './bg-table.js';
 import { expandStack, isWireStack } from './expand.js';

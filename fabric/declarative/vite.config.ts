@@ -4,13 +4,26 @@ import { fileURLToPath } from 'node:url';
 const here = fileURLToPath(new URL('.', import.meta.url));
 const repo = fileURLToPath(new URL('../..', import.meta.url));
 
-// The experiment imports the client source IN PLACE from server/static/src.
-// That tree has no node_modules of its own in a fresh worktree, so `lit` is
-// resolved from this package for every importer (and stays a single copy).
+// The experiment is built on layer 1 alone: the `@boardgame/elements` package
+// (server/static/packages/elements), installed as a `file:` dependency. The
+// link is preserved so the package's `lit` import resolves from this
+// package's node_modules, as one copy.
 export default defineConfig({
   root: here,
-  resolve: { dedupe: ['lit'], preserveSymlinks: true },
+  resolve: { dedupe: ['lit', '@boardgame/elements'], preserveSymlinks: true },
+  // Lit's legacy decorators need these two flags, and the dev server does not
+  // read a tsconfig for source it finds under node_modules.
+  esbuild: {
+    tsconfigRaw: {
+      compilerOptions: { target: 'ES2022', experimentalDecorators: true, useDefineForClassFields: false },
+    },
+  },
   optimizeDeps: {
+    // The elements package is TypeScript source, linked into node_modules.
+    // Left to itself the dev server would pre-bundle each imported subpath
+    // as a separate dependency: several copies of one module, compiled
+    // without the decorator settings Lit needs. Serve it as source instead.
+    exclude: ['@boardgame/elements'],
     include: [
       'lit', 'lit/decorators.js', 'lit/directives/class-map.js',
       'lit/directives/repeat.js', 'lit/directives/style-map.js',
