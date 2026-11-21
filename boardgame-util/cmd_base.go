@@ -31,6 +31,7 @@ type boardgameUtil struct {
 	CheckClient     checkClient
 	Lint            lintCmd
 	Imagegen        imagegenCmd
+	Conformance     conformanceCmd
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -117,6 +118,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.CheckClient,
 		&b.Lint,
 		&b.Imagegen,
+		&b.Conformance,
 	}
 }
 
