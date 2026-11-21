@@ -1,6 +1,6 @@
 import { LitElement, css, html } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
+import type { SelectionDraftSelectionBinding } from '../moves/draft-bindings.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { ComponentView } from './component-view.js';

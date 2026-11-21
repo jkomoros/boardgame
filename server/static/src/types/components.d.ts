@@ -180,8 +180,8 @@ export interface BoardgameComponentStackElement extends BoardgameAnimatableItemE
   action: import('../moves/target-action.js').TargetAction<number> | null;
 
   /** Local selection keyed by slot index or stable component ID. */
-  selection: import('../moves/selection-draft.js').SelectionDraftSelectionBinding<number>
-    | import('../moves/selection-draft.js').SelectionDraftSelectionBinding<string>
+  selection: import('../moves/draft-bindings.js').SelectionDraftSelectionBinding<number>
+    | import('../moves/draft-bindings.js').SelectionDraftSelectionBinding<string>
     | null;
 
   /** Currently rendered real and faux component elements. */

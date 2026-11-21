@@ -5,7 +5,7 @@ import './boardgame-component-stack.js';
 import './boardgame-board-viewport.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { TargetAction } from '../moves/target-action.js';
-import type { PlacementTargetBinding } from '../moves/placement-draft.js';
+import type { PlacementTargetBinding } from '../moves/draft-bindings.js';
 import type { TargetKey } from '../moves/target-action.js';
 import type { ComponentView } from './component-view.js';
 import type { BoardgameBoardViewport } from './boardgame-board-viewport.js';

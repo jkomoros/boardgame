@@ -153,6 +153,7 @@
     "src/motion/transfer.ts": "elements",
     "src/moves/action-binding.ts": "kit",
     "src/moves/action.ts": "elements",
+    "src/moves/draft-bindings.ts": "elements",
     "src/moves/input.ts": "elements",
     "src/moves/placement-draft.ts": "kit",
     "src/moves/projected-choice-consumption.ts": "elements",
@@ -220,17 +221,6 @@
   },
   "allow": {
     "runtime": {},
-    "typeOnly": {
-      "src/components/boardgame-component-stack.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-component-zone.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-deck.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-game-board.ts -> src/moves/placement-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-game-board.ts -> src/moves/source-destination.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-market.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-placement-item.ts -> src/moves/placement-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-selection-option.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/components/boardgame-spatial-board.ts -> src/moves/placement-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/types/components.d.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents)."
-    }
+    "typeOnly": {}
   }
 }

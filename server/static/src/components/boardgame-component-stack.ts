@@ -14,7 +14,7 @@ import {
 import { compileMotionPresence } from '../motion/presence.js';
 import type { MotionPresenceFacts, MotionPresencePolicy } from '../motion/presence.js';
 import type { TargetAction } from '../moves/target-action.js';
-import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
+import type { SelectionDraftSelectionBinding } from '../moves/draft-bindings.js';
 import {
   isProjectedStackChoices,
   isProjectedStackChoicesForStack,

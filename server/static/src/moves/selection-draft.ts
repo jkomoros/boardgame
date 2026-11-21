@@ -2,16 +2,21 @@ import type { ReactiveController } from 'lit';
 import { isBoundMoveAction, type BoundMoveAction } from './action.ts';
 import { gameSnapshotKey, type GameSnapshotHost } from './snapshot-controller.ts';
 import type { TargetKey } from './target-action.js';
+import type {
+  SelectionDraftNotice,
+  SelectionDraftSelectionBinding,
+  SelectionOptionBinding,
+} from './draft-bindings.ts';
+
+// The binding shapes elements accept are layer-1 types; re-exported here,
+// where they have always been imported from.
+export type { SelectionDraftNotice, SelectionDraftSelectionBinding, SelectionOptionBinding };
 
 const MAX_SELECTION_CANDIDATES = 4096;
 const MAX_SELECTIONS = 1024;
 const MAX_SELECTION_HISTORY = 1024;
 
 export type SelectionDraftRebasePolicy = 'clear' | 'keep-valid';
-
-export type SelectionDraftNotice<Key extends TargetKey> =
-  | { readonly kind: 'cleared'; readonly message: string; readonly removed: readonly Key[] }
-  | { readonly kind: 'pruned'; readonly message: string; readonly removed: readonly Key[] };
 
 export interface SelectionDraftStateOptions<Key extends TargetKey> {
   readonly candidates: readonly Key[];
@@ -27,36 +32,6 @@ export interface SelectionDraftOptions<
   Input extends object,
 > extends SelectionDraftStateOptions<Key> {
   readonly action: (selected: readonly Key[]) => BoundMoveAction<MoveName, Input>;
-}
-
-/** One candidate's snapshot-safe presentation and interaction binding. */
-export interface SelectionOptionBinding<Key extends TargetKey> {
-  readonly choice: Key;
-  readonly selected: boolean;
-  readonly capacityBlocked: boolean;
-  toggle(): void;
-}
-
-export interface SelectionDraftSelectionBinding<Key extends TargetKey> {
-  readonly candidates: readonly Key[];
-  readonly selected: readonly Key[];
-  readonly notice: SelectionDraftNotice<Key> | null;
-  readonly minimumSelected: number;
-  readonly maximumSelected: number;
-  readonly count: number;
-  readonly minimumCount: number;
-  readonly maximumCount: number;
-  readonly status: string;
-  readonly canUndo: boolean;
-  readonly canClear: boolean;
-  option(key: Key): SelectionOptionBinding<Key>;
-  toggle(key: Key): void;
-  select(key: Key): void;
-  deselect(key: Key): void;
-  clear(): void;
-  undo(): void;
-  dismissNotice(): void;
-  isSelected(key: Key): boolean;
 }
 
 export interface SelectionDraftBinding<

@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
-import type { PlacementItemBinding } from '../moves/placement-draft.js';
+import type { PlacementItemBinding } from '../moves/draft-bindings.js';
 import type { TargetKey } from '../moves/target-action.js';
 
 /** Accessible selector around arbitrary game-owned placement-item visuals. */
