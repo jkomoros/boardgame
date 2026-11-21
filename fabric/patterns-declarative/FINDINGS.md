@@ -220,6 +220,17 @@ other grounds (one atomic input owned by the table) is what made this work.
 
 ## 4. Element changes requested of the client session
 
+**Both were applied** during integration, in
+`server/static/packages/elements/src/components/boardgame-component-stack.ts`
+(where that file now lives), and `fabric/declarative`'s wrapper uses them in
+place of the two `Object.defineProperty` overrides: `inner.collectionId` and
+`inner.stackScope`. One thing had to be added to the second: with the scope
+set, the wrapper's own way of listing every stack (calling the prototype's
+`_sharedStackList` getter on the scoped stack) would call the scope again,
+without end. `BoardgameComponentStack.connectedStacks()` returns every
+connected stack whatever its scope, and the wrapper filters that. The text
+below is the request as written.
+
 Nothing new in `server/static/src` was needed to run this. The wrapper still
 reaches into two privates, as in the first experiment. These two diffs would
 remove that; neither changes behavior for a caller that does not opt in.

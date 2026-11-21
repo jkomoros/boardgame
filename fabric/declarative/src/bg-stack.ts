@@ -174,15 +174,17 @@ export class BgStack extends LitElement implements TableChild {
 
   protected override firstUpdated(): void {
     const inner = this._inner!;
-    // FINDING (S9/S12): a stack's id is random per element instance, and the
-    // animator keys collection geometry and history by it. Give it the
-    // declared, stable key so a recreated stack is the same collection.
-    Object.defineProperty(inner, 'id', { configurable: true, get: () => this.key });
+    // A stack's id is random per element instance unless it is given one, and
+    // the animator keys collection geometry and history by it (S9/S12). Give
+    // it the declared, stable key so a recreated stack is the same collection.
+    inner.collectionId = this.key;
   }
 
   protected override updated(changed: Map<string, unknown>): void {
     const inner = this._inner;
     if (!inner) return;
+    // `key` follows `name` and `path`, which may be set after the first render.
+    inner.collectionId = this.key;
     if ((changed.has('face') || changed.has('pick')) && inner.stack) {
       // Same stack, different recipe inputs: have the stack re-stamp its hosts.
       inner.stack = inner.stack;

@@ -435,8 +435,25 @@ export class BoardgameComponentStack extends LitElement {
   private _slotGeometryTarget: HTMLElement | null = null;
   private _slotGeometryBorderBox: Readonly<{ inlineSize: number; blockSize: number }> | null = null;
 
+  /**
+   * When set on the stack an animator was built on, the stacks that animator
+   * sees, in place of every stack in the document. A host that draws more
+   * than one table on a page gives each animator its own table's stacks, so
+   * one table's cards are never matched against another's. Left null, the
+   * animator sees every connected stack, as it always has.
+   */
+  stackScope: (() => BoardgameComponentStack[]) | null = null;
+
+  /**
+   * Every stack connected to the document, whatever scope any of them has
+   * been given: what a `stackScope` function filters.
+   */
+  static connectedStacks(): BoardgameComponentStack[] {
+    return [...sharedStackList];
+  }
+
   get _sharedStackList(): BoardgameComponentStack[] {
-    return sharedStackList;
+    return this.stackScope?.() ?? sharedStackList;
   }
 
   get offsetComponent(): any {
@@ -449,8 +466,18 @@ export class BoardgameComponentStack extends LitElement {
     return this;
   }
 
+  /**
+   * A stable id for this collection, in place of the random one each element
+   * instance otherwise gets. The animator keys a collection's geometry and
+   * history by `id`, so a host that may recreate the element for the same
+   * stack of the game gives both instances the same `collection-id`. It must
+   * be unique among the stacks one animator sees.
+   */
+  @property({ type: String, attribute: 'collection-id' })
+  collectionId = '';
+
   get id(): string {
-    return this._id;
+    return this.collectionId || this._id;
   }
 
   get Components(): any[] {
