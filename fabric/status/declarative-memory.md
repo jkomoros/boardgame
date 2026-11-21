@@ -56,6 +56,9 @@ the browser pane (`?replay=scenario`): reveal, mismatch, hide all correct.
 
 - `@playwright/test` is pinned to 1.58.2 so it uses the Chromium build
   already in the local cache. A newer version needs `npx playwright install`.
+- Everything here ran on Node 20.20.0 (Vite, Playwright, `tsc`). Nothing in
+  `fabric/declarative` needs Node 23 or newer, and it does not use the repo's
+  `npm run test:unit`, so no stopgap was needed and nothing waits on Node 24.
 - The pages import `server/static/src` in place. `vite.config.ts` dedupes
   `lit` to this package, because that tree has no `node_modules` in a fresh
   worktree.
