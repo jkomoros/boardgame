@@ -21,9 +21,28 @@ computed properties, stack constraints.
 | Golden histories | 9 histories, 337 versions (memory 4 / 136, blackjack 5 / 201): ids, conservation, set-up shuffles, timer ids and every viewer's view match Go at every version |
 | Go build | `go vet` clean on the generators; `go build ./...` and the repository-hygiene tests unaffected; no existing Go file changed |
 
-`npm run test:unit` needs Node 23 or newer (CI uses 24). The machine had only
-18/20/21 when this started; 24.22.3 appeared in nvm partway through and the
-final runs used it.
+### Which commands ran under which Node
+
+`npm run test:unit` needs Node 23 or newer (it runs `.ts` files natively; CI
+uses 24.x). This session did not install any toolchain.
+
+| When | Runtime | Command (in `server/static`) | Outcome |
+|---|---|---|---|
+| Baseline | Node 20.20.0 | `npm ci` | ok |
+| Baseline | Node 20.20.0 | `npm run type-check` | passes |
+| Baseline | Node 20.20.0 | `npm run test:unit` | **could not run as written**: `Could not find 'src/**/*.test.ts'` (Node 20 neither expands the glob nor runs `.ts`). nvm then held only 18.11, 18.17, 20.20 and 21.7, none of which can |
+| During development | Node 20.20.0 | `npm run type-check`, `npx tsc --noEmit` | passes at each commit |
+| During development | Deno 2.5.6 (already on the machine) | `deno test -A --no-check src/engine/` | the engine's tests only, as a stand-in runner. Not the project's runner: no test budget, and none of the other 787 tests |
+| Final | Node 24.22.3 | `npm run type-check` | passes |
+| Final | Node 24.22.3 | `npm run test:unit` | 869 pass, 0 fail |
+| Final | Node 24.22.3 | `node --test --test-timeout=20000 --import=./scripts/test-budget.mjs 'src/engine/**/*.test.ts'` | 82 pass, 0 fail |
+
+Node 24.22.3 was found already present under `~/.nvm/versions/node` partway
+through the work; this session did not install it and does not know who did.
+The pre-existing count of 787 is the Node 24 total minus the engine's 82; the
+baseline suite was never run on its own under a Node that can run it.
+
+Go commands ran through `./scripts/go-local` with go1.27.4.
 
 ## Commits
 
