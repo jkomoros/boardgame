@@ -287,6 +287,16 @@ export class Stack implements StackView {
 	}
 
 	/**
+	 * What Game.setUp does with each component the delegate assigns to a
+	 * starter stack: insertComponentAt(nextSlot(), component), with no
+	 * MayMoveTo or constraint check. Only for building the version-0 state.
+	 */
+	insertStarterComponent(deckIndex: number): void {
+		this.insertComponentAt(this.nextSlot(), deckIndex);
+		this.syncIds();
+	}
+
+	/**
 	 * componentInstance.MayMoveTo for the component deckIndex of this
 	 * stack's deck. Like Go, it finds the component's source through the
 	 * state's component index rather than assuming it is in this stack.

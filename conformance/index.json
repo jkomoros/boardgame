@@ -180,6 +180,16 @@
     "covers": "Three players, two rounds, to game-over with winners: a bust, stands, the hidden card revealed at each turn (len-policy hands seen by self, other, observer and admin), round cleanup and the redeal."
   },
   {
+    "file": "blackjack/scenario-reshuffle.json.gz",
+    "game": "blackjack",
+    "name": "Blackjack: the draw stack runs out",
+    "source": "scenario",
+    "versions": 171,
+    "viewers": 9,
+    "finished": true,
+    "covers": "Seven players standing through four rounds to game-over: the 52-card draw stack is exhausted during the fourth deal, so Shuffle Discard Into Draw fires mid-progression (a shuffle after set-up, from that version's seeded randomness, raising SecretMoveCount and re-scrambling ids of a len-policy stack)."
+  },
+  {
     "file": "debuganimations/scenario-shuffles.json.gz",
     "game": "debuganimations",
     "name": "Debug animations: shuffles and hidden stacks",

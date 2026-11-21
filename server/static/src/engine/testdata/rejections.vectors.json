@@ -1,0 +1,1871 @@
+{
+	"cases": [
+		{
+			"name": "tictactoe: the other player proposes",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 1,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a player names another player as the target",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 1,
+				"fields": {
+					"Slot": 4,
+					"TargetPlayerIndex": 0
+				},
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a player moves for the wrong target",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"fields": {
+					"Slot": 4,
+					"TargetPlayerIndex": 1
+				},
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: the observer proposes",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": -1,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "The proposer was the ObserverPlayerIndex, but observers may never make moves.",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a proposer past the last seat",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 5,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "The proposer was not valid.",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a proposer below every special index",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": -7,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "The proposer was not valid.",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "memory: the other player reveals",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Reveal Card",
+				"proposer": 1,
+				"input": {
+					"CardIndex": 0
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "memory: the other player hides",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Reveal Card",
+					"proposer": 0,
+					"fields": {
+						"CardIndex": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Reveal Card",
+					"proposer": 0,
+					"fields": {
+						"CardIndex": 1,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Hide Cards",
+				"proposer": 1,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 3,
+			"versionAfter": 3
+		},
+		{
+			"name": "blackjack: the next player hits out of turn",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"setup": [],
+			"attempt": {
+				"name": "Current Player Hit",
+				"proposer": 1,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 11,
+			"versionAfter": 11
+		},
+		{
+			"name": "blackjack: a player forces the turn to end",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"setup": [],
+			"attempt": {
+				"name": "Force Finish Turn",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "ForceFinishTurn can only be proposed by AdminPlayerIndex",
+			"versionBefore": 11,
+			"versionAfter": 11
+		},
+		{
+			"name": "pig: the player whose turn it is not rolls",
+			"game": "pig",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Roll Dice",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 2,
+			"versionAfter": 2
+		},
+		{
+			"name": "tictactoe: a proposal made against an old version",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 1,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": 0
+			},
+			"error": "move proposal used stale game version 0; current version is 2",
+			"versionBefore": 2,
+			"versionAfter": 2
+		},
+		{
+			"name": "tictactoe: a proposal made against a future version",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": 3
+			},
+			"error": "move proposal used stale game version 3; current version is 0",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "memory: a stale reveal",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Reveal Card",
+					"proposer": 0,
+					"fields": {
+						"CardIndex": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Reveal Card",
+				"proposer": 0,
+				"input": {
+					"CardIndex": 1
+				},
+				"useInput": true,
+				"expectedVersion": 0
+			},
+			"error": "move proposal used stale game version 0; current version is 1",
+			"versionBefore": 1,
+			"versionAfter": 1
+		},
+		{
+			"name": "tictactoe: an occupied slot",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "place token",
+					"proposer": 0,
+					"input": {
+						"Slot": 4
+					},
+					"useInput": true,
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "PLACE TOKEN",
+				"proposer": 1,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "slot 4 is already occupied",
+			"versionBefore": 2,
+			"versionAfter": 2
+		},
+		{
+			"name": "tictactoe: a slot past the board",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": 9
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "slot index 9 is out of range (stack length 9)",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a negative slot",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": -1
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "slot index must be non-negative",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "memory: a card index past the layout",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Reveal Card",
+				"proposer": 0,
+				"input": {
+					"CardIndex": 99
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "99 is not an occupied slot in game stack \"HiddenCards\"",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "memory: a negative card index",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Reveal Card",
+				"proposer": 0,
+				"input": {
+					"CardIndex": -1
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "-1 is not an occupied slot in game stack \"HiddenCards\"",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "memory: a card that is already revealed",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Reveal Card",
+					"proposer": 0,
+					"fields": {
+						"CardIndex": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Reveal Card",
+				"proposer": 0,
+				"input": {
+					"CardIndex": 0
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "0 is not an occupied slot in game stack \"HiddenCards\"",
+			"versionBefore": 1,
+			"versionAfter": 1
+		},
+		{
+			"name": "memory: a third reveal",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Reveal Card",
+					"proposer": 0,
+					"fields": {
+						"CardIndex": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Reveal Card",
+					"proposer": 0,
+					"fields": {
+						"CardIndex": 1,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Reveal Card",
+				"proposer": 0,
+				"input": {
+					"CardIndex": 2
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "You have no cards left to reveal this turn",
+			"versionBefore": 3,
+			"versionAfter": 3
+		},
+		{
+			"name": "memory: hiding with cards still to reveal",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Hide Cards",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "You still have to reveal more cards before your turn is over",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "pig: done, then done again after the turn has passed",
+			"game": "pig",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Done Turn",
+					"proposer": 1,
+					"fields": {
+						"TargetPlayerIndex": 1
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Done Turn",
+				"proposer": 1,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 4,
+			"versionAfter": 4
+		},
+		{
+			"name": "blackjack: standing again after the turn has passed",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"setup": [
+				{
+					"name": "Current Player Stand",
+					"proposer": 0,
+					"fields": {
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Current Player Stand",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "it's not your turn",
+			"versionBefore": 14,
+			"versionAfter": 14
+		},
+		{
+			"name": "tictactoe: a required field is missing",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Place Token\" requires field \"Slot\"",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: an unknown field",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Column": 1,
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Place Token\" does not accept creator field \"Column\"",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a context-owned field is supplied",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": 4,
+					"TargetPlayerIndex": 0
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Place Token\" does not accept creator field \"TargetPlayerIndex\"",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a field of the wrong type",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": "four"
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Place Token\" field \"Slot\": json: cannot unmarshal string into Go value of type int",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a fractional slot",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": 1.5
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Place Token\" field \"Slot\": json: cannot unmarshal number 1.5 into Go value of type int",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a null field",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": null
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "field \"Slot\" must not be null",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a boolean for an integer",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": true
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Place Token\" field \"Slot\": json: cannot unmarshal bool into Go value of type int",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "memory: a field on a move that takes none",
+			"game": "memory",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Hide Cards",
+				"proposer": 0,
+				"input": {
+					"CardIndex": 0
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Hide Cards\" does not accept creator field \"CardIndex\"",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a move that does not exist",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "No Such Move",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "unknown move \"No Such Move\"",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a fix-up move through the proposer's entry point",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Finish Turn",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "move \"Finish Turn\" is engine-owned and is not a creator move",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a fix-up move proposed directly by a player",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Finish Turn",
+				"proposer": 0,
+				"expectedVersion": -1
+			},
+			"error": "The current player is not done with their turn because they still have tokens left to place this turn",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a fix-up move proposed directly by the admin when it is not legal",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Finish Turn",
+				"proposer": -2,
+				"expectedVersion": -1
+			},
+			"error": "The current player is not done with their turn because they still have tokens left to place this turn",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: the seating move with no seat pending",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Seat Player",
+				"proposer": -2,
+				"fields": {
+					"TargetPlayerIndex": 0
+				},
+				"expectedVersion": -1
+			},
+			"error": "No player to seat",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: another game's move",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Roll Dice",
+				"proposer": 0,
+				"expectedVersion": -1,
+				"from": "pig"
+			},
+			"error": "That move is not configured for this game.",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "blackjack: a move that is legal only in another phase",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"setup": [],
+			"attempt": {
+				"name": "Deal Initial Hidden Card",
+				"proposer": -2,
+				"expectedVersion": -1
+			},
+			"error": "Move is not legal in phase Normal Play",
+			"versionBefore": 11,
+			"versionAfter": 11
+		},
+		{
+			"name": "blackjack: a move of yet another phase",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"setup": [],
+			"attempt": {
+				"name": "Accumulate Scores",
+				"proposer": -2,
+				"expectedVersion": -1
+			},
+			"error": "Move is not legal in phase Normal Play",
+			"versionBefore": 11,
+			"versionAfter": 11
+		},
+		{
+			"name": "blackjack, seating: a move out of its place in the progression",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"seating": true,
+			"setup": [],
+			"attempt": {
+				"name": "Begin Game",
+				"proposer": -2,
+				"expectedVersion": -1
+			},
+			"error": "Move name does not match: Begin Game is not Wait For Enough Players - Gathering",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "blackjack, seating: waiting for players who are not there",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"seating": true,
+			"setup": [],
+			"attempt": {
+				"name": "Wait For Enough Players - Gathering",
+				"proposer": -2,
+				"expectedVersion": -1
+			},
+			"error": "Only 0 are seated, but move requires at least 2",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "blackjack, seating: a play move while gathering",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"seating": true,
+			"setup": [],
+			"attempt": {
+				"name": "Current Player Hit",
+				"proposer": 0,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "Move is not legal in phase Gathering",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "blackjack, seating: inactivating a seat before enough players came",
+			"game": "blackjack",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 3,
+			"seating": true,
+			"setup": [],
+			"attempt": {
+				"name": "Inactivate Empty Seat - Gathering",
+				"proposer": -2,
+				"fields": {
+					"TargetPlayerIndex": 0
+				},
+				"expectedVersion": -1
+			},
+			"error": "Move name does not match: Inactivate Empty Seat - Gathering is not Wait For Enough Players - Gathering",
+			"versionBefore": 0,
+			"versionAfter": 0
+		},
+		{
+			"name": "tictactoe: a proposal after the game is won",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 1,
+					"fields": {
+						"Slot": 3,
+						"TargetPlayerIndex": 1
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 1,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 1,
+					"fields": {
+						"Slot": 4,
+						"TargetPlayerIndex": 1
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 2,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 1,
+				"input": {
+					"Slot": 5
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "Game was already finished",
+			"versionBefore": 9,
+			"versionAfter": 9
+		},
+		{
+			"name": "tictactoe: the admin proposes after the game is won",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 1,
+					"fields": {
+						"Slot": 3,
+						"TargetPlayerIndex": 1
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 1,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 1,
+					"fields": {
+						"Slot": 4,
+						"TargetPlayerIndex": 1
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 2,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "Finish Turn",
+				"proposer": -2,
+				"expectedVersion": -1
+			},
+			"error": "Game was already finished",
+			"versionBefore": 9,
+			"versionAfter": 9
+		},
+		{
+			"name": "tictactoe: an unknown move after the game is won",
+			"game": "tictactoe",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 0,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 1,
+					"fields": {
+						"Slot": 3,
+						"TargetPlayerIndex": 1
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 1,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 1,
+					"fields": {
+						"Slot": 4,
+						"TargetPlayerIndex": 1
+					},
+					"expectedVersion": -1
+				},
+				{
+					"name": "Place Token",
+					"proposer": 0,
+					"fields": {
+						"Slot": 2,
+						"TargetPlayerIndex": 0
+					},
+					"expectedVersion": -1
+				}
+			],
+			"attempt": {
+				"name": "No Such Move",
+				"proposer": 1,
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "unknown move \"No Such Move\"",
+			"versionBefore": 9,
+			"versionAfter": 9
+		},
+		{
+			"name": "the fix-up cap, reached by a player's move",
+			"game": "spin-after-first-move",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": [],
+			"attempt": {
+				"name": "Place Token",
+				"proposer": 0,
+				"input": {
+					"Slot": 4
+				},
+				"useInput": true,
+				"expectedVersion": -1
+			},
+			"error": "we recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal",
+			"versionBefore": 0,
+			"versionAfter": 258,
+			"finalState": {
+				"Components": {},
+				"Game": {
+					"CurrentPlayer": 1,
+					"Phase": "After First Move",
+					"Slots": {
+						"Deck": "tokens",
+						"IDs": [
+							"",
+							"",
+							"",
+							"",
+							"e3c5f4cc8807c6f97d332b555b82468c549cb0b0",
+							"",
+							"",
+							"",
+							""
+						],
+						"IDsLastSeen": {
+							"e3c5f4cc8807c6f97d332b555b82468c549cb0b0": 1
+						},
+						"Indexes": [
+							-1,
+							-1,
+							-1,
+							-1,
+							0,
+							-1,
+							-1,
+							-1,
+							-1
+						],
+						"ShuffleCount": 0,
+						"Size": 9
+					}
+				},
+				"Players": [
+					{
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
+						"TokenValue": "X",
+						"TokensToPlaceThisTurn": 0,
+						"UnusedTokens": {
+							"Deck": "tokens",
+							"IDs": [
+								"dba67545010c893404783b65df48c22681751dd4",
+								"db2c1a7c50f4843cd7ecfc8866b31347db4625d0",
+								"e858aabf4492f7003984f0d07d21818df9794762",
+								"4207085e1c279d9d6fe0cb2cbe83cbffe3e6c885"
+							],
+							"IDsLastSeen": {
+								"4207085e1c279d9d6fe0cb2cbe83cbffe3e6c885": 0,
+								"db2c1a7c50f4843cd7ecfc8866b31347db4625d0": 0,
+								"dba67545010c893404783b65df48c22681751dd4": 0,
+								"e3c5f4cc8807c6f97d332b555b82468c549cb0b0": 0,
+								"e858aabf4492f7003984f0d07d21818df9794762": 0
+							},
+							"Indexes": [
+								1,
+								2,
+								3,
+								4
+							],
+							"ShuffleCount": 0
+						}
+					},
+					{
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
+						"TokenValue": "O",
+						"TokensToPlaceThisTurn": 1,
+						"UnusedTokens": {
+							"Deck": "tokens",
+							"IDs": [
+								"388931346023bc25ee1abcb1a5c2bb9248a54866",
+								"e0d116dd310b98f2eff5fe48f6822eedfba3e6b3",
+								"75793bbb9e5fdd0d846e356f8bcc5c6c9750595d",
+								"5c01647123e68588f883470248baf02060a1595d",
+								"237d7727bb429d7cb68687b55528757b3bcff8d5"
+							],
+							"IDsLastSeen": {
+								"237d7727bb429d7cb68687b55528757b3bcff8d5": 0,
+								"388931346023bc25ee1abcb1a5c2bb9248a54866": 0,
+								"5c01647123e68588f883470248baf02060a1595d": 0,
+								"75793bbb9e5fdd0d846e356f8bcc5c6c9750595d": 0,
+								"e0d116dd310b98f2eff5fe48f6822eedfba3e6b3": 0
+							},
+							"Indexes": [
+								5,
+								6,
+								7,
+								8,
+								9
+							],
+							"ShuffleCount": 0
+						}
+					}
+				],
+				"Timers": []
+			},
+			"finalMoves": [
+				"Place Token",
+				"Finish Turn",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin"
+			]
+		},
+		{
+			"name": "the fix-up cap, reached while the game is created",
+			"game": "spin-always",
+			"id": "ABCDEF0123456789",
+			"secretSalt": "rejection-vectors-salt",
+			"numPlayers": 2,
+			"setup": null,
+			"error": "we recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal",
+			"versionBefore": 0,
+			"versionAfter": 258,
+			"finalState": {
+				"Components": {},
+				"Game": {
+					"CurrentPlayer": 0,
+					"Phase": "Before First Move",
+					"Slots": {
+						"Deck": "tokens",
+						"IDs": [
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							""
+						],
+						"IDsLastSeen": {},
+						"Indexes": [
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1
+						],
+						"ShuffleCount": 0,
+						"Size": 9
+					}
+				},
+				"Players": [
+					{
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
+						"TokenValue": "X",
+						"TokensToPlaceThisTurn": 1,
+						"UnusedTokens": {
+							"Deck": "tokens",
+							"IDs": [
+								"e3c5f4cc8807c6f97d332b555b82468c549cb0b0",
+								"dba67545010c893404783b65df48c22681751dd4",
+								"db2c1a7c50f4843cd7ecfc8866b31347db4625d0",
+								"e858aabf4492f7003984f0d07d21818df9794762",
+								"4207085e1c279d9d6fe0cb2cbe83cbffe3e6c885"
+							],
+							"IDsLastSeen": {
+								"4207085e1c279d9d6fe0cb2cbe83cbffe3e6c885": 0,
+								"db2c1a7c50f4843cd7ecfc8866b31347db4625d0": 0,
+								"dba67545010c893404783b65df48c22681751dd4": 0,
+								"e3c5f4cc8807c6f97d332b555b82468c549cb0b0": 0,
+								"e858aabf4492f7003984f0d07d21818df9794762": 0
+							},
+							"Indexes": [
+								0,
+								1,
+								2,
+								3,
+								4
+							],
+							"ShuffleCount": 0
+						}
+					},
+					{
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
+						"TokenValue": "O",
+						"TokensToPlaceThisTurn": 1,
+						"UnusedTokens": {
+							"Deck": "tokens",
+							"IDs": [
+								"388931346023bc25ee1abcb1a5c2bb9248a54866",
+								"e0d116dd310b98f2eff5fe48f6822eedfba3e6b3",
+								"75793bbb9e5fdd0d846e356f8bcc5c6c9750595d",
+								"5c01647123e68588f883470248baf02060a1595d",
+								"237d7727bb429d7cb68687b55528757b3bcff8d5"
+							],
+							"IDsLastSeen": {
+								"237d7727bb429d7cb68687b55528757b3bcff8d5": 0,
+								"388931346023bc25ee1abcb1a5c2bb9248a54866": 0,
+								"5c01647123e68588f883470248baf02060a1595d": 0,
+								"75793bbb9e5fdd0d846e356f8bcc5c6c9750595d": 0,
+								"e0d116dd310b98f2eff5fe48f6822eedfba3e6b3": 0
+							},
+							"Indexes": [
+								5,
+								6,
+								7,
+								8,
+								9
+							],
+							"ShuffleCount": 0
+						}
+					}
+				],
+				"Timers": []
+			},
+			"finalMoves": [
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin",
+				"Spin"
+			]
+		}
+	],
+	"comment": "GENERATED by server/static/src/engine/testdata/gen/rejectvec from the real Go engine. Do not edit; regenerate with: ./scripts/go-local run ./server/static/src/engine/testdata/gen/rejectvec"
+}

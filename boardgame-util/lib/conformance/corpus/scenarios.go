@@ -192,6 +192,43 @@ func blackjackBustAndFinish() (scenario.Spec, error) {
 	return s.spec, fmt.Errorf("the game did not finish")
 }
 
+// blackjackReshuffle plays seven players for four rounds, everyone standing
+// at once. Each round deals fourteen cards, so the draw stack runs out during
+// the fourth deal and the discard stack is shuffled back into it mid-deal.
+func blackjackReshuffle() (scenario.Spec, error) {
+	const players, rounds = 7, 4
+	s := newScript("blackjack", "Blackjack: the draw stack runs out", "blackjack-reshuffle-v1", players, boardgame.Variant{"maxrounds": "4"})
+	// The turn order is fixed, so the moves are listed without running the
+	// game before each one: the player whose stand ends a round keeps the
+	// turn and opens the next round.
+	first := boardgame.PlayerIndex(0)
+	for round := 0; round < rounds; round++ {
+		player := first
+		for turn := 0; turn < players; turn++ {
+			s.move(fmt.Sprintf("Player %d stands", player), "Current Player Stand", player, nil)
+			first = player
+			player = (player + 1) % players
+		}
+	}
+	var end struct {
+		Game struct {
+			DrawStack struct{ ShuffleCount int }
+		}
+	}
+	finished, err := s.peek(&end, nil)
+	if err != nil {
+		return s.spec, err
+	}
+	if !finished {
+		return s.spec, fmt.Errorf("the game did not finish")
+	}
+	// Set-up shuffles once; a second shuffle is the reshuffle.
+	if end.Game.DrawStack.ShuffleCount < 2 {
+		return s.spec, fmt.Errorf("the draw stack was never reshuffled")
+	}
+	return s.spec, nil
+}
+
 // debugAnimationsShuffles walks the animation test bed's stack operations.
 func debugAnimationsShuffles() (scenario.Spec, error) {
 	s := newScript("debuganimations", "Debug animations: shuffles and hidden stacks", "debuganimations-shuffles-v1", 2, nil)

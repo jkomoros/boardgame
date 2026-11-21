@@ -70,6 +70,11 @@ export interface EnumDef {
 	Values: Readonly<Record<string, string>>;
 	/** The key a hidden enum value collapses to (Enum.DefaultValue()). */
 	DefaultValue: number;
+	/**
+	 * For a tree enum (enum.TreeEnum): each key's parent key; the root is
+	 * its own parent. Absent for an ordinary enum. The core ignores it.
+	 */
+	Parents?: Readonly<Record<string, number>>;
 }
 
 export interface GameDefinition {
