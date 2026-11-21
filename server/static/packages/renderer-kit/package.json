@@ -22,6 +22,7 @@
     "./moves/action-binding.js": "./src/moves/action-binding.ts",
     "./moves/selection-draft.js": "./src/moves/selection-draft.ts",
     "./moves/snapshot-controller.js": "./src/moves/snapshot-controller.ts",
-    "./renderer-host/renderer-host.js": "./src/renderer-host/renderer-host.ts"
+    "./renderer-host/renderer-host.js": "./src/renderer-host/renderer-host.ts",
+    "./theme/md3-theme.css": "./theme/md3-theme.css"
   }
 }

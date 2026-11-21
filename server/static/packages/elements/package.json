@@ -77,6 +77,7 @@
     "./timers/timer-clock.js": "./src/timers/timer-clock.ts",
     "./timers/timer-service.js": "./src/timers/timer-service.ts",
     "./types/boardgame-types.js": "./src/types/boardgame-types.ts",
+    "./types/client-move.js": "./src/types/client-move.ts",
     "./types/game-state.js": {
       "types": "./src/types/game-state.d.ts"
     },

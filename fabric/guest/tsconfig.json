@@ -15,18 +15,11 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
 
-    // Follow the game-src symlinks the way the webapp does, so a renderer's
-    // `../../src/client.js` lands in server/static/src.
+    // Follow the game-src links without resolving them, so a renderer's
+    // `../../src/client.js` lands on this package's src/client.ts, and so the
+    // client packages (file: dependencies, linked into node_modules) find
+    // `lit` in this package's node_modules.
     "preserveSymlinks": true,
-    "baseUrl": ".",
-    "paths": {
-      "@client/*": ["../../server/static/src/*"],
-      "@game-src/*": ["../../server/static/game-src/*"],
-      // The client source has no node_modules beside it in this checkout.
-      "lit": ["./node_modules/lit/index.d.ts"],
-      "lit/*": ["./node_modules/lit/*"],
-      "reselect": ["./node_modules/reselect/lib/index.d.ts"]
-    },
     "types": ["node"]
   },
   "include": ["protocol.ts", "src/**/*.ts", "tests/**/*.ts", "vite.config.ts", "vite.fabric.config.ts", "playwright.config.ts"]

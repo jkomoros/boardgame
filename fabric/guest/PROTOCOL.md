@@ -36,7 +36,7 @@ Static facts about the table. Send it once the guest has posted
 | `viewer` | The seat the views will be computed for. `-1` is the observer |
 | `players` | One `{ playerIndex, label, color? }` per seat, in seat order |
 | `moveInputSchemaFingerprint` | Optional. The engine's fingerprint of its move inputs. Without it the guest uses the fingerprint compiled into its renderer |
-| `gameId` | Optional and currently unused by the guest (see FINDINGS F2) |
+| `gameId` | Optional. Identifies the table. The guest passes it to the renderer host, where it seeds effects and keys transitions so two tables do not share them. Absent is the same as empty |
 
 A second `init` resets the guest completely.
 
@@ -160,8 +160,8 @@ deadlines, not a claim that one has passed. Sent once per timer.
 ### `error`
 
 `{ message }`. Diagnostics: an unknown game, an uncaught exception, a
-Content-Security-Policy violation, or the client source trying to reach a
-server. Nothing depends on the host reading it.
+Content-Security-Policy violation, or a renderer that failed to mount.
+Nothing depends on the host reading it.
 
 ## Inside a `cf-iframe`
 

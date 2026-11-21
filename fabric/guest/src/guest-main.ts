@@ -13,7 +13,7 @@ import {
 import { bundledGames } from './games.js';
 import { installGuestDocument } from './guest-document.js';
 import { GuestHost } from './guest-host.js';
-import { setServerCallReporter } from './shims/api.js';
+import { installAnimTestHooks } from '@boardgame/elements/utils/anim-test-hooks.js';
 
 // The host is whoever embedded this document. An opaque-origin guest cannot
 // name its parent's origin, so messages are posted to '*'; they carry only
@@ -29,11 +29,16 @@ function report(text: string): void {
   post(envelope<GuestToHostMessage>({ type: 'error', message: text } as MessageBody<GuestToHostMessage>));
 }
 
+// The animation counters are published on this document's own window: a
+// guest is one sandboxed frame, and its host's tests and tools read them to
+// see that a version really animated. A renderer host opts in (the elements
+// never publish them by themselves).
+installAnimTestHooks();
+
 const root = installGuestDocument();
 
 const host = new GuestHost(root, post, bundledGames);
 
-setServerCallReporter(name => report(`the client tried to reach the server (${name})`));
 window.addEventListener('error', event => report(`uncaught: ${event.message}`));
 window.addEventListener('unhandledrejection', event => report(`unhandled rejection: ${String(event.reason)}`));
 

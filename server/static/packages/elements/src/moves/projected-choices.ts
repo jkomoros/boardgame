@@ -303,7 +303,9 @@ export function buildProjectedMoveChoices<Projections extends MoveChoiceProjecti
     throw new Error('Generated projected-choice schema contains duplicate move names');
   }
   const result = new Map<string, AnyProjectedSet<Projections>>();
-  for (const wireSet of wire.Sets) {
+  // The Go server omits an empty `Sets` from its JSON. Read that as empty
+  // here, so every host need not patch it up before handing the wire over.
+  for (const wireSet of wire.Sets ?? []) {
     const schema = schemaByMove.get(wireSet.MoveName);
     if (!schema) throw new Error(`Projected choices contains unknown move ${JSON.stringify(wireSet.MoveName)}`);
     if (result.has(wireSet.MoveName)) {

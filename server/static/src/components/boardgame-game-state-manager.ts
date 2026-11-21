@@ -46,7 +46,7 @@ import type {
 } from '../types/store';
 import type { GameFromServer, RawGameState, StateBundle, TimerInfo } from '@boardgame/elements/types/game-state.js';
 import type { MoveForm, ProjectedMoveChoicesWire, ServerStateBundle } from '../types/api';
-import { clientMoveFromWire } from '../types/client-move.js';
+import { clientMoveFromWire } from '@boardgame/elements/types/client-move.js';
 import { decodeSocketFrame } from '../types/socket-frame.js';
 import type { HostedGameRenderer } from '@boardgame/renderer-kit/components/boardgame-render-game.js';
 import { BoardgameBaseGameRenderer } from '@boardgame/renderer-kit/components/boardgame-base-game-renderer.js';

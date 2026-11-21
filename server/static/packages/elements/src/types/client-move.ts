@@ -1,4 +1,4 @@
-import type { ClientMove, JsonValue } from './api.js';
+import type { ClientMove, JsonValue } from './wire.js';
 
 const MAX_ANIMATION_KEY_LENGTH = 256;
 

@@ -72,7 +72,6 @@ export default defineConfig({
   resolve: {
     ...standalone.resolve,
     alias: {
-      ...(standalone.resolve?.alias as Record<string, string>),
       '@commonfabric/iframe-sandbox/guest': fabricClient,
     },
   },

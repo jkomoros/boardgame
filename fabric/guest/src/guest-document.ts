@@ -4,7 +4,7 @@
  * renderer host mounts into. Shared by the standalone guest (`guest-main.ts`)
  * and the Common Fabric guest (`fabric-main.ts`).
  */
-import themeCss from '@client/styles/md3-theme.css?inline';
+import themeCss from '@boardgame/renderer-kit/theme/md3-theme.css?inline';
 
 /** Installs the theme and returns the element to mount the renderer host in. */
 export function installGuestDocument(extraCss = ''): HTMLElement {

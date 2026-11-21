@@ -308,6 +308,14 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
   @property({ type: Array, attribute: false })
   moveForms: MoveForm[] | null = null;
 
+  /**
+   * Legality by move name, for a host that has it in that shape already.
+   * When set it is used as given and `moveForms` is not consulted; the
+   * webapp leaves it null and passes the server's move forms instead.
+   */
+  @property({ type: Object, attribute: false })
+  moveLegality: Record<string, MoveLegalityInfo> | null = null;
+
 	@property({ type: String, attribute: false })
 	moveInputSchemaFingerprint: string | null = null;
 
@@ -507,7 +515,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
       this._defaultAnimationLengthChanged(this.defaultAnimationLength);
     }
 
-    if (changedProperties.has('moveForms')) {
+    if (changedProperties.has('moveForms') || changedProperties.has('moveLegality')) {
       this._moveFormsChanged(this.moveForms);
     }
 
@@ -529,6 +537,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
     if (
       changedProperties.has('state') ||
       changedProperties.has('moveForms') ||
+      changedProperties.has('moveLegality') ||
       changedProperties.has('viewingAsPlayer') ||
       changedProperties.has('previewAsPlayer') ||
       changedProperties.has('previewAsAdmin') ||
@@ -950,7 +959,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
 
   private _moveFormsChanged(moveForms: MoveForm[] | null) {
     if (!this.renderer) return;
-    this.renderer.moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
+    this.renderer.moveLegality = this.moveLegality ?? BoardgameRenderGame._deriveLegality(moveForms);
   }
 
   private _moveInputSchemaFingerprintChanged(fingerprint: string | null) {
@@ -1250,7 +1259,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
     ele.currentPlayerIndex = this.currentPlayerIndex;
     ele.playerPresentations = this.playerPresentations;
     ele.chest = this.chest;
-    ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
+    ele.moveLegality = this.moveLegality ?? BoardgameRenderGame._deriveLegality(this.moveForms);
     ele.serverMoveInputSchemaFingerprint = this.moveInputSchemaFingerprint;
     // Pass game name + ID + companion props through so the Table/Hand
     // view bases can call host endpoints (which require these in the URL

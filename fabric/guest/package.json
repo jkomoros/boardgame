@@ -15,8 +15,9 @@
     "build:fabric": "vite build --config vite.fabric.config.ts"
   },
   "dependencies": {
-    "lit": "3.3.3",
-    "reselect": "4.0.0"
+    "@boardgame/elements": "file:../../server/static/packages/elements",
+    "@boardgame/renderer-kit": "file:../../server/static/packages/renderer-kit",
+    "lit": "3.3.3"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",

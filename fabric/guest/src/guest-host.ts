@@ -11,30 +11,33 @@
  *   - a mount point for the game's player-info renderer.
  *
  * It mounts the real `boardgame-render-game`, which owns the animator, the
- * effect layer and the gate. Every place that needed a workaround is marked
- * SHIM and written up in FINDINGS.md.
+ * effect layer and the gate, and hands it a `RendererHost`
+ * (`@boardgame/renderer-kit/renderer-host/renderer-host.js`): the same
+ * contract the webapp implements in `server/static/src/webapp/`. The guest
+ * depends on the two client packages only; it imports nothing from the
+ * webapp. One place still steers around the kit; it is marked SHIM and
+ * written up in FINDINGS.md.
  */
 
-import '@client/components/boardgame-render-game.js';
-import '@client/components/boardgame-render-player-info.js';
-import { BoardgameRenderGame } from '@client/components/boardgame-render-game.js';
-import type { BoardgameRenderPlayerInfo } from '@client/components/boardgame-render-player-info.js';
-import { expandGameStateSnapshot } from '@client/selectors.js';
-import { clientMoveFromWire } from '@client/types/client-move.js';
-import { validatePlayerPresentations } from '@client/status/player-presentation.js';
+import '@boardgame/renderer-kit/components/boardgame-render-game.js';
+import type { BoardgameRenderGame } from '@boardgame/renderer-kit/components/boardgame-render-game.js';
 import {
-  TimerService,
-  TIMER_SERVICE_REQUEST_EVENT,
-  type TimerServiceRequestDetail,
-} from '@client/timers/timer-service.js';
+  mountPlayerInfo,
+  type BoardgameRenderPlayerInfo,
+} from '@boardgame/renderer-kit/components/boardgame-render-player-info.js';
+import type { RendererHost } from '@boardgame/renderer-kit/renderer-host/renderer-host.js';
+import { expandGameStateSnapshot } from '@boardgame/elements/state/expand.js';
+import { clientMoveFromWire } from '@boardgame/elements/types/client-move.js';
+import { validatePlayerPresentations } from '@boardgame/elements/status/player-presentation.js';
+import { TimerService } from '@boardgame/elements/timers/timer-service.js';
 import {
   MoveSubmissionGate,
   type MovePreviewTransport,
   type MoveSubmissionRequest,
   type MoveTransport,
   type MoveTransportResult,
-} from '@client/moves/action.js';
-import type { TargetPreviewTransport } from '@client/moves/target-action.js';
+} from '@boardgame/elements/moves/action.js';
+import type { TargetPreviewTransport } from '@boardgame/elements/moves/target-action.js';
 
 import {
   envelope,
@@ -77,15 +80,6 @@ interface RunningTimer {
 
 /** How long a proposed move may go unanswered before the action reports failure. */
 const MOVE_RESPONSE_TIMEOUT_MS = 10_000;
-
-// SHIM (FINDINGS F1): boardgame-render-game loads a game's renderer with a
-// path-computed dynamic import(). A guest has nothing to fetch, and every
-// renderer it can show is already registered by a static import, so the
-// loader resolves immediately. `_loadRendererModule` is TypeScript-private
-// but an ordinary prototype method at run time.
-(BoardgameRenderGame.prototype as unknown as {
-  _loadRendererModule: (modulePath: string) => Promise<unknown>;
-})._loadRendererModule = () => Promise.resolve();
 
 export class GuestHost {
   private readonly root: HTMLElement;
@@ -133,13 +127,8 @@ export class GuestHost {
     this.root = root;
     this.post = post;
     this.games = games;
-    // The renderer kit finds its timer service by event, as in the webapp.
-    root.addEventListener(TIMER_SERVICE_REQUEST_EVENT, (event: Event) => {
-      const request = event as CustomEvent<TimerServiceRequestDetail>;
-      if (typeof request.detail?.accept !== 'function') return;
-      event.stopPropagation();
-      request.detail.accept(this.timerService);
-    });
+    // The mount announces a settled cycle with these two events; the host
+    // forwards them to its queue (RendererHost.stateQueue).
     root.addEventListener('all-animations-done', event => this.cycleReleased(event));
     // A renderer may declare that a buffered successor can cut in early.
     root.addEventListener('motion-cycle-release', event => this.cycleReleased(event));
@@ -212,34 +201,26 @@ export class GuestHost {
         name.className = 'guest-seat-name';
         name.textContent = presentation.label;
         if (presentation.color) name.style.setProperty('--seat-color', presentation.color);
-        // SHIM (FINDINGS F7): in the webapp only the Redux-bound roster
-        // mounts this element. It needs no store, so the guest mounts it
-        // directly and tells it the renderer is already registered.
-        const info = document.createElement('boardgame-render-player-info') as BoardgameRenderPlayerInfo;
-        info.gameName = message.gameName;
-        info.playerIndex = presentation.playerIndex;
-        info.rendererLoaded = true;
-        info.active = true;
-        seat.append(name, info);
+        seat.append(name);
+        // The kit's host-owned mount path for a seat's player-info renderer.
+        this.playerInfos.push(mountPlayerInfo(seat, {
+          host: this.rendererHost,
+          gameName: message.gameName,
+          playerIndex: presentation.playerIndex,
+          state: null,
+        }));
         seats.append(seat);
-        this.playerInfos.push(info);
       }
     }
 
     const render = document.createElement('boardgame-render-game') as BoardgameRenderGame;
     render.id = 'render';
-    // SHIM (FINDINGS F3): with a game id set, render-game asks
-    // companion-surface which surface this browser wants, and that reads
-    // location.search, sessionStorage and document.cookie. Reading
-    // document.cookie throws in an opaque origin. Declaring the table solo
-    // (CompanionMode false) makes that function return before it reads
-    // anything.
-    render.companionInfo = { CompanionMode: false } as unknown as BoardgameRenderGame['companionInfo'];
+    // Everything render-game needs from outside its subtree: the loader for
+    // the (already bundled) renderer, the surface, the timer service.
+    render.host = this.rendererHost;
     render.gameName = message.gameName;
-    // SHIM (FINDINGS F2): with an empty game id the legality-preview refresh
-    // returns before it reaches `movePreviewBatch`. The id is only used
-    // otherwise as an effect seed and in the transition key.
-    render.gameId = '';
+    // Seeds effects and keys transitions, so two tables do not share them.
+    render.gameId = message.gameId ?? '';
     render.chest = message.chest as unknown as BoardgameRenderGame['chest'];
     render.playerPresentations = presentations;
     render.viewingAsPlayer = message.viewer;
@@ -397,8 +378,7 @@ export class GuestHost {
     this.setTimers(entry);
 
     // The same expansion the webapp runs: stacks gain their components from
-    // the chest. SHIM (FINDINGS F8): it is imported from selectors.ts, the
-    // Redux selector module, because that is where the pure function lives.
+    // the chest.
     const expanded = expandGameStateSnapshot(entry.state as never, init.chest as never, init.gameName);
 
     // All of these land in one Lit update, in the order render-game's
@@ -413,19 +393,13 @@ export class GuestHost {
     render.currentPlayerIndex = entry.currentPlayerIndex;
     render.gameFinished = entry.outcome.finished;
     render.gameWinners = [...entry.outcome.winners];
-    // SHIM (FINDINGS F12): Go omits an empty `Sets`, and the only code that
-    // puts it back is the decoder for whole HTTP responses.
-    render.projectedMoveChoicesWire = (entry.projectedMoveChoices
-      ? { ...entry.projectedMoveChoices, Sets: entry.projectedMoveChoices.Sets ?? [] }
-      : null) as BoardgameRenderGame['projectedMoveChoicesWire'];
-    // SHIM (FINDINGS F6): render-game only accepts legality wrapped in the
-    // HTTP API's move forms, so rebuild the three fields it reads.
-    render.moveForms = Object.entries(entry.moveLegality ?? {}).map(([name, legality]) => ({
-      Name: name,
-      LegalForPlayer: legality.legalForPlayer,
-      LegalForAnyone: legality.legalForAnyone,
-      ...(legality.error ? { LegalForPlayerError: legality.error } : {}),
-    })) as unknown as BoardgameRenderGame['moveForms'];
+    render.projectedMoveChoicesWire = (entry.projectedMoveChoices ?? null) as BoardgameRenderGame['projectedMoveChoicesWire'];
+    // Legality as the protocol carries it: by move name.
+    render.moveLegality = Object.fromEntries(Object.entries(entry.moveLegality ?? {}).map(([name, legality]) => [name, {
+      legalForPlayer: legality.legalForPlayer,
+      legalForAnyone: legality.legalForAnyone,
+      ...(legality.error ? { error: legality.error } : {}),
+    }]));
     render.state = expanded as unknown as BoardgameRenderGame['state'];
     for (const info of this.playerInfos) info.state = expanded as unknown as BoardgameRenderPlayerInfo['state'];
     this.root.dataset['version'] = String(entry.version);
@@ -435,8 +409,43 @@ export class GuestHost {
   private cycleReleased(event: Event): void {
     const cycleId = (event as CustomEvent<{ cycleId?: unknown }>).detail?.cycleId;
     if (typeof cycleId !== 'number') return;
-    this.release(cycleId);
+    this.rendererHost.stateQueue?.readyForNextState(cycleId);
   }
+
+  // -------------------------------------------------------------------------
+  // the renderer host
+  // -------------------------------------------------------------------------
+
+  /**
+   * What the kit takes from this host. There is no server behind a guest, so
+   * there is no board-preview transport and no table actions: the kit treats
+   * both as absent, and nothing here can reach a network.
+   */
+  private readonly rendererHost: RendererHost = {
+    stateQueue: {
+      readyForNextState: cycleId => {
+        if (typeof cycleId === 'number') this.release(cycleId);
+      },
+    },
+    timerService: this.timerService,
+    // A guest presents one surface: the ordinary renderer.
+    resolveSurface: () => null,
+    // Renderers are compiled in (games.ts), so "loading" one is checking that
+    // it is there.
+    loadRendererModule: async request => {
+      if (!this.games[request.gameName]) {
+        throw new Error(`this guest bundles no renderer for ${JSON.stringify(request.gameName)}`);
+      }
+      if (request.surface !== null) {
+        throw new Error(`this guest bundles no ${request.surface} surface`);
+      }
+    },
+    loadPlayerInfoModule: async request => {
+      if (!this.games[request.gameName]?.hasPlayerInfo) {
+        throw new Error(`this guest bundles no player-info renderer for ${JSON.stringify(request.gameName)}`);
+      }
+    },
+  };
 
   private release(cycleId: number): void {
     // Exactly one release per installed cycle; render-game also closes an
