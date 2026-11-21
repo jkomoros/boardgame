@@ -7,7 +7,7 @@
  * expands a snapshot the same way. The webapp's memoized selectors in
  * `selectors.ts` call this; a host without Redux calls it directly.
  */
-import type { ExpandedGameState, GameChest } from '../types/store';
+import type { ExpandedGameState, GameChest } from '../types/wire';
 import type { RawGameState, TimerInfo } from '../types/game-state';
 
 /** Expand an API snapshot using exactly the same path as live Redux state. */

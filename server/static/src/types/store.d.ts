@@ -6,49 +6,19 @@
  */
 
 import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
-import type { MoveForm, ServerStateBundle } from './api';
-import type {
-  CatalogComponent,
-  FullGameState,
-  GameChest as RendererGameChest,
-} from './boardgame-types';
+import type { ServerStateBundle } from './api';
+import type { CompanionInfo, GameChest, MoveForm, PlayerInfo } from './wire';
 
-/**
- * Companion-mode bundle from the doGameInfo response. Matches the JSON
- * shape emitted by server/api/main.go doGameInfo(). Keys are PascalCase
- * because Go's JSON marshaling uses struct field names.
- */
-export interface CompanionSeatPresentation {
-  playerIndex: number;
-  displayName: string;
-  avatarSlug: string;
-}
-
-export interface CompanionTableSession {
-  Status: 'active' | 'available';
-  IsThisTable: boolean;
-  CanTakeOver: boolean;
-  /** Server-authoritative delay before checking whether an active Table died. */
-  RetryAfterMs: number;
-  /** This exact former Table was intentionally moved to another screen. */
-  DisplacedByTransfer: boolean;
-}
-
-export interface CompanionInfo {
-  CompanionMode: boolean;
-  RoomCode: string;
-  RoomLocked: boolean;
-  SeatPresentations: CompanionSeatPresentation[];
-  Absent: number[];
-  /** Ownership and recovery state for the single shared Table display. */
-  TableSession: CompanionTableSession;
-  /** Server-computed authority verdict for host actions on this request. */
-  IsHost: boolean;
-  /** This request may create the finished game's one durable successor. */
-  CanRematch: boolean;
-  /** Published only after the successor is fully configured and safe to enter. */
-  RematchGameID: string;
-}
+// Wire types live in ./wire so layer-1 and kit code never imports the store's
+// types. Re-exported for the host code that has always imported them here.
+export type {
+  CompanionInfo,
+  CompanionSeatPresentation,
+  CompanionTableSession,
+  ExpandedGameState,
+  GameChest,
+  PlayerInfo,
+} from './wire';
 
 /**
  * Root Redux state containing all slices.
@@ -198,7 +168,7 @@ export interface FetchedGameInfo {
   ViewingAsPlayer: number;
   StateVersion: number;
   MoveInputSchemaFingerprint: string;
-  ProjectedMoveChoices?: import('./api').ProjectedMoveChoicesWire;
+  ProjectedMoveChoices?: import('./wire').ProjectedMoveChoicesWire;
 }
 
 /** Version payload retained only until the animation queue consumes it. */
@@ -262,43 +232,6 @@ export interface GameState {
   configuring: boolean;
   /** Last error message from fetch operations (null if no error) */
   error: string | null;
-}
-
-/**
- * Game chest containing component configurations and deck defaults.
- */
-export type GameChest = RendererGameChest<
-  Readonly<Record<string, readonly CatalogComponent[]>>
->;
-
-/**
- * Expanded game state with all component references resolved.
- * State from server has component indices that get expanded to full objects.
- *
- * For type-safe access in game renderers, use the generated _types.ts
- * in each game's client/ directory (via boardgame-util emit-types).
- * See also FullGameState in types/boardgame-types.ts.
- */
-export type ExpandedGameState = FullGameState<
-  object,
-  object,
-  object,
-  object,
-  Readonly<Record<string, readonly unknown[]>>
->;
-
-/**
- * Information about a player in the game.
- */
-export interface PlayerInfo {
-  /** Whether this player slot is currently unoccupied. */
-  IsEmpty: boolean;
-  /** Whether the occupied slot is controlled by an agent. */
-  IsAgent: boolean;
-  /** Player display name supplied by the server. */
-  DisplayName: string;
-  /** Optional player photo URL supplied by the server. */
-  PhotoURL?: string;
 }
 
 /**

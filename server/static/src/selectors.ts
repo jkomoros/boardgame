@@ -12,7 +12,9 @@ import type {
     UserInfo,
 } from './types/store';
 import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './types/game-state';
-import type { MoveForm, PreconditionEntry } from './types/api';
+import type { MoveForm, MoveLegalityInfo } from './types/wire';
+
+export type { MoveLegalityInfo };
 import { expandGameStateSnapshot } from './state/expand.js';
 
 // The expansion itself is a pure layer-1 function (src/state/expand.ts) so a
@@ -181,21 +183,6 @@ export const selectMoveForms = (state: RootState): MoveForm[] | null => selectVi
  * Memoized selector deriving a legality map from move forms.
  * Returns a record keyed by move name with legality info for each move.
  */
-export interface MoveLegalityInfo {
-    legalForPlayer: boolean;
-    legalForAnyone: boolean;
-    error?: string;
-    /**
-     * Per-predicate declarative-legality ledger (design spec §6), passed
-     * through verbatim from MoveForm.Preconditions. Present only for a
-     * move type that opted in to declarative legality; undefined for an
-     * opaque move, where legalForPlayer/legalForAnyone/error alone
-     * describe legality. No UI reads this yet -- Task 10 ships the plumbing
-     * only, ahead of a future client evaluator/explainer feature.
-     */
-    preconditions?: PreconditionEntry[];
-}
-
 export const selectMoveLegality = createSelector(
     [selectMoveForms],
     (moveForms): Record<string, MoveLegalityInfo> => {

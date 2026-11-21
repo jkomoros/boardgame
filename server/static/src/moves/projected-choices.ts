@@ -2,7 +2,7 @@ import {
   hydrateMoveActionPreview,
   type BoundMoveAction,
 } from './action.ts';
-import type { ProjectedMoveChoiceSetWire, ProjectedMoveChoicesWire } from '../types/api.js';
+import type { ProjectedMoveChoiceSetWire, ProjectedMoveChoicesWire } from '../types/wire.js';
 import type { PlayerPresentation } from '../status/player-presentation.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 

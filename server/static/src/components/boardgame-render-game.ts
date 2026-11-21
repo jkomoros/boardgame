@@ -4,9 +4,9 @@ import './boardgame-component-animator.js';
 import type { BoardgameComponentAnimator } from './boardgame-component-animator.js';
 import './boardgame-effect-layer.js';
 import type { BoardgameEffectLayer } from './boardgame-effect-layer.js';
-import type { ClientMove, MoveForm } from '../types/api.js';
+import type { ClientMove, MoveForm } from '../types/wire.js';
 import { createEffectTransitionContext } from '../effects/effect-spec.js';
-import type { MoveLegalityInfo } from '../selectors.js';
+import type { MoveLegalityInfo } from '../types/wire.js';
 import { movePreviewBatch } from '../api.js';
 import {
   disabledSpacesFromResults,
@@ -18,7 +18,7 @@ import { animHooks } from '../utils/anim-test-hooks.js';
 import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
 import type { PlayerPresentation } from '../status/player-presentation.js';
-import type { ProjectedMoveChoicesWire } from '../types/api.js';
+import type { ProjectedMoveChoicesWire } from '../types/wire.js';
 import {
   defaultMessageResolver,
   type MessageResolver,
@@ -151,7 +151,7 @@ class BoardgameRenderGame extends LitElement {
   // Scoped timing policy associated with the exact installed game version.
   // The shared animator consumes it as fly()'s default.
   @property({ type: Object, attribute: 'animation-context' })
-  animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
+  animationContext: import('../motion/timing.js').VersionAnimationContext | null = null;
 
   @property({ type: Object, attribute: false })
   transitionMove: ClientMove | null = null;
@@ -213,7 +213,7 @@ class BoardgameRenderGame extends LitElement {
   moveSubmissionGate: MoveSubmissionGate | null = null;
 
   @property({ type: Object, attribute: 'companion-info' })
-  companionInfo: import('../types/store').CompanionInfo | null = null;
+  companionInfo: import('../types/wire').CompanionInfo | null = null;
 
   // isOwner is the doGameInfo IsOwner bool — true if the authenticated
   // user is the game's Owner. Pass-through; the surface renderer combines
@@ -547,7 +547,7 @@ class BoardgameRenderGame extends LitElement {
   // expose typed properties for the unpacked fields; we set them all so
   // the renderer can react to e.g. an absent player coming back without
   // a full re-mount.
-  private _companionInfoChanged(_newValue: import('../types/store').CompanionInfo | null) {
+  private _companionInfoChanged(_newValue: import('../types/wire').CompanionInfo | null) {
     const desiredSurface = this._surfaceSuffix(this.gameId);
     if (this.gameName && desiredSurface !== this._rendererSurfaceSuffix) {
       void this._rendererIdentityChanged(this.gameName, this.gameId);
@@ -561,7 +561,7 @@ class BoardgameRenderGame extends LitElement {
    * boundary. The property assignment preserves ordinary Lit composition;
    * the synchronous propagation prevents a mounted renderer from retaining
    * stale room/Table authority metadata until some unrelated render. */
-  installCompanionInfo(info: import('../types/store').CompanionInfo | null): void {
+  installCompanionInfo(info: import('../types/wire').CompanionInfo | null): void {
     this.companionInfo = info;
     this._companionInfoChanged(info);
   }

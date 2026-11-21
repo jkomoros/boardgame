@@ -1,11 +1,11 @@
 import { LitElement, html, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
 import { rendererStyles } from '../styles/renderer-styles.js';
-import type { MoveLegalityInfo } from '../selectors.js';
+import type { MoveLegalityInfo } from '../types/wire.js';
 import type { MovePreviewSpec } from '../legal/previewLegality.js';
 import type { FullGameState, GameChest } from '../types/boardgame-types.js';
-import type { ClientMove } from '../types/api.js';
-import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
+import type { ClientMove } from '../types/wire.js';
+import { START_MOVE_NAMES, getReadyToStartError } from '../status/gathering-start.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
 import { DEFAULT_EFFECT_THEME } from '../effects/effect-spec.js';
 import type {
@@ -33,7 +33,7 @@ import {
   type MovePreviewTransport,
   type MoveTransport,
 } from '../moves/action.js';
-import type { ProjectedMoveChoicesWire } from '../types/api.js';
+import type { ProjectedMoveChoicesWire } from '../types/wire.js';
 import {
   buildProjectedMoveChoices,
   ProjectedMoveChoices,

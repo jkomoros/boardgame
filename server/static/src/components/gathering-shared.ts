@@ -8,8 +8,12 @@
  * - Raw Computed.Global is expanded onto state.Game.Computed
  * - Raw Computed.Players[i] is expanded onto state.Players[i].Computed
  */
-import type { MoveForm, MoveFormField } from '../types/api';
-export type { PlayerInfo } from '../types/store';
+import type { MoveForm, MoveFormField } from '../types/wire';
+import { START_MOVE_NAMES, gameComputed, optionalRecord } from '../status/gathering-start.js';
+export type { PlayerInfo } from '../types/wire';
+// Start detection is read by the base renderer too, so it lives in a layer-1
+// module; re-exported here for the gathering components.
+export { START_MOVE_NAMES, getReadyToStartError } from '../status/gathering-start.js';
 
 // ---- Player index constants ----
 
@@ -25,20 +29,6 @@ export interface EnumValue {
   /** CSS color string, present only for color enum values. */
   CSSColor?: string;
 }
-
-// ---- Start move detection ----
-
-/**
- * @deprecated Use IsGatheringStart on MoveForm instead.
- * Kept as a fallback for servers that haven't been updated yet.
- */
-export const START_MOVE_NAMES = new Set([
-  'Confirm Players',
-  'Close All Seats',
-  'Start Game',
-  'Begin Game',
-  'Finalize Set Up',
-]);
 
 // ---- Selection move detection ----
 
@@ -95,30 +85,6 @@ export function hasPickerMoves(moveForms: MoveForm[] | null): boolean {
 }
 
 // ---- State accessors ----
-
-function optionalRecord(value: unknown, path: string): Readonly<Record<string, unknown>> | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`Gathering state ${path} must be an object when present`);
-  }
-  return value as Readonly<Record<string, unknown>>;
-}
-
-function gameComputed(state: unknown): Readonly<Record<string, unknown>> | null {
-  const root = optionalRecord(state, 'root');
-  const game = optionalRecord(root?.['Game'], 'Game');
-  return optionalRecord(game?.['Computed'], 'Game.Computed');
-}
-
-/** Get ReadyToStartError from expanded global computed properties. */
-export function getReadyToStartError(state: unknown): string {
-  const value = gameComputed(state)?.['ReadyToStartError'];
-  if (value === undefined || value === null) return '';
-  if (typeof value !== 'string') {
-    throw new Error('Gathering state Game.Computed.ReadyToStartError must be a string');
-  }
-  return value;
-}
 
 /** Get available enum values from expanded global computed properties. */
 export function getAvailableValues(
