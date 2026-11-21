@@ -1,5 +1,5 @@
-import './boardgame-turn-status.js';
-import { ObserverPlayerIndex, type TurnStatusContext } from '../status/turn-status.js';
+import '@boardgame/elements/components/boardgame-turn-status.js';
+import { ObserverPlayerIndex, type TurnStatusContext } from '@boardgame/elements/status/turn-status.js';
 
 const context = {
   currentPlayerIndex: 0,

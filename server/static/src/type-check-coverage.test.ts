@@ -17,7 +17,7 @@ import ts from 'typescript';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Every `*.test.ts` that exists on disk under src/, as absolute paths. */
+/** Every `*.test.ts` that exists on disk under a directory, as absolute paths. */
 function testFilesOnDisk(directory: string): string[] {
   const found: string[] = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -67,7 +67,11 @@ function filesInProject(project: string): string[] {
 }
 
 test('every test file is type-checked by npm run type-check', () => {
-  const onDisk = testFilesOnDisk(path.join(root, 'src'));
+  // src/ (the webapp host and the engine) and the client packages.
+  const onDisk = [
+    ...testFilesOnDisk(path.join(root, 'src')),
+    ...testFilesOnDisk(path.join(root, 'packages')),
+  ];
   // An empty scan would make every assertion below vacuously true, which is
   // exactly the failure mode this guard exists to prevent. There are well over
   // a hundred test files in src/; a scan that finds a handful means the walk

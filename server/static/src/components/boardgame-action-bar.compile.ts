@@ -1,4 +1,4 @@
-import './boardgame-action-bar.js';
+import '@boardgame/elements/components/boardgame-action-bar.js';
 
 const bar = document.createElement('boardgame-action-bar');
 bar.label = 'Turn actions';

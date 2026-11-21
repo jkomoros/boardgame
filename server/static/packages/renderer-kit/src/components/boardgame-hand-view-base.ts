@@ -1,13 +1,13 @@
 import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
-import type { FullGameState } from '../types/boardgame-types.js';
-import type { MoveChoiceProjectionTypes } from '../moves/projected-choices.js';
+import type { FullGameState } from '@boardgame/elements/types/boardgame-types.js';
+import type { MoveChoiceProjectionTypes } from '@boardgame/elements/moves/projected-choices.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
-import { glyphForSlug } from './companion-avatar-catalog.js';
+import { glyphForSlug } from '@boardgame/elements/components/companion-avatar-catalog.js';
 import type { EffectTransitionContext } from '../effects/effect-spec.js';
-import type { MotionTransferDeclaration } from '../motion/transfer.js';
-import { DeferredMotion } from '../motion/deferred-motion.js';
+import type { MotionTransferDeclaration } from '@boardgame/elements/motion/transfer.js';
+import { DeferredMotion } from '@boardgame/elements/motion/deferred-motion.js';
 
 /**
  * BoardgameHandViewBase is the base class for the Hand view renderer that

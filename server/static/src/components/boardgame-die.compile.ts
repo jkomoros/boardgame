@@ -1,5 +1,5 @@
-import '../client.js';
-import type { DieComponent } from './boardgame-die.js';
+import '@boardgame/renderer-kit/client.js';
+import type { DieComponent } from '@boardgame/elements/components/boardgame-die.js';
 
 // THE TYPED PIN ON THE INDEX. `selectedFaceIndex` is an index into `faces`, and
 // the one thing a compiler can hold is that it is a number of the die's own

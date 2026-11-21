@@ -1,12 +1,12 @@
 import type { ReactiveController } from 'lit';
-import { isBoundMoveAction, type BoundMoveAction } from './action.ts';
+import { isBoundMoveAction, type BoundMoveAction } from '@boardgame/elements/moves/action.js';
 import { gameSnapshotKey, type GameSnapshotHost } from './snapshot-controller.ts';
-import type { TargetKey } from './target-action.js';
+import type { TargetKey } from '@boardgame/elements/moves/target-action.js';
 import type {
   DraftPlacement,
   PlacementItemBinding,
   PlacementTargetBinding,
-} from './draft-bindings.ts';
+} from '@boardgame/elements/moves/draft-bindings.js';
 
 // The binding shapes elements accept are layer-1 types; re-exported here,
 // where they have always been imported from.

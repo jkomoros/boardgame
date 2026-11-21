@@ -9,7 +9,7 @@ import { decodeHostActionResponse } from '../types/host-action-response.js';
 import { apiPath } from '../util.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { webappTokenArt } from './token-art.js';
-import type { TimerService } from '../timers/timer-service.js';
+import type { TimerService } from '@boardgame/elements/timers/timer-service.js';
 import type {
   BoardPreviewTransport,
   PlayerInfoModuleRequest,
@@ -19,7 +19,7 @@ import type {
   RendererStateQueue,
   TableActionResult,
   TableActions,
-} from '../renderer-host/renderer-host.js';
+} from '@boardgame/renderer-kit/renderer-host/renderer-host.js';
 
 type TableActionEndpoint = 'setRoomLock' | 'switchToSolo' | 'hostSkipTurn';
 

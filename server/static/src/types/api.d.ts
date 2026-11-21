@@ -3,8 +3,8 @@
  * These match the JSON structures returned by the Go backend.
  */
 
-import type { CompanionInfo, GameChest, MoveForm, PlayerInfo, ProjectedMoveChoicesWire } from './wire';
-import type { GameFromServer } from './game-state';
+import type { CompanionInfo, GameChest, MoveForm, PlayerInfo, ProjectedMoveChoicesWire } from '@boardgame/elements/types/wire.js';
+import type { GameFromServer } from '@boardgame/elements/types/game-state.js';
 
 // The shapes a renderer and its elements take are wire types (./wire), shared
 // with hosts that never touch this HTTP API. They are re-exported here so
@@ -21,7 +21,7 @@ export type {
   ProjectedMoveChoiceSetWire,
   ProjectedMoveChoiceSource,
   ProjectedMoveChoicesWire,
-} from './wire';
+} from '@boardgame/elements/types/wire.js';
 
 /**
  * Base response structure from the server.

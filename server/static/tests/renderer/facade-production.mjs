@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const staticRoot = resolve(here, '../..');
@@ -14,6 +14,8 @@ try {
   // Junctions work without elevated symlink privileges on Windows and behave
   // as ordinary directory symlinks on the other supported platforms.
   await symlink(resolve(staticRoot, 'src'), resolve(assembled, 'src'), 'junction');
+  // The client packages the framework's src/ consumes (see scripts/packages.mjs).
+  await symlink(resolve(staticRoot, 'packages'), resolve(assembled, 'packages'), 'junction');
   await symlink(resolve(staticRoot, 'node_modules'), resolve(assembled, 'node_modules'), 'junction');
   await symlink(resolve(repoRoot, 'examples/pig/client'), resolve(assembled, 'game-src/pig'), 'junction');
   await symlink(resolve(repoRoot, 'examples/memory/client'), resolve(assembled, 'game-src/memory'), 'junction');
@@ -23,9 +25,10 @@ try {
   await writeFile(resolve(assembled, 'vite.config.mjs'), `
     import { defineConfig } from 'vite';
     import { resolve } from 'node:path';
+    import { packageAliases } from ${JSON.stringify(pathToFileURL(resolve(staticRoot, 'scripts/packages.mjs')).href)};
     export default defineConfig({
       root: ${JSON.stringify(assembled)},
-      resolve: { preserveSymlinks: true },
+      resolve: { preserveSymlinks: true, alias: packageAliases(${JSON.stringify(assembled)}) },
       build: {
         outDir: 'dist',
         emptyOutDir: true,

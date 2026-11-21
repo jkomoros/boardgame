@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
 import { SourceDestinationController } from './source-destination.ts';
-import type { TargetAction } from './target-action.ts';
+import type { TargetAction } from '@boardgame/elements/moves/target-action.js';
 
 class TestHost implements ReactiveControllerHost {
   readonly controllers: ReactiveController[] = [];

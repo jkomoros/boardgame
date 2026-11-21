@@ -1,4 +1,4 @@
-import './boardgame-game-surface.js';
+import '@boardgame/elements/components/boardgame-game-surface.js';
 
 const surface = document.createElement('boardgame-game-surface');
 surface.heading = 'Memory';

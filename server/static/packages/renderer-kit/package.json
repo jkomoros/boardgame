@@ -1,0 +1,27 @@
+{
+  "name": "@boardgame/renderer-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "BSD-3-Clause",
+  "description": "Layer 2 of the boardgame web client: what a game renderer is written against (client.js), the element that mounts one (boardgame-render-game), and the renderer-host contract.",
+  "sideEffects": true,
+  "dependencies": {
+    "@boardgame/elements": "file:../elements"
+  },
+  "peerDependencies": {
+    "lit": "^3.2.1"
+  },
+  "exports": {
+    "./client.js": "./src/client.ts",
+    "./components/boardgame-base-game-renderer.js": "./src/components/boardgame-base-game-renderer.ts",
+    "./components/boardgame-base-player-info-renderer.js": "./src/components/boardgame-base-player-info-renderer.ts",
+    "./components/boardgame-render-game.js": "./src/components/boardgame-render-game.ts",
+    "./components/boardgame-render-player-info.js": "./src/components/boardgame-render-player-info.ts",
+    "./legal/previewLegality.js": "./src/legal/previewLegality.ts",
+    "./moves/action-binding.js": "./src/moves/action-binding.ts",
+    "./moves/selection-draft.js": "./src/moves/selection-draft.ts",
+    "./moves/snapshot-controller.js": "./src/moves/snapshot-controller.ts",
+    "./renderer-host/renderer-host.js": "./src/renderer-host/renderer-host.ts"
+  }
+}

@@ -14,7 +14,7 @@ import type {
   ProjectedMoveChoicesWire,
   ServerStateBundle,
 } from './api.js';
-import type { GameFromServer, RawGameState, TimerInfo } from './game-state.js';
+import type { GameFromServer, RawGameState, TimerInfo } from '@boardgame/elements/types/game-state.js';
 
 const MAX_PLAYERS = 1_000;
 const MAX_FORMS = 10_000;

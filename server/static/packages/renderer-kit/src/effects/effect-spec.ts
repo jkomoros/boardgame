@@ -1,5 +1,5 @@
-import type { AnimationTimingPolicy } from '../motion/timing.js';
-import type { ClientMove } from '../types/wire.js';
+import type { AnimationTimingPolicy } from '@boardgame/elements/motion/timing.js';
+import type { ClientMove } from '@boardgame/elements/types/wire.js';
 
 export type EffectTone =
   | 'neutral'

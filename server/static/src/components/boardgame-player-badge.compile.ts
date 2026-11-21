@@ -1,5 +1,5 @@
-import '../client.js';
-import type { PlayerPresentation } from '../client.js';
+import '@boardgame/renderer-kit/client.js';
+import type { PlayerPresentation } from '@boardgame/renderer-kit/client.js';
 
 declare const player: PlayerPresentation;
 const badge = document.createElement('boardgame-player-badge');

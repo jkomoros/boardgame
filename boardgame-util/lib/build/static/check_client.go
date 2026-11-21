@@ -144,19 +144,29 @@ func CheckClient(frameworkStaticDir string, packages []ClientCheckPackage) (Clie
 	}
 	defer os.RemoveAll(workDir)
 
-	frameworkDeclarations := filepath.Join(workDir, "game-src", "src")
+	// The framework client is src/ plus the client packages under packages/.
+	// Declarations are emitted for the whole static directory so the staged
+	// tree keeps that shape: game-src/src/client.d.ts is what a game's
+	// `../../src/client.js` reaches, and game-src/packages/<name>/src holds the
+	// package declarations it re-exports from.
+	frameworkDeclarations := filepath.Join(workDir, "game-src")
 	if err := os.MkdirAll(frameworkDeclarations, 0700); err != nil {
 		return report, fmt.Errorf("BGCLIENT0001: couldn't stage framework declarations: %w", err)
 	}
 	declarationCommand := exec.Command("node", compiler,
 		"--project", filepath.Join(frameworkStaticDir, "tsconfig.json"),
 		"--declaration", "--emitDeclarationOnly", "--declarationMap", "false", "--sourceMap", "false",
-		"--outDir", frameworkDeclarations, "--rootDir", filepath.Join(frameworkStaticDir, "src"), "--pretty", "false")
+		"--outDir", frameworkDeclarations, "--rootDir", frameworkStaticDir, "--pretty", "false")
 	if output, commandErr := declarationCommand.CombinedOutput(); commandErr != nil {
 		return report, fmt.Errorf("BGCLIENT0001: couldn't emit framework declarations: %w: %s", commandErr, strings.TrimSpace(string(output)))
 	}
 	if err := os.Symlink(filepath.Join(frameworkStaticDir, "node_modules"), filepath.Join(workDir, "node_modules")); err != nil {
 		return report, fmt.Errorf("BGCLIENT0001: couldn't expose pinned framework dependencies: %w", err)
+	}
+
+	stagedPackagePaths, err := stagedClientPackagePaths(frameworkStaticDir)
+	if err != nil {
+		return report, err
 	}
 
 	packages = append([]ClientCheckPackage(nil), packages...)
@@ -179,10 +189,18 @@ func CheckClient(frameworkStaticDir string, packages []ClientCheckPackage) (Clie
 		}
 		projectPath := filepath.Join(gameDir, "tsconfig.json")
 		project := map[string]interface{}{
-			"extends":         filepath.Join(frameworkStaticDir, "tsconfig.authoring.json"),
-			"compilerOptions": map[string]interface{}{"rootDir": "../..", "noEmit": true},
-			"include":         []string{"client/**/*.ts"},
-			"exclude":         []string{"client/**/*.test.ts"},
+			"extends": filepath.Join(frameworkStaticDir, "tsconfig.authoring.json"),
+			"compilerOptions": map[string]interface{}{
+				"rootDir": "../..",
+				"noEmit":  true,
+				// The framework tsconfig maps its package names to source. A
+				// game is checked against the staged declarations instead, so
+				// the framework's own source is not re-checked under the
+				// stricter creator policy.
+				"paths": stagedPackagePaths,
+			},
+			"include": []string{"client/**/*.ts"},
+			"exclude": []string{"client/**/*.test.ts"},
 		}
 		contents, marshalErr := json.MarshalIndent(project, "", "  ")
 		if marshalErr != nil {
@@ -198,6 +216,48 @@ func CheckClient(frameworkStaticDir string, packages []ClientCheckPackage) (Clie
 		report.Diagnostics = append(report.Diagnostics, diagnostics...)
 	}
 	return NewClientCheckResult(report.Diagnostics), nil
+}
+
+// stagedClientPackagePaths returns tsconfig `paths` for a game project that
+// sits at <workDir>/game-src/<game>/, pointing each client package name at
+// its staged declarations in <workDir>/game-src/packages/<dir>/src. The
+// package names are read from each package.json under
+// frameworkStaticDir/packages; a framework with no packages yields no paths.
+func stagedClientPackagePaths(frameworkStaticDir string) (map[string][]string, error) {
+	paths := make(map[string][]string)
+	packagesDir := filepath.Join(frameworkStaticDir, "packages")
+	entries, err := os.ReadDir(packagesDir)
+	if os.IsNotExist(err) {
+		return paths, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("BGCLIENT0001: couldn't list client packages: %w", err)
+	}
+	for _, entry := range entries {
+		// The packages directory may be reached through a link, so stat each
+		// entry rather than trusting its directory bit. Anything that is not
+		// a directory holding a package.json (a README, say) is not a package.
+		packageDir := filepath.Join(packagesDir, entry.Name())
+		if info, err := os.Stat(packageDir); err != nil || !info.IsDir() {
+			continue
+		}
+		manifestPath := filepath.Join(packageDir, "package.json")
+		contents, err := os.ReadFile(manifestPath)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("BGCLIENT0001: couldn't read %s: %w", manifestPath, err)
+		}
+		var manifest struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(contents, &manifest); err != nil || manifest.Name == "" {
+			return nil, fmt.Errorf("BGCLIENT0001: %s has no package name", manifestPath)
+		}
+		paths[manifest.Name+"/*"] = []string{"../packages/" + entry.Name() + "/src/*"}
+	}
+	return paths, nil
 }
 
 func runTypeScriptCheck(runner, project, packageName string, options ...string) ([]ClientDiagnostic, error) {

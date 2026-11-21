@@ -10,9 +10,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
-import type { PlayerChipPresentationChangedDetail } from './boardgame-base-player-info-renderer.js';
+import type { PlayerChipPresentationChangedDetail } from '@boardgame/renderer-kit/components/boardgame-base-player-info-renderer.js';
 import './boardgame-player-chip.ts';
-import './boardgame-render-player-info.js';
+import '@boardgame/renderer-kit/components/boardgame-render-player-info.js';
 
 @customElement('boardgame-player-roster-item')
 export class BoardgamePlayerRosterItem extends LitElement {

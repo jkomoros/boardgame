@@ -1,14 +1,14 @@
 import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
-import type { FullGameState } from '../types/boardgame-types.js';
-import type { MoveChoiceProjectionTypes } from '../moves/projected-choices.js';
-import { glyphForSlug } from './companion-avatar-catalog.js';
+import type { FullGameState } from '@boardgame/elements/types/boardgame-types.js';
+import type { MoveChoiceProjectionTypes } from '@boardgame/elements/moves/projected-choices.js';
+import { glyphForSlug } from '@boardgame/elements/components/companion-avatar-catalog.js';
 import type { TableActionResult, TableActions } from '../renderer-host/renderer-host.js';
-import './boardgame-game-outcome.js';
+import '@boardgame/elements/components/boardgame-game-outcome.js';
 import type { EffectTransitionContext } from '../effects/effect-spec.js';
-import type { MotionTransferDeclaration } from '../motion/transfer.js';
-import { DeferredMotion } from '../motion/deferred-motion.js';
+import type { MotionTransferDeclaration } from '@boardgame/elements/motion/transfer.js';
+import { DeferredMotion } from '@boardgame/elements/motion/deferred-motion.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord

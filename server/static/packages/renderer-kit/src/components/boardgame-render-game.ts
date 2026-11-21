@@ -1,12 +1,12 @@
 import { LitElement, html, css } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
-import './boardgame-component-animator.js';
-import type { BoardgameComponentAnimator } from './boardgame-component-animator.js';
+import '@boardgame/elements/components/boardgame-component-animator.js';
+import type { BoardgameComponentAnimator } from '@boardgame/elements/components/boardgame-component-animator.js';
 import './boardgame-effect-layer.js';
 import type { BoardgameEffectLayer } from './boardgame-effect-layer.js';
-import type { ClientMove, MoveForm } from '../types/wire.js';
+import type { ClientMove, MoveForm } from '@boardgame/elements/types/wire.js';
 import { createEffectTransitionContext } from '../effects/effect-spec.js';
-import type { MoveLegalityInfo } from '../types/wire.js';
+import type { MoveLegalityInfo } from '@boardgame/elements/types/wire.js';
 import type {
   RendererHost,
   RendererModuleRequest,
@@ -14,42 +14,42 @@ import type {
   RendererMoveInputs,
   RendererSurface,
 } from '../renderer-host/renderer-host.js';
-import { TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '../timers/timer-service.js';
+import { TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '@boardgame/elements/timers/timer-service.js';
 import {
   disabledSpacesFromResults,
   samePreviewSpaces,
   previewOutcome,
   type MovePreviewBatchResult,
 } from '../legal/previewLegality.js';
-import { animHooks } from '../utils/anim-test-hooks.js';
-import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
-import type { TargetPreviewTransport } from '../moves/target-action.js';
-import type { PlayerPresentation } from '../status/player-presentation.js';
-import type { ProjectedMoveChoicesWire } from '../types/wire.js';
+import { animHooks } from '@boardgame/elements/utils/anim-test-hooks.js';
+import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '@boardgame/elements/moves/action.js';
+import type { TargetPreviewTransport } from '@boardgame/elements/moves/target-action.js';
+import type { PlayerPresentation } from '@boardgame/elements/status/player-presentation.js';
+import type { ProjectedMoveChoicesWire } from '@boardgame/elements/types/wire.js';
 import {
   defaultMessageResolver,
   type MessageResolver,
   type MoveChoiceProjectionTypes,
   type ProjectedMoveChoices,
   type ProjectedMoveChoiceSet,
-} from '../moves/projected-choices.js';
+} from '@boardgame/elements/moves/projected-choices.js';
 import {
   isProjectedChoiceConsumptionController,
   PROJECTED_CHOICE_CONSUMPTION_CHANGED,
   type ProjectedChoiceConsumptionChangedDetail,
   type ProjectedChoiceConsumptionController,
-} from '../moves/projected-choice-consumption.js';
-import './boardgame-projected-choices.js';
-import { setTokenArtResolver } from './component-art.js';
+} from '@boardgame/elements/moves/projected-choice-consumption.js';
+import '@boardgame/elements/components/boardgame-projected-choices.js';
+import { setTokenArtResolver } from '@boardgame/elements/components/component-art.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
 import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
-import type { FullGameState, GameChest } from '../types/boardgame-types.js';
-import { retryDelayMs } from '../utils/retry-policy.js';
-import { compileMotionTransferDeclarations } from '../motion/transfer.js';
-import { compileMotionRelease } from '../motion/release.js';
-import { AnimationGate, type AnimationGateCallbacks } from '../motion/animation-gate.js';
-import { AnimatableRegistry } from '../motion/animatable-registry.js';
+import type { FullGameState, GameChest } from '@boardgame/elements/types/boardgame-types.js';
+import { retryDelayMs } from '@boardgame/elements/utils/retry-policy.js';
+import { compileMotionTransferDeclarations } from '@boardgame/elements/motion/transfer.js';
+import { compileMotionRelease } from '@boardgame/elements/motion/release.js';
+import { AnimationGate, type AnimationGateCallbacks } from '@boardgame/elements/motion/animation-gate.js';
+import { AnimatableRegistry } from '@boardgame/elements/motion/animatable-registry.js';
 
 type HostedState = FullGameState<object, object, object, object, object>;
 export type HostedGameRenderer = BoardgameBaseGameRenderer<
@@ -167,7 +167,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
   // Scoped timing policy associated with the exact installed game version.
   // The shared animator consumes it as fly()'s default.
   @property({ type: Object, attribute: 'animation-context' })
-  animationContext: import('../motion/timing.js').VersionAnimationContext | null = null;
+  animationContext: import('@boardgame/elements/motion/timing.js').VersionAnimationContext | null = null;
 
   @property({ type: Object, attribute: false })
   transitionMove: ClientMove | null = null;
@@ -229,7 +229,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
   moveSubmissionGate: MoveSubmissionGate | null = null;
 
   @property({ type: Object, attribute: 'companion-info' })
-  companionInfo: import('../types/wire').CompanionInfo | null = null;
+  companionInfo: import('@boardgame/elements/types/wire.js').CompanionInfo | null = null;
 
   // isOwner is the doGameInfo IsOwner bool — true if the authenticated
   // user is the game's Owner. Pass-through; the surface renderer combines
@@ -585,7 +585,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
   // expose typed properties for the unpacked fields; we set them all so
   // the renderer can react to e.g. an absent player coming back without
   // a full re-mount.
-  private _companionInfoChanged(_newValue: import('../types/wire').CompanionInfo | null) {
+  private _companionInfoChanged(_newValue: import('@boardgame/elements/types/wire.js').CompanionInfo | null) {
     const desiredSurface = this._surfaceSuffix(this.gameId);
     if (this.gameName && desiredSurface !== this._rendererSurfaceSuffix) {
       void this._rendererIdentityChanged(this.gameName, this.gameId);
@@ -599,7 +599,7 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
    * boundary. The property assignment preserves ordinary Lit composition;
    * the synchronous propagation prevents a mounted renderer from retaining
    * stale room/Table authority metadata until some unrelated render. */
-  installCompanionInfo(info: import('../types/wire').CompanionInfo | null): void {
+  installCompanionInfo(info: import('@boardgame/elements/types/wire.js').CompanionInfo | null): void {
     this.companionInfo = info;
     this._companionInfoChanged(info);
   }

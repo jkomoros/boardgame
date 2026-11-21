@@ -9,11 +9,11 @@
  * `src/webapp/renderer-host.ts` and `boardgame-game-view`.
  */
 import type { MovePreviewBatchResult } from '../legal/previewLegality.js';
-import type { AnimatableRegistry } from '../motion/animatable-registry.js';
-import type { VersionAnimationContext } from '../motion/timing.js';
-import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
-import type { TargetPreviewTransport } from '../moves/target-action.js';
-import type { TimerService } from '../timers/timer-service.js';
+import type { AnimatableRegistry } from '@boardgame/elements/motion/animatable-registry.js';
+import type { VersionAnimationContext } from '@boardgame/elements/motion/timing.js';
+import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '@boardgame/elements/moves/action.js';
+import type { TargetPreviewTransport } from '@boardgame/elements/moves/target-action.js';
+import type { TimerService } from '@boardgame/elements/timers/timer-service.js';
 
 /** The game a request is about. A host may ignore it if it serves one game. */
 export interface RendererGameRef {

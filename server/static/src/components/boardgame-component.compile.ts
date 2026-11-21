@@ -1,4 +1,4 @@
-import { BoardgameComponent, componentView } from '../client.js';
+import { BoardgameComponent, componentView } from '@boardgame/renderer-kit/client.js';
 
 // THE CONTRADICTION THIS PINS. `componentView()` is the documented escape hatch
 // for a game-owned component host, its type parameter is

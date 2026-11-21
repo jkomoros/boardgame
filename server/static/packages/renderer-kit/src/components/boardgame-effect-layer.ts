@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
+import { BoardgameAnimatableItem } from '@boardgame/elements/components/boardgame-animatable-item.js';
 import { reserveEffectBudget } from '../effects/effect-budget.js';
 import { burstParticles, MAX_BURST_PARTICLES } from '../effects/particle-burst.js';
 import { DEFAULT_EFFECT_THEME } from '../effects/effect-spec.js';
@@ -17,12 +17,12 @@ import type {
   PulseEffectSpec,
   TrailEffectSpec,
 } from '../effects/effect-spec.js';
-import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
-import { captureViewportGeometry, geometryCenter } from '../motion/geometry.js';
+import type { AnimationTimingPolicy } from '@boardgame/elements/components/boardgame-animatable-item.js';
+import { captureViewportGeometry, geometryCenter } from '@boardgame/elements/motion/geometry.js';
 import type {
   StructuralMotionEvent,
   StructuralMotionSegmentEvent,
-} from '../motion/structural-events.js';
+} from '@boardgame/elements/motion/structural-events.js';
 
 interface StructuralMotionSource {
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
@@ -33,7 +33,7 @@ export interface EffectLayerConfiguration {
   anchorRoot: ParentNode | null;
   seedScope: string;
   theme: EffectTheme;
-  animationContext: import('../motion/timing.js').VersionAnimationContext | null;
+  animationContext: import('@boardgame/elements/motion/timing.js').VersionAnimationContext | null;
   /** Internal source for automatic component-motion endpoint events. */
   motionSource?: StructuralMotionSource | null;
 }

@@ -26,8 +26,8 @@ import {
 } from '../selectors.js';
 
 import { surfaceForGame } from '../utils/companion-surface.js';
-import { ANIM_TEST_HOOKS_STORAGE_KEY, installAnimTestHooks } from '../utils/anim-test-hooks.js';
-import { setTokenArtResolver } from './component-art.js';
+import { ANIM_TEST_HOOKS_STORAGE_KEY, installAnimTestHooks } from '@boardgame/elements/utils/anim-test-hooks.js';
+import { setTokenArtResolver } from '@boardgame/elements/components/component-art.js';
 import { webappTokenArt } from '../webapp/token-art.js';
 
 // Tokens are drawn all over the app (the roster, not only the game board), so

@@ -3,8 +3,8 @@ import {
   type MoveActionService,
   type MoveActionSnapshot,
   type MoveProposalResult,
-} from './action.js';
-import { bindMoveAction } from './action-binding.js';
+} from '@boardgame/elements/moves/action.js';
+import { bindMoveAction } from '@boardgame/renderer-kit/moves/action-binding.js';
 
 type MoveName = 'Roll' | 'Place' | 'Choose' | 'Customize';
 type MoveInputs = {

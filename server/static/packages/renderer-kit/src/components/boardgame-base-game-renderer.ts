@@ -1,12 +1,12 @@
 import { LitElement, html, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
 import { rendererStyles } from '../styles/renderer-styles.js';
-import type { MoveLegalityInfo } from '../types/wire.js';
+import type { MoveLegalityInfo } from '@boardgame/elements/types/wire.js';
 import type { MovePreviewSpec } from '../legal/previewLegality.js';
-import type { FullGameState, GameChest } from '../types/boardgame-types.js';
-import type { ClientMove } from '../types/wire.js';
-import { START_MOVE_NAMES, getReadyToStartError } from '../status/gathering-start.js';
-import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
+import type { FullGameState, GameChest } from '@boardgame/elements/types/boardgame-types.js';
+import type { ClientMove } from '@boardgame/elements/types/wire.js';
+import { START_MOVE_NAMES, getReadyToStartError } from '@boardgame/elements/status/gathering-start.js';
+import type { ComponentAnimatorAPI } from '@boardgame/elements/components/boardgame-component-animator.js';
 import { DEFAULT_EFFECT_THEME } from '../effects/effect-spec.js';
 import type {
   EffectHostAPI,
@@ -14,14 +14,14 @@ import type {
   EffectTheme,
   EffectTransitionContext,
 } from '../effects/effect-spec.js';
-import type { MotionStaggerCohortSpec } from '../motion/cohort.js';
-import type { MotionTransferDeclaration } from '../motion/transfer.js';
-import type { MotionReleaseDeclaration } from '../motion/release.js';
+import type { MotionStaggerCohortSpec } from '@boardgame/elements/motion/cohort.js';
+import type { MotionTransferDeclaration } from '@boardgame/elements/motion/transfer.js';
+import type { MotionReleaseDeclaration } from '@boardgame/elements/motion/release.js';
 import {
   serializeCreatorMoveInputForServer,
   validateCreatorMoveInput,
   type MoveInputSchema,
-} from '../moves/input.js';
+} from '@boardgame/elements/moves/input.js';
 import {
   MoveSubmissionGate,
   cancelMoveActionPreview,
@@ -32,31 +32,31 @@ import {
   type MoveActionService,
   type MovePreviewTransport,
   type MoveTransport,
-} from '../moves/action.js';
-import type { ProjectedMoveChoicesWire } from '../types/wire.js';
+} from '@boardgame/elements/moves/action.js';
+import type { ProjectedMoveChoicesWire } from '@boardgame/elements/types/wire.js';
 import {
   buildProjectedMoveChoices,
   ProjectedMoveChoices,
   type MessageDescriptor,
   type MoveChoiceProjectionSchemaEntry,
   type MoveChoiceProjectionTypes,
-} from '../moves/projected-choices.js';
+} from '@boardgame/elements/moves/projected-choices.js';
 import {
   cancelTargetActionPreview,
   notifyTargetActionLiveStateChanged,
   type TargetAction,
   type TargetKey,
   type TargetPreviewTransport,
-} from '../moves/target-action.js';
+} from '@boardgame/elements/moves/target-action.js';
 import {
   AdminPlayerIndex,
   AnyPlayerIndex,
   type TurnStatusContext,
-} from '../status/turn-status.js';
+} from '@boardgame/elements/status/turn-status.js';
 import {
   fallbackPlayerPresentation,
   type PlayerPresentation,
-} from '../status/player-presentation.js';
+} from '@boardgame/elements/status/player-presentation.js';
 
 type MoveInputFor<
   K extends string,
@@ -153,7 +153,7 @@ export class BoardgameBaseGameRenderer<
   @property({ attribute: false })
   moveSubmissionGate: MoveSubmissionGate = new MoveSubmissionGate();
 
-  readonly #moveActionCache = new Map<string, import('../moves/action.js').BoundMoveAction<string, object>>();
+  readonly #moveActionCache = new Map<string, import('@boardgame/elements/moves/action.js').BoundMoveAction<string, object>>();
   readonly #targetActionCache = new Map<string, TargetAction<TargetKey, string, object>>();
   readonly #moveActionService: MoveActionService = {
     currentClientSchemaFingerprint: () => this.moveInputSchemaFingerprint ?? '',
@@ -490,7 +490,7 @@ export class BoardgameBaseGameRenderer<
         state: this.state,
         proposingAsPlayer: this.proposingAsPlayer,
         action: (move, input) => {
-          const builder = this.move(move as unknown as MN & string) as unknown as import('../moves/action.js').MoveActionBuilder<
+          const builder = this.move(move as unknown as MN & string) as unknown as import('@boardgame/elements/moves/action.js').MoveActionBuilder<
             typeof move,
             MCP[typeof move]['input']
           >;

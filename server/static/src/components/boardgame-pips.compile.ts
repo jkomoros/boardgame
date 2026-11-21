@@ -1,4 +1,4 @@
-import './boardgame-pips.js';
+import '@boardgame/elements/components/boardgame-pips.js';
 
 const pips = document.createElement('boardgame-pips');
 pips.glyph = '☘';

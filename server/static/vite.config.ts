@@ -1,14 +1,66 @@
 import { defineConfig } from 'vite';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync } from 'node:fs';
+import type { Plugin } from 'vite';
+import { clientPackages, packageAliases } from './scripts/packages.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const staticPort = Number(process.env.BOARDGAME_STATIC_PORT || 8080);
 const apiPort = Number(process.env.BOARDGAME_API_PORT || 8888);
 
+// The directory Vite serves: server/static itself, or the build directory the
+// Go tooling assembles from it (where `src`, `packages` and `scripts` are links).
+const servedRoot = process.cwd();
+
+/**
+ * Keeps every pre-package module URL working.
+ *
+ * Layers 1 and 2 moved from `src/` into `packages/<name>/src/` with their paths
+ * inside `src/` unchanged. The Playwright suites import several hundred
+ * modules by URL from inside the page (`await import('/src/motion/timing.ts')`),
+ * which the type checker never sees. For any `/src/<path>` that no longer
+ * exists but does exist in a package, this serves a module that re-exports
+ * the package's file, so the page gets the one instance the app itself uses.
+ * It is test-path indirection only: it bypasses `exports`, and no source file
+ * may rely on it.
+ */
+function legacySrcPaths(): Plugin {
+  const packages = clientPackages(servedRoot);
+  const redirects = new Map<string, string>();
+  return {
+    name: 'boardgame-legacy-src-paths',
+    enforce: 'pre',
+    resolveId(source) {
+      const url = source.split('?')[0]!;
+      if (!url.startsWith('/src/')) return null;
+      const here = resolve(servedRoot, url.slice(1));
+      const candidates = here.endsWith('.js') ? [here, here.replace(/\.js$/, '.ts')] : [here];
+      if (candidates.some(candidate => existsSync(candidate))) return null;
+      for (const pkg of packages) {
+        for (const candidate of candidates) {
+          const moved = resolve(pkg.directory, 'src', candidate.slice(resolve(servedRoot, 'src').length + 1));
+          if (existsSync(moved)) {
+            const id = here.replace(/\.js$/, '.ts');
+            redirects.set(id, moved);
+            return id;
+          }
+        }
+      }
+      return null;
+    },
+    load(id) {
+      const moved = redirects.get(id.split('?')[0]!);
+      if (!moved) return null;
+      return `export * from ${JSON.stringify(moved)};\n`;
+    },
+  };
+}
+
 export default defineConfig({
   root: '.',
+  plugins: [legacySrcPaths()],
   // Game renderers are discovered dynamically, so Vite's initial crawl (which
   // follows STATIC imports from index.html) cannot see their dependencies.
   // Whatever it misses is discovered when a game page first loads, and Vite
@@ -103,9 +155,11 @@ export default defineConfig({
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
     // Preserve symlinks to ensure correct path resolution for game renderers
     preserveSymlinks: true,
-    alias: {
+    alias: [
       // Allow game renderers to import from a clean path
-      '/@server-static': resolve(__dirname, '.')
-    }
+      { find: '/@server-static', replacement: resolve(__dirname, '.') },
+      // The client packages, one exact alias per exported subpath.
+      ...packageAliases(servedRoot),
+    ]
   }
 });

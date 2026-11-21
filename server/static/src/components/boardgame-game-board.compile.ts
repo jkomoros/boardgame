@@ -1,5 +1,5 @@
-import '../client.js';
-import type { PlacementDraftBinding } from '../client.js';
+import '@boardgame/renderer-kit/client.js';
+import type { PlacementDraftBinding } from '@boardgame/renderer-kit/client.js';
 
 declare const placement: PlacementDraftBinding<
   'tile-a' | 'tile-b',

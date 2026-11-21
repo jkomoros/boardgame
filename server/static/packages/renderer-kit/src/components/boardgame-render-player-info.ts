@@ -5,7 +5,7 @@ import {
   type PlayerChipPresentationChangedDetail,
 } from './boardgame-base-player-info-renderer.js';
 import type { RendererHost } from '../renderer-host/renderer-host.js';
-import { TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '../timers/timer-service.js';
+import { TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '@boardgame/elements/timers/timer-service.js';
 
 const pendingModuleLoads = new WeakMap<RendererHost, Map<string, Promise<unknown>>>();
 

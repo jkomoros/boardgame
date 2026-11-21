@@ -2,7 +2,7 @@ import {
   BoardgameBaseGameRenderer,
   type EffectTransitionContext,
   type FullGameState,
-} from '../client.js';
+} from '@boardgame/renderer-kit/client.js';
 
 type State = FullGameState<object, object>;
 type Renderer = BoardgameBaseGameRenderer<State, object, 'Play', { Play: object },

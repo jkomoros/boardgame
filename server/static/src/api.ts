@@ -4,7 +4,7 @@
  */
 
 import type { MoveForm } from './types/api';
-import type { MovePreviewBatchResult, MovePreviewCandidate } from './legal/previewLegality.js';
+import type { MovePreviewBatchResult, MovePreviewCandidate } from '@boardgame/renderer-kit/legal/previewLegality.js';
 
 // The batch preview wire shapes are defined beside the pure preview helpers so
 // renderer-kit code does not import this HTTP module for its types.

@@ -1,9 +1,9 @@
-import type { ClientMove } from '../client.js';
+import type { ClientMove } from '@boardgame/renderer-kit/client.js';
 
 declare const move: ClientMove;
 move.AnimationKey satisfies string;
 move.Version satisfies number;
-move.Properties?.Example satisfies import('../client.js').JsonValue | undefined;
+move.Properties?.Example satisfies import('@boardgame/renderer-kit/client.js').JsonValue | undefined;
 
 // @ts-expect-error animation metadata never exposes serialized move arguments
 move.Blob;

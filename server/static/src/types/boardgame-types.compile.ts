@@ -4,7 +4,7 @@ import {
   type GameChest,
   type ExpandedStack,
   type FullGameState,
-} from './boardgame-types.js';
+} from '@boardgame/elements/types/boardgame-types.js';
 
 type CardValues = { Suit: 'Hearts' | 'Spades' };
 type CardDynamic = { FaceUp: boolean };

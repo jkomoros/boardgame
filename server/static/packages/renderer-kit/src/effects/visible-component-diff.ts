@@ -1,4 +1,4 @@
-import { isVisibleComponent } from '../types/boardgame-types.ts';
+import { isVisibleComponent } from '@boardgame/elements/types/boardgame-types.js';
 
 export type VisibleComponentDiff =
   | Readonly<{

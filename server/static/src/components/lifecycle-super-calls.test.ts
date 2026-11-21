@@ -39,6 +39,15 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC_ROOT = join(HERE, '..');
+// The client is three source trees since the package extraction: the webapp
+// host in src/ and the two packages it consumes. Paths are reported relative
+// to each tree's own src/, which is what they were before the move.
+const PACKAGES_ROOT = join(SRC_ROOT, '..', 'packages');
+const SOURCE_ROOTS = [
+  SRC_ROOT,
+  ...readdirSync(PACKAGES_ROOT).sort().map(name => join(PACKAGES_ROOT, name, 'src'))
+    .filter(dir => { try { return statSync(dir).isDirectory(); } catch { return false; } }),
+];
 
 type CallbackName = 'connectedCallback' | 'disconnectedCallback';
 
@@ -74,7 +83,7 @@ function tsFiles(dir: string, out: string[] = []): string[] {
 function lifecycleOverrides(): Override[] {
   const overrides: Override[] = [];
 
-  for (const file of tsFiles(SRC_ROOT)) {
+  for (const sourceRoot of SOURCE_ROOTS) for (const file of tsFiles(sourceRoot)) {
     const lines = readFileSync(file, 'utf8').split('\n');
     for (let i = 0; i < lines.length; i++) {
       const opened = lines[i].match(
@@ -92,7 +101,7 @@ function lifecycleOverrides(): Override[] {
       }
 
       overrides.push({
-        file: relative(SRC_ROOT, file),
+        file: relative(sourceRoot, file),
         line: i + 1,
         name: opened[2] as CallbackName,
         statements: body

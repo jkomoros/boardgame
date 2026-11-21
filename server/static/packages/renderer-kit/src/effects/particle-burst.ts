@@ -1,4 +1,4 @@
-import { createSeededRandom, seedFromIdentity } from '../utils/seeded-random.ts';
+import { createSeededRandom, seedFromIdentity } from '@boardgame/elements/utils/seeded-random.js';
 
 export const MAX_BURST_PARTICLES = 24;
 

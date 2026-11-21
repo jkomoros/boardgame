@@ -5,7 +5,7 @@
 
 import type { GameChest, PlayerInfo, CompanionInfo } from './store';
 import type { MoveForm, ProjectedMoveChoicesWire, ServerStateBundle } from './api';
-import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '@boardgame/elements/types/game-state.js';
 
 // Import action type constants for typeof usage
 import {

@@ -6,7 +6,7 @@ import {
   type ElementPart,
   type PartInfo,
 } from 'lit/async-directive.js';
-import { isBoundMoveAction, type BoundMoveAction } from './action.js';
+import { isBoundMoveAction, type BoundMoveAction } from '@boardgame/elements/moves/action.js';
 
 export interface MoveActionBindingOptions {
   /** A creator-owned constraint combined with the action's own availability. */

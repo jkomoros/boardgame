@@ -1,5 +1,5 @@
 import { LitElement, html } from 'lit';
-import { TimerController, type TimerReference } from './timer-service.js';
+import { TimerController, type TimerReference } from '@boardgame/elements/timers/timer-service.js';
 
 class CustomTimerView extends LitElement {
   timer: TimerReference | null = null;

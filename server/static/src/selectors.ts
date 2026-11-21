@@ -11,11 +11,11 @@ import type {
     RootState,
     UserInfo,
 } from './types/store';
-import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './types/game-state';
-import type { MoveForm, MoveLegalityInfo } from './types/wire';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '@boardgame/elements/types/game-state.js';
+import type { MoveForm, MoveLegalityInfo } from '@boardgame/elements/types/wire.js';
 
 export type { MoveLegalityInfo };
-import { expandGameStateSnapshot } from './state/expand.js';
+import { expandGameStateSnapshot } from '@boardgame/elements/state/expand.js';
 
 // The expansion itself is a pure layer-1 function (src/state/expand.ts) so a
 // host without Redux can use it; it is re-exported here for existing callers.

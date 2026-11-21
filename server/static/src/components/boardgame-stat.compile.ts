@@ -1,5 +1,5 @@
-import './boardgame-stat.js';
-import type { ExpandedStack } from '../types/boardgame-types.js';
+import '@boardgame/elements/components/boardgame-stat.js';
+import type { ExpandedStack } from '@boardgame/elements/types/boardgame-types.js';
 
 const stat = document.createElement('boardgame-stat');
 stat.icon = '🍖';

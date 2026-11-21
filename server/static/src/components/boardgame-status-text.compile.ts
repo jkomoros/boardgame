@@ -1,4 +1,4 @@
-import './boardgame-status-text.js';
+import '@boardgame/elements/components/boardgame-status-text.js';
 
 const status = document.createElement('boardgame-status-text');
 status.value = 12;

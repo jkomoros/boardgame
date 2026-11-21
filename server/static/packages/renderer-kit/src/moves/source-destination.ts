@@ -1,7 +1,7 @@
 import type { ReactiveController } from 'lit';
-import type { TargetAction, TargetKey } from './target-action.js';
+import type { TargetAction, TargetKey } from '@boardgame/elements/moves/target-action.js';
 import { gameSnapshotKey, type GameSnapshotHost } from './snapshot-controller.ts';
-import type { SourceDestinationBinding } from './draft-bindings.ts';
+import type { SourceDestinationBinding } from '@boardgame/elements/moves/draft-bindings.js';
 
 // A layer-1 type (the board element accepts it); re-exported here.
 export type { SourceDestinationBinding };

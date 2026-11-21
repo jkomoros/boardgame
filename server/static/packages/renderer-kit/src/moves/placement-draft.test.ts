@@ -7,7 +7,7 @@ import {
   type BoundMoveAction,
   type MoveActionService,
   type MoveActionSnapshot,
-} from './action.ts';
+} from '@boardgame/elements/moves/action.js';
 import { PlacementDraftController, type DraftPlacement } from './placement-draft.ts';
 import { gameSnapshotKey, type GameSnapshotHost } from './snapshot-controller.ts';
 

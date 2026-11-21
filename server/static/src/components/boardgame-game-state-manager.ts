@@ -1,11 +1,11 @@
-import type { RendererStateQueue } from '../renderer-host/renderer-host.js';
+import type { RendererStateQueue } from '@boardgame/renderer-kit/renderer-host/renderer-host.js';
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
 import { companionTimeline, ingestVersionTiming, usableAnimationContext } from './companion-sync.js';
 import type { VersionAnimationContext } from './companion-sync.js';
 import { forgetSurfaceForGame, surfaceForGame } from '../utils/companion-surface.js';
-import { animHooks } from '../utils/anim-test-hooks.js';
+import { animHooks } from '@boardgame/elements/utils/anim-test-hooks.js';
 import { store } from '../store.js';
 import {
   fetchGameInfo,
@@ -44,18 +44,18 @@ import type {
   FetchedGameVersion,
   RootState,
 } from '../types/store';
-import type { GameFromServer, RawGameState, StateBundle, TimerInfo } from '../types/game-state';
+import type { GameFromServer, RawGameState, StateBundle, TimerInfo } from '@boardgame/elements/types/game-state.js';
 import type { MoveForm, ProjectedMoveChoicesWire, ServerStateBundle } from '../types/api';
 import { clientMoveFromWire } from '../types/client-move.js';
 import { decodeSocketFrame } from '../types/socket-frame.js';
-import type { HostedGameRenderer } from './boardgame-render-game.js';
-import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
-import { retryDelayMs } from '../utils/retry-policy.js';
+import type { HostedGameRenderer } from '@boardgame/renderer-kit/components/boardgame-render-game.js';
+import { BoardgameBaseGameRenderer } from '@boardgame/renderer-kit/components/boardgame-base-game-renderer.js';
+import { retryDelayMs } from '@boardgame/elements/utils/retry-policy.js';
 import {
   compileLegacyAnimationOverlap,
   hasLegacyAnimationOverlap,
-} from '../motion/legacy-overlap.js';
-import { isCurrentMotionCycleRelease } from '../motion/release.js';
+} from '@boardgame/elements/motion/legacy-overlap.js';
+import { isCurrentMotionCycleRelease } from '@boardgame/elements/motion/release.js';
 
 // Matches --animation-length: 0.5s default in boardgame-game-view.ts
 const DEFAULT_ANIMATION_LENGTH_MS = 500;

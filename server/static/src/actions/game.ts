@@ -2,11 +2,11 @@ import { Dispatch, type UnknownAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { store } from '../store.js';
 import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/store';
-import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '../types/game-state';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '@boardgame/elements/types/game-state.js';
 import type { GameInfoResponse, GameVersionResponse, MoveForm, ServerStateBundle } from '../types/api';
 import { decodeGameInfoResponse, decodeGameVersionResponse } from '../types/server-response.js';
-import type { MoveTransportResult } from '../moves/action.js';
-import { remainingTimerMs } from '../timers/timer-clock.js';
+import type { MoveTransportResult } from '@boardgame/elements/moves/action.js';
+import { remainingTimerMs } from '@boardgame/elements/timers/timer-clock.js';
 import type {
   UpdateGameRouteAction,
   UpdateGameStaticInfoAction,

@@ -6,7 +6,7 @@ import {
   PRIMARIES,
   randomAvatarIdentity,
   glyphForSlug,
-} from './companion-avatar-catalog.js';
+} from '@boardgame/elements/components/companion-avatar-catalog.js';
 import { fauxSignInAsGuest } from '../actions/user.js';
 import { apiHttpGet, apiHttpPost, buildApiUrl } from '../api.js';
 import { gamePath } from '../util.js';

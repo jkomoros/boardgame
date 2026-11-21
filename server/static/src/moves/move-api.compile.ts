@@ -1,5 +1,5 @@
-import { BoardgameBaseGameRenderer } from '../components/boardgame-base-game-renderer.js';
-import type { FullGameState } from '../types/boardgame-types.js';
+import { BoardgameBaseGameRenderer } from '@boardgame/renderer-kit/components/boardgame-base-game-renderer.js';
+import type { FullGameState } from '@boardgame/elements/types/boardgame-types.js';
 
 type Inputs = {
   Empty: Record<string, never>;

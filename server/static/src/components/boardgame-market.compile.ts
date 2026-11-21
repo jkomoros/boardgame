@@ -1,5 +1,5 @@
-import './boardgame-market.js';
-import type { SelectionDraftSelectionBinding, TargetAction } from '../client.js';
+import '@boardgame/elements/components/boardgame-market.js';
+import type { SelectionDraftSelectionBinding, TargetAction } from '@boardgame/renderer-kit/client.js';
 
 const market = document.createElement('boardgame-market');
 declare const action: TargetAction<number>;
