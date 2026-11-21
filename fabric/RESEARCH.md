@@ -1,7 +1,7 @@
 # Boardgame on Common Fabric: research and CFC design
 
-Status: draft, 2026-11-21. Nothing here is built yet. Findings come from
-reading code and draft rulings; nothing was run.
+Status: second draft, 2026-11-21. Nothing here is built yet. Findings come
+from reading code, specifications and draft rulings; almost nothing was run.
 Companion: [PROPOSAL.md](PROPOSAL.md) is the proposal for factoring the web
 client and for the TypeScript engine. This document holds the research behind
 it and the design for hidden state on Common Fabric.
@@ -25,6 +25,9 @@ Three constraints shape everything:
 3. **Two UI hosts over time.** First a `cf-iframe` guest. Later, a trusted
    component set that any pattern's JSX can use, once user policy can admit
    additional trusted web components.
+4. **Design for CFC as ruled, not as shipped.** Where the information-flow
+   work is ruled or in progress, the design assumes it is complete and names
+   the assumption. "What the design assumes" lists each one.
 
 ## What the research found
 
@@ -36,11 +39,12 @@ Three constraints shape everything:
   `boardgame-token`, `boardgame-die`, `boardgame-component`,
   `boardgame-component-stack`, `boardgame-component-animator`,
   `boardgame-animatable-item`, `boardgame-fading-text`, `component-view.ts`,
-  and the `motion/` and `solid/` modules. About 51 files and 20.7k lines. It
-  is a whole motion stack, not a small library.
-- Coupled to the Go server, Redux and routing: `boardgame-render-game`,
-  `boardgame-game-state-manager`, `boardgame-game-view`, the generated
-  per-game contracts.
+  and the `motion/` and `solid/` modules. Its import closure is 60 files and
+  22.1k lines, within a client of about 65k. At runtime it depends on `lit`
+  and pure modules; the stack also imports about 2k lines of move machinery.
+- Coupled to Redux and routing: `boardgame-game-state-manager`, which holds
+  the queue of pending states, and `boardgame-game-view`.
+  `boardgame-render-game` reaches the server in three places only.
 - The animation loop is: `animator.prepare()`, set the new state, await
   render, `animateFlip()`, then an `all-animations-done` signal releases the
   next state bundle. `src/examples/dice-keep-demo.ts` already drives this with
@@ -85,12 +89,19 @@ Three constraints shape everything:
   bundle that may include pinned npm modules. Assets arrive as `data:` URLs.
 - **Code reuse.** Pattern code imports only relative paths and a few
   `commonfabric` specifiers. No npm in pattern code. Guests can bundle npm.
-- **Execution.** Server-primary execution is on by default; handlers and
-  derivations run server-side and clients commit intents.
+- **Execution.** Server-primary execution is on by default. The server's
+  run is authoritative. A client also runs a handler speculatively when it
+  holds the handler's inputs; when it does not, the speculation is simply
+  withdrawn.
+- **Moves can be authenticated.** An event's author is stamped by the memory
+  server from the signed commit, and event streams are append-only for
+  clients. (From the protocol document; not checked in code.)
+- **Scopes are enforced at the server.** A session cannot read another
+  user's scoped instance.
 - **Randomness and time.** `Math.random` and `Date.now` work only in handlers
   (one-second clock). Lifts and computeds throw on entropy. No `setTimeout`.
   No `crypto` in the pattern sandbox.
-- **CFC, shipped and usable.** `Confidential<T, [PolicyOf<rules>]>`,
+- **CFC primitives that exist.** `Confidential<T, [PolicyOf<rules>]>`,
   module-authored exchange rules guarded by a runtime-minted
   `TransformedBy{moduleIdentity, symbol}` atom (the "blessed lift" form,
   labs#8027 and follow-ups), input witnesses, the custody seal,
@@ -98,7 +109,10 @@ Three constraints shape everything:
   what an iframe guest is handed. Worked examples:
   `labs/patterns/examples/cfc-exchange-rules/blessed-computation.tsx`,
   `labs/patterns/showcase/inductor/pool/pool-policy.tsx`, and loom's
-  `src/patterns/cf-location-findmy.tsx`.
+  `src/patterns/cf-location-findmy.tsx`. The pool's README lists open
+  snags, including a witnessed release that is refused when the witness
+  handler read nothing confidential, which is the case of a game's first
+  deal.
 - **Prior exploration.** labs draft PR #3750
   (`origin/boardgame-cfc-sanitization`,
   `docs/proposals/cfc-game-sanitization-memo.md`). Its conclusion stands: no
@@ -110,58 +124,91 @@ Three constraints shape everything:
 
 | Gap | Effect on a card game | Plan |
 |---|---|---|
-| Release to a principal chosen at runtime ("deal to player p") is not expressible with shipped primitives; Find My generates one module per viewer. | Per-player hands | Seats as audience lists, on specs#59 / labs#8608 (see "Dealing to a player"). Memory needs no per-player release, so it goes first. |
-| The memory server ships a space's documents to every reader regardless of label. | A modified client could read hands | Dependency, not a blocker. Track label-gated delivery; state the tier each demo achieves. |
-| Lifts have no entropy; no sealed-secret primitive. | Shuffle | Shuffle inside the move handler, which has `Math.random` and runs server-side. Not cryptographic. |
+| Release to a principal chosen at runtime ("deal to player p") is not expressible with shipped primitives. | Per-player hands | Seats as audience lists (see "Dealing to a player"). Memory needs no per-player release, so it goes first. |
+| Lifts have no entropy. | Shuffle | Draw only a salt in the move handler; everything else is deterministic from it, as in the Go core. |
 | A released value is sealed again once mapped. | Rendering a hand row by row | Release each seat's view as one whole object and hand it straight to the guest. |
-| Input witnesses cover only confidential inputs. | Phase-gated reveals ("showdown") | Keep phase inside the sealed state. |
-| Commit metadata and content-addressed ids can leak linkage. | Unlinkability across shuffles | Re-roll opaque ids in the engine; document the residual. |
-| No `setTimeout`. | Timers (memory's hide-cards delay) | A spike: deadline in state plus a clock-driven tick. |
+| Cells deliver the latest value, with no ordered log. | Animating each fix-up move | The view carries a window of recent versions; the guest plays them in order and drops ones it has shown. |
+| Input witnesses cover only confidential inputs. | Phase-gated reveals; seat keys | Keep phase, and anything else that steers a release, inside the sealed state. |
+| One flow label per transaction. | The move handler cannot also write public cells | Everything public is a projection. |
+| No `setTimeout`. | Timers (memory's hide-cards delay) | A deadline in state; the guest sends a tick that the engine checks against the clock. |
+| A module's identity covers everything it imports. | An engine edit changes every game's policy identity and strands sealed state in flight | Pin the engine version per game; plan a migration path. |
 
 ## Architecture
 
 ```
 boardgame repo
   elements, renderer kit   shared web client layers (see PROPOSAL.md)
-  engine                   TS engine: stacks, moves, predicates, sanitizer
+  engine                   TypeScript engine, held to the Go core
   server/static            Go webapp, a consumer of all three
   fabric/                  Fabric patterns, guest bundle, example games
 
-Fabric runtime (attested)                     Browser (untrusted)
-  game pattern                                 cf-iframe guest
-    sealed full state  --blessed lift-->  seat view  -->  shared elements
-    proposeMove handler  <------------- move intent ----  propose-move event
+Fabric server-side execution (trusted)        Browser (untrusted)
+  one table space                               cf-iframe guest
+    sealed state  --blessed lift-->  seat view  ---->  shared elements
+    move handler  <--------------  authenticated move  <--  a gesture
 ```
 
-The shared rendering packages and the TypeScript engine are specified in
-[PROPOSAL.md](PROPOSAL.md). The rest of this section is the Fabric side.
+The shared client layers and the TypeScript engine are specified in
+[PROPOSAL.md](PROPOSAL.md). The rest of this document is the Fabric side.
 
-### The Fabric host (`fabric/`)
+### The shape: one space, labels do the work
 
-- **Game pattern.** One sealed cell holds the full state, labeled with the
-  game's policy. One `proposeMove` handler is the only writer
-  (`WriteAuthorizedBy`). It identifies the proposer's seat, runs the engine
-  step, draws randomness, and appends the resulting states.
-- **Seat views.** An exported blessed lift computes `viewFor(state, seat)`
-  for a bounded window of recent versions. An exchange rule keyed to that
-  lift's `TransformedBy` atom releases the view. Coarser facts (hand counts)
-  are part of the view, so no separate reducers are needed.
-- **Guest.** A `cf-iframe` guest bundles the shared client layers, receives
-  the seat view, feeds new versions to the renderer host in order, and sends
-  `propose-move` events to the pattern's move stream. Card art ships as data
-  files.
-- **Authoring.** A game is a definition object (decks, state shape,
-  policies, moves) plus a guest template. The toolkit supplies the pattern
-  wiring.
+The browser is not trusted. Server-side execution, running in an attested
+environment, is. So the Fabric design is the Go server's design, with CFC
+labels in the place of the server's per-viewer sanitization:
 
-The patterns import the engine by relative path, so they live in this repo
-and deploy from it with `cf`.
+- **A browser contributes one thing: an authenticated move.** "Player p
+  proposes move M with these arguments." A modified client can send any move
+  it likes, and it can only ever count as that player's own proposal.
+- **Everything else runs server-side only:** legality, apply, the shuffle,
+  the fix-up loop, and per-seat sanitization.
+- **A browser receives one thing: its own seat's view,** plus what everyone
+  at the table sees.
+
+All of it lives in one space per table. Nothing is hidden by placing it in a
+space players cannot read; it is hidden by its label.
+
+- **Game pattern.** One sealed cell holds the full state and the move
+  history. One `move` handler is the only writer. It takes the proposer from
+  the runtime, never from the event's payload, runs the engine step, and
+  writes the new state.
+- **Views.** An exported blessed lift computes a seat's view for a bounded
+  window of recent versions, and an exchange rule releases it. Counts and
+  other coarse facts are part of the view.
+- **Guest.** A `cf-iframe` guest receives the viewer's view, plays new
+  versions in order, and sends moves.
+- **Authoring.** A game is a definition (decks, state shape, policies,
+  moves) plus a renderer. The toolkit supplies the pattern wiring.
+
+The patterns import the engine by relative path, so they live in this
+repository and deploy from it with `cf`.
+
+### What the design assumes
+
+The design is written for CFC as ruled or planned. Each assumption, and what
+is true in labs today:
+
+| Assumption | Status | Until then |
+|---|---|---|
+| A stored value is delivered only to principals in its label's audience (specs#95) | Ruled 2026-11-16. Labs delivers a space's documents to every reader of the space, and documents that as a non-conformance | A modified client that can read the table space can read the sealed state |
+| A client does not run the engine | Follows from the row above: a client that is not sent the state cannot speculate on it | Every player's client holds the state and runs the engine on it; a speculative shuffle is replaced when the server's arrives |
+| A release can name a list held in a cell (specs#59, labs#8608) | Unruled; draft | Per-seat views use the interim binding below |
+| Server-side execution is attested | On the security roadmap | The deployment's operator is trusted |
+| A client cannot commit a computation's result | Derived commits from a user session are refused; authored writes into the same documents are admitted | Views are kept where players cannot write |
+
+With all five in place, a modified browser learns its own seat's view and
+nothing else, and can do nothing but propose its own moves.
+
+A table that needs that guarantee before specs#95 is implemented would have
+to keep the state on a separate deployment under a dedicated dealer
+identity, as loom's Find My does. That is a workaround for a gap already
+ruled closed, and this design does not build it.
 
 ### Sealed state: data no person reads
 
-The game state is readable by no person, the host included, while trusted
-code computes on it. This is not unusual in CFC. It is the common idiom, and
-it has no name yet.
+The game state is readable by no person, the table owner included, while
+trusted code computes on it. This is not unusual in CFC. It is the common
+shape of the existing trusted patterns, and it has no name yet.
 
 **What it is.** A store whose only confidentiality clause is a module-policy
 reference:
@@ -175,8 +222,8 @@ type State = WriteAuthorizedBy<Sealed<GameState>, typeof move>;
   rule and no writer rule: a player whose move rewrites the state cannot read
   it back.
 - Compute is not gated on clearance. A handler invoked by player `p` reads
-  and rewrites state `p` cannot see; the taint propagates and only writes,
-  egress and display are checked.
+  and rewrites state `p` cannot see; the label propagates, and writes,
+  egress, display and (as ruled) delivery are checked.
 - The only way out is the policy's own exchange rules, guarded by
   `TransformedBy` for an exported lift of the same module.
 
@@ -192,9 +239,11 @@ does apply.
 **Rules for the game state**, taken from those cases:
 
 - One writer. `move` is the only handler; bind it more than once, never add a
-  second writer.
+  second writer. Table setup is a move, so that everything the projections
+  read was written by `move`.
 - Witness every release: the rule's `TransformedBy` names the lift and an
-  input witness naming `move`.
+  input witness naming `move`. A witness survives only when every
+  confidential input carries it.
 - One flow label per transaction. The move handler writes the sealed state
   and nothing public; turn indicators, logs and counts are projections.
 - Keep `User(p)` out. Type the move event with the policy; anything labeled
@@ -202,20 +251,20 @@ does apply.
   else.
 - Projectors are total: no data-dependent throw, abort or log.
 - No steerable public parameter chooses what a projector releases.
-- The state names its own seats. `seatView` returns an empty view unless the
-  key it is given is one the state itself links to. Without this, the host
-  can run a second instance of the module, seat themselves everywhere, point
-  it at the real state, and the witness still holds.
+- The state names its own seats. A projector returns an empty view unless
+  the seat it is asked for is one the state itself records. Without this, a
+  table owner can run a second instance of the module, seat themselves
+  everywhere, and point it at the real state.
 
-**What "nobody" does not yet cover.**
+**What a label does not settle.** These are about authority, not delivery:
 
 | Route to the secret | Who | Closes with |
 |---|---|---|
-| Raw replica or storage | Any reader of the table space; the operator | Delivery as a boundary (specs#95), attested runtime |
-| Owner release by intent (specs#90, merged in labs#9660) | The host, at a terminal, with a record only they read | A ruling: exempt policy-only clauses, or show the record to the space's readers |
-| Successor code via `setsrc` | The host | A ruling on write authority across updates for sealed stores |
-| Adding oneself to a seat list | The host, who owns every list | The roster as a projection every player sees; a seat form of specs#59 where the host is not the list's owner |
-| Predicting or steering the shuffle | Whoever runs the handler | Policy keys (specs#58) as the seed |
+| Owner release by intent (specs#90, merged in labs#9660) | The table owner, at a terminal, with a record only they read | A ruling: exempt policy-only clauses, or show the record to the space's readers |
+| Successor code via `setsrc` | The table owner | A ruling on write authority across updates for sealed stores |
+| Adding oneself to a seat list | The table owner, who owns every list | The roster as a projection every player sees |
+| Predicting the salt | Anyone who can observe `Math.random` in the same runtime | Policy keys (specs#58) as the seed |
+| A forged write | A modified client with write access | Views and state where players cannot write; see the assumptions table |
 
 **Charting it for other authors.** The same shape recurs with no shared name,
 helper or recipe, and every existing example is append-and-tally. A game is
@@ -224,129 +273,127 @@ demo doubles as the missing worked example:
 
 - labs example: `patterns/examples/cfc-exchange-rules/sealed-state-machine.tsx`
   (handler-mutated state, two projections, a multi-user test). Memory is
-  exactly this.
+  close to exactly this.
 - labs helper: export `Sealed<T, Rules>` from `commonfabric/cfc`, and a rule
   builder that always emits the witnessed form.
 - docs: one author recipe, "Sealed state: data no person reads", with the
   rules and the table above.
-- specs, clarification: name the idiom; state that a policy-only clause
+- specs, clarification: name the shape; state that a policy-only clause
   admits no principal and that compute is not clearance-gated.
 - specs, rulings: owner release by intent against sealed clauses, and a
   witness bound to the instance.
 
 ### Dealing to a player: seats are audience lists
 
+**This section is a hypothesis.** It is a reading of the list-release ruling
+(specs#59, option E) and its draft implementation (labs#8608). The ruling is
+unruled, the labs change is a draft from 2026-10-09, and nothing here has
+been run. An earlier version of this design, posted as a comment on
+specs#59, had a flaw described below.
+
 "Deal to player p" is not a relabel of a card. Cards never leave the sealed
 state. What is released is each seat's **view**, and the audience of seat
 `i`'s view is "whoever is on seat `i`'s list". This is boardgame's own model
 (`SanitizedForPlayer`), with CFC deciding who may hold which sanitized copy.
-
-It rests on the list-release ruling, specs#59 ("releasing to a list named by a
-cell", option E) and its draft implementation labs#8608. Neither has landed:
-the ruling is unruled and the labs PR is a draft from 2026-10-09. The shapes
-below are a reading of those drafts, to be proven by spike 1.
 
 **Two audiences, two mechanisms.**
 
 | View | Audience | Mechanism | Status |
 |---|---|---|---|
 | Observer view (what everyone at the table sees) | Readers of the table space | `HasRole(reader, THIS_POLICY.subject)` adds `User(reader)` | Shipped |
-| Seat view (observer view plus that seat's secrets) | The seat's occupant list | `Members{list, subject}` resolved live at display | specs#59 |
+| Seat view (observer view plus that seat's secrets) | The seat's occupant list | `Members{list, subject}` resolved live | specs#59 |
 
 **The pieces.**
 
-- **Table space.** One space per table. The host is its sole `OWNER`;
-  players and spectators get `WRITE` or `READ`. The game policy's subject is
-  this space.
-- **Sealed state.** Labeled with the game policy clause alone, so no person
-  reads it, the host included. Written only by `proposeMove`.
-- **Seat records, authored once at setup.** In the host's setup run, for each
-  seat `i` the pattern writes a small `seatKey` document `{seat: i}` whose
-  schema declares `members: "/seats/i/occupants"`. Label capture gives it
-  `[User(host) ∨ Members(occupants_i, table)]`. This is the only place a
-  `Members` clause is authored, and the host solely owns the subject, so the
-  capture check passes.
-- **Occupant lists.** One list per seat, owner-bound to the host, with
-  declared writers (`seat` and `unseat` handlers behind a gesture). An entry
-  pins the player's principal at the gesture. Vacating a seat writes an empty
-  list; a new occupant sees the hand from then on, as in boardgame.
-- **The blessed lift.** `seatView(state, seatKey)` reads the seat index from
-  the key and returns that seat's sanitized view. Its output inherits the
-  key's `Members` clause as an ordinary input-derived clause, so recomputing
-  after another player's move authors nothing and needs no capture.
-- **One module rule.** Under `TransformedBy{this module, "seatView"}` with a
-  literal input witness, and a `Members` pattern on `THIS_POLICY.subject`,
-  add that `Members` to the policy clause. The view's label becomes
-  `[Policy ∨ Members(occupants_i)] ∧ [User(host) ∨ Members(occupants_i)]`:
-  the occupant satisfies both clauses, and the host satisfies only the second
-  unless seated.
+- **Table space.** One per table. The table owner is its sole `OWNER`. The
+  game policy's subject is this space.
+- **Occupant lists.** One list per seat, with declared writers (seat and
+  unseat handlers behind a gesture). An entry pins the player's principal at
+  the gesture. Vacating a seat clears the list; a new occupant sees the hand
+  from then on, as in boardgame.
+- **A seat's audience, bound inside the sealed state.** The seat's index and
+  its occupant list must be bound together by something `move` wrote, so
+  that a view for seat 2 cannot be paired with seat 1's list and the release
+  keeps its witness.
+- **One module rule** adding the seat's `Members` to the policy clause, under
+  `TransformedBy` for the projector.
 
-**What this buys.**
+**The flaw in the first version, and what is unresolved.** The first version
+had the table owner's setup run write a small `seatKey` document per seat,
+outside `move`. Two things are wrong with it:
+
+- A witness survives only when every confidential input carries it. A
+  confidential key not written by `move` drops the witness, so the rule
+  never fires. A public key is a steerable parameter.
+- The draft's capture check requires the output to carry exactly one
+  module-policy clause, and requires the writing run's actor to be the
+  subject's sole owner. A key written by `move` on another player's turn
+  fails the second.
+
+Making setup a move fixes the first. Whether the capture check can then be
+satisfied, with the table owner making the setup move, is the question the
+seat spike has to answer.
+
+**What this buys, if it holds.**
 
 - One policy digest per game, whatever the seating.
-- The seat index and its audience are bound in one host-authored document, so
-  a view for seat 2 cannot be paired with seat 1's list.
 - Reveals over time (flop, showdown, a played card) need no CFC step: the
-  state changes and every view shows it. The whole information-flow argument
-  reduces to "is `seatView` a correct sanitizer", which is one function to
-  review.
+  state changes and every view shows it. The information-flow argument
+  reduces to "is the projector a correct sanitizer".
 - Boardgame's groups (self, other, teams, custom) stay inside the sanitizer.
 
-**Questions this case raises for specs#59.** A card table differs from Find
-My in three ways worth recording there:
+**Questions for specs#59.**
 
-1. The secret belongs to no one. The host owns the subject only as custodian
-   and must not read hands. Is a policy clause with no owner alternative an
-   intended use, and does `User(Q)` in the authored clause stay harmless?
-2. Recomputation is triggered by other players. The design depends on a
-   carried `Members` clause satisfying the rule's precondition without a new
-   capture, and on the key document counting as a witnessed input.
-3. Players seat themselves. May a declared-writer handler run by player `p`
-   append to a list owner-bound to the host, or must the host admit each
-   player by gesture? The plan assumes host admission until ruled.
+1. Other players trigger the recomputation. Does a `Members` clause carried
+   in from an input satisfy the rule's precondition without a new capture?
+2. Players seat themselves. May a declared-writer handler run by player `p`
+   append to a list owned by the table owner?
+3. Must the rule and the lift live in each game's entry module? A toolkit
+   wants the module-graph relation.
+4. A second run of the same module, pointed at the real state, passes
+   capture. Is a witness bound to the instance the intended fix?
 
-Two more, already open on labs#8608: whether the rule and the lift must live
-in each game's entry module (a toolkit wants the module-graph relation), and
-minting `ListedIn` in the iframe host-read gate, which postdates the draft.
-
-**Residuals.** The table's owner can use an owner release by intent
-(specs#90) on documents in the table space; that is in person and recorded.
-The roster of each seat is visible to table readers.
-
-**Until the ruling lands.** The toolkit exposes the seat abstraction from the
-start. An interim binding releases every seat view to table readers and has
-the pattern hand each guest only its own seat's view. That protects against
-nothing but an honest pattern, so demos built on it say so.
+**The interim binding.** Until list release exists, the toolkit releases
+every seat view to the table's readers and has the pattern hand each guest
+only its own. That protects against nothing but an honest pattern, so demos
+built on it say so. The toolkit exposes the seat abstraction from the start,
+so games do not change when the binding does.
 
 ## Spikes on the Fabric side
 
-The sequence of work is in [PROPOSAL.md](PROPOSAL.md). Two questions here
-need a throwaway spike in labs before the design above is relied on:
+The order of work is in [PROPOSAL.md](PROPOSAL.md). These need a throwaway
+spike in labs before the design above is relied on, most fundamental first:
 
-- **Seats as audience lists**, on the labs#8608 branch. A two-seat table with
-  one hidden card each: prove the carried `Members` clause releases a seat
-  view to its occupant, that the host cannot read it, and that a move by the
-  other player recomputes it.
-- **Timers without `setTimeout`:** a deadline in state plus a clock-driven
-  tick.
+- **A sealed state machine releases at all.** Hand-written memory: sealed
+  state, one blessed observer view, a `cf-iframe` guest, two users. The
+  nearest existing example lists open snags, so this comes before anything
+  else.
+- **The move arrives authenticated.** Confirm in code that the proposer the
+  handler sees is stamped by the server.
+- **Seats as audience lists**, on the labs#8608 branch: a two-seat table
+  with one hidden card each. The occupant reads their view, the table owner
+  does not, and a move by the other player recomputes it.
+- **Timers:** a deadline in state and a guest tick.
 
-## Security tiers
+## What a table protects, and from whom
 
-State plainly which tier a demo reaches:
+| Property | With the assumptions above | In labs today |
+|---|---|---|
+| A player cannot see another seat's cards | Holds against a modified browser | Holds only against an unmodified client |
+| A player cannot make a move as someone else | Holds: the server stamps the author | Same, per the protocol document |
+| A player cannot make an illegal move | Holds: the engine runs server-side | Same for the authoritative run |
+| A player cannot forge the state or a view | Holds where players cannot write | A modified client with write access can author into those documents |
+| The table owner cannot see hands | Open: see "What a label does not settle" | Open |
 
-- **Tier A, available now:** honest runtimes. Labels, the blessed release and
-  the host-read gate keep other seats' cards out of the guest.
-- **Tier B, needs label-gated delivery:** an untrusted browser cannot obtain
-  another seat's cards from the memory server.
-- **Accepted residuals:** the operator of the attested runtime is trusted;
-  shuffles use a non-cryptographic generator; linkage may leak through commit
-  metadata.
+**Accepted residuals.** The operator of the attested runtime is trusted. The
+salt comes from a non-cryptographic generator until policy keys exist.
+Linkage may leak through commit metadata.
 
 ## Open decisions
 
 1. Whether the Fabric patterns live in this repository permanently or move to
    labs once the toolkit stabilizes.
-2. Whether blackjack waits for the list-release ruling (specs#59) or ships
-   first on the interim binding.
+2. Whether blackjack waits for the list-release ruling or ships first on the
+   interim binding.
 3. What to do with labs PR #3750: update the memo with the blessed-lift
    workflow, or close it in favor of these documents.
