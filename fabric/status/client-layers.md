@@ -60,6 +60,35 @@ Both are recorded for sibling sessions in the shared notes folder
    `scripts/check-layers.test.mjs` is plain `.mjs` for the same reason: it runs
    on any Node, under `npm run test:layers`.
 
+## Which command ran under which Node
+
+Everything in this file ran under **Node v20.20.0** (nvm; the machine has
+18.11, 18.17, 20.20 and 21.7 only) and Go 1.27.4. Nothing was installed.
+All npm commands ran in `server/static`.
+
+| Command as written | Ran as written? | What was run instead |
+|---|---|---|
+| `npm ci` | yes | |
+| `npm run type-check` | yes | |
+| `npm run build` | yes | |
+| `npm run test:layers` | yes (plain `.mjs`) | |
+| `npm run type-check:authoring` | yes | |
+| `npm run test:check-client` | yes | |
+| `npm run test:facade-production` | yes | |
+| `npm run test:unit` | **no**: exits 1 with "Could not find 'src/**/*.test.ts'" (Node 20 has neither `--test` globs nor type stripping) | `node --test --test-timeout=120000 --import=<scratch loader> --import=./scripts/test-budget.mjs $(find src -name '*.test.ts')`. The loader transpiles each `.ts` with the repo's `typescript` (`transpileModule`, `experimentalDecorators`, `useDefineForClassFields: false`) and maps `./x.js` to `./x.ts`. Timeout is 120000, not 20000, because Node 20 applies it per file |
+| `npm run test:renderer` | **no**: its web server (`go run ./boardgame-util serve`) exits with the `x/tools` export-data error | The same npm script, with a `go` shim on `PATH` that redirects `go run ./boardgame-util …` to a binary built with `-modfile` (x/tools v0.53.0) |
+| `npm run test:e2e` | needs a server on 8080/8888 by design | `npx playwright test --config playwright.config.ts --reporter=line`, against that same binary run as `boardgame-util serve --storage memory --offline-dev-mode` |
+| `go run ./boardgame-util --config config.json check-client` | **no**: same Go error | The `-modfile` binary, `boardgame-util --config config.json check-client` |
+| `go test ./boardgame-util/lib/build/static/... ./boardgame-util/lib/stub/...` | not tried without the workaround | `./scripts/go-local test -modfile=<scratch go.mod> …` |
+
+Not run at all: `npm run type-check:strict` (documented as not green),
+`npm run audit:*`, and `go test ./...`.
+
+**To redo once Node 24 is installed:** `npm run test:unit` exactly as written,
+at baseline (`d5093955`) and at HEAD. The unit numbers in this file (787 at
+baseline, 788 at HEAD) are from the transpile stopgap and have not been
+confirmed by the real command.
+
 ## Baseline
 
 Taken at `d5093955` (commit 1, which changes no file under `src/` or `tests/`)
