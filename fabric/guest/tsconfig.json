@@ -29,5 +29,5 @@
     },
     "types": ["node"]
   },
-  "include": ["protocol.ts", "src/**/*.ts", "tests/**/*.ts", "vite.config.ts", "playwright.config.ts"]
+  "include": ["protocol.ts", "src/**/*.ts", "tests/**/*.ts", "vite.config.ts", "vite.fabric.config.ts", "playwright.config.ts"]
 }

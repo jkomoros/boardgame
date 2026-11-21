@@ -163,6 +163,21 @@ deadlines, not a claim that one has passed. Sent once per timer.
 Content-Security-Policy violation, or the client source trying to reach a
 server. Nothing depends on the host reading it.
 
+## Inside a `cf-iframe`
+
+A Common Fabric pattern does not post these messages. It hands the guest
+named cells and streams, and `src/fabric-bridge.ts` speaks this protocol to
+the renderer host on the pattern's behalf, in the same document:
+
+| Protocol | In a `cf-iframe` |
+|---|---|
+| `init` | Built from the `info` cell (game name, chest, seat colours) and the `view` cell's seats. Sent again when the deal (`epoch`), the viewer's seat or the number of seats changes |
+| `state` | Every new value of the `view` cell: its `entries` are the window, its `epoch` the epoch. `viewer` is the seat whose principal equals the `me` cell, or `-1` |
+| `propose-move` | An event on the `move` stream, `{ kind: "play", name, arguments }`. No proposer is sent |
+| `move-result` | The pattern sends none. After `send()` resolves the bridge reads the view again, and reports a failure if the table did not advance |
+| `tick` | An event on the `move` stream, `{ kind: "tick", timerId }`, repeated a few times while that version is still the head, since the table's clock may be behind the guest's |
+| `ready`, `animations-done`, `error` | Not forwarded; `error` is shown in the guest's status line |
+
 ## Not in version 1
 
 - **Table actions** (lock room, skip turn, switch to solo). They belong to the
