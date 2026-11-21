@@ -1,0 +1,591 @@
+{
+	"Name": "memory",
+	"Decks": {
+		"cards": {
+			"Size": 120,
+			"Components": [
+				{
+					"Type": "🚴",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🚴",
+					"CardSet": "general"
+				},
+				{
+					"Type": "✋",
+					"CardSet": "general"
+				},
+				{
+					"Type": "✋",
+					"CardSet": "general"
+				},
+				{
+					"Type": "💘",
+					"CardSet": "general"
+				},
+				{
+					"Type": "💘",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎓",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎓",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🌍",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🌍",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🏖",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🏖",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🏛",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🏛",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⛺",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⛺",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🚑",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🚑",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🚕",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🚕",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⚓",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⚓",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🕰",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🕰",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🌈",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🌈",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🔥",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🔥",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⛄",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⛄",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎄",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎄",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎁",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎁",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🏆",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🏆",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⚽",
+					"CardSet": "general"
+				},
+				{
+					"Type": "⚽",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎳",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🎳",
+					"CardSet": "general"
+				},
+				{
+					"Type": "🍒",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍒",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍔",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍔",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍭",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍭",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍇",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍇",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍉",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍉",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍊",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍊",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍌",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍌",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍍",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍍",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍓",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍓",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🌽",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🌽",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🥕",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🥕",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍗",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍗",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍕",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍕",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍩",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍩",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍦",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍦",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍺",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🍺",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🌮",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🌮",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🌭",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🌭",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🧀",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🧀",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🥐",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🥐",
+					"CardSet": "foods"
+				},
+				{
+					"Type": "🐕",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐕",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐄",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐄",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐘",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐘",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐍",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐍",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦀",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦀",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🏇",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🏇",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦍",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦍",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐈",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐈",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐖",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐖",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐫",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐫",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐁",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐁",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐿",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐿",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦇",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦇",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐓",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐓",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦅",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦅",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦉",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦉",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐋",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐋",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦑",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🦑",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐝",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐝",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐡",
+					"CardSet": "animals"
+				},
+				{
+					"Type": "🐡",
+					"CardSet": "animals"
+				}
+			]
+		}
+	},
+	"Enums": {},
+	"GroupEnum": "",
+	"Game": {
+		"Props": {
+			"CardSet": {
+				"Type": "string",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Cards": {
+				"Type": "mergedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards",
+				"Overlap": true,
+				"Stacks": [
+					"VisibleCards",
+					"HiddenCards"
+				]
+			},
+			"CurrentPlayer": {
+				"Type": "playerIndex",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"HiddenCards": {
+				"Type": "sizedStack",
+				"Sanitize": {
+					"all": "order"
+				},
+				"Deck": "cards",
+				"Size": 40
+			},
+			"HideCardsTimer": {
+				"Type": "timer",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"NumCards": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"UnusedCards": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards"
+			},
+			"VisibleCards": {
+				"Type": "sizedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards",
+				"Size": 40
+			}
+		}
+	},
+	"Player": {
+		"Props": {
+			"CardsLeftToReveal": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"PlayerInactive": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatClosed": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatFilled": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"WonCards": {
+				"Type": "stack",
+				"Sanitize": {
+					"other": "visible"
+				},
+				"Deck": "cards"
+			}
+		}
+	},
+	"DynamicComponentValues": {}
+}

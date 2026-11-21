@@ -1,0 +1,374 @@
+{
+	"Name": "vecgame",
+	"Decks": {
+		"cards": {
+			"Size": 12,
+			"Components": [
+				{
+					"Rank": 1,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 2,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 3,
+					"Suit": "spades"
+				},
+				{
+					"Rank": 4,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 1,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 2,
+					"Suit": "spades"
+				},
+				{
+					"Rank": 3,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 4,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 1,
+					"Suit": "spades"
+				},
+				{
+					"Rank": 2,
+					"Suit": "clubs"
+				},
+				{
+					"Rank": 3,
+					"Suit": "hearts"
+				},
+				{
+					"Rank": 4,
+					"Suit": "spades"
+				}
+			]
+		},
+		"tokens": {
+			"Size": 6,
+			"Components": [
+				{
+					"Kind": "token"
+				},
+				{
+					"Kind": "token"
+				},
+				{
+					"Kind": "token"
+				},
+				{
+					"Kind": "token"
+				},
+				{
+					"Kind": "token"
+				},
+				{
+					"Kind": "token"
+				}
+			]
+		}
+	},
+	"Enums": {
+		"color": {
+			"Values": {
+				"0": "Red",
+				"1": "Green",
+				"2": "Blue"
+			},
+			"DefaultValue": 0
+		},
+		"group": {
+			"Values": {
+				"0": "Red",
+				"1": "Green",
+				"2": "Blue"
+			},
+			"DefaultValue": 0
+		}
+	},
+	"GroupEnum": "group",
+	"Game": {
+		"Props": {
+			"All": {
+				"Type": "mergedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards",
+				"Stacks": [
+					"Draw",
+					"Limited"
+				]
+			},
+			"Bools": {
+				"Type": "boolSlice",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Clock": {
+				"Type": "timer",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Color": {
+				"Type": "enum",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Enum": "color"
+			},
+			"Colors": {
+				"Type": "enumSlice",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Enum": "color"
+			},
+			"Count": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Draw": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards"
+			},
+			"Flag": {
+				"Type": "bool",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Ints": {
+				"Type": "intSlice",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Limited": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards",
+				"MaxSize": 3
+			},
+			"Name": {
+				"Type": "string",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Overlap": {
+				"Type": "mergedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards",
+				"Overlap": true,
+				"Stacks": [
+					"Row",
+					"Under"
+				]
+			},
+			"Row": {
+				"Type": "sizedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards",
+				"Size": 4
+			},
+			"Spaces": {
+				"Type": "board",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "tokens",
+				"Size": 3
+			},
+			"Strings": {
+				"Type": "stringSlice",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"TagHidden": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "hidden"
+				}
+			},
+			"TagLen": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "len"
+				},
+				"Deck": "cards"
+			},
+			"TagNonEmpty": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "nonempty"
+				},
+				"Deck": "cards"
+			},
+			"TagOrder": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "order"
+				},
+				"Deck": "cards"
+			},
+			"TagRedOnly": {
+				"Type": "string",
+				"Sanitize": {
+					"Red": "visible",
+					"all": "hidden"
+				}
+			},
+			"TagSpaced": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "hidden"
+				}
+			},
+			"Tokens": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "tokens"
+			},
+			"Under": {
+				"Type": "sizedStack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards",
+				"Size": 4
+			},
+			"Who": {
+				"Type": "playerIndex",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Whos": {
+				"Type": "playerIndexSlice",
+				"Sanitize": {
+					"all": "visible"
+				}
+			}
+		}
+	},
+	"Player": {
+		"Props": {
+			"Color": {
+				"Type": "enum",
+				"Sanitize": {
+					"other": "visible"
+				},
+				"Enum": "color"
+			},
+			"Dyn": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Hand": {
+				"Type": "stack",
+				"Sanitize": {
+					"other": "len"
+				},
+				"Deck": "cards"
+			},
+			"OwnOnly": {
+				"Type": "intSlice",
+				"Sanitize": {
+					"all": "nonempty",
+					"self": "visible"
+				}
+			},
+			"RivalNote": {
+				"Type": "string",
+				"Sanitize": {
+					"all": "hidden",
+					"different-color": "visible"
+				}
+			},
+			"Score": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Secret": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "hidden"
+				}
+			},
+			"Slots": {
+				"Type": "sizedStack",
+				"Sanitize": {
+					"other": "order",
+					"self": "visible"
+				},
+				"Deck": "cards",
+				"Size": 2
+			},
+			"TeamSecret": {
+				"Type": "string",
+				"Sanitize": {
+					"all": "hidden",
+					"same-color": "visible"
+				}
+			}
+		}
+	},
+	"DynamicComponentValues": {
+		"cards": {
+			"Props": {
+				"Counter": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"Held": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "tokens",
+					"Size": 1
+				},
+				"Mark": {
+					"Type": "enum",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Enum": "color"
+				}
+			}
+		}
+	}
+}
