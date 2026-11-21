@@ -22,7 +22,7 @@ Background: [`../PROPOSAL.md`](../PROPOSAL.md), stream B, step 2.
 
 ## Use
 
-Node 20. Run everything from this directory.
+Node 24, as in CI (Node 20 also works). Run everything from this directory.
 
 ```bash
 npm ci

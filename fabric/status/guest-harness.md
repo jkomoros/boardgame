@@ -14,7 +14,11 @@ fixture fallback was not needed. A complete recorded game (30 versions, to
 game over) plays through with the real animator and gate.
 
 - Bundle: **589,701 bytes** (576 KiB, 14% of 4 MiB); 162 KB gzipped.
-- Tests: **21 of 21 pass** (Playwright, Chromium), three consecutive runs.
+- Tests: **21 of 21 pass** (Playwright, Chromium).
+- **Results are from Node v24.22.3**, matching the repository's CI: a clean
+  `npm ci`, `npm run type-check`, and `npm test` twice. The work was first
+  developed and passed on Node v20.20.0 with the same results and the same
+  bundle size, byte for byte.
 - Start with [`../guest/README.md`](../guest/README.md); the output stream A
   needs is [`../guest/FINDINGS.md`](../guest/FINDINGS.md).
 
@@ -25,7 +29,8 @@ game over) plays through with the real animator and gate.
 | `24c05323` Add a self-contained Fabric guest that plays Memory from JSON messages | Protocol types, guest host, version queue, API shim, Vite single-file build, harness page, static server, Go replay exporter and its output, Playwright suite |
 | `e75e29ca` Document the guest protocol and findings; harden the guest | `PROTOCOL.md`, `FINDINGS.md`, `README.md`, `tsconfig.json`; the guest ignores message types it does not handle; API shim trimmed to the three names actually imported; `file:` test |
 | `7ca6f801` Record the guest harness status | This note |
-| (the commit after it) | Adds the clean-checkout result to this note |
+| `8930fdd2` Note the clean-checkout verification in the guest status | Adds the clean-checkout result to this note |
+| (the commit after it) | Records the rerun on Node 24 |
 
 ## What was verified, and how
 
@@ -51,7 +56,7 @@ unless stated.
 | The scenario replay plays | `examples/memory/client/scenario-replay.json` plays its four frames, reporting `jumpedFrom` for the versions it does not contain |
 | Version queue logic | Seven unit tests in `tests/version-queue.spec.ts` |
 | Types | `npm run type-check` passes over the guest and the client source it imports |
-| Clean checkout | With `node_modules` and `dist` deleted: `npm ci`, `npm run type-check` and `npm test` pass (21 of 21), and the build reproduces 589,701 bytes |
+| Clean checkout | On Node 24, with `node_modules` and `dist` deleted: `npm ci`, `npm run type-check` and `npm test` pass (21 of 21, run twice), and the build reproduces 589,701 bytes |
 | Go tool | `./scripts/go-local vet ./fabric/guest/tools/...` and `gofmt -l` are clean; the tool ran and produced `replays/memory-full.json` |
 
 ## Only eyeballed, or not checked
@@ -67,6 +72,10 @@ unless stated.
 - **Animation quality.** That animations run and settle is tested. That they
   look right (flip, travel to the pile, the one-second hold on a match) was
   seen only in two still screenshots, which cannot show motion.
+- **npm's install-script gate.** On Node 24, `npm ci` warns that install
+  scripts were not run and need approving (`npm install-scripts ls`). The
+  build and tests pass regardless. `server/static/package.json` handles the
+  same gate with an `allowScripts` list; the guest has none.
 - **Other browsers.** Chromium only. No Firefox or Safari run.
 - **The in-app browser pane.** On one early attempt the harness page loaded
   there but the guest posted nothing; headless Chromium worked from the
