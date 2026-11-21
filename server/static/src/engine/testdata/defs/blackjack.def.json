@@ -1,0 +1,371 @@
+{
+	"Name": "blackjack",
+	"Decks": {
+		"cards": {
+			"Size": 52,
+			"Components": [
+				{
+					"Suit": "♠",
+					"Rank": "Ace"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "2"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "3"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "4"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "5"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "6"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "7"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "8"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "9"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "10"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "Jack"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "Queen"
+				},
+				{
+					"Suit": "♠",
+					"Rank": "King"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "Ace"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "2"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "3"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "4"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "5"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "6"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "7"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "8"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "9"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "10"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "Jack"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "Queen"
+				},
+				{
+					"Suit": "♥",
+					"Rank": "King"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "Ace"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "2"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "3"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "4"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "5"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "6"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "7"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "8"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "9"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "10"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "Jack"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "Queen"
+				},
+				{
+					"Suit": "♣",
+					"Rank": "King"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "Ace"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "2"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "3"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "4"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "5"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "6"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "7"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "8"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "9"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "10"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "Jack"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "Queen"
+				},
+				{
+					"Suit": "♦",
+					"Rank": "King"
+				}
+			]
+		}
+	},
+	"Enums": {
+		"phase": {
+			"Values": {
+				"0": "Gathering",
+				"1": "Initial Deal",
+				"2": "Normal Play",
+				"3": "Round Cleanup"
+			},
+			"DefaultValue": 0
+		}
+	},
+	"GroupEnum": "",
+	"Game": {
+		"Props": {
+			"CurrentPlayer": {
+				"Type": "playerIndex",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"DiscardStack": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "len"
+				},
+				"Deck": "cards"
+			},
+			"DrawStack": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "len"
+				},
+				"Deck": "cards"
+			},
+			"MaxRounds": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"Phase": {
+				"Type": "enum",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Enum": "phase"
+			},
+			"RRHasStarted": {
+				"Type": "bool",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"RRLastPlayer": {
+				"Type": "playerIndex",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"RRRoundCount": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"RRStarterPlayer": {
+				"Type": "playerIndex",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"RoundsCompleted": {
+				"Type": "int",
+				"Sanitize": {
+					"all": "visible"
+				}
+			},
+			"UnusedCards": {
+				"Type": "stack",
+				"Sanitize": {
+					"all": "visible"
+				},
+				"Deck": "cards"
+			}
+		}
+	},
+	"Player": {
+		"Props": {
+			"Eliminated": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Hand": {
+				"Type": "mergedStack",
+				"Sanitize": {
+					"other": "visible"
+				},
+				"Deck": "cards",
+				"Stacks": [
+					"HiddenHand",
+					"VisibleHand"
+				]
+			},
+			"HiddenHand": {
+				"Type": "stack",
+				"Sanitize": {
+					"other": "len"
+				},
+				"Deck": "cards",
+				"MaxSize": 1
+			},
+			"PlayerInactive": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Score": {
+				"Type": "int",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatClosed": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"SeatFilled": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"Stood": {
+				"Type": "bool",
+				"Sanitize": {
+					"other": "visible"
+				}
+			},
+			"VisibleHand": {
+				"Type": "stack",
+				"Sanitize": {
+					"other": "visible"
+				},
+				"Deck": "cards"
+			}
+		}
+	},
+	"DynamicComponentValues": {}
+}
