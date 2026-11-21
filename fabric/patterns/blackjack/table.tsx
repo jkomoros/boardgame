@@ -55,12 +55,64 @@ import { blackjackGame } from "./game.ts";
 //
 //   1. The watcher's view (`seat: -1`) gains `Space(table)`, and the
 //      runtime's display rule admits a reader of the table's space. This is
-//      Memory's release.
-//   2. Seat i's view gains the seat's audience instead: the people on seat
-//      i's occupant list, which `move` keeps inside the sealed table
-//      (fabric/RESEARCH.md, "Dealing to a player: seats are audience
-//      lists"). A reader of the space who is not on that list is not
-//      admitted, so a modified client cannot read another seat's hole card.
+//      Memory's release, and it is what ships.
+//   2. Seat i's view is released to seat i's occupants and to nobody else,
+//      so a modified client cannot read another seat's hole card.
+//
+// The shape of the second, as a labs spike ran it on a port of the
+// list-release draft (labs#8608; SEAT-VIEWS-FINDINGS.md and seat-views.tsx
+// on labs branch `worktree-agent-ac9c0255af3654f11`):
+//
+//   - A sealed KEY for each seat, beside the sealed table. `move` writes
+//     the keys in the setup move, and each declares `ifc.members` for its
+//     seat's list:
+//
+//       type SeatKey<P extends string> =
+//         Cfc<WriteAuthorizedBy<Sealed<number>, typeof move>, { members: P }>;
+//       type SeatKey0 = SeatKey<"/occupants0">;   // one type a seat
+//
+//     A key has no default, and the setup reads the table before it writes
+//     the keys.
+//   - Each seat's occupant LIST is a cell of its own, made in the pattern's
+//     body. Its items carry no label. Its one declared writer is a second
+//     handler, `seating`, which reads nothing sealed. Players list
+//     themselves: an entry is a cell labeled for `CurrentPrincipal`, holding
+//     `currentPrincipal()`. `move` cannot write the lists: an entry it wrote
+//     would carry the policy's clause and list nobody.
+//   - What the rules need to know about who is seated is public, written by
+//     `seating` in the same transaction, for `move` to read.
+//   - `seatView` reads the table and ONE key, and nothing else confidential.
+//     The view it computes carries that key's `Members` clause.
+//   - One rule releases every seat. It names no list and no person:
+//
+//       pre: {
+//         confidentiality: [{ type: ".../Members", list: v("list"),
+//                             subject: THIS_POLICY.subject }],
+//         integrity: [ TransformedBy{ seatView, inputWitness: move } ],
+//       },
+//       preConfScope: "anywhere",
+//       post: { addAlternatives: [{ type: ".../Members", list: v("list"),
+//                                   subject: THIS_POLICY.subject }] },
+//
+// That shape differs from this file in three ways a later change has to
+// make together: seating stops being a `move` (a second handler owns the
+// lists), the number of seats is fixed in the types, and `seatView` takes a
+// key where it takes a seat number today.
+//
+// What each version holds:
+//
+//                                         shipped     designed, on the port
+//   a seat's view is kept from
+//     ... an unmodified client            yes         yes
+//     ... a modified client at the table  NO          yes
+//     ... a watcher with access           NO          yes
+//     ... the table's owner               NO          NO
+//
+// The last "NO" is the spike's finding and is not fixable here: the owner
+// can bind `seating`, from another module, to a live seat's list, list
+// themselves, and be shown that seat's view. It needs a ruling that binds a
+// declared writer and a witness to the run that owns the document. This
+// pattern does not try to block it.
 //
 // TODO(cfc), the input witness: restore `inputWitness` when a record its
 // writer reads and then sets keeps the writer's stamp (Memory's FINDINGS.md
@@ -68,18 +120,16 @@ import { blackjackGame } from "./game.ts";
 // view of whatever is in the cell, not only of what `move` wrote. This is
 // the same seam as Memory's.
 //
-// TODO(cfc), the seat's audience: release a seat's view to that seat's
-// occupants once a rule can name a list held in a cell (specs#59; labs#8608
-// is an unlanded draft). No shipped atom says "whoever this value names",
-// so the rule below gives EVERY seat's view `Space(table)`, like the
-// watcher's.
+// TODO(cfc), the seat's audience: move to the keyed shape above once list
+// release lands (specs#59; labs#8608 is an unlanded draft, and labs branch
+// `fix/served-handler-write-identity`, which this runs on, has no `Members`
+// release at all). Until then the rule below gives EVERY seat's view
+// `Space(table)`, like the watcher's.
 //
-// AS SHIPPED, then, what is not held: every reader of the table's space may
-// read every seat's view, hole cards included. A seat's own view goes to
-// its own guest only because the guest asks for that one. That protects
-// against nothing but an honest client. The table still keeps the views
-// apart, one value a seat, so that only this rule changes when the release
-// can be narrowed.
+// AS SHIPPED, then: every reader of the table's space may read every seat's
+// view, hole cards included. A seat's own view goes to its own guest only
+// because the guest asks for that one. The table still keeps the views
+// apart, one value a seat.
 //
 export const releaseSeatView = exchangeRule({
   appliesTo: THIS_POLICY,

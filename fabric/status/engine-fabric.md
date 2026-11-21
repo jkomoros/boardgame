@@ -119,6 +119,27 @@ New here; F1 to F6 are in `fabric/patterns/memory/FINDINGS.md` from before.
 | `memory/table.tsx`, `blackjack/table.tsx` | Input witness lost on a record the writer reads and sets (F2; labs gap A) | A view is released over whatever is in the cell, not only what `move` wrote |
 | `blackjack/table.tsx` | A release cannot name a list held in a cell (specs#59) | Every reader of the space can read every seat's view, hole cards included |
 
+### Blackjack's seat release: what each version holds
+
+A separate labs spike ran the designed per-seat release on a port of
+labs#8608 (`SEAT-VIEWS-FINDINGS.md`, labs branch
+`worktree-agent-ac9c0255af3654f11`). I read it and did not run it or port
+it. `blackjack/table.tsx` now records that shape as the target in a comment.
+
+| A seat's view is kept from | Shipped (runs on `fix/served-handler-write-identity`) | Designed (ran in the spike, on the port) |
+|---|---|---|
+| An unmodified client | yes: its guest asks only for its own seat | yes |
+| A modified client at the table | no | yes: the display shows a seat's view only to that seat's list |
+| A watcher with access to the space | no | yes |
+| The table's owner | no | no: the owner can bind the list's writer from another module and list themselves |
+
+Moving to the designed shape changes more than the rule: seating becomes a
+second handler that owns the occupant lists (an entry `move` wrote lists
+nobody), each seat gets a sealed key that `move` writes at setup, the number
+of seats is fixed in the types, and the state has to be one scalar for the
+witness to hold (F2). None of that was done here. No pattern-level guard
+against the owner was added.
+
 One `TODO(client)` in `engine/legal/message.ts`: the client's
 `src/legal/renderLegalMessage.ts` should re-export the engine's renderer,
 so there is one again.
@@ -139,8 +160,10 @@ so there is one again.
    because it cannot import the client's. The client session should make
    theirs a re-export.
 5. **Blackjack's release.** It ships with every seat's view readable by the
-   whole table. If that is not acceptable even for a demo, blackjack waits
-   on specs#59.
+   whole table. The designed release exists as a spike on a port of
+   labs#8608 and protects a seat from everyone but the table's owner. If
+   neither is acceptable even for a demo, blackjack waits on specs#59 and on
+   a ruling that binds a declared writer to its run.
 6. **What the guest protocol should be for a view a seat.** Blackjack's
    README proposes one (`view` plus `seat0` to `seat6`); the client session
    owns the guest and has not seen it.

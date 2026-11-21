@@ -37,6 +37,24 @@ browser: the guest has no blackjack renderer and reads one shared view (see
 | The input witness | A view is released only over a table `move` wrote | No witness | The release is of whatever is in the cell. Same as Memory (its FINDINGS F2) |
 | The seat's audience | Seat i's view is released to seat i's occupant list (`fabric/RESEARCH.md`, "Dealing to a player"; specs#59) | Every seat's view is released to the table's space, like the watcher's | **Every reader of the space can read every seat's view, hole cards included.** A guest shows a seat only its own because it asks only for its own. That holds against an unmodified client and nothing else |
 
+The designed release for a seat is written out in `table.tsx`. A labs spike
+ran it on a port of the list-release draft (labs#8608): a sealed key a seat
+carrying `ifc.members`, occupant lists written by a second handler, players
+listing themselves, one rule adding the key's `Members`. Who a seat's view
+is kept from, in each version:
+
+| Kept from | Shipped | Designed, on the port |
+|---|---|---|
+| An unmodified client | yes | yes |
+| A modified client at the table | **no** | yes |
+| A watcher with access to the space | **no** | yes |
+| The table's owner | **no** | **no** |
+
+The owner's row is the spike's finding: the owner can bind the seat list's
+writer from another module to a live seat's list and read that hand. It
+needs a ruling that binds a declared writer to the run that owns the
+document. This pattern does not try to block it.
+
 And, as for Memory, anyone who can read the space can read the sealed table
 itself, because labs delivers a space's documents to every reader
 (specs#95).
