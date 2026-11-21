@@ -7,14 +7,20 @@ import type { BoardgameEffectLayer } from './boardgame-effect-layer.js';
 import type { ClientMove, MoveForm } from '../types/wire.js';
 import { createEffectTransitionContext } from '../effects/effect-spec.js';
 import type { MoveLegalityInfo } from '../types/wire.js';
-import type { RendererHost } from '../renderer-host/renderer-host.js';
+import type {
+  RendererHost,
+  RendererModuleRequest,
+  RendererMount,
+  RendererMoveInputs,
+  RendererSurface,
+} from '../renderer-host/renderer-host.js';
+import { TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '../timers/timer-service.js';
 import {
   disabledSpacesFromResults,
   samePreviewSpaces,
   previewOutcome,
   type MovePreviewBatchResult,
 } from '../legal/previewLegality.js';
-import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
@@ -56,7 +62,7 @@ export type HostedGameRenderer = BoardgameBaseGameRenderer<
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
  * Handles animation coordination, state synchronization, and loading states.
  */
-class BoardgameRenderGame extends LitElement {
+class BoardgameRenderGame extends LitElement implements RendererMount, RendererMoveInputs {
   static override styles = css`
     #container {
       position: relative;
@@ -361,6 +367,16 @@ class BoardgameRenderGame extends LitElement {
     this.addEventListener('animation-done', this._boundComponentAnimationDone);
     this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     this.addEventListener('projected-choices-changed', this._projectedChoicesChanged);
+    // Timer controllers in the renderer ask their ancestors for the clock.
+    // Answer from the host's service when it supplies one; otherwise the
+    // request keeps bubbling to whatever ancestor does.
+    this.addEventListener(TIMER_SERVICE_REQUEST_EVENT, (event: Event) => {
+      const service = this.host?.timerService;
+      const accept = (event as CustomEvent<TimerServiceRequestDetail>).detail?.accept;
+      if (!service || typeof accept !== 'function') return;
+      event.stopPropagation();
+      accept(service);
+    });
     this.addEventListener(
       PROJECTED_CHOICE_CONSUMPTION_CHANGED,
       this._projectedChoiceConsumptionChanged as EventListener,
@@ -452,6 +468,11 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('host')) {
       this._hostChanged();
+      // A host attached after the game identity brings the loader with it.
+      const identityChanged = changedProperties.has('gameName') || changedProperties.has('gameId');
+      if (!identityChanged && this.gameName && !this.rendererLoaded) {
+        void this._rendererIdentityChanged(this.gameName, this.gameId);
+      }
     }
 
     if (changedProperties.has('diagram')) {
@@ -1092,23 +1113,22 @@ class BoardgameRenderGame extends LitElement {
       return;
     }
 
+    const surface = this._surface(gameId);
     const suffix = this._surfaceSuffix(gameId);
     this._rendererSurfaceSuffix = suffix;
-    const baseModulePath = `../../game-src/${gameName}/boardgame-render-game-${gameName}${suffix}.ts`;
-    const modulePath = retry ? `${baseModulePath}?retry=${generation}` : baseModulePath;
+    const rendererTag = `boardgame-render-game-${gameName}${suffix}`;
 
     try {
-      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode.
       // A requested companion surface is a behavioral contract. Silently
       // substituting the solo renderer hides deployment mistakes and leaves
       // the surrounding companion chrome in a contradictory mode.
-      await this._loadRendererModule(modulePath);
+      await this._loadRendererModule({ gameName, surface, attempt: retry ? generation : 0 });
       if (!this._rendererLoadIsCurrent(generation, gameName, gameId)) return;
       this._instantiateRenderer(suffix);
     } catch (error) {
       if (!this._rendererLoadIsCurrent(generation, gameName, gameId)) return;
       if (!this.rendererError) {
-        this.rendererError = `Failed to load renderer module ${modulePath}: ${this._errorMessage(error)}`;
+        this.rendererError = `Failed to load renderer module for <${rendererTag}>: ${this._errorMessage(error)}`;
       }
       console.error(`Failed to load game renderer for ${gameName}:`, error);
     }
@@ -1142,8 +1162,14 @@ class BoardgameRenderGame extends LitElement {
       && this.isConnected;
   }
 
-  private _loadRendererModule(modulePath: string): Promise<unknown> {
-    return import(/* @vite-ignore */ modulePath) as Promise<unknown>;
+  // How a game's renderer code arrives is the host's business (the webapp
+  // imports it by path; a bundled guest already has it).
+  private _loadRendererModule(request: RendererModuleRequest): Promise<unknown> {
+    const load = this.host?.loadRendererModule;
+    if (!load) {
+      return Promise.reject(new Error('the renderer host provides no module loader'));
+    }
+    return load.call(this.host, request);
   }
 
   private _errorMessage(error: unknown): string {
@@ -1152,12 +1178,20 @@ class BoardgameRenderGame extends LitElement {
     return normalized.length <= 500 ? normalized : `${normalized.slice(0, 497)}...`;
   }
 
-  // _surfaceSuffix returns the filename suffix to add to the renderer
-  // module / custom-element name for the current surface, or empty for
-  // solo. Pure function of the cookie + query string (see
-  // utils/companion-surface.ts, shared with boardgame-game-view).
+  // Which surface this browser presents is the host's knowledge (the webapp
+  // reads the URL and tab storage; see RendererHost.resolveSurface). With no
+  // resolver the solo renderer is used.
+  private _surface(gameId: string): RendererSurface {
+    return this.host?.resolveSurface?.({
+      gameId,
+      companionMode: this.companionInfo?.CompanionMode,
+    }) ?? null;
+  }
+
+  // _surfaceSuffix returns the suffix to add to the renderer custom-element
+  // name for the current surface, or empty for solo.
   private _surfaceSuffix(gameId: string): '' | '-table' | '-hand' {
-    const s = surfaceForGame(gameId, this.companionInfo?.CompanionMode);
+    const s = this._surface(gameId);
     if (s === 'table') return '-table';
     if (s === 'hand') return '-hand';
     return '';

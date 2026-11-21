@@ -96,8 +96,8 @@ import {
 } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
 import { movePreview, movePreviewBatch } from '../api.js';
-import { webappBoardPreview, webappTableActions } from '../webapp-renderer-host.js';
-import type { RendererHost } from '../renderer-host/renderer-host.js';
+import { createWebappRendererHost } from '../webapp/renderer-host.js';
+import type { RendererHost, RendererStateQueue } from '../renderer-host/renderer-host.js';
 import {
   TIMER_SERVICE_REQUEST_EVENT,
   TimerService,
@@ -406,12 +406,6 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _proposingAsPlayer = 0;
 
   private readonly _moveSubmissionGate = new MoveSubmissionGate();
-  // The services boardgame-render-game takes from this host (see
-  // renderer-host/renderer-host.ts). One stable object for the element's life.
-  private readonly _rendererHost: RendererHost = {
-    boardPreview: webappBoardPreview,
-    tableActions: webappTableActions,
-  };
   private readonly _moveTransport: MoveTransport = {
     submit: async request => {
       const route = this._gameRoute;
@@ -566,6 +560,17 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   private _surfaceCachedGameId: string | null = null;
   private _surfaceCachedCompanionMode: boolean | null = null;
   private readonly _timerService = new TimerService();
+  // The state queue is boardgame-game-state-manager, which mounts with this
+  // view's template; until then there is nothing queued to release.
+  private readonly _stateQueue: RendererStateQueue = {
+    readyForNextState: cycleId => this._managerEle?.readyForNextState(cycleId),
+  };
+  // The services boardgame-render-game takes from this host (see
+  // renderer-host/renderer-host.ts). One stable object for the element's life.
+  private readonly _rendererHost: RendererHost = createWebappRendererHost({
+    stateQueue: this._stateQueue,
+    timerService: this._timerService,
+  });
 
   // Hide-my-hand privacy shield (hand surface only): when true, an opaque
   // full-viewport overlay covers the private hand so the player can set
@@ -1444,15 +1449,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _forwardCycleRelease(cycleId: unknown): void {
     if (!Number.isInteger(cycleId) || cycleId !== this._motionCycleId) return;
-    // Dispatch custom event for animation coordination
-    // The manager element will listen for this and handle it
-    if (this._managerEle) {
-      this._managerEle.dispatchEvent(new CustomEvent('ready-for-next-state', {
-        bubbles: true,
-        composed: true,
-        detail: Object.freeze({ cycleId }),
-      }));
-    }
+    // The settled cycle releases the next queued version (RendererHost.stateQueue).
+    this._rendererHost.stateQueue?.readyForNextState(cycleId as number);
   }
 
   private _handleAllAnimationsDone(e: Event) {

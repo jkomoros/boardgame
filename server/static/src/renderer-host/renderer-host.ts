@@ -6,9 +6,14 @@
  * This file is renderer-kit code (layer 2, see scripts/layers.json). It must
  * not import the Redux store, the HTTP API, routing or anything else a
  * particular host is built from. The webapp's implementation lives in
- * `src/webapp-renderer-host.ts` and `boardgame-game-view`.
+ * `src/webapp/renderer-host.ts` and `boardgame-game-view`.
  */
 import type { MovePreviewBatchResult } from '../legal/previewLegality.js';
+import type { AnimatableRegistry } from '../motion/animatable-registry.js';
+import type { VersionAnimationContext } from '../motion/timing.js';
+import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
+import type { TargetPreviewTransport } from '../moves/target-action.js';
+import type { TimerService } from '../timers/timer-service.js';
 
 /** The game a request is about. A host may ignore it if it serves one game. */
 export interface RendererGameRef {
@@ -72,14 +77,114 @@ export interface TableActions {
   joinInfo(game: RendererGameRef): TableJoinInfo;
 }
 
+// ---- Which renderer to mount, and loading it ----
+
+/** The companion surface a renderer is mounted for; null is the ordinary solo renderer. */
+export type RendererSurface = 'table' | 'hand' | null;
+
+export interface RendererSurfaceRequest {
+  readonly gameId: string;
+  /** The game's companion mode as last reported; undefined before it is known. */
+  readonly companionMode: boolean | undefined;
+}
+
+export interface RendererModuleRequest {
+  readonly gameName: string;
+  readonly surface: RendererSurface;
+  /** 0 for the first load of this renderer identity; a fresh positive number for each retry. */
+  readonly attempt: number;
+}
+
+// ---- The state queue ----
+
+/**
+ * The ordered queue of state versions. The host owns it and installs one
+ * version at a time by setting the mount's state inputs; the mount reports
+ * that a version's animations settled, and the host then releases the next.
+ */
+export interface RendererStateQueue {
+  /**
+   * The install cycle `cycleId` has settled (or may be cut over); release the
+   * next queued version if there is one. Stale or repeated cycle ids are
+   * ignored by the queue.
+   */
+  readyForNextState(cycleId?: number): void;
+}
+
+/** `detail` of the mount's `all-animations-done` and `motion-cycle-release` events. */
+export interface RendererCycleEventDetail {
+  readonly cycleId: number;
+}
+
 /**
  * What `boardgame-render-game` takes from its host as one object. Members are
  * stable services, not reactive data: reactive inputs (state, move forms, the
- * move transports) stay ordinary properties on the element.
+ * move transports) are the properties in `RendererMoveInputs` and the
+ * element's other properties.
+ *
+ * Every member is optional so a partial host (a test, a static preview) still
+ * mounts: without `loadRendererModule` no renderer loads and the element shows
+ * a renderer error; without `resolveSurface` the solo renderer is used.
  */
 export interface RendererHost {
+  /**
+   * The queue the mount's settlement is reported to. Today the mount announces
+   * settlement with `all-animations-done` and `motion-cycle-release` events
+   * (`RendererCycleEventDetail`) and the host forwards them here, because the
+   * webapp decides per cycle whether local progress may advance a
+   * server-scheduled companion slot.
+   */
+  readonly stateQueue?: RendererStateQueue;
+  /**
+   * The clock behind every `TimerController` in the renderer. The mount
+   * answers timer-service requests from its subtree with this service.
+   */
+  readonly timerService?: TimerService;
+  /** Which surface this browser presents for a game. Presentation intent only; it grants nothing. */
+  resolveSurface?(request: RendererSurfaceRequest): RendererSurface;
+  /**
+   * Makes the game's renderer element class available: resolves once the
+   * custom element `boardgame-render-game-<gameName>[-table|-hand]` is
+   * defined, however the host gets the code (a dynamic import, a bundle).
+   */
+  loadRendererModule?(request: RendererModuleRequest): Promise<unknown>;
   /** Board-target legality preview. Absent means the host offers none, and no target is grayed by preview. */
   readonly boardPreview?: BoardPreviewTransport;
   /** Table actions for a Table surface. Absent means the controls report that they are unavailable. */
   readonly tableActions?: TableActions;
+}
+
+/**
+ * The move-related reactive inputs a host binds on `boardgame-render-game`.
+ * They are properties, not `RendererHost` members, because they change with
+ * the connection and the viewer and must re-render the renderer when they do.
+ */
+export interface RendererMoveInputs {
+  /** Carries a proposed move to the authority. Null while moves cannot be sent. */
+  moveTransport: MoveTransport | null;
+  /** Legality of one fully-specified move, without applying it. */
+  movePreviewTransport: MovePreviewTransport | null;
+  /** Legality of many targets of one move, without applying anything. */
+  targetPreviewTransport: TargetPreviewTransport | null;
+  /** Serializes submissions across every control in the renderer. */
+  moveSubmissionGate: MoveSubmissionGate | null;
+}
+
+/**
+ * What the mount (`boardgame-render-game`) itself provides: the animation
+ * gate, and the registry and timing context that animatable items find by
+ * walking up their ancestors. A host does not reimplement these; it uses them
+ * to pipe in participants that live outside the mount's subtree.
+ */
+export interface RendererMount {
+  /** Ambient registry animatable items self-register with. */
+  readonly animatableRegistry: AnimatableRegistry;
+  /** Scoped timing policy for the installed version; null outside companion scheduling. */
+  animationContext: VersionAnimationContext | null;
+  /** True while the animation gate is open for the current install cycle. */
+  readonly isAnimating: boolean;
+  /** Admit a participant outside the mount's subtree to the open gate. */
+  gateWillAnimate(event: CustomEvent): void;
+  /** Settle a participant admitted with `gateWillAnimate`. */
+  gateAnimationDone(event: CustomEvent): void;
 }

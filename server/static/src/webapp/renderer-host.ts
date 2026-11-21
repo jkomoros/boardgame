@@ -4,15 +4,20 @@
  * renderer bases used to do against the Go server directly. Host layer; the
  * kit never imports this file.
  */
-import { apiHttpPost, buildGameUrl, movePreviewBatch } from './api.js';
-import { decodeHostActionResponse } from './types/host-action-response.js';
-import { apiPath } from './util.js';
+import { apiHttpPost, buildGameUrl, movePreviewBatch } from '../api.js';
+import { decodeHostActionResponse } from '../types/host-action-response.js';
+import { apiPath } from '../util.js';
+import { surfaceForGame } from '../utils/companion-surface.js';
+import type { TimerService } from '../timers/timer-service.js';
 import type {
   BoardPreviewTransport,
   RendererGameRef,
+  RendererHost,
+  RendererModuleRequest,
+  RendererStateQueue,
   TableActionResult,
   TableActions,
-} from './renderer-host/renderer-host.js';
+} from '../renderer-host/renderer-host.js';
 
 type TableActionEndpoint = 'setRoomLock' | 'switchToSolo' | 'hostSkipTurn';
 
@@ -62,3 +67,42 @@ export const webappBoardPreview: BoardPreviewTransport = {
     return response.data ? (response.data.Results ?? []) : null;
   },
 };
+
+/**
+ * Loads a game's renderer module from the webapp's `game-src` tree, where the
+ * build links each game's `client/` directory. The path is relative to this
+ * file, which sits two levels below `server/static` like the components do.
+ */
+export function rendererModulePath(request: RendererModuleRequest): string {
+  const suffix = request.surface === null ? '' : `-${request.surface}`;
+  const base = `../../game-src/${request.gameName}/boardgame-render-game-${request.gameName}${suffix}.ts`;
+  // A retry needs a new URL: a failed dynamic import is cached by specifier.
+  return request.attempt > 0 ? `${base}?retry=${request.attempt}` : base;
+}
+
+export interface WebappRendererHostOptions {
+  /** The state queue: the page's boardgame-game-state-manager. */
+  readonly stateQueue?: RendererStateQueue;
+  readonly timerService?: TimerService;
+  /** Replaces the dynamic import, for tests that observe or stall module loads. */
+  readonly importModule?: (modulePath: string) => Promise<unknown>;
+}
+
+/**
+ * The webapp's RendererHost: the Go server for previews and table actions,
+ * the page URL and tab storage for the companion surface, and dynamic import
+ * from `game-src` for renderer modules.
+ */
+export function createWebappRendererHost(options: WebappRendererHostOptions = {}): RendererHost {
+  // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode.
+  const importModule = options.importModule
+    ?? ((modulePath: string) => import(/* @vite-ignore */ modulePath) as Promise<unknown>);
+  return {
+    ...(options.stateQueue ? { stateQueue: options.stateQueue } : {}),
+    ...(options.timerService ? { timerService: options.timerService } : {}),
+    resolveSurface: request => surfaceForGame(request.gameId, request.companionMode),
+    loadRendererModule: request => importModule(rendererModulePath(request)),
+    boardPreview: webappBoardPreview,
+    tableActions: webappTableActions,
+  };
+}
