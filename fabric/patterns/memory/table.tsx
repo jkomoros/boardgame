@@ -38,7 +38,7 @@ import {
 
 import { stepTable, type TableState, viewOf } from "../toolkit/table.ts";
 import type { Proposal, TableView } from "../toolkit/view.ts";
-import { type MemoryGame, memoryRules, type MemoryView } from "./rules.ts";
+import { memoryGame } from "./game.ts";
 
 //
 // The policy, and the interim seam
@@ -114,7 +114,7 @@ export type Sealed<T> = Confidential<T, readonly [PolicyOf<typeof tableRules>]>;
 //
 
 /** Everything the table knows. */
-export type MemoryTable = TableState<MemoryGame>;
+export type MemoryTable = TableState;
 
 /** The stored table: sealed, and written only by `move`. */
 export type SealedTable = WriteAuthorizedBy<Sealed<MemoryTable>, typeof move>;
@@ -123,14 +123,20 @@ export type SealedTable = WriteAuthorizedBy<Sealed<MemoryTable>, typeof move>;
 export const EMPTY_TABLE: MemoryTable = {
   phase: "seating",
   seats: [],
-  gameId: "",
-  secretSalt: "",
+  record: {
+    name: "",
+    id: "",
+    secretSalt: "",
+    numPlayers: 0,
+    variant: {},
+    agents: [],
+    seating: false,
+  },
   epoch: 0,
   revision: 0,
   version: -1,
-  recent: [],
+  recent: {},
   history: [],
-  timers: [],
 };
 
 /** What `move` is bound to. */
@@ -149,7 +155,7 @@ export interface MoveBinding {
 export const move = handler<Proposal, MoveBinding>((proposal, { table }) => {
   const proposer = currentPrincipal();
   if (proposer === undefined) return;
-  const result = stepTable(memoryRules(), table.get(), proposal, {
+  const result = stepTable(memoryGame(), table.get(), proposal, {
     proposer,
     now: Date.now(),
     entropy: Math.random,
@@ -162,7 +168,7 @@ export const move = handler<Proposal, MoveBinding>((proposal, { table }) => {
 //
 
 /** What a reader of the table's space may see. */
-export type MemoryTableView = TableView<MemoryView>;
+export type MemoryTableView = TableView;
 
 /**
  * The table's one released function. It is a module-scope `lift` because
@@ -176,17 +182,18 @@ export type MemoryTableView = TableView<MemoryView>;
 export const seatView = lift((
   table: MemoryTable | undefined,
 ): MemoryTableView | undefined =>
-  table !== undefined && table.revision > 0 ? viewOf(memoryRules(), table) : undefined
+  table !== undefined && table.revision > 0
+    ? viewOf(memoryGame(), table)
+    : undefined
 );
 
 /**
- * Every card's face, in slot order. Defined beside `seatView` and named by
- * no rule, so what it computes stays sealed. It exists for the tests.
+ * The secret salt. Defined beside `seatView` and named by no rule, so what
+ * it computes stays sealed. It exists for the tests.
  */
-export const peek = lift((table: MemoryTable | undefined): number[] => {
-  const head = table?.recent?.[table.recent.length - 1];
-  return head === undefined ? [] : head.game.Game.HiddenCards.Indexes.slice();
-});
+export const peek = lift((table: MemoryTable | undefined): string =>
+  table?.record?.secretSalt ?? ""
+);
 
 //
 // The table

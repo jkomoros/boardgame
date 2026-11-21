@@ -3,28 +3,17 @@
  * own: a state entry here is what `fabric/guest/PROTOCOL.md` calls a `state`
  * entry, with the parts that differ by viewer held under `viewers`.
  *
- * This module holds types only and imports nothing, so a pattern, the rules
- * of a game and the guest's bridge can all share it.
+ * This module holds types only, so a pattern and the guest's bridge can
+ * share it.
  */
-
-/** A stack as the Go server marshals one, and as the client expands one. */
-export interface StackJSON {
-  Deck: string;
-  /** A deck index a slot, `-1` for an empty slot, `-2` for a hidden card. */
-  Indexes: number[];
-  /** A component id a slot, stable across reveals; `""` for an empty slot. */
-  IDs: string[];
-  /** The version each id was last put into this stack. */
-  IDsLastSeen: Record<string, number>;
-  ShuffleCount: number;
-  /** Present on a sized stack. */
-  Size?: number;
-}
+import type { Json, JsonObject } from "./json.ts";
 
 /** The sanitized record of the move that produced a version. */
 export interface MoveRecord {
   AnimationKey: string;
   Version: number;
+  /** The move's arguments, as far as this viewer may see them. */
+  Properties?: JsonObject;
 }
 
 export interface MoveLegality {
@@ -34,7 +23,7 @@ export interface MoveLegality {
 }
 
 export interface ChoiceCandidate {
-  Value: number;
+  Value: Json;
   Available: boolean;
 }
 
@@ -48,7 +37,7 @@ export interface ChoiceSet {
 /** Per-candidate legality for single-argument moves, in the Go API's shape. */
 export interface ProjectedChoices {
   StateVersion: number;
-  Status: "ready" | "failed";
+  Status: string;
   MoveChoiceProjectionSchemaFingerprint: string;
   ProjectionSchemaVersion: number;
   Sets: ChoiceSet[];
@@ -73,7 +62,11 @@ export interface Outcome {
 }
 
 /** One state version, as the table's readers may see it. */
-export interface ViewEntry<S> {
+/**
+ * `S` is the state's type for a consumer that wants a narrower one than JSON;
+ * the guest's bridge names it.
+ */
+export interface ViewEntry<S = JsonObject> {
   version: number;
   /** The sanitized state: what `Game.JSONForPlayer(...).CurrentState` holds. */
   state: S;
@@ -98,7 +91,7 @@ export interface SeatView {
  * Everything a table releases to its readers: who is seated, and a window of
  * the most recent versions with the move that produced each.
  */
-export interface TableView<S> {
+export interface TableView<S = JsonObject> {
   gameName: string;
   phase: "seating" | "playing" | "finished";
   /** Changes whenever history stops being comparable: each new deal. */
@@ -114,20 +107,16 @@ export interface TableView<S> {
   entries: ViewEntry<S>[];
 }
 
-/** One card (or other component) of a deck, as the chest lists it. */
-export interface ChestComponent<V> {
-  Index: number;
-  Values: V;
-}
-
 /** Static, public facts about a game that its renderer needs once. */
-export interface TableInfo<V> {
+export interface TableInfo<V = Json> {
   gameName: string;
-  chest: {
-    Decks: Record<string, ChestComponent<V>[]>;
-    Enums: Record<string, never>;
-    LegalTemplates: Record<string, string>;
-  };
+  /**
+   * Decks, enums, constants and message templates, as Go marshals them. A
+   * deck is a list of `{ Index, Values }`, with `Values` of type `V`.
+   */
+  chest: { [key: string]: Json | V };
+  /** The engine's fingerprint of its move inputs. */
+  moveInputSchemaFingerprint: string;
   /** Colours for seats, in seat order. */
   seatColors: string[];
 }
