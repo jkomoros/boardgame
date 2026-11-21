@@ -1,0 +1,88 @@
+Experimental flag overrides: modernCellRep=false, commitPreconditions=true, plainResultReceipts=true, computedCellIds=true, lazyMaterialization=true, agentBuiltin=true, contentAddressedSchemas=true, localSessionDocuments=false, readerSchemaPrecedence=true, localFold=false, pieceCreatorRecord=false, instanceNames=false
+wrote to space did:key:z6Mkodmaz41i67mKr8QdTVJjw1YDVssCv6NQLha4gMmtiQJ5
+{"step":1,"runningAnimations":0,"cycles":1,"animatedCycles":0,"interrupted":1}
+{"step":2,"runningAnimations":0,"cycles":3,"animatedCycles":0,"interrupted":1}
+{"step":3,"runningAnimations":0,"cycles":5,"animatedCycles":0,"interrupted":1}
+{"step":4,"runningAnimations":0,"cycles":6,"animatedCycles":0,"interrupted":2}
+{"step":5,"runningAnimations":0,"cycles":7,"animatedCycles":0,"interrupted":3}
+{"step":6,"runningAnimations":0,"cycles":9,"animatedCycles":0,"interrupted":3}
+{
+ "end": {
+  "step": 6,
+  "stats": {
+   "cycles": 9,
+   "animatedCycles": 0,
+   "animationsStarted": 0,
+   "installs": 0,
+   "interrupted": 3
+  },
+  "animating": false,
+  "stacks": {
+   "grid": [],
+   "pile-0": [
+    "card-0",
+    "card-2",
+    "card-4"
+   ],
+   "pile-1": [
+    "card-1",
+    "card-3",
+    "card-5"
+   ]
+  }
+ },
+ "animatorHooks": {
+  "plays": 6,
+  "settles": 6,
+  "watchdogFirings": 0
+ },
+ "reconciler": {
+  "connects": {
+   "bg-table:reconciler-probe": 1,
+   "bg-stack:grid": 1,
+   "bg-stack:pile-0": 1,
+   "bg-stack:pile-1": 1
+  },
+  "tableViewSets": 0,
+  "stackSets": 15,
+  "stackSetsPerCheckpoint": {
+   "1": 12,
+   "3": 1
+  },
+  "lastStackSets": [
+   [
+    "grid",
+    4800
+   ],
+   [
+    "pile-0",
+    4803
+   ],
+   [
+    "grid",
+    6113
+   ],
+   [
+    "pile-1",
+    6115
+   ],
+   [
+    "grid",
+    7396
+   ],
+   [
+    "pile-0",
+    7398
+   ],
+   [
+    "grid",
+    8701
+   ],
+   [
+    "pile-1",
+    8704
+   ]
+  ]
+ },
+ "consoleProblems": []
+}
