@@ -301,6 +301,10 @@ design that has not started: items 1 to 5 and 7 of section 1.
   2.0 s from click to face, the animation included.
 - Two copies of Lit are on the page (labs' and the bundle's). Nothing broke.
 - The script's sampler of running Web Animations read 0 on almost every move
-  and was not diagnosed, and no screenshot caught a card in flight. The
-  evidence that animations ran is the animator's own `plays` counter and the
-  table's count of cycles that started one.
+  and was not diagnosed. Animation was first shown only by the animator's own
+  `plays` counter and the table's count of cycles that started one. A later
+  rerun recorded a capture frame by frame: both cards of the pair were
+  strictly between their first and last positions for 22 animation frames
+  (317 ms), and three screencast frames of them in flight are in
+  `memory/screenshots/05-mid-flight-*`. See the status file, "Rerun on the
+  integrated branch".

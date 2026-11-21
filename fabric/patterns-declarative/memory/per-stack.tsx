@@ -26,7 +26,7 @@ import {
 import "../elements.ts";
 import type { ElementEvent, ProposeMoveDetail } from "../elements.ts";
 import type { Proposal } from "../../patterns/toolkit/view.ts";
-import { memoryInfo } from "../../patterns/memory/rules.ts";
+import { memoryInfo } from "../../patterns/memory/game.ts";
 import {
   EMPTY_TABLE,
   type MemoryTableView,
@@ -34,6 +34,7 @@ import {
   type SealedTable,
   seatView,
 } from "../../patterns/memory/table.tsx";
+import type { MemoryState } from "./state.ts";
 
 export interface MemoryInput {
   table: Writable<Default<SealedTable, typeof EMPTY_TABLE>>;
@@ -73,7 +74,7 @@ const sit = handler<
 });
 
 const deal = handler<unknown, { move: Stream<Proposal> }>((_, { move }) => {
-  move.send({ kind: "start" });
+  move.send({ kind: "start", options: { numcards: "small" } });
 });
 
 /** Nobody clicks to hide a mismatch here, so a button asks the table to. */
@@ -99,8 +100,12 @@ export default pattern<MemoryInput, MemoryOutput>(
       return entries.length > 0 ? entries[entries.length - 1] : undefined;
     });
     const version = computed(() => head?.version ?? -1);
-    const cards = computed(() => head?.state.Game.Cards);
-    const players = computed(() => head?.state.Players ?? []);
+    const cards = computed(() =>
+      (head?.state as MemoryState | undefined)?.Game.Cards
+    );
+    const players = computed(() =>
+      (head?.state as MemoryState | undefined)?.Players ?? []
+    );
     return {
       [NAME]: "Memory (per-stack experiment)",
       [UI]: (

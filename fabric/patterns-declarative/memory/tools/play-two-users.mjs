@@ -11,11 +11,11 @@
 //
 // Environment: CF_LABS_ROOT, CF_IDENTITY, CF_SPACE, CF_API_URL as for the
 // guest's script; HEADED=1 shows the browsers.
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  cardPoint, chromium, hooksOf, player, requireEnv, runningOf, sleep, tableOf, traceOf, waitFor,
+  cardPoint, chromium, hooksOf, player, recordFlight, requireEnv, runningOf, sleep, tableOf, traceOf, waitFor,
 } from './lib.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -40,6 +40,7 @@ const latencies = [];
 let moves = 0;
 let shotReveal = false, shotTimer = false, shotCapture = false;
 const timerWaits = [];
+let flight = null;
 
 try {
   // Seating. The table releases nothing before its first move, so the lobby
@@ -107,6 +108,10 @@ try {
     const watch = setInterval(() => {
       runningOf(mover).then(count => { running = Math.max(running, count); }, () => {});
     }, 50);
+    // The second card of a pair this player knows: the capture that follows
+    // is recorded frame by frame, on the mover's own screen.
+    const pairing = turned >= 0 && seen[slot] === board[turned].face;
+    const recording = pairing && !shotCapture ? await recordFlight(mover) : null;
     const start = Date.now();
     const point = await cardPoint(mover, slot);
     await mover.page.mouse.click(point.x, point.y);
@@ -125,13 +130,31 @@ try {
     const others = Date.now() - start;
     if (face !== 'captured') seen[slot] = face;
     const matched = turned >= 0 && seen[slot] === board[turned].face;
-    if (matched && !shotCapture) {
-      for (let index = 1; index <= 8; index++) {
-        await sleep(250);
-        await shot(mover, `05-capturing-${index}`);
+    if (recording) {
+      // Until both cards are in the mover's pile and the table is at rest.
+      await waitFor(async () => {
+        const now = await tableOf(mover);
+        return !now.animating && now.version === now.queued && !now.board[slot].present;
+      }, 'the pair to be captured', 30_000).catch(() => {});
+      await sleep(600);
+      const recorded = await recording.stop();
+      if (matched && recorded.flights.length > 0) {
+        const frames = recorded.flights.flatMap(one => one.midFrames);
+        const unique = [...new Map(frames.map(frame => [frame.at, frame])).values()].sort((a, b) => a.at - b.at);
+        const picks = unique.length <= 3 ? unique
+          : [unique[0], unique[Math.floor(unique.length / 2)], unique[unique.length - 1]];
+        picks.forEach((frame, index) => writeFileSync(
+          resolve(shots, `05-mid-flight-${index + 1}-${mover.name.toLowerCase()}.png`),
+          Buffer.from(frame.data, 'base64')));
+        flight = {
+          by: mover.name, screencastFrames: recorded.screencastFrames,
+          animationFrames: recorded.animationFrames, midFlightScreencastFrames: unique.length,
+          saved: picks.length,
+          flights: recorded.flights.map(({ midFrames, ...rest }) => ({ ...rest, midFrames: midFrames.length })),
+        };
+        await shot(other, '05-captured');
+        shotCapture = true;
       }
-      await shot(other, '05-capturing-8');
-      shotCapture = true;
     }
     if (turned >= 0 && !matched && !shotTimer) {
       await sleep(900);
@@ -171,6 +194,8 @@ console.log(JSON.stringify({
   reconciler: traces,
   blockedByPolicy: end.map(state => state.blocked),
   hiddenByTimerAfterMs: timerWaits,
+  // One capture, seen: each card's path on the mover's screen, frame by frame.
+  flight,
   clickToFaceMs: {
     own: { median: median(latencies.map(entry => entry.ownMs)), max: Math.max(...latencies.map(entry => entry.ownMs)) },
     other: { median: median(latencies.map(entry => entry.otherMs)), max: Math.max(...latencies.map(entry => entry.otherMs)) },

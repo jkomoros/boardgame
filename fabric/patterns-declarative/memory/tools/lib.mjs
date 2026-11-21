@@ -118,6 +118,24 @@ export const INIT = () => {
   });
   watch('bg-table', ['tableView', 'principal']);
   watch('bg-stack', ['stack', 'version']);
+  // Where every card is, frame by frame, between `start()` and `stop()`:
+  // the box the browser reports, which includes the animator's transform.
+  // Times are milliseconds since the epoch, to line up with screencast frames.
+  let sampling = false, samples = [];
+  const sample = () => {
+    if (!sampling) return;
+    const at = performance.timeOrigin + performance.now();
+    for (const card of globalThis.__deep('boardgame-card')) {
+      if (!card.id || card.hasAttribute('spacer')) continue;
+      const box = card.getBoundingClientRect();
+      samples.push([card.id, at, Math.round(box.left + box.width / 2), Math.round(box.top + box.height / 2)]);
+    }
+    requestAnimationFrame(sample);
+  };
+  globalThis.__flight = {
+    start() { samples = []; sampling = true; requestAnimationFrame(sample); },
+    stop() { sampling = false; return samples; },
+  };
 };
 
 export async function player(browser, name, url) {
@@ -221,3 +239,52 @@ export const runningOf = who => who.page.evaluate(() => {
     return false;
   }).length;
 });
+
+/**
+ * Records one player's page from now until `stop()`: the browser's own
+ * screencast frames, and where each card was on every animation frame.
+ * `stop()` returns, for each card that travelled more than 40px, its path and
+ * the screencast frames taken while it was between a quarter and three
+ * quarters of the way: a card seen in flight, not counted.
+ */
+export async function recordFlight(who) {
+  const cdp = await who.page.context().newCDPSession(who.page);
+  const frames = [];
+  cdp.on('Page.screencastFrame', frame => {
+    frames.push({ at: frame.metadata.timestamp * 1000, data: frame.data });
+    cdp.send('Page.screencastFrameAck', { sessionId: frame.sessionId }).catch(() => {});
+  });
+  await cdp.send('Page.startScreencast', { format: 'png', everyNthFrame: 1 });
+  await who.page.evaluate(() => globalThis.__flight.start());
+  return {
+    async stop() {
+      const samples = await who.page.evaluate(() => globalThis.__flight.stop());
+      await cdp.send('Page.stopScreencast').catch(() => {});
+      await cdp.detach().catch(() => {});
+      const paths = new Map();
+      for (const [id, at, x, y] of samples) {
+        if (!paths.has(id)) paths.set(id, []);
+        paths.get(id).push({ at, x, y });
+      }
+      const flights = [];
+      for (const [id, path] of paths) {
+        const from = path[0], to = path[path.length - 1];
+        const distance = Math.hypot(to.x - from.x, to.y - from.y);
+        if (distance < 40) continue;
+        const progress = point => Math.hypot(point.x - from.x, point.y - from.y) / distance;
+        const between = path.filter(point => progress(point) > 0.02 && progress(point) < 0.98);
+        const middle = path.filter(point => progress(point) > 0.25 && progress(point) < 0.75);
+        flights.push({
+          id, from: [from.x, from.y], to: [to.x, to.y], distancePx: Math.round(distance),
+          framesInFlight: between.length,
+          flightMs: between.length ? Math.round(between[between.length - 1].at - between[0].at) : 0,
+          path: between.map(point => [Math.round(point.at - between[0].at), point.x, point.y]),
+          midFrames: middle.length
+            ? frames.filter(frame => frame.at >= middle[0].at && frame.at <= middle[middle.length - 1].at)
+            : [],
+        });
+      }
+      return { screencastFrames: frames.length, animationFrames: new Set(samples.map(s => s[1])).size, flights };
+    },
+  };
+}
