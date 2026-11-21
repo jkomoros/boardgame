@@ -156,6 +156,12 @@ export interface RendererHost {
    */
   loadRendererModule?(request: RendererModuleRequest): Promise<unknown>;
   /**
+   * Where the framework's shipped token art (`token_<type>.svg`) is served
+   * from, by token type. The mount installs it for layer-1 tokens; without it
+   * a token with no art of its own draws its generated solid, or nothing.
+   */
+  resolveTokenArt?(type: string): string;
+  /**
    * Makes the game's player-info renderer available: resolves once
    * `boardgame-render-player-info-<gameName>` is defined. A host mounts one
    * per seat with `mountPlayerInfo()` (components/boardgame-render-player-info.ts),

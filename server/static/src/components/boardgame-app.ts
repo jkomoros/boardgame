@@ -27,6 +27,12 @@ import {
 
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { ANIM_TEST_HOOKS_STORAGE_KEY, installAnimTestHooks } from '../utils/anim-test-hooks.js';
+import { setTokenArtResolver } from './component-art.js';
+import { webappTokenArt } from '../webapp/token-art.js';
+
+// Tokens are drawn all over the app (the roster, not only the game board), so
+// say where their shipped art is served before any of them renders.
+setTokenArtResolver(webappTokenArt);
 
 // The animation counters are published on `window` only when asked for: the
 // Playwright suites seed this key (playwright.config.ts), and a person

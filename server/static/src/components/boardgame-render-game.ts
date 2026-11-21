@@ -40,6 +40,7 @@ import {
   type ProjectedChoiceConsumptionController,
 } from '../moves/projected-choice-consumption.js';
 import './boardgame-projected-choices.js';
+import { setTokenArtResolver } from './component-art.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
 import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
@@ -467,6 +468,9 @@ class BoardgameRenderGame extends LitElement implements RendererMount, RendererM
     }
 
     if (changedProperties.has('host')) {
+      // Shipped token art is served from wherever the host says.
+      const resolveTokenArt = this.host?.resolveTokenArt;
+      if (resolveTokenArt) setTokenArtResolver(type => resolveTokenArt.call(this.host, type));
       this._hostChanged();
       // A host attached after the game identity brings the loader with it.
       const identityChanged = changedProperties.has('gameName') || changedProperties.has('gameId');

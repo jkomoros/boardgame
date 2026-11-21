@@ -8,6 +8,7 @@ import { apiHttpPost, buildGameUrl, movePreviewBatch } from '../api.js';
 import { decodeHostActionResponse } from '../types/host-action-response.js';
 import { apiPath } from '../util.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
+import { webappTokenArt } from './token-art.js';
 import type { TimerService } from '../timers/timer-service.js';
 import type {
   BoardPreviewTransport,
@@ -110,6 +111,7 @@ export function createWebappRendererHost(options: WebappRendererHostOptions = {}
     resolveSurface: request => surfaceForGame(request.gameId, request.companionMode),
     loadRendererModule: request => importModule(rendererModulePath(request)),
     loadPlayerInfoModule: request => importModule(playerInfoModulePath(request)),
+    resolveTokenArt: webappTokenArt,
     boardPreview: webappBoardPreview,
     tableActions: webappTableActions,
   };

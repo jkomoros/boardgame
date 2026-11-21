@@ -1,6 +1,7 @@
 import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, CSSResult, TemplateResult, unsafeCSS } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { shippedTokenArtUrl } from './component-art.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
@@ -500,7 +501,7 @@ export class BoardgameToken extends BoardgameComponent {
   private _throb: Animation | null = null;
 
   private _computeAsset(type: string): string {
-    return this.art || `src/assets/token_${type}.svg`;
+    return this.art || shippedTokenArtUrl(type);
   }
 
   // Override _computeClasses and add some more.
