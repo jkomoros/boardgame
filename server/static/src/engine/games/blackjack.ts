@@ -37,8 +37,13 @@ function newDeck(): { Suit: string; Rank: string }[] {
 	return cards;
 }
 
-const RANK_KEYS: Record<string, number> = {};
-for (const key of Object.keys(RANKS)) RANK_KEYS[RANKS[key]] = Number(key);
+/** A rank's enum key, from its name. */
+function rankKey(rank: string): number {
+	for (const key of Object.keys(RANKS)) {
+		if (RANKS[key] === rank) return Number(key);
+	}
+	return 0;
+}
 
 /**
  * playerState.HandValue. Works on whatever state it is given, so on a
@@ -55,7 +60,7 @@ export function handValue(state: RulesState, player: number): number {
 	for (let i = 0; i < hand.len(); i++) {
 		const index = hand.componentAt(i);
 		if (index === null) continue;
-		const rank = index === GENERIC_COMPONENT ? 0 : RANK_KEYS[state.component('cards', index).Rank as string];
+		const rank = index === GENERIC_COMPONENT ? 0 : rankKey(state.component('cards', index).Rank as string);
 		if (rank === RANK_ACE) {
 			aces++;
 			value++;
@@ -226,8 +231,12 @@ function incrementRoundsCompleted(): MoveSpec {
 	};
 }
 
-const maxRoundsValues: Record<string, { description: string }> = {};
-for (let i = 1; i <= 10; i++) maxRoundsValues[String(i)] = { description: i + ' rounds' };
+/** The variant's values: 1 to 10 rounds. */
+function maxRoundsValues(): Record<string, { description: string }> {
+	const values: Record<string, { description: string }> = {};
+	for (let i = 1; i <= 10; i++) values[String(i)] = { description: i + ' rounds' };
+	return values;
+}
 
 export function blackjack(): GameSpec {
 	return {
@@ -294,7 +303,7 @@ export function blackjack(): GameSpec {
 				displayName: 'Max Rounds',
 				description: 'Number of rounds to play before the game ends',
 				default: String(DEFAULT_MAX_ROUNDS),
-				values: maxRoundsValues,
+				values: maxRoundsValues(),
 			},
 		},
 

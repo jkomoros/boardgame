@@ -8,9 +8,11 @@
 //   - `let` or `var` at module scope;
 //   - a module-scope constant that is not a function and not plain data: a
 //     record holding functions, a `new` of anything, a stateful regular
-//     expression. A call is allowed, since its result is checked when the
+//     expression, or arithmetic over other constants (`DIM * DIM`). A call is allowed, since its result is checked when the
 //     module loads; games/*.ts are loaded by sandbox tests for that;
 //   - a generator at module scope;
+//   - any statement at module scope that is not a declaration: a loop that
+//     fills a table, an assignment, a call;
 //   - a double cast through `unknown`, which the pattern compiler rejects;
 //   - an import that leaves the engine directory.
 //
@@ -38,13 +40,24 @@ function sources(dir: string, out: string[] = []): string[] {
 	return out;
 }
 
+/** A literal, or arithmetic over literals. */
+function literal(node: ts.Expression): boolean {
+	if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)) return true;
+	if (ts.isPrefixUnaryExpression(node)) return literal(node.operand);
+	if (ts.isParenthesizedExpression(node)) return literal(node.expression);
+	if (ts.isBinaryExpression(node)) return literal(node.left) && literal(node.right);
+	return false;
+}
+
 /** Whether an initializer is data the sandbox can freeze: no functions in it. */
 function plainData(node: ts.Expression): boolean {
-	if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node) || ts.isTemplateExpression(node) || ts.isIdentifier(node)) return true;
+	if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node) || ts.isIdentifier(node)) return true;
 	if (node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword || node.kind === ts.SyntaxKind.NullKeyword) return true;
 	if (ts.isPrefixUnaryExpression(node)) return plainData(node.operand);
 	if (ts.isAsExpression(node) || ts.isParenthesizedExpression(node) || ts.isSatisfiesExpression(node)) return plainData(node.expression);
-	if (ts.isBinaryExpression(node)) return plainData(node.left) && plainData(node.right);
+	// Another constant may be named, alone or inside a record, but not
+	// computed with: `DIM * DIM` is refused where `{ size: DIM }` is not.
+	if (ts.isBinaryExpression(node)) return literal(node.left) && literal(node.right);
 	if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) return true;
 	if (ts.isArrayLiteralExpression(node)) return node.elements.every(element => !ts.isSpreadElement(element) && !ts.isOmittedExpression(element) && plainData(element));
 	if (ts.isObjectLiteralExpression(node)) {
@@ -74,6 +87,11 @@ test('no engine module holds anything at module scope that the pattern sandbox r
 		const at = (node: ts.Node) => `${name}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
 		for (const statement of source.statements) {
 			if (ts.isClassDeclaration(statement)) problems.push(`${at(statement)} declares a class at module scope`);
+			const declares = ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement) || ts.isVariableStatement(statement) ||
+				ts.isFunctionDeclaration(statement) || ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement) ||
+				ts.isClassDeclaration(statement) || ts.isEnumDeclaration(statement);
+			if (!declares) problems.push(`${at(statement)} runs a statement at module scope`);
+			if (ts.isEnumDeclaration(statement)) problems.push(`${at(statement)} declares an enum at module scope`);
 			if (ts.isFunctionDeclaration(statement) && statement.asteriskToken) problems.push(`${at(statement)} declares a generator at module scope`);
 			if (ts.isVariableStatement(statement)) {
 				if (!(statement.declarationList.flags & ts.NodeFlags.Const)) problems.push(`${at(statement)} declares let or var at module scope`);

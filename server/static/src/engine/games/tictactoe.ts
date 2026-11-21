@@ -6,7 +6,8 @@ import type { GameSpec, MoveSpec } from '../rules/types.ts';
 import { activateInactivePlayer, add, currentPlayerProps, finishTurn, inactivePlayerProps, moveComponentToSlot, phaseProps, seatPlayer, seatProps } from '../rules/stock.ts';
 
 const DIM = 3;
-const TOTAL_DIM = DIM * DIM;
+// DIM * DIM, written out: a pattern module may not compute at module scope.
+const TOTAL_DIM = 9;
 const X = 'X';
 const O = 'O';
 const EMPTY = '';
