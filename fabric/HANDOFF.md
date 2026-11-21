@@ -20,7 +20,7 @@ the head commit.
 | TypeScript engine | `server/static/src/engine`, [status/engine-core.md](status/engine-core.md), [engine-legal.md](status/engine-legal.md), [engine-rules.md](status/engine-rules.md) | Core, legal framework, rules layer, six ported games. Matches Go on all 22 conformance documents at every version for every viewer. Written without classes so a pattern can load it |
 | Go conformance exporter | `boardgame-util/lib/conformance`, `conformance/`, [status/conformance-export.md](status/conformance-export.md) | 22 documents with a staleness check. The only Go added; no existing Go behavior changed |
 | Memory on Fabric | `fabric/patterns/memory`, [status/fabric-memory.md](status/fabric-memory.md), [status/engine-fabric.md](status/engine-fabric.md) | Sealed table, one `move` handler, per-viewer view from the engine. Two browser identities played whole games with server execution on |
-| Blackjack on Fabric | `fabric/patterns/blackjack`, [status/engine-fabric.md](status/engine-fabric.md) | Per-seat views from the engine's sanitization; parity with Go on seven recordings; multi-user `cf test` passes. Browser play: see `status/integration.md` |
+| Blackjack on Fabric | `fabric/patterns/blackjack`, [status/engine-fabric.md](status/engine-fabric.md), [status/integration.md](status/integration.md) | Per-seat views from the engine's sanitization; parity with Go on seven recordings. Three browser identities and a watcher played two whole games, each shown its own hole card and nobody else's in an unmodified client. A move takes a median 18.6 s |
 | Board in pattern JSX, no iframe | `fabric/patterns-declarative`, [status/declarative-pattern.md](status/declarative-pattern.md) | Two identities played Memory through a pattern whose JSX is boardgame elements, on a local labs spike branch |
 | Go 1.27 | commit `3a00e697` | `golang.org/x/tools` raised so the tree builds and tests under Go 1.27.4 |
 
@@ -32,6 +32,23 @@ the head commit.
 | `worktree-agent-ad697e53f88bab905` | Local | First spike: a sealed state machine. Findings copied to [labs-spikes/SEALED-STATE-MACHINE-FINDINGS.md](labs-spikes/SEALED-STATE-MACHINE-FINDINGS.md) |
 | `worktree-agent-ac9c0255af3654f11` | Local | Port of the list-release draft (labs#8608) and a card table with per-seat views. Findings copied to [labs-spikes/SEAT-VIEWS-FINDINGS.md](labs-spikes/SEAT-VIEWS-FINDINGS.md), which ends with an unposted draft comment for specs#59 |
 | `spike/boardgame-trusted-components` | Local | The shell loads a script of boardgame elements when an environment variable is set. Also here as a patch under `fabric/patterns-declarative/labs-spike/` |
+
+## The combined branch
+
+From [status/integration.md](status/integration.md), on commit `1d7668c4`:
+
+- Pass: webapp type check, 1,168 unit tests, the layer test (11), the build,
+  the guest (28), the declarative experiment (34), the pattern Node tests
+  (36), both multi-user `cf test` suites (202 and 92), both in-sandbox parity
+  tests, `go build ./...`, the Go conformance and build-tooling tests, and
+  the client check of every game.
+- Fail: 1 of 187 renderer tests and 15 of 292 e2e tests. Twelve of the e2e
+  failures and the renderer failure were failing before any change of this
+  effort. The other three are load-dependent; one of them
+  (`waapi-gate.spec.ts:120`) was not run alone, so it is not shown to be a
+  flake.
+- The browser games were played one commit before `1d7668c4`; that commit
+  adds two opt-in members to the stack element which the guest does not set.
 
 ## What is not held today
 
@@ -69,10 +86,13 @@ Ordered by how much later work they shape.
    `.map` over the view is withheld by policy, so the JSX can only pass the
    view whole to one element. Blessing more lifts in the table would let
    pattern authors write seats and labels in JSX.
-4. **Speed or Go's exact state.** Memory on the engine takes a median 3.7 s a
-   move against 1.8 s with hand-written rules, because Go's Memory carries the
-   110 unused cards in every version and the runtime's cost follows stored
-   size. Options are in `status/engine-fabric.md`.
+4. **Speed.** A blackjack move takes a median 18.6 s and a deal 27 s: every
+   input rewrites eight views, each holding every version of the last input,
+   and all seven seat views are computed whoever is seated. Memory takes about
+   3 s against 1.8 s with hand-written rules, because Go's Memory carries the
+   110 unused cards in every version. The runtime's cost follows stored size.
+   Options are in `status/engine-fabric.md`; blackjack's shape is the first
+   thing to change, and it was not changed here.
 5. **Classes are gone from the engine,** and `private` with them, because the
    pattern sandbox refuses classes at module scope by design. Members could
    become closure variables if the visibility matters.
