@@ -24,7 +24,8 @@ game over) plays through with the real animator and gate.
 |---|---|
 | `24c05323` Add a self-contained Fabric guest that plays Memory from JSON messages | Protocol types, guest host, version queue, API shim, Vite single-file build, harness page, static server, Go replay exporter and its output, Playwright suite |
 | `e75e29ca` Document the guest protocol and findings; harden the guest | `PROTOCOL.md`, `FINDINGS.md`, `README.md`, `tsconfig.json`; the guest ignores message types it does not handle; API shim trimmed to the three names actually imported; `file:` test |
-| (the commit adding this file) | This note |
+| `7ca6f801` Record the guest harness status | This note |
+| (the commit after it) | Adds the clean-checkout result to this note |
 
 ## What was verified, and how
 
@@ -50,6 +51,7 @@ unless stated.
 | The scenario replay plays | `examples/memory/client/scenario-replay.json` plays its four frames, reporting `jumpedFrom` for the versions it does not contain |
 | Version queue logic | Seven unit tests in `tests/version-queue.spec.ts` |
 | Types | `npm run type-check` passes over the guest and the client source it imports |
+| Clean checkout | With `node_modules` and `dist` deleted: `npm ci`, `npm run type-check` and `npm test` pass (21 of 21), and the build reproduces 589,701 bytes |
 | Go tool | `./scripts/go-local vet ./fabric/guest/tools/...` and `gofmt -l` are clean; the tool ran and produced `replays/memory-full.json` |
 
 ## Only eyeballed, or not checked
@@ -75,8 +77,6 @@ unless stated.
 - **A second game.** Only Memory is bundled. Art, tokens and dice are in the
   bundle but nothing exercised them.
 - **Fonts.** Omitted with fallbacks; the result was looked at, not measured.
-- **`npm ci` from a clean checkout.** `package-lock.json` is committed, but
-  the install was done with `npm install`, not re-run clean.
 
 ## Open questions
 
