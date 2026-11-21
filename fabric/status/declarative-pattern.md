@@ -2,7 +2,8 @@
 
 Stream D, step 3 of [`../PROPOSAL.md`](../PROPOSAL.md). Branch
 `claude/fabric-d-declarative-99437f`, with `fabric-factoring` (`b3c609ce`)
-merged in. Nothing pushed, no PR, `master` untouched. Written 2026-11-21.
+merged in; rerun later the same day on `dced5490`, see "Rerun on the
+integrated branch". Nothing pushed, no PR, `master` untouched. Written 2026-11-21.
 
 Start with [`../patterns-declarative/FINDINGS.md`](../patterns-declarative/FINDINGS.md).
 How to run it is in [`../patterns-declarative/README.md`](../patterns-declarative/README.md).
@@ -64,9 +65,9 @@ local servers on port offset 460, started and stopped by this session.
   result is observed; the explanation ("another computation is not what
   `seatView` computed") is the reading consistent with the Memory pattern's
   F3 and F4.
-- **Animation was not seen**, only counted. No screenshot caught a card
-  mid-flight, and the script's sampler of running Web Animations read 0 and
-  was not diagnosed.
+- **Animation was not seen** in the first runs, only counted. The rerun
+  below shows it: see "Rerun on the integrated branch". The script's sampler
+  of running Web Animations still reads 0 and is still not diagnosed.
 - Remembered geometry and table recreation were never exercised: nothing was
   recreated.
 - Two tables on one labs page; more than two players; Blackjack; a watcher;
@@ -98,6 +99,105 @@ refusing an unadmitted tag; a way for a set to declare which props fetch or
 show text; and isolation, since an admitted element runs with the shell's
 authority over the whole page. FINDINGS section 1 lists each with where it
 would go.
+
+## Rerun on the integrated branch (2026-11-21)
+
+`fabric-factoring` at `dced5490` merged in (a fast-forward: it already held
+this branch). Labs unchanged: worktree at `1ef3d7ce99` on
+`spike/boardgame-trusted-components`, servers on offset 460, stopped
+afterwards. The labs patch is byte-identical to the commit, so it was not
+rebuilt. The shell reads the bundle by path from this repository, so there
+is nothing to copy into labs: rebuilding the bundle and restarting the
+servers is the whole re-export.
+
+### What the merge broke, and the fix
+
+All inside the two directories this stream owns. Nothing outside needed a
+change.
+
+| Broke | Cause | Fix |
+|---|---|---|
+| `cf check` on `memory/main.tsx`, `per-stack.tsx`, `probe-release.tsx` | They imported `memoryInfo` and `CardValues` from `fabric/patterns/memory/rules.ts`, which the engine work deleted | Import `memoryInfo` from `game.ts`; `info` is a plain `TableInfo` |
+| The two probes' reads into the state | The table now releases its state as plain JSON, so `state.Game.Cards` has no type | `memory/state.ts` names the two paths they read. In `probe-release.tsx` the view is narrowed with one `as`; a cast inside the path expression stopped the transformer rewriting it, and `as unknown as` is refused by labs |
+| The board size | A deal with no options is now the engine's default, 20 cards | The three patterns deal `{ numcards: "small" }`, the ten-card board every earlier number is for |
+
+`fabric/declarative` needed nothing: the integration session had already
+moved it onto `@boardgame/elements` and onto `collectionId` and
+`stackScope`. It needs `npm ci` again after the merge, to link the package.
+
+**`elements.ts` against the changed stack: no change.** It types the `bg-*`
+wrappers, not `boardgame-component-stack`. `collection-id` and `stackScope`
+are set by `bg-stack` and `bg-table` on the stack inside them and add no
+prop a pattern writes. `cf check` passes on all four patterns with it.
+
+### Commands
+
+```bash
+(cd fabric/declarative && npm ci && npm run type-check && npm run build:bundle && npx playwright test)
+```
+
+```bash
+"$LABS/bin/cf" check fabric/patterns-declarative/memory/main.tsx fabric/patterns-declarative/memory/per-stack.tsx fabric/patterns-declarative/memory/probe-release.tsx fabric/patterns-declarative/reconciler/main.tsx --root "$PWD"
+```
+
+Then the README's steps 3 to 6, with a new space, the game deployed twice
+(`memory-r1`, `memory-r2`) and each probe once (the reconciler probe twice).
+
+### Counts
+
+The "before" figures for game 1 are those of the game logged before the
+merge (the second of that pair). The rerun's game 1 is in
+`memory/screenshots/run.log`; its game 2 and the probes' output were read
+and not kept, except the reconciler probe's, in `reconciler/screenshots/run.log`.
+
+| | Before the merge | Rerun |
+|---|---|---|
+| First experiment's Playwright tests | 34 passed | 34 passed |
+| Bundle | 409 kB | 409.11 kB, 83 modules |
+| `cf check`, four patterns | clean | clean after the fixes above |
+| Game 1: reveals, result on both screens | 16, Alice 6 to 4 | 16, Alice 6 to 4 |
+| Game 1: animator plays, watchdog firings, each player | 58, 0 | 58, 0 |
+| Game 1: motion cycles that started an animation | 24 of 35 | 24 of 35 |
+| Game 1: `tableView` assignments, versions carried | 24, 35 | 24, 35 |
+| Game 1: connections of the table and each stack | 1 each | 1 each |
+| Game 1: mismatches hidden by the timer | 3 | 3 |
+| Game 2 | 16 reveals | 14 reveals, Alice 6 to 4 on both screens; 54 plays, 0 watchdog; 21 of 30 cycles; 21 assignments; 1 connection each; 2 timer hides |
+| Click to face, median (first move) | 2.2 s (15 s) | 3.4 s and 3.9 s (15 s) |
+| Placeholders "hidden by policy" in the game | 0 | 0 |
+| Release probe | path read shown; `computed` and `.map` hidden; 10 cards by path | the same |
+| Per-stack probe against the sealed table | 2 placeholders, empty board, times out | the same |
+| Reconciler probe, two pieces | 0 of 9 cycles animated; stacks set alone | 0 of 9 and 0 of 8; 12 of 13 batches held one stack's assignment, partners 2 to 3 ms apart |
+
+The slower click-to-face is the one number that moved. The table now runs
+the real engine in `move`, where it ran a hand-written Memory before. I did
+not measure where the extra second goes.
+
+### Animation, seen
+
+`play-two-users.mjs` now records the first capture on the mover's screen two
+ways at once: the browser's own screencast frames (over the DevTools
+protocol), and the box of every card on every animation frame. A card counts
+as in flight while it is between its first and last position.
+
+| | Game 1 | Game 2 |
+|---|---|---|
+| Cards that flew (the pair) | 2 | 2 |
+| Distance | 357 px and 616 px | 510 px and 616 px |
+| Animation frames with the card strictly between its ends | 22 each | 23 each |
+| Time across those frames | 317 ms | 306 ms |
+| Screencast frames taken while a card was between a quarter and three quarters of the way | 7 | 7 |
+
+The configured flight is 400 ms; the 300-odd ms is the part measured
+strictly between the ends. Three of game 1's seven frames are saved as
+`fabric/patterns-declarative/memory/screenshots/05-mid-flight-{1,2,3}-alice.png`.
+I looked at the second: both tree cards are face up between the grid and
+Alice's pile. Each card's whole path is in `screenshots/run.log` under
+`flight`. They replace the eight timed `05-capturing-*` screenshots, none of
+which had caught a card moving.
+
+This is one capture a game on one screen, in headless Chromium. Flips and
+the hide after a mismatch are still counted only: a flip does not move a
+card's box.
 
 ## Decisions for the owner
 

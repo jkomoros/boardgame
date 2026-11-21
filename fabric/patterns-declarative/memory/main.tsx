@@ -32,7 +32,7 @@ import type {
   TimerElapsedDetail,
 } from "../elements.ts";
 import type { Proposal, TableInfo } from "../../patterns/toolkit/view.ts";
-import { type CardValues, memoryInfo } from "../../patterns/memory/rules.ts";
+import { memoryInfo } from "../../patterns/memory/game.ts";
 import {
   EMPTY_TABLE,
   type MemoryTableView,
@@ -54,7 +54,7 @@ export interface MemoryOutput {
   [NAME]: string;
   [UI]: VNode;
   view: MemoryTableView | undefined;
-  info: TableInfo<CardValues>;
+  info: TableInfo;
   move: Stream<Proposal>;
 }
 
@@ -97,7 +97,7 @@ const sit = handler<
 });
 
 const deal = handler<unknown, { move: Stream<Proposal> }>((_, { move }) => {
-  move.send({ kind: "start" });
+  move.send({ kind: "start", options: { numcards: "small" } });
 });
 
 const PILE = {

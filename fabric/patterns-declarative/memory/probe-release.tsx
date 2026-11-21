@@ -17,20 +17,21 @@ import {
 } from "commonfabric";
 
 import "../elements.ts";
-import type { Proposal } from "../../patterns/toolkit/view.ts";
-import { memoryInfo } from "../../patterns/memory/rules.ts";
+import type { Proposal, TableView } from "../../patterns/toolkit/view.ts";
+import { memoryInfo } from "../../patterns/memory/game.ts";
 import {
   EMPTY_TABLE,
   move,
   type SealedTable,
   seatView,
 } from "../../patterns/memory/table.tsx";
+import type { MemoryState } from "./state.ts";
 
 const sit = handler<unknown, { move: Stream<Proposal> }>((_, { move }) => {
   move.send({ kind: "sit", label: "Probe" });
 });
 const deal = handler<unknown, { move: Stream<Proposal> }>((_, { move }) => {
-  move.send({ kind: "start" });
+  move.send({ kind: "start", options: { numcards: "small" } });
 });
 
 export default pattern<
@@ -38,6 +39,9 @@ export default pattern<
   { [NAME]: string; [UI]: VNode }
 >(({ table }) => {
   const view = seatView(table);
+  // The same released value, read with the state's shape named: the table
+  // releases its state as plain JSON, and a path read needs the path's type.
+  const typed = view as TableView<MemoryState> | undefined;
   const propose = move({ table });
   const info = computed(() => memoryInfo());
   const derived = computed(() => view?.revision ?? -1);
@@ -55,7 +59,7 @@ export default pattern<
         <bg-table name="probe" gameName="memory" chest={info.chest}>
           <bg-stack
             name="direct"
-            stack={view?.entries[0]?.state.Game.Cards}
+            stack={typed?.entries[0]?.state.Game.Cards}
             layout="grid"
             face="Type"
           />

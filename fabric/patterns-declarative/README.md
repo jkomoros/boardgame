@@ -13,6 +13,7 @@ What was found is in [`FINDINGS.md`](FINDINGS.md). What ran is in
 | [`elements.ts`](elements.ts) | JSX types for the `bg-*` elements, merged into `JSX.IntrinsicElements` by the pattern itself |
 | [`memory/main.tsx`](memory/main.tsx) | The pattern. Imports the table, `move` and `seatView` of `../patterns/memory`; adds only a view |
 | [`memory/per-stack.tsx`](memory/per-stack.tsx), [`memory/probe-release.tsx`](memory/probe-release.tsx) | Experiments on what of the released view a pattern may reshape |
+| [`memory/state.ts`](memory/state.ts) | The two paths of Memory's released state those experiments read, as a type |
 | [`reconciler/main.tsx`](reconciler/main.tsx) | Experiment on what the reconciler does to elements, with nothing confidential |
 | [`memory/tools/`](memory/tools) | The browser scripts: a two-identity game, and one per experiment |
 | [`labs-spike/`](labs-spike) | The labs change, as a patch |

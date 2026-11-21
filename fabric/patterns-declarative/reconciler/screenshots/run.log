@@ -1,10 +1,9 @@
-Experimental flag overrides: modernCellRep=false, commitPreconditions=true, plainResultReceipts=true, computedCellIds=true, lazyMaterialization=true, agentBuiltin=true, contentAddressedSchemas=true, localSessionDocuments=false, readerSchemaPrecedence=true, localFold=false, pieceCreatorRecord=false, instanceNames=false
-wrote to space did:key:z6Mkodmaz41i67mKr8QdTVJjw1YDVssCv6NQLha4gMmtiQJ5
+wrote to space did:key:z6MkquRHqXt9VT4tGdXff3NcTSHDMio7dFBTUzRnooGjP4qE
 {"step":1,"runningAnimations":0,"cycles":1,"animatedCycles":0,"interrupted":1}
 {"step":2,"runningAnimations":0,"cycles":3,"animatedCycles":0,"interrupted":1}
 {"step":3,"runningAnimations":0,"cycles":5,"animatedCycles":0,"interrupted":1}
-{"step":4,"runningAnimations":0,"cycles":6,"animatedCycles":0,"interrupted":2}
-{"step":5,"runningAnimations":0,"cycles":7,"animatedCycles":0,"interrupted":3}
+{"step":4,"runningAnimations":0,"cycles":7,"animatedCycles":0,"interrupted":1}
+{"step":5,"runningAnimations":0,"cycles":8,"animatedCycles":0,"interrupted":2}
 {"step":6,"runningAnimations":0,"cycles":9,"animatedCycles":0,"interrupted":3}
 {
  "end": {
@@ -52,35 +51,35 @@ wrote to space did:key:z6Mkodmaz41i67mKr8QdTVJjw1YDVssCv6NQLha4gMmtiQJ5
   "lastStackSets": [
    [
     "grid",
-    4800
+    5034
    ],
    [
     "pile-0",
-    4803
+    5036
    ],
    [
     "grid",
-    6113
+    6322
    ],
    [
     "pile-1",
-    6115
+    6325
    ],
    [
     "grid",
-    7396
+    7616
    ],
    [
     "pile-0",
-    7398
+    7618
    ],
    [
     "grid",
-    8701
+    8908
    ],
    [
     "pile-1",
-    8704
+    8910
    ]
   ]
  },
