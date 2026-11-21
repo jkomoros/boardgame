@@ -14,20 +14,26 @@ the work"). What the runtime would and would not do is in
 | File | What |
 |---|---|
 | [`table.tsx`](table.tsx) | The sealed table: the policy, the stored state, the one writer `move`, the one released lift `seatView`. **The interim seam is here** |
-| [`rules.ts`](rules.ts) | Memory's rules, by hand, behind the `GameRules` interface. The engine's rules layer replaces this file |
+| [`game.ts`](game.ts) | The engine's Memory (`server/static/src/engine/games/memory.ts`), compiled; the public facts. No rules are written in this directory |
 | [`main.tsx`](main.tsx) | The piece: the `cf-iframe`, and `identify` |
-| [`../toolkit/table.ts`](../toolkit/table.ts) | Seats, the window of versions, history, timers; `stepTable` and `viewOf` |
-| [`../toolkit/view.ts`](../toolkit/view.ts) | The wire types shared with the guest |
+| [`../toolkit/table.ts`](../toolkit/table.ts) | Seats and the engine's three stored values; `stepTable`, `viewOf`, `seatViewOf` |
+| [`../toolkit/view.ts`](../toolkit/view.ts), [`json.ts`](../toolkit/json.ts) | The wire types shared with the guest; JSON as a type a cell can hold |
+| [`../toolkit/parity.ts`](../toolkit/parity.ts) | Replays a recorded Go game through a table and compares every version |
 | [`../guest/`](../guest) | The built guest (`guest.js`, `guest.html`); not checked in |
+| [`parity.test.ts`](parity.test.ts), [`parity.test.tsx`](parity.test.tsx) | Memory here is Memory in Go: under Node, and inside the pattern sandbox |
+| [`table.test.ts`](table.test.ts) | The table with a clock the test moves |
 | [`multi-user.test.tsx`](multi-user.test.tsx) | Two players and a watcher, each in their own runtime |
-| [`rules.test.ts`](rules.test.ts) | The rules with a clock the test moves |
 | [`tools/play-two-users.mjs`](tools/play-two-users.mjs) | Plays a game in two browsers as two identities |
 | [`screenshots/`](screenshots) | From that script |
 
 - **One space.** Nothing is hidden by where it is stored.
-- **One sealed record** holds seats, the layout, face-up slots, captures, the
-  turn, the version, running timers, the last six versions and the whole
-  move history. Its only confidentiality clause is this module's policy.
+- **One sealed record** holds seats and what the engine asks a host to keep:
+  the game record with its secret salt, the stored state of the versions the
+  last input produced, and the whole move history. Its only confidentiality
+  clause is this module's policy.
+- **The rules are the engine's.** The shuffle, card ids, fix-up moves, the
+  hide-cards timer and what each viewer may see are Go's, held to recorded
+  Go games.
 - **One writer.** `move` takes a `Proposal`: `sit`, `leave`, `start`, `play`,
   `tick` or `restart`. The proposer is `currentPrincipal()`. A refused
   proposal writes nothing.
@@ -35,9 +41,9 @@ the work"). What the runtime would and would not do is in
   version the table still holds as the boardgame client's state bundle
   (stacks with `Indexes`, `IDs` and `IDsLastSeen`, the move that produced the
   version, timers, outcome, and legality for each seat).
-- **Timers.** A mismatch starts a four-second timer: a deadline in the sealed
-  record. A guest whose own clock runs out sends `tick`, and `move` hides the
-  cards only if its clock agrees.
+- **Timers.** A mismatch starts a four-second timer: a deadline in the
+  engine's stored state. A guest whose own clock runs out sends `tick`, and
+  the engine hides the cards only if the table's clock has passed it.
 
 **What is weaker than designed.** `table.tsx`, under "The policy, and the
 interim seam", ships a release rule without the input witness: the view is
@@ -47,29 +53,42 @@ sets (`FINDINGS.md` F2), and the alternative, one JSON string, is not taken.
 Separately, anyone who can read the space can read the sealed record today,
 because labs delivers a space's documents to every reader (specs#95).
 
-**Which labs.** The release as designed needs labs' fix for served handlers
-(`5b1c700b4a`, on branch `worktree-agent-ad697e53f88bab905`; `FINDINGS.md`
-F1), and everything recorded here was run on that branch. The rule as shipped
-has no witness and so does not itself need the fix; it was not rerun on labs
-main.
+**Which labs.** Branch `fix/served-handler-write-identity` (draft PR
+commonfabric/labs#10111): labs main with the fix for served handlers
+(`FINDINGS.md` F1). The release as designed needs it. The rule as shipped has
+no witness and so does not itself need it; it was not rerun on labs main.
 
 ## Tests, with no browser
 
 Node 24 and a labs checkout with Deno 2.9.8. From the repository root:
 
 ```bash
-node --test fabric/patterns/memory/rules.test.ts
+node --test fabric/patterns/memory/parity.test.ts fabric/patterns/memory/table.test.ts
+```
+
+```bash
+node fabric/patterns/tools/recording-fixture.mjs memory/scenario-mismatch fabric/patterns/memory/testdata/recording.json
+```
+
+```bash
+CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/memory/parity.test.tsx --root "$PWD"
 ```
 
 ```bash
 CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/memory/multi-user.test.tsx --root "$PWD"
 ```
 
-The second takes a little over a minute and prints many `get() took >50ms`
-warnings; it ends with `202 passed, 0 failed`. It covers a full two-player
-game through `move`, that no view shows a hidden card's face, the refusals
-(wrong player, forged proposer, no seat, illegal moves), and that the two
-players' views agree.
+- **Parity** (24 Node tests): all six recorded Go games of Memory, 172
+  versions and 688 viewer outputs, match at every version through the
+  functions `move` and the view lift call; again through a copy that
+  reorders every object's keys, as a cell does; and one of them inside a
+  lift under the pattern sandbox.
+- **The table** : seating, every refusal in Go's words, card ids across a
+  reveal, the timer against a moved clock, a whole game.
+- **Multi-user** takes about three minutes and ends with `202 passed, 0
+  failed`: a full two-player game through `move`, no view showing a hidden
+  card's face, wrong-player, forged-proposer, unseated and illegal moves
+  refused, and the two players' views agreeing.
 
 ## Running it
 
@@ -151,11 +170,12 @@ the console names the browser's DID. Grant it and reload:
 
 ## What was run
 
-On 2026-11-21 against labs `6e12b01bf7` (the fix branch), with the script: a
-complete game between two identities, 14 reveals, two mismatches hidden by
-the timer, five pairs captured, the same winner shown to both. The client's
-animation counters read 29 cycles and 238 animations in each guest, with no
-watchdog firing. Numbers and what they mean are in `FINDINGS.md`.
+On 2026-11-21 against labs `4815052651` (`fix/served-handler-write-identity`),
+with the script, on the engine: a complete game between two identities, 16
+reveals, three mismatches hidden by the timer, five pairs captured, the same
+winner shown to both, up to ten animations running on each move. A move took
+a median of 3.7 s to reach a guest; `FINDINGS.md` says why that is slower
+than the hand-written rules were.
 
 | Screenshot | Shows |
 |---|---|
