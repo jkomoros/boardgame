@@ -9,11 +9,11 @@
  * - Raw Computed.Players[i] is expanded onto state.Players[i].Computed
  */
 import type { MoveForm, MoveFormField } from '../types/wire';
-import { START_MOVE_NAMES, gameComputed, optionalRecord } from '../status/gathering-start.js';
+import { START_MOVE_NAMES, gameComputed, optionalRecord } from '../status/gathering-start.ts';
 export type { PlayerInfo } from '../types/wire';
 // Start detection is read by the base renderer too, so it lives in a layer-1
 // module; re-exported here for the gathering components.
-export { START_MOVE_NAMES, getReadyToStartError } from '../status/gathering-start.js';
+export { START_MOVE_NAMES, getReadyToStartError } from '../status/gathering-start.ts';
 
 // ---- Player index constants ----
 
