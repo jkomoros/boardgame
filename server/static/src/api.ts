@@ -4,6 +4,11 @@
  */
 
 import type { MoveForm } from './types/api';
+import type { MovePreviewBatchResult, MovePreviewCandidate } from './legal/previewLegality.js';
+
+// The batch preview wire shapes are defined beside the pure preview helpers so
+// renderer-kit code does not import this HTTP module for its types.
+export type { MovePreviewBatchResult, MovePreviewCandidate };
 
 // API_HOST is defined in index.html
 declare const API_HOST: string;
@@ -366,27 +371,6 @@ export async function movePreview(
     'application/x-www-form-urlencoded',
     signal,
   );
-}
-
-/**
- * One arg-set to evaluate in a batch preview: the field values (fieldName ->
- * string) to bind before checking legality.
- */
-export interface MovePreviewCandidate {
-  /** Opaque correlation token echoed by the server. */
-  ID?: string;
-  Args: Record<string, string>;
-}
-
-/**
- * One candidate's legality, returned in the same order as the request's
- * candidates.
- */
-export interface MovePreviewBatchResult {
-  /** Opaque correlation token from the corresponding candidate. */
-  ID?: string;
-  Legal: boolean;
-  Error?: string;
 }
 
 /**

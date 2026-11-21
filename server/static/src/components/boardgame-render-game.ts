@@ -7,11 +7,12 @@ import type { BoardgameEffectLayer } from './boardgame-effect-layer.js';
 import type { ClientMove, MoveForm } from '../types/wire.js';
 import { createEffectTransitionContext } from '../effects/effect-spec.js';
 import type { MoveLegalityInfo } from '../types/wire.js';
-import { movePreviewBatch } from '../api.js';
+import type { RendererHost } from '../renderer-host/renderer-host.js';
 import {
   disabledSpacesFromResults,
   samePreviewSpaces,
   previewOutcome,
+  type MovePreviewBatchResult,
 } from '../legal/previewLegality.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
@@ -144,6 +145,14 @@ class BoardgameRenderGame extends LitElement {
       100% { transform: rotate(360deg); }
     }
   `;
+
+  /**
+   * The services this element takes from whatever mounts it: see
+   * renderer-host/renderer-host.ts. Set once by the host; this element never
+   * reaches a server, storage or the page URL by itself.
+   */
+  @property({ attribute: false })
+  host: RendererHost | null = null;
 
   @property({ type: Object })
   state: HostedState | null = null;
@@ -441,6 +450,10 @@ class BoardgameRenderGame extends LitElement {
       this._configureEffectLayer();
     }
 
+    if (changedProperties.has('host')) {
+      this._hostChanged();
+    }
+
     if (changedProperties.has('diagram')) {
       this._diagramChanged(this.diagram);
     }
@@ -566,6 +579,18 @@ class BoardgameRenderGame extends LitElement {
     this._companionInfoChanged(info);
   }
 
+  private _hostChanged() {
+    if (!this.renderer) return;
+    this._applyHostServicesToRenderer(this.renderer);
+    this._scheduleRefreshPreview();
+  }
+
+  private _applyHostServicesToRenderer(renderer: HostedGameRenderer) {
+    if (renderer instanceof BoardgameTableViewBase) {
+      renderer.tableActions = this.host?.tableActions ?? null;
+    }
+  }
+
   private _isOwnerChanged(_newValue: boolean) {
     if (!this.renderer) return;
     this._recomputeIsHost();
@@ -573,6 +598,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _applyCompanionPropsToRenderer(renderer: HostedGameRenderer) {
     const info = this.companionInfo;
+    this._applyHostServicesToRenderer(renderer);
     if (renderer instanceof BoardgameTableViewBase) {
       renderer.seatPresentations = info?.SeatPresentations ?? [];
       renderer.absentPlayers = info?.Absent ?? [];
@@ -907,7 +933,7 @@ class BoardgameRenderGame extends LitElement {
     this.renderer.serverMoveInputSchemaFingerprint = fingerprint;
   }
 
-  // Board legality preview (movePreviewBatch). Kept view-local rather than in
+  // Board legality preview (the host's boardPreview transport). Kept view-local rather than in
   // Redux: preview results are ephemeral, tied to the exact candidate set of the
   // current head state, and consumed only by the renderer — putting them in the
   // store would add a slice plus staleness/keying concerns for no shared
@@ -954,6 +980,17 @@ class BoardgameRenderGame extends LitElement {
       return;
     }
 
+    const transport = this.host?.boardPreview;
+    if (!transport) {
+      // A host that offers no preview is the same as a game that opted out:
+      // nothing is grayed by preview, and the server still rejects bad moves.
+      this._previewSeq++;
+      if (renderer.previewDisabledSpaces.length) {
+        renderer.previewDisabledSpaces = [];
+      }
+      return;
+    }
+
     if (!this.socketActive) {
       this._previewSeq++;
       this._failPreviewClosed(renderer, spec.candidates);
@@ -964,37 +1001,37 @@ class BoardgameRenderGame extends LitElement {
     // Preview from the same (player, admin) perspective /info uses, so graying
     // agrees with the displayed legality. For a non-admin the server ignores the
     // player param (admin=0), so this resolves to the seat exactly as before.
-    let response;
+    let results: readonly MovePreviewBatchResult[] | null = null;
     try {
-      response = await movePreviewBatch(
-        this.gameName,
-        this.gameId,
-        spec.moveName,
-        spec.candidates.map((c) => ({ Args: c.args })),
-        { player: this.previewAsPlayer, admin: this.previewAsAdmin ? 1 : 0 },
-      );
+      results = await transport.previewBoard({
+        gameName: this.gameName,
+        gameId: this.gameId,
+        moveName: spec.moveName,
+        candidates: spec.candidates.map((c) => ({ args: c.args })),
+        asPlayer: this.previewAsPlayer,
+        asAdmin: this.previewAsAdmin,
+      });
     } catch (error) {
       console.warn('Target legality preview failed:', error);
-      response = { data: undefined };
     }
     const outcome = previewOutcome({
       startedSeq: seq,
       currentSeq: this._previewSeq,
       rendererStillMounted: this.renderer === renderer,
-      hasData: !!response.data,
+      hasData: results !== null,
     });
     if (outcome === 'keep-on-error') {
       this._failPreviewClosed(renderer, spec.candidates);
       this._schedulePreviewRetry(renderer);
       return;
     }
-    if (outcome !== 'apply' || !response.data) return;
+    if (outcome !== 'apply' || results === null) return;
     this._clearPreviewRetry();
     this._previewRetryAttempt = 0;
 
     // Only reassign (and thus re-render the board) when the grayed set actually
     // changed.
-    const next = disabledSpacesFromResults(spec.candidates, response.data.Results);
+    const next = disabledSpacesFromResults(spec.candidates, results);
     if (!samePreviewSpaces(next, renderer.previewDisabledSpaces)) {
       renderer.previewDisabledSpaces = next;
     }

@@ -168,6 +168,7 @@
     "src/reducers/game.ts": "host",
     "src/reducers/list.ts": "host",
     "src/reducers/user.ts": "host",
+    "src/renderer-host/renderer-host.ts": "kit",
     "src/selectors.ts": "host",
     "src/solid/facet-placement.ts": "elements",
     "src/solid/flat-facets.ts": "elements",
@@ -213,15 +214,12 @@
     "src/utils/companion-surface.ts": "host",
     "src/utils/move-validation.ts": "host",
     "src/utils/retry-policy.ts": "elements",
-    "src/utils/seeded-random.ts": "elements"
+    "src/utils/seeded-random.ts": "elements",
+    "src/webapp-renderer-host.ts": "host"
   },
   "allow": {
     "runtime": {
-      "src/components/boardgame-render-game.ts -> src/api.ts": "S4 (step 5): movePreviewBatch becomes a host-provided transport.",
-      "src/components/boardgame-render-game.ts -> src/utils/companion-surface.ts": "S2 (step 6): surface resolver injected by the host.",
-      "src/components/boardgame-table-view-base.ts -> src/api.ts": "S4 (step 5): table actions become a host-provided transport.",
-      "src/components/boardgame-table-view-base.ts -> src/types/host-action-response.ts": "S4 (step 5): table actions become a host-provided transport.",
-      "src/components/boardgame-table-view-base.ts -> src/util.ts": "S4 (step 5): table actions become a host-provided transport."
+      "src/components/boardgame-render-game.ts -> src/utils/companion-surface.ts": "S2 (step 6): surface resolver injected by the host."
     },
     "typeOnly": {
       "src/components/boardgame-component-stack.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
@@ -233,7 +231,6 @@
       "src/components/boardgame-placement-item.ts -> src/moves/placement-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
       "src/components/boardgame-selection-option.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
       "src/components/boardgame-spatial-board.ts -> src/moves/placement-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents).",
-      "src/legal/previewLegality.ts -> src/api.ts": "S4 (step 5): preview transport types move out of api.ts.",
       "src/types/components.d.ts -> src/moves/selection-draft.ts": "Deferred: elements name the kit draft binding types they accept. Needs the binding shapes declared in layer 1 (part of S11, declarative equivalents)."
     }
   }

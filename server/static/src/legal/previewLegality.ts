@@ -3,7 +3,27 @@
 // decision logic is unit-testable under `node --test`; the DOM glue lives in
 // boardgame-render-game (dispatch + debounce) and each game renderer's
 // previewSpec() (candidate enumeration).
-import type { MovePreviewBatchResult } from '../api.js';
+
+/**
+ * One arg-set to evaluate in a batch preview: the field values (fieldName ->
+ * string) to bind before checking legality.
+ */
+export interface MovePreviewCandidate {
+  /** Opaque correlation token echoed by the server. */
+  ID?: string;
+  Args: Record<string, string>;
+}
+
+/**
+ * One candidate's legality, returned in the same order as the request's
+ * candidates.
+ */
+export interface MovePreviewBatchResult {
+  /** Opaque correlation token from the corresponding candidate. */
+  ID?: string;
+  Legal: boolean;
+  Error?: string;
+}
 
 /**
  * PreviewCandidate ties one board space to the move args that would target it.

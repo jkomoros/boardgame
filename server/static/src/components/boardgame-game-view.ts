@@ -96,6 +96,8 @@ import {
 } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
 import { movePreview, movePreviewBatch } from '../api.js';
+import { webappBoardPreview, webappTableActions } from '../webapp-renderer-host.js';
+import type { RendererHost } from '../renderer-host/renderer-host.js';
 import {
   TIMER_SERVICE_REQUEST_EVENT,
   TimerService,
@@ -404,6 +406,12 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _proposingAsPlayer = 0;
 
   private readonly _moveSubmissionGate = new MoveSubmissionGate();
+  // The services boardgame-render-game takes from this host (see
+  // renderer-host/renderer-host.ts). One stable object for the element's life.
+  private readonly _rendererHost: RendererHost = {
+    boardPreview: webappBoardPreview,
+    tableActions: webappTableActions,
+  };
   private readonly _moveTransport: MoveTransport = {
     submit: async request => {
       const route = this._gameRoute;
@@ -686,6 +694,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       <div class="card">
         <boardgame-render-game
           id="render"
+          .host=${this._rendererHost}
           .state=${this._currentState}
           .animationContext=${this._animationContext}
           .transitionMove=${this._installedMove}
