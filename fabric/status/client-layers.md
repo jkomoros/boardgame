@@ -33,9 +33,11 @@ changed.
 | 7 | `07355e5a` | S7 | `RendererHost.loadPlayerInfoModule`, `mountPlayerInfo()`, `ensurePlayerInfoRenderer()`; the roster loads through the host |
 | 8 | `5dcc5f2b` | S5 (small) | `setTokenArtResolver()`; the webapp's path in `src/webapp/token-art.ts` |
 | 9 | `0d95e985` | Not in the brief | Draft binding interfaces to `src/moves/draft-bindings.ts`, which empties the allow-list |
-| 10 | this commit | Docs | This file and a "Layers and the renderer host" section in `src/ARCHITECTURE.md` |
+| 10 | `94a90b1a`, `faca69cd` | Docs | This file and a "Layers and the renderer host" section in `src/ARCHITECTURE.md` |
+| 11 | `e7fe94f7` | Merge | `go-1.27` (`3a00e697`), at the orchestrator's request |
+| 12 | `02d5bfc9` | Fix to commit 4 | `.ts` specifier for `gathering-start`, found by the real `npm run test:unit` |
 
-## Environment problems found before any change
+## Environment problems found before any change (both since resolved)
 
 Both are recorded for sibling sessions in the shared notes folder
 (`stream-a-environment-notes.md`).
@@ -60,36 +62,58 @@ Both are recorded for sibling sessions in the shared notes folder
    `scripts/check-layers.test.mjs` is plain `.mjs` for the same reason: it runs
    on any Node, under `npm run test:layers`.
 
-## Which command ran under which Node
+## Authoritative results: Node 24, Go 1.27, real commands
 
-Everything in this file ran under **Node v20.20.0** (nvm; the machine has
-18.11, 18.17, 20.20 and 21.7 only) and Go 1.27.4. Nothing was installed.
-All npm commands ran in `server/static`.
+After Node v24.22.3 was installed and `go-1.27` (`3a00e697`, the `x/tools`
+bump) was merged into this branch as `e7fe94f7`, the baseline and HEAD were
+rerun with the repository's own commands: **Node v24.22.3, Go 1.27.4 with no
+`GOTOOLCHAIN` override, no shim, no transpile step.** All npm commands ran in
+`server/static`. The baseline is `d5093955` with `3a00e697` cherry-picked on
+top in a throwaway checkout, because the Go fix is needed to start the server.
 
-| Command as written | Ran as written? | What was run instead |
+| Command | Baseline | HEAD |
 |---|---|---|
-| `npm ci` | yes | |
-| `npm run type-check` | yes | |
-| `npm run build` | yes | |
-| `npm run test:layers` | yes (plain `.mjs`) | |
-| `npm run type-check:authoring` | yes | |
-| `npm run test:check-client` | yes | |
-| `npm run test:facade-production` | yes | |
-| `npm run test:unit` | **no**: exits 1 with "Could not find 'src/**/*.test.ts'" (Node 20 has neither `--test` globs nor type stripping) | `node --test --test-timeout=120000 --import=<scratch loader> --import=./scripts/test-budget.mjs $(find src -name '*.test.ts')`. The loader transpiles each `.ts` with the repo's `typescript` (`transpileModule`, `experimentalDecorators`, `useDefineForClassFields: false`) and maps `./x.js` to `./x.ts`. Timeout is 120000, not 20000, because Node 20 applies it per file |
-| `npm run test:renderer` | **no**: its web server (`go run ./boardgame-util serve`) exits with the `x/tools` export-data error | The same npm script, with a `go` shim on `PATH` that redirects `go run ./boardgame-util …` to a binary built with `-modfile` (x/tools v0.53.0) |
-| `npm run test:e2e` | needs a server on 8080/8888 by design | `npx playwright test --config playwright.config.ts --reporter=line`, against that same binary run as `boardgame-util serve --storage memory --offline-dev-mode` |
-| `go run ./boardgame-util --config config.json check-client` | **no**: same Go error | The `-modfile` binary, `boardgame-util --config config.json check-client` |
-| `go test ./boardgame-util/lib/build/static/... ./boardgame-util/lib/stub/...` | not tried without the workaround | `./scripts/go-local test -modfile=<scratch go.mod> …` |
+| `npm ci` | ok | ok |
+| `npm run type-check` | pass | pass |
+| `npm run test:unit` | 787 pass, 0 fail | 788 pass, 0 fail (at `02d5bfc9`) |
+| `npm run test:layers` | pass | pass |
+| `npm run build` | pass | pass |
+| `npm run test:renderer` | 184 pass, 1 fail | 186 pass, the same 1 fail (at `e7fe94f7` and again at `02d5bfc9`) |
+| `npm run test:e2e -- --reporter=line`, against `boardgame-util serve --storage memory --offline-dev-mode` built by the default Go | 280 pass, 12 fail | 280 pass, 12 fail (at `e7fe94f7`) |
 
-Not run at all: `npm run type-check:strict` (documented as not green),
-`npm run audit:*`, and `go test ./...`.
+**The real unit command found a defect the stopgap had hidden.** At
+`e7fe94f7`, `npm run test:unit` failed: `src/components/gathering-shared.test.ts`
+could not load, because commit 4 (`2bb39498`) made `gathering-shared.ts` import
+`../status/gathering-start.js`, and Node's type stripping does not map `.js`
+to `.ts`. The scratch loader used earlier did that mapping, so it reported
+787 of 787. Fixed in `02d5bfc9` by using a `.ts` specifier, as the other pure
+modules do. Consequences:
 
-**To redo once Node 24 is installed:** `npm run test:unit` exactly as written,
-at baseline (`d5093955`) and at HEAD. The unit numbers in this file (787 at
-baseline, 788 at HEAD) are from the transpile stopgap and have not been
-confirmed by the real command.
+- **Commits 4 to 9 (`2bb39498` through `0d95e985`) each fail the real
+  `npm run test:unit` on that one file.** The "Unit" column in the per-commit
+  table below is from the stopgap and is wrong for those commits in that
+  respect. Everything else in that column agrees with the real command at the
+  two points checked (baseline and HEAD).
+- The webapp was never affected: Vite and `tsc` both resolve either spelling.
+- e2e was not rerun after `02d5bfc9`, which changes two import specifiers and
+  nothing else; the renderer suite was.
 
-## Baseline
+**e2e, baseline against HEAD.** Both runs have 12 failures. Ten are the same
+tests. The other two differ and are the load flakes described under
+"Verification per commit": baseline failed `trace.spec.ts:159` and
+`waapi-buttons.spec.ts:103`; HEAD failed `trace.spec.ts:127` and
+`die-shape.spec.ts:744`.
+
+The earlier results in the rest of this file were produced before Node 24 and
+the Go fix existed, under **Node v20.20.0** with two workarounds: unit tests
+through a scratch loader that transpiled `.ts` with the repo's `typescript`,
+and `boardgame-util` built with a scratch `-modfile` carrying a newer
+`x/tools`. Type-check, build, the layer test and both browser suites gave the
+same numbers then as with the real commands now. Of the baseline commands,
+only `npm run test:unit`, `npm run test:renderer` and
+`boardgame-util check-client` could not run as written at that time.
+
+## Baseline (first pass, Node 20 with workarounds)
 
 Taken at `d5093955` (commit 1, which changes no file under `src/` or `tests/`)
 in a separate checkout, so nothing was being edited underneath it.
