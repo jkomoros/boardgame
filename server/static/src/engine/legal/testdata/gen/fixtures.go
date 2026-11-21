@@ -342,6 +342,14 @@ var extraFixtureBuilders = map[string]func() fixture{
 		must(move.ReadSetter().SetPlayerIndexProp("TargetPlayerIndex", boardgame.PlayerIndex(7)), "setting TargetPlayerIndex")
 		return fixture{gameKey: "memory", game: game, state: state, move: move}
 	},
+	// A target below every special index. Valid() is false, so EnsureValid
+	// calls Next, which indexes the player slice at target+1 and panics.
+	"xMemoryTargetBelowSpecials": func() fixture {
+		game, state := newMemoryGame()
+		move := memoryMoveWithCardIndex(game, 0)
+		must(move.ReadSetter().SetPlayerIndexProp("TargetPlayerIndex", boardgame.PlayerIndex(-7)), "setting TargetPlayerIndex")
+		return fixture{gameKey: "memory", game: game, state: state, move: move}
+	},
 	"xMemoryTargetAdmin": func() fixture {
 		game, state := newMemoryGame()
 		move := memoryMoveWithCardIndex(game, 0)

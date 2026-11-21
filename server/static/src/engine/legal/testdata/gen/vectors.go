@@ -285,6 +285,7 @@ var memoryStates = []string{
 var memoryTargets = []string{
 	"memoryDefault", "memoryTargetPlayerOne", "memoryTargetObserver", "memoryNoMove",
 	"xMemoryTargetOutOfBounds", "xMemoryTargetAdmin", "xMemoryTargetAny", "xMemoryPlayerOneInactiveTargeted",
+	"xMemoryTargetBelowSpecials",
 }
 
 var everyProposer = []int{0, 1, 5, -1, -2, -3, -4}
