@@ -1,12 +1,14 @@
-// Unit tests for renderLegalMessage — the TS mirror of Go's RenderLegalMessage
-// (legal_error.go). Run with `node --test` (Node >=23 native TS). These pin
+// Unit tests for renderLegalMessage, the one TypeScript mirror of Go's
+// RenderLegalMessage (legal_error.go); it lives in ./message.ts. These pin
 // BYTE-FOR-BYTE parity with the Go renderer: same placeholder regex, same
 // raw-key fallback, same bare-placeholder-name behavior for a missing binding,
-// same int/bool formatting. Any divergence here is a client bug.
+// same int/bool formatting. They were written for the client's former copy
+// (src/legal/renderLegalMessage.ts), which is gone; any divergence here is an
+// engine bug.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderLegalMessage } from './renderLegalMessage.ts';
-import type { PreconditionMessage } from './renderLegalMessage.ts';
+import { renderLegalMessage } from './message.ts';
+import type { LegalMessage as PreconditionMessage } from './types.ts';
 
 const msg = (
   template: string,

@@ -36,5 +36,6 @@ const SEAT_COLORS = [
 
 /** The public facts a renderer needs once: the deck and message texts. */
 export function blackjackInfo(): TableInfo {
-  return infoOf(blackjackGame(), SEAT_COLORS);
+  // Each seat sees its own hole card, so each has a view of its own.
+  return infoOf(blackjackGame(), SEAT_COLORS, MAX_SEATS);
 }

@@ -177,6 +177,14 @@ winner shown to both, up to ten animations running on each move. A move took
 a median of 3.7 s to reach a guest; `FINDINGS.md` says why that is slower
 than the hand-written rules were.
 
+Rerun on the same day and labs commit after the guest was rebuilt on the
+client packages and the lobby was made data-driven: two more whole games
+between two fresh identities, on the ten-card board. In a space of its own,
+16 reveals, a median of **3.0 s** from proposal to the mover's guest (2.2 to
+5.3 s); in a space that also held two blackjack tables, 14 reveals and a
+median of 4.3 s (3.0 to 8.3 s). The screenshots below are from the first of
+those.
+
 | Screenshot | Shows |
 |---|---|
 | `01-lobby-*` | Both seated, before the deal |

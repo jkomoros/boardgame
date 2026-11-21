@@ -10,7 +10,7 @@
 import './index.js';
 import {
   ANIM_TEST_HOOKS_STORAGE_KEY, installAnimTestHooks,
-} from '../../../server/static/src/utils/anim-test-hooks.js';
+} from '@boardgame/elements/utils/anim-test-hooks.js';
 
 try {
   if (globalThis.localStorage?.getItem(ANIM_TEST_HOOKS_STORAGE_KEY) === '1') installAnimTestHooks();

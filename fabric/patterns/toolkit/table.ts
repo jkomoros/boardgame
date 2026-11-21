@@ -18,11 +18,13 @@
 import {
   type CompiledGame,
   createGame,
+  gameDisplayName,
   type GameRecord,
   type Input,
   type MoveRecord,
   propose,
   type StepResult,
+  variantConfig,
   viewerOutput,
   type ViewerOutput,
 } from "../../../server/static/src/engine/rules/index.ts";
@@ -33,6 +35,7 @@ import type {
   MoveLegality,
   Proposal,
   SeatView,
+  SetupOption,
   TableInfo,
   TableView,
   TimerView,
@@ -713,8 +716,40 @@ export function seatViewOf(
   return { ...frame(game, table), entries };
 }
 
-/** The public facts a renderer needs once, from the game's definition. */
-export function infoOf(game: CompiledGame, seatColors: string[]): TableInfo {
+/** A game's variants, as what a lobby offers before the deal. */
+function setupOptionsOf(game: CompiledGame): SetupOption[] {
+  // The engine's own description, with every display name filled in as Go's
+  // GameManager.Variants() fills them.
+  const config = variantConfig(game.spec) as Record<string, {
+    Name: string;
+    DisplayName: string;
+    Default: string;
+    Values: Record<string, { Name: string; DisplayName: string }>;
+  }>;
+  return Object.keys(config).map((key): SetupOption => {
+    const variant = config[key];
+    return {
+      name: variant.Name,
+      displayName: variant.DisplayName,
+      default: variant.Default,
+      values: Object.keys(variant.Values).map((value) => ({
+        name: variant.Values[value].Name,
+        displayName: variant.Values[value].DisplayName,
+      })),
+    };
+  });
+}
+
+/**
+ * The public facts a renderer and a lobby need once, from the game's
+ * definition. `seatViews` is how many seats the pattern hands a view of
+ * their own; 0 for a game whose seats all see the same.
+ */
+export function infoOf(
+  game: CompiledGame,
+  seatColors: string[],
+  seatViews = 0,
+): TableInfo {
   const decks: JsonObject = {};
   for (const deckName of Object.keys(game.spec.decks)) {
     decks[deckName] = game.spec.decks[deckName].components.map((
@@ -728,6 +763,9 @@ export function infoOf(game: CompiledGame, seatColors: string[]): TableInfo {
   }
   return {
     gameName: game.spec.name,
+    displayName: gameDisplayName(game.spec),
+    setupOptions: setupOptionsOf(game),
+    seatViews,
     chest: {
       Decks: decks,
       Enums: enums,

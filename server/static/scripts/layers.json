@@ -196,7 +196,6 @@
     "src/components/my-icons.ts": "host",
     "src/components/shared-styles-lit.ts": "host",
     "src/join/join-session.ts": "host",
-    "src/legal/renderLegalMessage.ts": "engine",
     "src/reducers/app.ts": "host",
     "src/reducers/error.ts": "host",
     "src/reducers/game-route-state.ts": "host",

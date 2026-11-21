@@ -25,13 +25,13 @@
  */
 import { LitElement, html, css } from 'lit';
 import { property } from 'lit/decorators.js';
-import '../../../server/static/src/components/boardgame-component-animator.js';
-import type { BoardgameComponentAnimator } from '../../../server/static/src/components/boardgame-component-animator.js';
-import { BoardgameComponentStack } from '../../../server/static/src/components/boardgame-component-stack.js';
-import { AnimatableRegistry } from '../../../server/static/src/motion/animatable-registry.js';
-import { captureOffsetGeometry, captureViewportGeometry } from '../../../server/static/src/motion/geometry.js';
-import { captureHistoricalPresentation } from '../../../server/static/src/motion/historical-presentation.js';
-import type { MotionStaggerCohortSpec } from '../../../server/static/src/motion/cohort.js';
+import '@boardgame/elements/components/boardgame-component-animator.js';
+import type { BoardgameComponentAnimator } from '@boardgame/elements/components/boardgame-component-animator.js';
+import { BoardgameComponentStack } from '@boardgame/elements/components/boardgame-component-stack.js';
+import { AnimatableRegistry } from '@boardgame/elements/motion/animatable-registry.js';
+import { captureOffsetGeometry, captureViewportGeometry } from '@boardgame/elements/motion/geometry.js';
+import { captureHistoricalPresentation } from '@boardgame/elements/motion/historical-presentation.js';
+import type { MotionStaggerCohortSpec } from '@boardgame/elements/motion/cohort.js';
 import { expandStack, resolvePath, isWireStack } from './expand.js';
 import type { Chest, WireStack, WireView } from './expand.js';
 import { frameOf, isTableView, seatOf } from './table-view.js';
@@ -113,10 +113,6 @@ interface Retained {
 
 /** Survives recreation of the table element itself, keyed by its `name`. */
 const retainedByName = new Map<string, Retained>();
-
-const globalStackList = Object.getOwnPropertyDescriptor(
-  BoardgameComponentStack.prototype, '_sharedStackList',
-)!.get as (this: BoardgameComponentStack) => BoardgameComponentStack[];
 
 /** Events of the wrapped elements that carry layout or timing. None may leave the table. */
 const INTERNAL_EVENTS = [
@@ -493,13 +489,10 @@ export class BgTable extends LitElement {
       await this.updateComplete;
       const animator = this._animator;
       await animator.updateComplete;
-      // FINDING (S9): the animator reaches every stack in the document through
-      // its inner stack's `_sharedStackList`. Narrow it to this table.
+      // The animator reaches every stack in the document through its inner
+      // stack unless that stack is given a scope (S9). Narrow it to this table.
       const inner = animator.shadowRoot!.querySelector('boardgame-component-stack')!;
-      Object.defineProperty(inner, '_sharedStackList', {
-        configurable: true,
-        get: () => this._stacks(),
-      });
+      inner.stackScope = () => this._stacks();
       this._ready = true;
       this._resize = new ResizeObserver(() => {
         // Remembered geometry is stale after a reflow. Re-measure at rest.
@@ -512,8 +505,7 @@ export class BgTable extends LitElement {
 
   /** Stacks that belong to this table: the nearest table ancestor is this one. */
   private _stacks(): BoardgameComponentStack[] {
-    const everything = globalStackList.call(
-      this._animator.shadowRoot!.querySelector('boardgame-component-stack')!);
+    const everything = BoardgameComponentStack.connectedStacks();
     if (this.scope === 'document') return everything;
     return everything.filter(stack => findTable(stack) === this);
   }

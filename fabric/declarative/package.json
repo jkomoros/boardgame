@@ -10,6 +10,7 @@
     "build:bundle": "vite build --config vite.bundle.config.ts"
   },
   "dependencies": {
+    "@boardgame/elements": "file:../../server/static/packages/elements",
     "lit": "^3.2.1"
   },
   "devDependencies": {

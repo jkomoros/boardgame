@@ -107,9 +107,38 @@ export interface TableView<S = JsonObject> {
   entries: ViewEntry<S>[];
 }
 
-/** Static, public facts about a game that its renderer needs once. */
+/** One value a setup option can take. */
+export interface SetupValue {
+  name: string;
+  displayName: string;
+}
+
+/**
+ * One choice a table offers before the deal: a variant of the game, as the
+ * engine's `variantConfig` describes it. `start` takes `{ [name]: value }`.
+ */
+export interface SetupOption {
+  name: string;
+  displayName: string;
+  /** The value used when `start` names none. */
+  default: string;
+  values: SetupValue[];
+}
+
+/** Static, public facts about a game that its renderer and its lobby need once. */
 export interface TableInfo<V = Json> {
   gameName: string;
+  /** The game's name for people. */
+  displayName: string;
+  /** What `start` may be given, in the game's own order. Empty for none. */
+  setupOptions: SetupOption[];
+  /**
+   * How many seats have a view of their own. 0 when every seat sees the same
+   * and the one `view` serves everyone. When positive, the pattern hands the
+   * guest `seat0` to `seat<seatViews - 1>` beside `view`, each a `TableView`
+   * computed for that seat alone (`fabric/guest/PROTOCOL.md`).
+   */
+  seatViews: number;
   /**
    * Decks, enums, constants and message templates, as Go marshals them. A
    * deck is a list of `{ Index, Values }`, with `Values` of type `V`.

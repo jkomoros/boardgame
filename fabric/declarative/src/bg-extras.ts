@@ -11,9 +11,9 @@
  */
 import { LitElement, html, css } from 'lit';
 import { property } from 'lit/decorators.js';
-import '../../../server/static/src/components/boardgame-fading-text.js';
-import '../../../server/static/src/components/boardgame-turn-status.js';
-import '../../../server/static/src/components/boardgame-status-text.js';
+import '@boardgame/elements/components/boardgame-fading-text.js';
+import '@boardgame/elements/components/boardgame-turn-status.js';
+import '@boardgame/elements/components/boardgame-status-text.js';
 import { findTable } from './bg-table.js';
 import type { BgTable, TableChild } from './bg-table.js';
 import type { ProposeMoveDetail } from './bg-stack.js';
