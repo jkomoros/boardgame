@@ -12,6 +12,9 @@ import {
   type PlayerPresentation,
 } from '../status/player-presentation.js';
 
+import { setTokenArtResolver } from '../components/component-art.js';
+import { webappTokenArt } from '../webapp/token-art.js';
+
 export const RENDERER_FIXTURE_SCHEMA_VERSION = 1 as const;
 
 export type RendererFixtureSurface = 'game' | 'table' | 'hand';
@@ -296,6 +299,9 @@ export async function mountRendererFixture<Contract extends RendererFixtureGameC
   }
   validateSnapshot(snapshot);
   validateSurfaceTag(tagName, snapshot.surface);
+  // The fixture is a renderer host served by the webapp's dev server, so
+  // shipped token art is where the webapp serves it.
+  setTokenArtResolver(webappTokenArt);
   if (!customElements.get(tagName)) {
     throw new Error(`${tagName} is not registered; import the renderer module before mounting it`);
   }

@@ -33,7 +33,7 @@ export interface EffectLayerConfiguration {
   anchorRoot: ParentNode | null;
   seedScope: string;
   theme: EffectTheme;
-  animationContext: import('./companion-sync.js').VersionAnimationContext | null;
+  animationContext: import('../motion/timing.js').VersionAnimationContext | null;
   /** Internal source for automatic component-motion endpoint events. */
   motionSource?: StructuralMotionSource | null;
 }

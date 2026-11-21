@@ -1,23 +1,15 @@
 import type { ReactiveController } from 'lit';
 import type { TargetAction, TargetKey } from './target-action.js';
 import { gameSnapshotKey, type GameSnapshotHost } from './snapshot-controller.ts';
+import type { SourceDestinationBinding } from './draft-bindings.ts';
+
+// A layer-1 type (the board element accepts it); re-exported here.
+export type { SourceDestinationBinding };
 
 // Keep source selection bounded independently of the destination collection.
 // A type-only dependency also lets Node execute this controller's TypeScript
 // unit tests from a clean checkout without relying on stale emitted .js files.
 const MAX_SOURCE_DESTINATION_SOURCES = 1024;
-
-export interface SourceDestinationBinding<
-  Key extends TargetKey,
-  MoveName extends string = string,
-  Input extends object = object,
-> {
-  readonly selectedSource: Key | null;
-  readonly sources: readonly Key[];
-  readonly action: TargetAction<Key, MoveName, Input> | null;
-  selectSource(key: Key): void;
-  clear(): void;
-}
 
 export interface SourceDestinationOptions<
   Key extends TargetKey,

@@ -93,3 +93,37 @@ export function artLayerStyle(
     : placed(cssUrl(art));
   return `background: ${layers};`;
 }
+
+// ---- Shipped token art ----
+
+/**
+ * Maps a token type ("pawn", "meeple", "cube", ...) to the URL of the
+ * framework's shipped art for it. Where those files are served from is a fact
+ * about the deployment, so the renderer host supplies this; layer 1 has no
+ * default location of its own.
+ */
+export type TokenArtResolver = (type: string) => string;
+
+let tokenArtResolver: TokenArtResolver | null = null;
+
+/**
+ * Installs the host's resolver for shipped token art (null removes it). A
+ * host installs it before it mounts tokens; tokens already rendered keep the
+ * URL they resolved.
+ */
+export function setTokenArtResolver(resolver: TokenArtResolver | null): void {
+  tokenArtResolver = resolver;
+}
+
+/**
+ * A transparent square. It stands in for shipped art when no host has said
+ * where that art lives, so a token (and a spacer, whose image is what holds
+ * its slot open) keeps its box; the generated solids are unaffected.
+ */
+export const BLANK_TOKEN_ART =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22/%3E';
+
+/** The shipped art for a token type, from the host's resolver, or a blank square without one. */
+export function shippedTokenArtUrl(type: string): string {
+  return tokenArtResolver?.(type) || BLANK_TOKEN_ART;
+}

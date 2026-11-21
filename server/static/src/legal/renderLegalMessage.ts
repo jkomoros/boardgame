@@ -22,7 +22,7 @@
 //     (LegalBindingValue): a string renders verbatim, an integer via its
 //     decimal form (Go strconv.Itoa — the wire only ever ships integers), a
 //     boolean as "true"/"false" (Go strconv.FormatBool).
-import type { PreconditionMessage } from '../types/api';
+import type { PreconditionMessage } from '../types/wire';
 
 // Mirrors legalPlaceholderPattern in legal_error.go: `\{([A-Za-z0-9_]+)\}`.
 // The global flag makes String.prototype.replace substitute every match, like

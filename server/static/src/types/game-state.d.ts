@@ -4,8 +4,8 @@ import type { StateVisibility } from "../state/visibility.js";
  * These types represent the core game state data structures used throughout the application.
  */
 
-import type { ClientMove, JsonValue, MoveForm, ProjectedMoveChoicesWire } from './api';
-import type { VersionAnimationContext } from '../components/companion-sync';
+import type { ClientMove, JsonValue, MoveForm, ProjectedMoveChoicesWire } from './wire';
+import type { VersionAnimationContext } from '../motion/timing.js';
 
 /**
  * Raw game state from server (unexpanded).

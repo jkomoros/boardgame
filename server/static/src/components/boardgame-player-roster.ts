@@ -7,6 +7,8 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 */
+import { createWebappRendererHost } from '../webapp/renderer-host.js';
+import type { RendererHost } from '../renderer-host/renderer-host.js';
 import { LitElement, html, css } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -31,6 +33,8 @@ interface GameRoute {
   name: string;
   id: string;
 }
+
+const defaultRendererHost = createWebappRendererHost();
 
 @customElement('boardgame-player-roster')
 export class BoardgamePlayerRoster extends connect(store)(LitElement) {
@@ -139,6 +143,13 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
 
   @property({ type: String, attribute: false })
   rendererError = '';
+
+  /**
+   * Where the player-info renderer module comes from. boardgame-game-view
+   * passes the page's renderer host; a roster mounted alone uses the webapp's.
+   */
+  @property({ attribute: false })
+  rendererHost: RendererHost = defaultRendererHost;
 
   private _rendererLoadGeneration = 0;
 
@@ -336,10 +347,9 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     }
 
     try {
-      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode
-      const baseModulePath = `../../game-src/${newValue.name}/boardgame-render-player-info-${newValue.name}.ts`;
-      const modulePath = retry ? `${baseModulePath}?retry=${generation}` : baseModulePath;
-      await import(/* @vite-ignore */ modulePath);
+      const load = this.rendererHost.loadPlayerInfoModule;
+      if (!load) throw new Error('the renderer host provides no player-info module loader');
+      await load.call(this.rendererHost, { gameName: newValue.name, attempt: retry ? generation : 0 });
       if (!this._rendererLoadIsCurrent(generation, newValue)) return;
       const constructor = customElements.get(tagName);
       if (!constructor) {

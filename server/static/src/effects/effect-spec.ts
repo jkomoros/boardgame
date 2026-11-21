@@ -1,5 +1,5 @@
 import type { AnimationTimingPolicy } from '../motion/timing.js';
-import type { ClientMove } from '../types/api.js';
+import type { ClientMove } from '../types/wire.js';
 
 export type EffectTone =
   | 'neutral'

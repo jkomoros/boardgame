@@ -2,17 +2,21 @@ import type { ReactiveController } from 'lit';
 import { isBoundMoveAction, type BoundMoveAction } from './action.ts';
 import { gameSnapshotKey, type GameSnapshotHost } from './snapshot-controller.ts';
 import type { TargetKey } from './target-action.js';
+import type {
+  DraftPlacement,
+  PlacementItemBinding,
+  PlacementTargetBinding,
+} from './draft-bindings.ts';
+
+// The binding shapes elements accept are layer-1 types; re-exported here,
+// where they have always been imported from.
+export type { DraftPlacement, PlacementItemBinding, PlacementTargetBinding };
 
 const MAX_DRAFT_ITEMS = 1024;
 const MAX_DRAFT_TARGETS = 4096;
 const MAX_DRAFT_HISTORY = 1024;
 
 export type PlacementDraftRebasePolicy = 'clear' | 'keep-valid';
-
-export interface DraftPlacement<Item extends TargetKey, Target extends TargetKey> {
-  readonly item: Item;
-  readonly target: Target;
-}
 
 export type PlacementDraftNotice<Item extends TargetKey, Target extends TargetKey> =
   | {
@@ -44,25 +48,6 @@ export interface PlacementDraftOptions<
   readonly maxPlacements?: number;
   /** Clear by default; keeping still removes placements invalid in the new snapshot. */
   readonly rebase?: PlacementDraftRebasePolicy;
-}
-
-/** One placeable item's immutable presentation and interaction binding. */
-export interface PlacementItemBinding<Item extends TargetKey, Target extends TargetKey> {
-  readonly item: Item;
-  readonly selected: boolean;
-  readonly placedAt: Target | null;
-  readonly capacityBlocked: boolean;
-  select(): void;
-  remove(): void;
-}
-
-/** One destination's immutable presentation and interaction binding. */
-export interface PlacementTargetBinding<Item extends TargetKey, Target extends TargetKey> {
-  readonly target: Target;
-  readonly occupiedBy: Item | null;
-  readonly canPlace: boolean;
-  readonly reason: string | null;
-  place(): void;
 }
 
 export interface PlacementDraftBinding<

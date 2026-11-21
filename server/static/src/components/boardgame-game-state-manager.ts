@@ -1,3 +1,4 @@
+import type { RendererStateQueue } from '../renderer-host/renderer-host.js';
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
@@ -72,7 +73,7 @@ const MAX_COMPANION_WAIT_MS = 10_000;
  * receive updates about when the state increases. When the state version
  * increases, that increments TargetVersion, which changes the URL to fetch.
  */
-class BoardgameGameStateManager extends connect(store)(LitElement) {
+class BoardgameGameStateManager extends connect(store)(LitElement) implements RendererStateQueue {
   @property({ type: Object, attribute: 'game-route' })
   gameRoute: { name: string; id: string } | null = null;
 

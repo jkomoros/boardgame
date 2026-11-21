@@ -2999,18 +2999,23 @@ test('dynamic host ignores a module load superseded by a newer game route', asyn
       renderer: HTMLElement | null;
       rendererError: string;
       updateComplete: Promise<unknown>;
-      _loadRendererModule(modulePath: string): Promise<unknown>;
+      host: unknown;
     };
+    // The loader and the surface resolver are the renderer host's. Mount with
+    // the webapp's host, replacing only its dynamic import.
+    const { createWebappRendererHost } = await import('/src/webapp/renderer-host.ts');
     const host = document.createElement('boardgame-render-game') as TestHost;
     let releasePig: (() => void) | undefined;
     const requestedPaths: string[] = [];
-    host._loadRendererModule = (modulePath: string) => {
-      requestedPaths.push(modulePath);
-      if (modulePath.includes('/pig/')) {
-        return new Promise<void>(resolve => releasePig = resolve);
-      }
-      return Promise.resolve();
-    };
+    host.host = createWebappRendererHost({
+      importModule: (modulePath: string) => {
+        requestedPaths.push(modulePath);
+        if (modulePath.includes('/pig/')) {
+          return new Promise<void>(resolve => releasePig = resolve);
+        }
+        return Promise.resolve();
+      },
+    });
     host.active = true;
     host.gameId = 'FIRST';
     host.gameName = 'pig';

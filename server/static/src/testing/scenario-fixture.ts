@@ -1,6 +1,6 @@
 import type { ProjectedMoveChoicesWire } from '../types/api.js';
 import { playerPresentations } from '../status/player-presentation.js';
-import { expandGameStateSnapshot } from '../selectors.js';
+import { expandGameStateSnapshot } from '../state/expand.js';
 import type { GameFromServer } from '../types/game-state.js';
 import type { GameChest } from '../types/store.js';
 import type {

@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
-import type { SelectionOptionBinding } from '../moves/selection-draft.js';
+import type { SelectionOptionBinding } from '../moves/draft-bindings.js';
 import type { TargetKey } from '../moves/target-action.js';
 
 /** Accessible toggle around arbitrary game-owned selection presentation. */

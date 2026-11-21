@@ -3,7 +3,7 @@ import { property, query, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import type { BoundMoveAction } from '../moves/action.js';
-import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
+import type { SelectionDraftSelectionBinding } from '../moves/draft-bindings.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import { statCapacity } from './stat-values.js';

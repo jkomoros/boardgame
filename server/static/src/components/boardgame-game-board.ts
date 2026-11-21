@@ -29,8 +29,8 @@ import './boardgame-component-stack.js';
 import type { ComponentView } from './component-view.js';
 import { artLayerStyle, type ArtFit } from './component-art.js';
 import { MAX_TARGET_ACTION_CANDIDATES, type TargetAction } from '../moves/target-action.js';
-import type { SourceDestinationBinding } from '../moves/source-destination.js';
-import type { PlacementTargetBinding } from '../moves/placement-draft.js';
+import type { SourceDestinationBinding } from '../moves/draft-bindings.js';
+import type { PlacementTargetBinding } from '../moves/draft-bindings.js';
 import type { TargetKey } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 

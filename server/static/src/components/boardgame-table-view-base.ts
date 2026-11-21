@@ -4,9 +4,7 @@ import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { FullGameState } from '../types/boardgame-types.js';
 import type { MoveChoiceProjectionTypes } from '../moves/projected-choices.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
-import { apiHttpPost, buildGameUrl, type ApiResponse } from '../api.js';
-import { decodeHostActionResponse } from '../types/host-action-response.js';
-import { apiPath } from '../util.js';
+import type { TableActionResult, TableActions } from '../renderer-host/renderer-host.js';
 import './boardgame-game-outcome.js';
 import type { EffectTransitionContext } from '../effects/effect-spec.js';
 import type { MotionTransferDeclaration } from '../motion/transfer.js';
@@ -174,6 +172,15 @@ export class BoardgameTableViewBase<
   // were previously trying to dig the gameName out of the sanitized
   // state object via state.Manager.Delegate.Name(), which doesn't exist
   // on the client-side state.
+  /**
+   * The table actions (room lock, switch to solo, skip turn, join address and
+   * QR) are carried out by the renderer host, not by this class: it has no
+   * server. boardgame-render-game hands them over from its host when it
+   * mounts the renderer.
+   */
+  @property({ attribute: false })
+  tableActions: TableActions | null = null;
+
   @state()
   private _hostFeedback = '';
 
@@ -284,16 +291,15 @@ export class BoardgameTableViewBase<
     // Pre-game: full-bleed banner with QR + giant code. QR is served
     // self-hosted via /api/game/<name>/<id>/qrcode.png (P5+ polish —
     // replaces the earlier qrserver.com cross-origin call).
-    const origin = encodeURIComponent(window.location.origin);
-    const qrSrc = this.gameName && this.gameId
-      ? apiPath(`game/${this.gameName}/${this.gameId}/qrcode.png`) + `?origin=${origin}`
-      : '';
+    const joinInfo = this.tableActions?.joinInfo({ gameName: this.gameName, gameId: this.gameId })
+      ?? { address: '', qrUrl: '' };
+    const qrSrc = this.gameName && this.gameId ? joinInfo.qrUrl : '';
     return html`
       <div class="room-code-banner">
-        <div class="room-code-instructions">
-          <p>Go to <strong>${window.location.host}/join</strong></p>
+        ${joinInfo.address ? html`<div class="room-code-instructions">
+          <p>Go to <strong>${joinInfo.address}</strong></p>
           <p>and enter the code</p>
-        </div>
+        </div>` : ''}
         <div class="room-code-giant">${this.roomCode}</div>
         ${qrSrc ? html`<img class="room-code-qr" src=${qrSrc} alt="Join QR code"
           @error=${(e: Event) => { (e.target as HTMLImageElement).style.display = 'none'; }}>` : ''}
@@ -307,14 +313,18 @@ export class BoardgameTableViewBase<
       this.requestUpdate();
       return;
     }
+    const actions = this._tableActionsOrFeedback();
+    if (!actions) {
+      this.requestUpdate();
+      return;
+    }
     this._hostActionPending = 'lock';
     try {
-      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'setRoomLock'), { locked });
-      if (!response.data) {
-        this._showHostFeedback(this._hostActionError(response, 'Failed to update lock'));
+      const result = await actions.setRoomLock({ gameName: this.gameName, gameId: this.gameId }, locked);
+      if (!result.ok) {
+        this._showHostFeedback(this._hostActionError(result, 'Failed to update lock'));
         return;
       }
-      const result = decodeHostActionResponse(response.data);
       if (result.locked !== locked) throw new Error('Server returned contradictory room lock state');
       this.roomLocked = locked;
       this._showHostFeedback(locked ? 'Room locked' : 'Room unlocked');
@@ -351,14 +361,15 @@ export class BoardgameTableViewBase<
     if (this._switchToSoloTimer) clearTimeout(this._switchToSoloTimer);
     if (!this.gameName || !this.gameId) return;
     if (this._hostActionPending !== null) return;
+    const actions = this._tableActionsOrFeedback();
+    if (!actions) return;
     this._hostActionPending = 'solo';
     try {
-      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'switchToSolo'), {});
-      if (!response.data) {
-        this._showHostFeedback(this._hostActionError(response, 'Switch to solo failed'));
+      const result = await actions.switchToSolo({ gameName: this.gameName, gameId: this.gameId });
+      if (!result.ok) {
+        this._showHostFeedback(this._hostActionError(result, 'Switch to solo failed'));
         return;
       }
-      decodeHostActionResponse(response.data);
       this._showHostFeedback('Switching to solo mode...');
     } catch (error) {
       this._showHostFeedback(`Switch to solo failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -367,8 +378,13 @@ export class BoardgameTableViewBase<
     }
   }
 
-  private _hostActionError(response: ApiResponse<unknown>, fallback: string): string {
-    return response.error || response.friendlyError || fallback;
+  private _hostActionError(result: TableActionResult, fallback: string): string {
+    return (!result.ok && result.message) || fallback;
+  }
+
+  private _tableActionsOrFeedback(): TableActions | null {
+    if (!this.tableActions) this._showHostFeedback('Table actions are not available here');
+    return this.tableActions;
   }
 
   /**
@@ -484,20 +500,21 @@ export class BoardgameTableViewBase<
       return;
     }
     if (this._hostActionPending !== null) return;
+    const actions = this._tableActionsOrFeedback();
+    if (!actions) return;
     this._hostActionPending = 'skip';
     try {
-      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'hostSkipTurn'), {});
-      if (!response.data) {
-        if (response.status === 429) {
+      const result = await actions.skipTurn({ gameName: this.gameName, gameId: this.gameId });
+      if (!result.ok) {
+        if (result.reason === 'rate-limited') {
           this._showHostFeedback('Please wait a moment before skipping again');
-        } else if (response.status === 409) {
+        } else if (result.reason === 'conflict') {
           this._showHostFeedback('Player is not absent yet — wait for them to disconnect');
         } else {
-          this._showHostFeedback(this._hostActionError(response, 'Skip failed'));
+          this._showHostFeedback(this._hostActionError(result, 'Skip failed'));
         }
         return;
       }
-      decodeHostActionResponse(response.data);
       this._showHostFeedback('Turn skipped');
     } catch (error) {
       this._showHostFeedback(`Skip failed: ${error instanceof Error ? error.message : String(error)}`);

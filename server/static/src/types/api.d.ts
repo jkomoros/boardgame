@@ -3,8 +3,25 @@
  * These match the JSON structures returned by the Go backend.
  */
 
-import type { CompanionInfo, GameChest, PlayerInfo, ExpandedGameState } from './store';
+import type { CompanionInfo, GameChest, MoveForm, PlayerInfo, ProjectedMoveChoicesWire } from './wire';
 import type { GameFromServer } from './game-state';
+
+// The shapes a renderer and its elements take are wire types (./wire), shared
+// with hosts that never touch this HTTP API. They are re-exported here so
+// existing host imports keep working.
+export type {
+  ClientMove,
+  EnumDefinition,
+  JsonValue,
+  MoveForm,
+  MoveFormField,
+  PreconditionEntry,
+  PreconditionMessage,
+  ProjectedMoveChoiceCandidateWire,
+  ProjectedMoveChoiceSetWire,
+  ProjectedMoveChoiceSource,
+  ProjectedMoveChoicesWire,
+} from './wire';
 
 /**
  * Base response structure from the server.
@@ -82,145 +99,6 @@ export interface ServerStateBundle {
   /** Actor-scoped, finite candidate legality for this exact state. */
   ProjectedMoveChoices?: ProjectedMoveChoicesWire;
 }
-
-export type ProjectedMoveChoiceSource = 'players' | 'enum-values' | 'stack-slots';
-
-export interface ProjectedMoveChoiceCandidateWire {
-  readonly Value: string | number;
-  readonly Available: boolean;
-}
-
-export interface ProjectedMoveChoiceSetWire {
-  readonly MoveName: string;
-  readonly FieldName: string;
-  readonly Source: ProjectedMoveChoiceSource;
-  readonly Candidates: readonly ProjectedMoveChoiceCandidateWire[];
-}
-
-/** Decoded but still untrusted until checked against the generated game schema. */
-export type ProjectedMoveChoicesWire =
-  | {
-    readonly StateVersion: number;
-    readonly MoveChoiceProjectionSchemaFingerprint: string;
-    readonly ProjectionSchemaVersion: number;
-    readonly Status: 'ready';
-    readonly Sets: readonly ProjectedMoveChoiceSetWire[];
-  }
-  | {
-    readonly StateVersion: number;
-    readonly MoveChoiceProjectionSchemaFingerprint: string;
-    readonly ProjectionSchemaVersion: number;
-    readonly Status: 'failed';
-    readonly Sets: readonly [];
-  };
-
-/**
- * A move form describing an available move and its parameters.
- */
-export interface MoveForm {
-  /** Move type name */
-  Name: string;
-  /** Help text explaining the move */
-  HelpText: string;
-  /** Form fields for move parameters */
-  Fields?: MoveFormField[];
-  /** Whether this move is legal for the viewing player right now */
-  LegalForPlayer?: boolean;
-  /** Error message from Legal() if the move is not legal for this player */
-  LegalForPlayerError?: string;
-  /** Whether this move is structurally legal (legal for any player / admin) */
-  LegalForAnyone?: boolean;
-  /** Whether this move is a gathering "start game" move (e.g., CloseAllSeats) */
-  IsGatheringStart?: boolean;
-  /**
-   * Per-predicate declarative-legality ledger (design spec §6). Present
-   * only for a move type that opted in to declarative legality
-   * (WithLegalPreconditions); absent for an opaque (un-migrated) move, whose
-   * legality is fully described by LegalForPlayer/LegalForPlayerError/
-   * LegalForAnyone alone. No UI reads this yet (Task 10 ships the wire
-   * format only) -- it is plumbed through selectMoveLegality
-   * (selectors.ts) as MoveLegalityInfo.preconditions for future use.
-   */
-  Preconditions?: PreconditionEntry[];
-}
-
-/**
- * One predicate's line in a MoveForm's Preconditions ledger (design spec
- * §6). Mirrors server/api/main.go's preconditionEntry.
- */
-export interface PreconditionEntry {
-  /** Predicate's registry name ("any" for a compositor, "custom" for the CustomLegaler escape hatch). */
-  name: string;
-  /** Predicate's string args; absent for compositors/custom. */
-  args?: string[];
-  /** Three-valued outcome. */
-  verdict: 'pass' | 'fail' | 'unknown';
-  /** Present only for a non-Pass verdict. */
-  message?: PreconditionMessage;
-  /**
-   * Whether a client could reproduce this entry's verdict itself:
-   * has-a-wire-form AND every declared Read survives the viewer's
-   * sanitization. When false, message.bindings (if any) has been stripped
-   * server-side (the #693 guard) -- only the template key ships.
-   */
-  evaluable: boolean;
-  /**
-   * True for a field-dependent verdict: computed against a server-chosen
-   * (DefaultsForState-bound) move, so a different choice of move field
-   * values could evaluate differently.
-   */
-  provisional?: boolean;
-}
-
-/** The Message half of a PreconditionEntry -- template key plus (subject to the #693 guard) bindings. */
-export interface PreconditionMessage {
-  /** Template key to look up in the chest's LegalTemplates table. */
-  template: string;
-  /**
-   * Named values substituted into the template body. Absent whenever the
-   * owning entry's evaluable is false (design spec §6, #693 guard):
-   * bindings are derived from state a less-privileged viewer may not be
-   * allowed to see.
-   */
-  bindings?: Record<string, string | number | boolean>;
-}
-
-/**
- * A field in a move form.
- */
-export interface MoveFormField {
-  /** Field name */
-  Name: string;
-  /** Numeric boardgame.PropertyType value from the Go API. */
-  Type: number;
-  /** Current/default wire value for the move property. */
-  DefaultValue: JsonValue;
-  /** Name of the enum (used for expansion) */
-  EnumName?: string;
-  /** Expanded enum values (populated during expansion) */
-  Enum?: EnumDefinition;
-}
-
-/** A value that can cross the server's JSON transport boundary. */
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-
-/** Serialized enum metadata supplied in the game chest. */
-export interface EnumDefinition {
-  Values?: Record<string, string>;
-  [key: string]: unknown;
-}
-
-/**
- * A move that was made in the game.
- */
-export type ClientMove = Readonly<{
-  /** Viewer-specific public key used only to select animation policy. */
-  AnimationKey: string;
-  /** State version produced by the move. */
-  Version: number;
-  /** Explicitly disclosed, viewer-sanitized move properties. */
-  Properties?: Readonly<Record<string, JsonValue>>;
-}>;
 
 /**
  * Response from /api/game/{name}/{id}/move endpoint.

@@ -77,3 +77,19 @@ test('an unknown fit is refused by name', () => {
     /must be "cover" or "contain", not "fill"/,
   );
 });
+
+test('shipped token art comes from the host resolver, and is a blank square without one', async () => {
+  const { BLANK_TOKEN_ART, setTokenArtResolver, shippedTokenArtUrl } = await import('./component-art.ts');
+  setTokenArtResolver(null);
+  assert.equal(shippedTokenArtUrl('pawn'), BLANK_TOKEN_ART);
+  assert.match(BLANK_TOKEN_ART, /^data:image\/svg\+xml,/);
+  setTokenArtResolver(type => `https://art.example/token_${type}.svg`);
+  try {
+    assert.equal(shippedTokenArtUrl('pawn'), 'https://art.example/token_pawn.svg');
+    // A resolver with nothing for a type falls back to the blank square too.
+    setTokenArtResolver(() => '');
+    assert.equal(shippedTokenArtUrl('meeple'), BLANK_TOKEN_ART);
+  } finally {
+    setTokenArtResolver(null);
+  }
+});

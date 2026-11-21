@@ -1,7 +1,7 @@
 import { LitElement, css, html } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import type { BoundMoveAction } from '../moves/action.js';
-import type { SelectionDraftSelectionBinding } from '../moves/selection-draft.js';
+import type { SelectionDraftSelectionBinding } from '../moves/draft-bindings.js';
 import type { ProjectedStackChoices } from '../moves/projected-choices.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';

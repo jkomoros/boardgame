@@ -5,6 +5,39 @@ Its primary audience is people who are working on the architecure themselves,
 for example to add new features to the frameweork. People who are simply using
 the framework shouldn't need to understand this document.
 
+## Layers and the renderer host
+
+Every non-test file under `src/` belongs to one layer, recorded in
+`scripts/layers.json` and enforced by `npm run test:layers`
+(`scripts/check-layers.test.mjs`). A file imports from its own layer or a
+lower one:
+
+1. **elements**: the presentational custom elements, the motion system, and
+   the state, wire and move-intent types they take (`types/wire.d.ts`,
+   `state/expand.ts`, `moves/action.ts`, `moves/draft-bindings.ts`, ...).
+2. **kit**: what a game renderer is written against and the element that
+   mounts one: `client.ts`, the base renderer classes, drafts, effects,
+   `boardgame-render-game`, `boardgame-render-player-info`, and the contract in
+   `renderer-host/renderer-host.ts`.
+3. **host**: the webapp: `boardgame-game-view`,
+   `boardgame-game-state-manager`, the roster, Redux, the HTTP API, routing,
+   and `webapp/renderer-host.ts`.
+
+`src/engine/` is a fourth layer below all three; `*.compile.ts`, `testing/`
+and `examples/` are test support and may import anything.
+
+`boardgame-render-game` reaches nothing outside its own subtree by itself. It
+takes a `RendererHost` (its `host` property) for the companion surface, the
+renderer-module loader, board legality preview, table actions, the timer
+service, shipped token art and the player-info module loader, and takes the
+move transports as ordinary reactive properties (`RendererMoveInputs`).
+`createWebappRendererHost()` is the webapp's implementation, built by
+`boardgame-game-view`; `boardgame-game-state-manager` is its state queue.
+A new host (see `fabric/PROPOSAL.md`) supplies the same object and its own
+queue. Two window globals are opt-in for the same reason: the animation test
+counters (`installAnimTestHooks()`) and shipped token art
+(`setTokenArtResolver()`).
+
 `boardgame-game-view` is the top-level view that renders the page for games.
 Its responsibility is to identify the game type and game ID to render (based
 on URL). It then passes that information to the `boardgame-render-player-

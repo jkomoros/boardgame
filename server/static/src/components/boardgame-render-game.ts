@@ -4,21 +4,28 @@ import './boardgame-component-animator.js';
 import type { BoardgameComponentAnimator } from './boardgame-component-animator.js';
 import './boardgame-effect-layer.js';
 import type { BoardgameEffectLayer } from './boardgame-effect-layer.js';
-import type { ClientMove, MoveForm } from '../types/api.js';
+import type { ClientMove, MoveForm } from '../types/wire.js';
 import { createEffectTransitionContext } from '../effects/effect-spec.js';
-import type { MoveLegalityInfo } from '../selectors.js';
-import { movePreviewBatch } from '../api.js';
+import type { MoveLegalityInfo } from '../types/wire.js';
+import type {
+  RendererHost,
+  RendererModuleRequest,
+  RendererMount,
+  RendererMoveInputs,
+  RendererSurface,
+} from '../renderer-host/renderer-host.js';
+import { TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '../timers/timer-service.js';
 import {
   disabledSpacesFromResults,
   samePreviewSpaces,
   previewOutcome,
+  type MovePreviewBatchResult,
 } from '../legal/previewLegality.js';
-import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
 import type { PlayerPresentation } from '../status/player-presentation.js';
-import type { ProjectedMoveChoicesWire } from '../types/api.js';
+import type { ProjectedMoveChoicesWire } from '../types/wire.js';
 import {
   defaultMessageResolver,
   type MessageResolver,
@@ -33,6 +40,7 @@ import {
   type ProjectedChoiceConsumptionController,
 } from '../moves/projected-choice-consumption.js';
 import './boardgame-projected-choices.js';
+import { setTokenArtResolver } from './component-art.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
 import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
@@ -55,7 +63,7 @@ export type HostedGameRenderer = BoardgameBaseGameRenderer<
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
  * Handles animation coordination, state synchronization, and loading states.
  */
-class BoardgameRenderGame extends LitElement {
+class BoardgameRenderGame extends LitElement implements RendererMount, RendererMoveInputs {
   static override styles = css`
     #container {
       position: relative;
@@ -145,13 +153,21 @@ class BoardgameRenderGame extends LitElement {
     }
   `;
 
+  /**
+   * The services this element takes from whatever mounts it: see
+   * renderer-host/renderer-host.ts. Set once by the host; this element never
+   * reaches a server, storage or the page URL by itself.
+   */
+  @property({ attribute: false })
+  host: RendererHost | null = null;
+
   @property({ type: Object })
   state: HostedState | null = null;
 
   // Scoped timing policy associated with the exact installed game version.
   // The shared animator consumes it as fly()'s default.
   @property({ type: Object, attribute: 'animation-context' })
-  animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
+  animationContext: import('../motion/timing.js').VersionAnimationContext | null = null;
 
   @property({ type: Object, attribute: false })
   transitionMove: ClientMove | null = null;
@@ -213,7 +229,7 @@ class BoardgameRenderGame extends LitElement {
   moveSubmissionGate: MoveSubmissionGate | null = null;
 
   @property({ type: Object, attribute: 'companion-info' })
-  companionInfo: import('../types/store').CompanionInfo | null = null;
+  companionInfo: import('../types/wire').CompanionInfo | null = null;
 
   // isOwner is the doGameInfo IsOwner bool — true if the authenticated
   // user is the game's Owner. Pass-through; the surface renderer combines
@@ -352,6 +368,16 @@ class BoardgameRenderGame extends LitElement {
     this.addEventListener('animation-done', this._boundComponentAnimationDone);
     this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     this.addEventListener('projected-choices-changed', this._projectedChoicesChanged);
+    // Timer controllers in the renderer ask their ancestors for the clock.
+    // Answer from the host's service when it supplies one; otherwise the
+    // request keeps bubbling to whatever ancestor does.
+    this.addEventListener(TIMER_SERVICE_REQUEST_EVENT, (event: Event) => {
+      const service = this.host?.timerService;
+      const accept = (event as CustomEvent<TimerServiceRequestDetail>).detail?.accept;
+      if (!service || typeof accept !== 'function') return;
+      event.stopPropagation();
+      accept(service);
+    });
     this.addEventListener(
       PROJECTED_CHOICE_CONSUMPTION_CHANGED,
       this._projectedChoiceConsumptionChanged as EventListener,
@@ -439,6 +465,18 @@ class BoardgameRenderGame extends LitElement {
     if (changedProperties.has('animationContext') && this._animator) {
       this._animator.animationContext = this.animationContext;
       this._configureEffectLayer();
+    }
+
+    if (changedProperties.has('host')) {
+      // Shipped token art is served from wherever the host says.
+      const resolveTokenArt = this.host?.resolveTokenArt;
+      if (resolveTokenArt) setTokenArtResolver(type => resolveTokenArt.call(this.host, type));
+      this._hostChanged();
+      // A host attached after the game identity brings the loader with it.
+      const identityChanged = changedProperties.has('gameName') || changedProperties.has('gameId');
+      if (!identityChanged && this.gameName && !this.rendererLoaded) {
+        void this._rendererIdentityChanged(this.gameName, this.gameId);
+      }
     }
 
     if (changedProperties.has('diagram')) {
@@ -547,7 +585,7 @@ class BoardgameRenderGame extends LitElement {
   // expose typed properties for the unpacked fields; we set them all so
   // the renderer can react to e.g. an absent player coming back without
   // a full re-mount.
-  private _companionInfoChanged(_newValue: import('../types/store').CompanionInfo | null) {
+  private _companionInfoChanged(_newValue: import('../types/wire').CompanionInfo | null) {
     const desiredSurface = this._surfaceSuffix(this.gameId);
     if (this.gameName && desiredSurface !== this._rendererSurfaceSuffix) {
       void this._rendererIdentityChanged(this.gameName, this.gameId);
@@ -561,9 +599,21 @@ class BoardgameRenderGame extends LitElement {
    * boundary. The property assignment preserves ordinary Lit composition;
    * the synchronous propagation prevents a mounted renderer from retaining
    * stale room/Table authority metadata until some unrelated render. */
-  installCompanionInfo(info: import('../types/store').CompanionInfo | null): void {
+  installCompanionInfo(info: import('../types/wire').CompanionInfo | null): void {
     this.companionInfo = info;
     this._companionInfoChanged(info);
+  }
+
+  private _hostChanged() {
+    if (!this.renderer) return;
+    this._applyHostServicesToRenderer(this.renderer);
+    this._scheduleRefreshPreview();
+  }
+
+  private _applyHostServicesToRenderer(renderer: HostedGameRenderer) {
+    if (renderer instanceof BoardgameTableViewBase) {
+      renderer.tableActions = this.host?.tableActions ?? null;
+    }
   }
 
   private _isOwnerChanged(_newValue: boolean) {
@@ -573,6 +623,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _applyCompanionPropsToRenderer(renderer: HostedGameRenderer) {
     const info = this.companionInfo;
+    this._applyHostServicesToRenderer(renderer);
     if (renderer instanceof BoardgameTableViewBase) {
       renderer.seatPresentations = info?.SeatPresentations ?? [];
       renderer.absentPlayers = info?.Absent ?? [];
@@ -907,7 +958,7 @@ class BoardgameRenderGame extends LitElement {
     this.renderer.serverMoveInputSchemaFingerprint = fingerprint;
   }
 
-  // Board legality preview (movePreviewBatch). Kept view-local rather than in
+  // Board legality preview (the host's boardPreview transport). Kept view-local rather than in
   // Redux: preview results are ephemeral, tied to the exact candidate set of the
   // current head state, and consumed only by the renderer — putting them in the
   // store would add a slice plus staleness/keying concerns for no shared
@@ -954,6 +1005,17 @@ class BoardgameRenderGame extends LitElement {
       return;
     }
 
+    const transport = this.host?.boardPreview;
+    if (!transport) {
+      // A host that offers no preview is the same as a game that opted out:
+      // nothing is grayed by preview, and the server still rejects bad moves.
+      this._previewSeq++;
+      if (renderer.previewDisabledSpaces.length) {
+        renderer.previewDisabledSpaces = [];
+      }
+      return;
+    }
+
     if (!this.socketActive) {
       this._previewSeq++;
       this._failPreviewClosed(renderer, spec.candidates);
@@ -964,37 +1026,37 @@ class BoardgameRenderGame extends LitElement {
     // Preview from the same (player, admin) perspective /info uses, so graying
     // agrees with the displayed legality. For a non-admin the server ignores the
     // player param (admin=0), so this resolves to the seat exactly as before.
-    let response;
+    let results: readonly MovePreviewBatchResult[] | null = null;
     try {
-      response = await movePreviewBatch(
-        this.gameName,
-        this.gameId,
-        spec.moveName,
-        spec.candidates.map((c) => ({ Args: c.args })),
-        { player: this.previewAsPlayer, admin: this.previewAsAdmin ? 1 : 0 },
-      );
+      results = await transport.previewBoard({
+        gameName: this.gameName,
+        gameId: this.gameId,
+        moveName: spec.moveName,
+        candidates: spec.candidates.map((c) => ({ args: c.args })),
+        asPlayer: this.previewAsPlayer,
+        asAdmin: this.previewAsAdmin,
+      });
     } catch (error) {
       console.warn('Target legality preview failed:', error);
-      response = { data: undefined };
     }
     const outcome = previewOutcome({
       startedSeq: seq,
       currentSeq: this._previewSeq,
       rendererStillMounted: this.renderer === renderer,
-      hasData: !!response.data,
+      hasData: results !== null,
     });
     if (outcome === 'keep-on-error') {
       this._failPreviewClosed(renderer, spec.candidates);
       this._schedulePreviewRetry(renderer);
       return;
     }
-    if (outcome !== 'apply' || !response.data) return;
+    if (outcome !== 'apply' || results === null) return;
     this._clearPreviewRetry();
     this._previewRetryAttempt = 0;
 
     // Only reassign (and thus re-render the board) when the grayed set actually
     // changed.
-    const next = disabledSpacesFromResults(spec.candidates, response.data.Results);
+    const next = disabledSpacesFromResults(spec.candidates, results);
     if (!samePreviewSpaces(next, renderer.previewDisabledSpaces)) {
       renderer.previewDisabledSpaces = next;
     }
@@ -1055,23 +1117,22 @@ class BoardgameRenderGame extends LitElement {
       return;
     }
 
+    const surface = this._surface(gameId);
     const suffix = this._surfaceSuffix(gameId);
     this._rendererSurfaceSuffix = suffix;
-    const baseModulePath = `../../game-src/${gameName}/boardgame-render-game-${gameName}${suffix}.ts`;
-    const modulePath = retry ? `${baseModulePath}?retry=${generation}` : baseModulePath;
+    const rendererTag = `boardgame-render-game-${gameName}${suffix}`;
 
     try {
-      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode.
       // A requested companion surface is a behavioral contract. Silently
       // substituting the solo renderer hides deployment mistakes and leaves
       // the surrounding companion chrome in a contradictory mode.
-      await this._loadRendererModule(modulePath);
+      await this._loadRendererModule({ gameName, surface, attempt: retry ? generation : 0 });
       if (!this._rendererLoadIsCurrent(generation, gameName, gameId)) return;
       this._instantiateRenderer(suffix);
     } catch (error) {
       if (!this._rendererLoadIsCurrent(generation, gameName, gameId)) return;
       if (!this.rendererError) {
-        this.rendererError = `Failed to load renderer module ${modulePath}: ${this._errorMessage(error)}`;
+        this.rendererError = `Failed to load renderer module for <${rendererTag}>: ${this._errorMessage(error)}`;
       }
       console.error(`Failed to load game renderer for ${gameName}:`, error);
     }
@@ -1105,8 +1166,14 @@ class BoardgameRenderGame extends LitElement {
       && this.isConnected;
   }
 
-  private _loadRendererModule(modulePath: string): Promise<unknown> {
-    return import(/* @vite-ignore */ modulePath) as Promise<unknown>;
+  // How a game's renderer code arrives is the host's business (the webapp
+  // imports it by path; a bundled guest already has it).
+  private _loadRendererModule(request: RendererModuleRequest): Promise<unknown> {
+    const load = this.host?.loadRendererModule;
+    if (!load) {
+      return Promise.reject(new Error('the renderer host provides no module loader'));
+    }
+    return load.call(this.host, request);
   }
 
   private _errorMessage(error: unknown): string {
@@ -1115,12 +1182,20 @@ class BoardgameRenderGame extends LitElement {
     return normalized.length <= 500 ? normalized : `${normalized.slice(0, 497)}...`;
   }
 
-  // _surfaceSuffix returns the filename suffix to add to the renderer
-  // module / custom-element name for the current surface, or empty for
-  // solo. Pure function of the cookie + query string (see
-  // utils/companion-surface.ts, shared with boardgame-game-view).
+  // Which surface this browser presents is the host's knowledge (the webapp
+  // reads the URL and tab storage; see RendererHost.resolveSurface). With no
+  // resolver the solo renderer is used.
+  private _surface(gameId: string): RendererSurface {
+    return this.host?.resolveSurface?.({
+      gameId,
+      companionMode: this.companionInfo?.CompanionMode,
+    }) ?? null;
+  }
+
+  // _surfaceSuffix returns the suffix to add to the renderer custom-element
+  // name for the current surface, or empty for solo.
   private _surfaceSuffix(gameId: string): '' | '-table' | '-hand' {
-    const s = surfaceForGame(gameId, this.companionInfo?.CompanionMode);
+    const s = this._surface(gameId);
     if (s === 'table') return '-table';
     if (s === 'hand') return '-hand';
     return '';

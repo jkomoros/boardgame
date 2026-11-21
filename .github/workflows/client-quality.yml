@@ -95,6 +95,7 @@ jobs:
           npm run type-check
           npm run type-check:authoring
           npm run test:check-client
+          npm run test:layers
           npm run test:unit
           npm run test:facade-production
           npm run build
