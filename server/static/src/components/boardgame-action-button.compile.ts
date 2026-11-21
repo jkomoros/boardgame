@@ -1,4 +1,4 @@
-import './boardgame-action-button.js';
+import '@boardgame/elements/components/boardgame-action-button.js';
 
 const button = document.createElement('boardgame-action-button');
 button.label = 'Draw a card';

@@ -1,4 +1,4 @@
-import './boardgame-player-panel.js';
+import '@boardgame/elements/components/boardgame-player-panel.js';
 
 const panel = document.createElement('boardgame-player-panel');
 panel.label = 'Ada';

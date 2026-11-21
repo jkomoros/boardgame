@@ -1,5 +1,5 @@
-import '../client.js';
-import type { ReadinessParticipant, ReadinessView } from '../client.js';
+import '@boardgame/renderer-kit/client.js';
+import type { ReadinessParticipant, ReadinessView } from '@boardgame/renderer-kit/client.js';
 
 const readiness = document.createElement('boardgame-readiness');
 const participants = [

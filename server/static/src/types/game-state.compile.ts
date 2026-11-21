@@ -1,4 +1,4 @@
-import type { RawGameState } from './game-state.js';
+import type { RawGameState } from '@boardgame/elements/types/game-state.js';
 
 declare const rawState: RawGameState;
 

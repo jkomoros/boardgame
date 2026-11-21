@@ -1,5 +1,5 @@
-import './boardgame-deck.js';
-import type { SelectionDraftSelectionBinding, TargetAction } from '../client.js';
+import '@boardgame/elements/components/boardgame-deck.js';
+import type { SelectionDraftSelectionBinding, TargetAction } from '@boardgame/renderer-kit/client.js';
 
 const deck = document.createElement('boardgame-deck');
 declare const action: TargetAction<number>;

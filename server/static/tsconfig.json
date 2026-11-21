@@ -24,7 +24,17 @@
     "declaration": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    // The client is three source trees: src/ (the webapp host) and the two
+    // packages it consumes. See packages/README.md.
+    "rootDir": ".",
+    // The webapp resolves its packages without node_modules (see
+    // scripts/packages.mjs). `paths` cannot read a package's `exports`, so
+    // scripts/check-layers.test.mjs checks every cross-package import
+    // against them.
+    "paths": {
+      "@boardgame/elements/*": ["./packages/elements/src/*"],
+      "@boardgame/renderer-kit/*": ["./packages/renderer-kit/src/*"]
+    },
 
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -32,11 +42,13 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "packages/*/src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "src/**/*.test.ts"
+    "src/**/*.test.ts",
+    "packages/*/src/**/*.test.ts"
   ]
 }

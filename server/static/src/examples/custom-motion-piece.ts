@@ -6,7 +6,7 @@ import {
   componentView,
   type ExpandedStack,
   type VisualMotionTrackInput,
-} from '../client.js';
+} from '@boardgame/renderer-kit/client.js';
 
 function rotation(heading: unknown): string {
   return `rotate(${typeof heading === 'number' && Number.isFinite(heading) ? heading : 0}deg)`;

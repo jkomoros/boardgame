@@ -1,5 +1,5 @@
-import './boardgame-component-stack.js';
-import type { StackLayout } from './boardgame-component-stack.js';
+import '@boardgame/elements/components/boardgame-component-stack.js';
+import type { StackLayout } from '@boardgame/elements/components/boardgame-component-stack.js';
 
 const stack = document.createElement('boardgame-component-stack');
 const layout: StackLayout = 'fan';

@@ -1,9 +1,9 @@
-import type { ExpandedStack } from '../types/boardgame-types.js';
+import type { ExpandedStack } from '@boardgame/elements/types/boardgame-types.js';
 import {
   projectedPlayerChoices,
   projectedStackChoices,
   type ProjectedMoveChoiceSet,
-} from './projected-choices.js';
+} from '@boardgame/elements/moves/projected-choices.js';
 
 type CardProjection = { readonly field: 'TargetCard'; readonly value: number; readonly input: { TargetCard: number } };
 type PlayerProjection = { readonly field: 'TargetPlayer'; readonly value: number; readonly input: { TargetPlayer: number } };

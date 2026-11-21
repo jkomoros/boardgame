@@ -1,8 +1,8 @@
 import {
   SelectionDraftController,
   type BoundMoveAction,
-} from '../client.js';
-import type { GameSnapshotHost } from './snapshot-controller.js';
+} from '@boardgame/renderer-kit/client.js';
+import type { GameSnapshotHost } from '@boardgame/renderer-kit/moves/snapshot-controller.js';
 
 type Card = 'clay' | 'ore' | 'wool';
 declare const host: GameSnapshotHost;

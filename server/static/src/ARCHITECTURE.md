@@ -5,26 +5,38 @@ Its primary audience is people who are working on the architecure themselves,
 for example to add new features to the frameweork. People who are simply using
 the framework shouldn't need to understand this document.
 
-## Layers and the renderer host
+## Layers, packages and the renderer host
 
-Every non-test file under `src/` belongs to one layer, recorded in
-`scripts/layers.json` and enforced by `npm run test:layers`
+The client is three source trees. Every non-test file belongs to one layer,
+recorded in `scripts/layers.json` and enforced by `npm run test:layers`
 (`scripts/check-layers.test.mjs`). A file imports from its own layer or a
 lower one:
 
-1. **elements**: the presentational custom elements, the motion system, and
-   the state, wire and move-intent types they take (`types/wire.d.ts`,
-   `state/expand.ts`, `moves/action.ts`, `moves/draft-bindings.ts`, ...).
-2. **kit**: what a game renderer is written against and the element that
-   mounts one: `client.ts`, the base renderer classes, drafts, effects,
+1. **elements**, the package `@boardgame/elements` in `packages/elements`:
+   the presentational custom elements, the motion system, and the state, wire
+   and move-intent types they take (`types/wire.d.ts`, `state/expand.ts`,
+   `moves/action.ts`, `moves/draft-bindings.ts`, ...).
+2. **kit**, the package `@boardgame/renderer-kit` in `packages/renderer-kit`:
+   what a game renderer is written against and the element that mounts one:
+   `client.ts`, the base renderer classes, drafts, effects,
    `boardgame-render-game`, `boardgame-render-player-info`, and the contract in
    `renderer-host/renderer-host.ts`.
-3. **host**: the webapp: `boardgame-game-view`,
+3. **host**, this directory (`src/`): the webapp. `boardgame-game-view`,
    `boardgame-game-state-manager`, the roster, Redux, the HTTP API, routing,
    and `webapp/renderer-host.ts`.
 
 `src/engine/` is a fourth layer below all three; `*.compile.ts`, `testing/`
-and `examples/` are test support and may import anything.
+and `examples/` are test support and may import anything. `src/client.ts`
+and `src/types/boardgame-types.ts` are compatibility entry points that only
+re-export from a package, because every game client names them by path.
+
+A file reaches another package only by its name and only through a subpath
+that package's `package.json` exports (`@boardgame/elements/motion/timing.js`).
+The same test enforces that, and that no relative import crosses a package
+edge. How the names resolve, and every old path that still works, is in
+`packages/README.md`. Paths in the rest of this document that read
+`src/motion/...` or `components/...` name files that now live under the same
+path inside one of the two packages.
 
 `boardgame-render-game` reaches nothing outside its own subtree by itself. It
 takes a `RendererHost` (its `host` property) for the companion surface, the

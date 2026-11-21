@@ -1,9 +1,17 @@
 # Fabric guest
 
 One self-contained HTML file that plays a boardgame from JSON messages. It
-mounts the real `boardgame-render-game` from `server/static/src` with a
-game's unmodified renderer, inside `<iframe sandbox="allow-scripts">`, with
-no server, storage or network. Today it bundles Memory.
+mounts the real `boardgame-render-game` with a game's unmodified renderer,
+inside `<iframe sandbox="allow-scripts">`, with no server, storage or
+network.
+
+It bundles Memory and Blackjack; the `gameName` of `init` chooses which
+renderer is mounted.
+
+It is built on the two client packages, `@boardgame/elements` and
+`@boardgame/renderer-kit` (`server/static/packages/`, installed here as
+`file:` dependencies), and implements the kit's `RendererHost` contract. It
+imports nothing from the webapp in `server/static/src`.
 
 Background: [`../PROPOSAL.md`](../PROPOSAL.md), stream B, step 2.
 
@@ -14,13 +22,15 @@ Background: [`../PROPOSAL.md`](../PROPOSAL.md), stream B, step 2.
 | `src/guest-host.ts` | The renderer host: version queue, timers, move and preview transports |
 | `src/version-queue.ts` | Overlapping windows in, each version once and in order out |
 | `src/games.ts` | The renderers compiled into the bundle |
-| `src/shims/api.ts` | Stands in for the HTTP API, and refuses |
+| `src/client.ts`, `src/types/boardgame-types.ts` | The two paths a game client imports the framework by (`../../src/client.js`), re-exporting the packages |
+| `game-src/<game>` | Links to each bundled game's `client/` directory, the webapp's convention |
 | `src/guest-main.ts` | Entry point of the standalone guest: `postMessage` in and out |
 | `src/fabric-main.ts`, `src/fabric-bridge.ts` | Entry point of the guest inside a Common Fabric `cf-iframe`: cells and streams in place of `postMessage`, and a lobby before the deal |
 | `src/guest-document.ts` | Theme and root element, shared by both entry points |
 | `tools/vendor-fabric-client.sh` | Bundles Common Fabric's guest client out of a labs checkout into `vendor/` |
 | `harness.html` | Embeds the built guest and plays a recording by posting messages |
 | `tools/export-replay` | Go: records a complete Memory game, every version, every viewer |
+| `tests/blackjack.spec.ts` | Blackjack, driven by a conformance document (`conformance/blackjack/scenario-bust-and-finish.json.gz`), which the harness reads directly |
 | `tools/serve.mjs` | Static server for the harness, port 8719 |
 | `tests/` | Playwright suite |
 
@@ -92,12 +102,16 @@ output nor `vendor/` is checked in. The pattern that uses it is
   recording cannot apply an arbitrary move, so "accept" only steps the
   recording forward.
 - Query parameters: `?replay=scenario` plays
-  `examples/memory/client/scenario-replay.json`; `?srcdoc=1` embeds by
+  `examples/memory/client/scenario-replay.json`; `?replay=blackjack` plays the
+  blackjack conformance document; `?viewer=1` starts as that seat (`-1` is
+  the observer); `?srcdoc=1` embeds by
   `srcdoc`; `?csp=network` or `?csp=strict` puts the guest under a
   Content-Security-Policy; `?autostart=0` waits for the console.
 - `window.harness` exposes the same operations to the console and the tests.
 
 ## Adding a game
 
-Import its two renderer modules in `src/games.ts` through `@game-src/<game>`
-and add its row. Nothing else is per-game.
+Link its client directory under `game-src/`
+(`ln -s ../../../examples/<game>/client game-src/<game>`), import its
+renderer modules in `src/games.ts` and add its row. Nothing else is per-game:
+the renderer is chosen by the `gameName` of `init`.

@@ -6,8 +6,8 @@ import {
   type BoardPathOverlay,
   type ExpandedStack,
   type RasterBoardArtwork,
-} from '../client.js';
-import { BoardgameSpatialBoard } from './boardgame-spatial-board.js';
+} from '@boardgame/renderer-kit/client.js';
+import { BoardgameSpatialBoard } from '@boardgame/elements/components/boardgame-spatial-board.js';
 
 const keys = ['library', 'study'] as const;
 declare const stack: ExpandedStack<object, object>;

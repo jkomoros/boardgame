@@ -1,5 +1,5 @@
-import '../client.js';
-import type { InspectorOpenChangedDetail } from '../client.js';
+import '@boardgame/renderer-kit/client.js';
+import type { InspectorOpenChangedDetail } from '@boardgame/renderer-kit/client.js';
 
 const inspector = document.createElement('boardgame-inspector');
 inspector.label = 'Vision card';

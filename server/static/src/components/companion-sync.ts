@@ -1,8 +1,8 @@
 import type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
-import type { VersionAnimationContext } from '../motion/timing.ts';
+import type { VersionAnimationContext } from '@boardgame/elements/motion/timing.js';
 export type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
-export type { VersionAnimationContext } from '../motion/timing.ts';
-export { usableAnimationContext } from '../motion/timing.ts';
+export type { VersionAnimationContext } from '@boardgame/elements/motion/timing.js';
+export { usableAnimationContext } from '@boardgame/elements/motion/timing.js';
 
 /**
  * Cross-screen clock estimation and version-bound animation scheduling.

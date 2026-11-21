@@ -1,5 +1,5 @@
-import '../client.js';
-import { targetList, type ProjectedPlayerChoices, type TargetAction } from '../client.js';
+import '@boardgame/renderer-kit/client.js';
+import { targetList, type ProjectedPlayerChoices, type TargetAction } from '@boardgame/renderer-kit/client.js';
 
 declare const targets: TargetAction<'alice' | 'bob', 'Vote', { VoteTarget: number }>;
 const choices = targetList(targets, key => key === 'alice' ? 'Alice' : 'Bob');

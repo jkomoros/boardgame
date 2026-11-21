@@ -3,12 +3,12 @@ import { customElement, property, query } from 'lit/decorators.js';
 import './boardgame-player-roster.js';
 import './boardgame-gathering-panel.js';
 import './boardgame-chat-panel.js';
-import './boardgame-render-game.js';
+import '@boardgame/renderer-kit/components/boardgame-render-game.js';
 import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
 import type { BoardgamePlayerRoster } from './boardgame-player-roster.js';
-import type { BoardgameRenderGame, HostedGameRenderer } from './boardgame-render-game.js';
-import type { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
+import type { BoardgameRenderGame, HostedGameRenderer } from '@boardgame/renderer-kit/components/boardgame-render-game.js';
+import type { BoardgameAnimatableItem } from '@boardgame/elements/components/boardgame-animatable-item.js';
 import type { BoardgameAdminControls } from './boardgame-admin-controls.js';
 import type { BoardgameGameStateManager } from './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
@@ -36,7 +36,7 @@ import { gamePath } from '../util.js';
 import {
   playerPresentations,
   type PlayerPresentation,
-} from '../status/player-presentation.js';
+} from '@boardgame/elements/status/player-presentation.js';
 import type {
   ExpandedGameState,
   GameChest,
@@ -93,18 +93,18 @@ import {
   MoveSubmissionGate,
   type MovePreviewTransport,
   type MoveTransport,
-} from '../moves/action.js';
-import type { TargetPreviewTransport } from '../moves/target-action.js';
+} from '@boardgame/elements/moves/action.js';
+import type { TargetPreviewTransport } from '@boardgame/elements/moves/target-action.js';
 import { movePreview, movePreviewBatch } from '../api.js';
 import { createWebappRendererHost } from '../webapp/renderer-host.js';
-import type { RendererHost, RendererStateQueue } from '../renderer-host/renderer-host.js';
+import type { RendererHost, RendererStateQueue } from '@boardgame/renderer-kit/renderer-host/renderer-host.js';
 import {
   TIMER_SERVICE_REQUEST_EVENT,
   TimerService,
   type TimerServiceRequestDetail,
-} from '../timers/timer-service.js';
+} from '@boardgame/elements/timers/timer-service.js';
 
-import type { GameFromServer, StateBundle } from '../types/game-state';
+import type { GameFromServer, StateBundle } from '@boardgame/elements/types/game-state.js';
 import type { ClientMove, MoveForm, ProjectedMoveChoicesWire } from '../types/api';
 
 import game from '../reducers/game.js';

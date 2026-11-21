@@ -1,5 +1,5 @@
-import './boardgame-track.js';
-import './boardgame-mat.js';
+import '@boardgame/elements/components/boardgame-track.js';
+import '@boardgame/elements/components/boardgame-mat.js';
 
 const track = document.createElement('boardgame-track');
 track.label = 'Climate';

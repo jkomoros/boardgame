@@ -1,0 +1,403 @@
+import type { AnimationTimingPolicy } from '@boardgame/elements/motion/timing.js';
+import type { ClientMove } from '@boardgame/elements/types/wire.js';
+
+export type EffectTone =
+  | 'neutral'
+  | 'reward'
+  | 'confirm'
+  | 'attention'
+  | 'warning'
+  | 'magic';
+
+export type EffectIntensity = 'subtle' | 'small' | 'medium' | 'large';
+
+export interface NamedEffectAnchor {
+  readonly kind: 'named';
+  readonly name: string;
+}
+
+export interface PointEffectAnchor {
+  readonly kind: 'point';
+  readonly x: number;
+  readonly y: number;
+}
+
+export type MotionEffectMoment = 'departure' | 'arrival';
+
+/**
+ * A safe point projected from automatic component motion. It identifies no DOM
+ * node and grants no access to component content.
+ */
+export interface MotionEffectAnchor {
+  readonly kind: 'motion';
+  readonly subjectId: string;
+  readonly moment: MotionEffectMoment;
+}
+
+/**
+ * The current position of one publicly identified, rendered component.
+ * Resolution exposes only geometry and fails closed when identity is absent
+ * or ambiguous.
+ */
+export interface SubjectEffectAnchor {
+  readonly kind: 'subject';
+  readonly subjectId: string;
+}
+
+/** Elements are ideal for immediate interaction feedback; named anchors are replay-safe. */
+export type EffectAnchor = NamedEffectAnchor | PointEffectAnchor | HTMLElement;
+export type EffectPointAnchor = EffectAnchor | MotionEffectAnchor | SubjectEffectAnchor;
+
+export interface EffectBase {
+  /** Stable identity within a transition or composition. */
+  readonly key?: string;
+  /** Semantic palette role; independent of the visual recipe. */
+  readonly tone?: EffectTone;
+  /** Semantic scale; low-level pixel/count tuning belongs in `advanced`. */
+  readonly intensity?: EffectIntensity;
+  /** Optional author salt added to the framework's game/version/descriptor seed. */
+  readonly seedKey?: string;
+  /** Immediate for local feedback; version aligns independently-derived companion effects. */
+  readonly timing?: AnimationTimingPolicy;
+  /** Raw visual overrides are intentionally isolated from the common semantic API. */
+  readonly advanced?: Readonly<{
+    palette?: readonly string[];
+    durationMs?: number;
+  }>;
+}
+
+export interface BurstEffectSpec extends EffectBase {
+  readonly kind: 'burst';
+  readonly at: EffectPointAnchor;
+  readonly advanced?: EffectBase['advanced'] & Readonly<{
+    count?: number;
+    spreadPx?: number;
+  }>;
+}
+
+export interface PulseEffectSpec extends EffectBase {
+  readonly kind: 'pulse';
+  readonly at: EffectPointAnchor;
+  readonly advanced?: EffectBase['advanced'] & Readonly<{
+    scale?: number;
+  }>;
+}
+
+export interface TravelEffectSpec extends EffectBase {
+  readonly kind: 'travel';
+  readonly from: EffectAnchor;
+  readonly to: EffectAnchor;
+  readonly advanced?: EffectBase['advanced'] & Readonly<{
+    arcPx?: number;
+    sizePx?: number;
+  }>;
+}
+
+export interface TrailEffectSpec extends Omit<EffectBase, 'timing' | 'advanced'> {
+  readonly kind: 'trail';
+  readonly subject: string;
+  /** A trail follows structural timing and cannot schedule an independent slot. */
+  readonly timing?: never;
+  readonly advanced?: Readonly<{
+    palette?: readonly string[];
+    echoes?: number;
+    lagMs?: number;
+    opacity?: number;
+  }>;
+}
+
+/** A lifecycle-bound decoration is subscribed before structural playback. */
+export interface DecorateMotionEffectSpec extends Omit<EffectBase, 'timing' | 'advanced'> {
+  readonly kind: 'decorate-motion';
+  readonly subject: string;
+  readonly effects: readonly EffectSpec[];
+  readonly timing?: never;
+  readonly advanced?: never;
+}
+
+/** Run one ordinary effect after exact FLIP subjects all finish successfully. */
+export interface AfterMotionEffectSpec extends Omit<EffectBase, 'timing' | 'advanced'> {
+  readonly kind: 'after-motion';
+  readonly subjects: readonly string[];
+  readonly effect: EffectSpec;
+  readonly timing?: never;
+  readonly advanced?: never;
+}
+
+export interface SequenceEffectSpec extends EffectBase {
+  readonly kind: 'sequence';
+  readonly effects: readonly EffectSpec[];
+  readonly gapMs: number;
+}
+
+export interface ParallelEffectSpec extends EffectBase {
+  readonly kind: 'parallel';
+  readonly effects: readonly EffectSpec[];
+}
+
+export type EffectSpec =
+  | BurstEffectSpec
+  | PulseEffectSpec
+  | TravelEffectSpec
+  | TrailEffectSpec
+  | DecorateMotionEffectSpec
+  | AfterMotionEffectSpec
+  | SequenceEffectSpec
+  | ParallelEffectSpec;
+
+export interface EffectTheme {
+  readonly tones?: Readonly<Partial<Record<EffectTone, readonly string[]>>>;
+}
+
+export type EffectResult =
+  | Readonly<{ status: 'finished' }>
+  | Readonly<{ status: 'cancelled' }>
+  | Readonly<{
+    status: 'skipped';
+    reason: 'budget' | 'missing-anchor' | 'missing-subject' | 'motion-skipped'
+      | 'no-motion-path' | 'not-connected' | 'timing';
+  }>;
+
+export interface EffectHandle {
+  readonly finished: Promise<EffectResult>;
+  cancel(): void;
+}
+
+export interface EffectHostAPI {
+  play(effect: EffectSpec): EffectHandle;
+}
+
+interface EffectTransitionContextBase<S, MN extends string> {
+  readonly after: S;
+  /** Animation-safe metadata only: move name and produced version. */
+  readonly move: (Omit<ClientMove, 'AnimationKey'> & Readonly<{ AnimationKey: MN }>) | null;
+  readonly version: number;
+  readonly snapshotEpoch: number;
+  changed<T>(select: (state: S) => T): boolean;
+}
+
+/** Initial installation is distinct so checking `kind` also narrows `before`. */
+export type EffectTransitionContext<S, MN extends string = string> =
+  | (EffectTransitionContextBase<S, MN> & Readonly<{
+    kind: 'initial';
+    before: null;
+  }>)
+  | (EffectTransitionContextBase<S, MN> & Readonly<{
+    kind: 'transition';
+    before: S;
+  }>);
+
+type CommonOptions = Omit<EffectBase, 'kind'>;
+// Each recipe widens `advanced` with its own knobs, so its options have to be
+// the spec minus `kind` -- composing `CommonOptions` with just the positional
+// fields silently narrowed `advanced` back to the base palette/durationMs and
+// made the per-recipe knobs (count, spreadPx, scale, arcPx, sizePx) impossible
+// to pass, even though the returned spec type promises them.
+type BurstOptions = Omit<BurstEffectSpec, 'kind'>;
+type PulseOptions = Omit<PulseEffectSpec, 'kind'>;
+type TravelOptions = Omit<TravelEffectSpec, 'kind'>;
+type TrailOptions = Omit<TrailEffectSpec, 'kind'>;
+type DecorateMotionOptions = Omit<DecorateMotionEffectSpec, 'kind' | 'effects'> & Readonly<{
+  trail?: Omit<TrailOptions, 'subject'> | true;
+  departure?: EffectSpec;
+  arrival?: EffectSpec;
+}>;
+type AfterMotionOptions = Omit<AfterMotionEffectSpec, 'kind'>;
+
+function nonEmpty(value: string, label: string): string {
+  const normalized = value.trim();
+  if (!normalized) throw new Error(`${label} must not be empty`);
+  return normalized;
+}
+
+function freezeAdvanced<T extends EffectBase['advanced']>(advanced: T): T {
+  if (!advanced) return advanced;
+  return Object.freeze({
+    ...advanced,
+    ...(advanced.palette ? { palette: Object.freeze([...advanced.palette]) } : {}),
+  }) as T;
+}
+
+function common<T extends CommonOptions>(options: T): T {
+  return {
+    ...options,
+    ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
+    ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
+    ...(options.advanced === undefined ? {} : { advanced: freezeAdvanced(options.advanced) }),
+  };
+}
+
+function containsMotionSubscription(effect: EffectSpec): boolean {
+  if (effect.kind === 'trail' || effect.kind === 'decorate-motion'
+    || effect.kind === 'after-motion') return true;
+  if (effect.kind === 'sequence' || effect.kind === 'parallel') {
+    return effect.effects.some(containsMotionSubscription);
+  }
+  return false;
+}
+
+export const fx = Object.freeze({
+  anchor(name: string): NamedEffectAnchor {
+    return Object.freeze({ kind: 'named', name: nonEmpty(name, 'anchor name') });
+  },
+
+  point(x: number, y: number): PointEffectAnchor {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      throw new Error('effect point coordinates must be finite');
+    }
+    return Object.freeze({ kind: 'point', x, y });
+  },
+
+  /** Decorate automatic component motion at its actual departure or arrival. */
+  motion(subjectId: string, moment: MotionEffectMoment = 'arrival'): MotionEffectAnchor {
+    if (moment !== 'departure' && moment !== 'arrival') {
+      throw new Error('motion moment must be departure or arrival');
+    }
+    return Object.freeze({
+      kind: 'motion',
+      subjectId: nonEmpty(subjectId, 'motion subject ID'),
+      moment,
+    });
+  },
+
+  /** Target exactly one current visible component without exposing its DOM node. */
+  subject(subjectId: string): SubjectEffectAnchor {
+    return Object.freeze({
+      kind: 'subject',
+      subjectId: nonEmpty(subjectId, 'effect subject ID'),
+    });
+  },
+
+  burst(options: BurstOptions): BurstEffectSpec {
+    return Object.freeze({ kind: 'burst', ...common(options) });
+  },
+
+  pulse(options: PulseOptions): PulseEffectSpec {
+    return Object.freeze({ kind: 'pulse', ...common(options) });
+  },
+
+  travel(options: TravelOptions): TravelEffectSpec {
+    return Object.freeze({ kind: 'travel', ...common(options) });
+  },
+
+  trail(options: TrailOptions): TrailEffectSpec {
+    const advanced = options.advanced
+      ? Object.freeze({
+        ...options.advanced,
+        ...(options.advanced.palette
+          ? { palette: Object.freeze([...options.advanced.palette]) }
+          : {}),
+      })
+      : undefined;
+    return Object.freeze({
+      kind: 'trail',
+      subject: nonEmpty(options.subject, 'trail subject ID'),
+      ...(options.tone === undefined ? {} : { tone: options.tone }),
+      ...(options.intensity === undefined ? {} : { intensity: options.intensity }),
+      ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
+      ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
+      ...(advanced ? { advanced } : {}),
+    });
+  },
+
+  decorateMotion(options: DecorateMotionOptions): DecorateMotionEffectSpec {
+    const subject = nonEmpty(options.subject, 'motion decoration subject ID');
+    const effects: EffectSpec[] = [];
+    if (options.trail) {
+      effects.push(fx.trail({
+        subject,
+        ...(options.trail === true ? {} : options.trail),
+      }));
+    }
+    if (options.departure) effects.push(options.departure);
+    if (options.arrival) effects.push(options.arrival);
+    if (effects.length === 0) {
+      throw new Error('motion decoration requires a trail, departure, or arrival effect');
+    }
+    return Object.freeze({
+      kind: 'decorate-motion',
+      subject,
+      ...(options.tone === undefined ? {} : { tone: options.tone }),
+      ...(options.intensity === undefined ? {} : { intensity: options.intensity }),
+      ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
+      ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
+      effects: Object.freeze(effects),
+    });
+  },
+
+  afterMotion(options: AfterMotionOptions): AfterMotionEffectSpec {
+    if (options.subjects.length === 0) {
+      throw new Error('afterMotion subjects must not be empty');
+    }
+    const subjects = options.subjects.map(subject => nonEmpty(subject, 'afterMotion subject ID'));
+    if (new Set(subjects).size !== subjects.length) {
+      throw new Error('afterMotion subjects must be unique');
+    }
+    if (containsMotionSubscription(options.effect)) {
+      throw new Error('afterMotion effect cannot contain a motion lifecycle subscription');
+    }
+    return Object.freeze({
+      kind: 'after-motion',
+      subjects: Object.freeze(subjects),
+      effect: options.effect,
+      ...(options.tone === undefined ? {} : { tone: options.tone }),
+      ...(options.intensity === undefined ? {} : { intensity: options.intensity }),
+      ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
+      ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
+    });
+  },
+
+  sequence(effects: readonly EffectSpec[], options: CommonOptions & { gapMs?: number } = {}): SequenceEffectSpec {
+    const gapMs = options.gapMs ?? 0;
+    if (!Number.isFinite(gapMs) || gapMs < 0) throw new Error('sequence gapMs must be a finite non-negative number');
+    return Object.freeze({
+      kind: 'sequence',
+      ...common(options),
+      effects: Object.freeze([...effects]),
+      gapMs,
+    });
+  },
+
+  parallel(effects: readonly EffectSpec[], options: CommonOptions = {}): ParallelEffectSpec {
+    return Object.freeze({
+      kind: 'parallel',
+      ...common(options),
+      effects: Object.freeze([...effects]),
+    });
+  },
+});
+
+export function defineEffectTheme(theme: EffectTheme): EffectTheme {
+  const tones = theme.tones
+    ? Object.fromEntries(Object.entries(theme.tones).map(([tone, colors]) => [
+      tone,
+      colors ? Object.freeze([...colors]) : colors,
+    ]))
+    : undefined;
+  return Object.freeze(tones ? { tones: Object.freeze(tones) } : {});
+}
+
+export const DEFAULT_EFFECT_THEME: EffectTheme = Object.freeze({});
+
+export function createEffectTransitionContext<S, MN extends string>(options: {
+  before: S | null;
+  after: S;
+  move: ClientMove | null;
+  version: number;
+  snapshotEpoch: number;
+}): EffectTransitionContext<S, MN> {
+  const { before, after } = options;
+  const common = {
+    after,
+    move: options.move as EffectTransitionContext<S, MN>['move'],
+    version: options.version,
+    snapshotEpoch: options.snapshotEpoch,
+    changed<T>(select: (state: S) => T): boolean {
+      if (before === null) return true;
+      return !Object.is(select(before), select(after));
+    },
+  };
+  return before === null
+    ? Object.freeze({ ...common, kind: 'initial', before: null })
+    : Object.freeze({ ...common, kind: 'transition', before });
+}

@@ -1,5 +1,5 @@
-import { cardView, componentView, html, tokenView, type ExpandedStack } from '../client.js';
-import { BoardgameComponent } from './boardgame-component.js';
+import { cardView, componentView, html, tokenView, type ExpandedStack } from '@boardgame/renderer-kit/client.js';
+import { BoardgameComponent } from '@boardgame/elements/components/boardgame-component.js';
 
 interface CardValues {
   readonly rank: string;
@@ -101,7 +101,7 @@ cardView<Cards>({
 });
 
 // Dice satisfy the same host contract without a factory cast.
-import { dieView } from '../client.js';
+import { dieView } from '@boardgame/renderer-kit/client.js';
 const dice = dieView<ExpandedStack<{ Faces: number[] }, { SelectedFace: number; RollCount: number }>>({
   rollBudget: { durationMs: 900, maxSolidDice: 5 },
   properties: context => ({ symbols: context.kind === 'visible' ? { '6': '★' } : null }),

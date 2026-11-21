@@ -1,4 +1,4 @@
-import './boardgame-fading-text.js';
+import '@boardgame/elements/components/boardgame-fading-text.js';
 
 const fading = document.createElement('boardgame-fading-text');
 fading.trigger = true;

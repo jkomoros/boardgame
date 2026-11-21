@@ -67,7 +67,7 @@ function sourceFiles(root: string): string[] {
 
 /** Client roots, matching what the config's comment claims to cover. */
 function clientRoots(): string[] {
-  const roots = [join(staticRoot, 'src')];
+  const roots = [join(staticRoot, 'src'), join(staticRoot, 'packages')];
   const examples = join(repoRoot, 'examples');
   let games: string[] = [];
   try {
@@ -117,6 +117,9 @@ function bareSpecifiers(files: string[]): Set<string> {
         const specifier = match[1];
         if (specifier.startsWith('.') || specifier.startsWith('/')) continue;
         if (specifier.startsWith('node:')) continue;
+        // The client's own packages are source, resolved by alias (see
+        // scripts/packages.mjs), not dependencies for Vite to pre-bundle.
+        if (specifier.startsWith('@boardgame/')) continue;
         found.add(specifier);
       }
     }

@@ -1,4 +1,4 @@
-import './boardgame-timer.js';
+import '@boardgame/elements/components/boardgame-timer.js';
 
 const timer = document.createElement('boardgame-timer');
 timer.timer = { ID: 'hide-cards', IsTimer: true };

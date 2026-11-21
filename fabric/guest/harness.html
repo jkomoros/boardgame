@@ -34,6 +34,7 @@
       <select id="replay">
         <option value="full">Every version (complete small game)</option>
         <option value="scenario">Decision points only (scenario-replay.json)</option>
+        <option value="blackjack">Blackjack, every version (conformance/blackjack)</option>
       </select>
     </label>
     <label>Seat
@@ -78,11 +79,18 @@ const guestUrl = 'dist/guest.html' + (params.get('csp') ? `?csp=${encodeURICompo
 const REPLAYS = {
   full: 'replays/memory-full.json',
   scenario: '../../examples/memory/client/scenario-replay.json',
+  // A conformance document: one game run on the Go engine, every version as
+  // every viewer is sent it (conformance/README.md, conformance/schema.ts).
+  blackjack: '../../conformance/blackjack/scenario-bust-and-finish.json.gz',
 };
-const PLAYERS = [
-  { playerIndex: 0, label: 'Ada', color: '#1f77b4' },
-  { playerIndex: 1, label: 'Grace', color: '#d62728' },
+const SEATS = [
+  { label: 'Ada', color: '#1f77b4' },
+  { label: 'Grace', color: '#d62728' },
+  { label: 'Lin', color: '#2ca02c' },
+  { label: 'Mary', color: '#9467bd' },
 ];
+const players = () => SEATS.slice(0, state.replay?.numPlayers ?? 2)
+  .map((seat, playerIndex) => ({ playerIndex, ...seat }));
 
 const $ = id => document.getElementById(id);
 const frame = $('guest');
@@ -100,9 +108,44 @@ const received = [];
 const sent = [];
 const waiters = [];
 
-/** Both replay formats become: versions[].viewers[seat] = protocol entry. */
+/** A conformance document becomes: versions[].viewers[seat] = protocol entry. */
+function normalizeConformance(doc) {
+  const zeroInputMoves = doc.moves.filter(move => !move.isFixUp && move.fields.length === 0).map(move => move.name);
+  return {
+    gameName: doc.game.name,
+    chest: doc.chest,
+    fingerprint: doc.engine.moveInputSchemaFingerprint,
+    numPlayers: doc.game.numPlayers,
+    versions: doc.versions.map(v => ({
+      version: v.version,
+      label: v.move ? `${v.move.name}${v.settled ? '' : ' (not settled)'}` : 'setup',
+      // The admin's view (-2) is not something a guest is ever shown.
+      viewers: Object.fromEntries(v.views.filter(view => view.viewer >= -1).map(view => [String(view.viewer), {
+        version: v.version,
+        state: view.game.CurrentState,
+        move: view.move ?? null,
+        currentPlayerIndex: view.game.CurrentPlayerIndex,
+        timers: view.game.ActiveTimers ?? {},
+        outcome: { finished: view.game.Finished === true, winners: view.game.Winners ?? [] },
+        // The live server reports legality only at a settled version.
+        ...(v.settled ? {
+          moveLegality: Object.fromEntries(view.legality.map(item => [item.name, {
+            legalForPlayer: item.legalForPlayer,
+            legalForAnyone: item.legalForAnyone,
+            ...(item.legalForPlayerError ? { error: item.legalForPlayerError } : {}),
+          }])),
+          zeroInputMoves,
+        } : {}),
+        ...(view.projectedMoveChoices ? { projectedMoveChoices: view.projectedMoveChoices } : {}),
+      }])),
+    })),
+  };
+}
+
+/** Every replay format becomes: versions[].viewers[seat] = protocol entry. */
 function normalize(raw) {
-  const base = { gameName: raw.gameName, chest: raw.chest, fingerprint: raw.moveInputSchemaFingerprint };
+  if (raw.schemaVersion === 1 && raw.game && Array.isArray(raw.viewers)) return normalizeConformance(raw);
+  const base = { gameName: raw.gameName, chest: raw.chest, fingerprint: raw.moveInputSchemaFingerprint, numPlayers: raw.numPlayers ?? 2 };
   const entry = (version, item) => ({
     version,
     state: item.game.CurrentState,
@@ -163,7 +206,7 @@ function sendInit() {
     gameId: 'harness',
     chest: state.replay.chest,
     viewer: state.viewer,
-    players: PLAYERS,
+    players: players(),
     moveInputSchemaFingerprint: state.replay.fingerprint,
   });
 }
@@ -227,8 +270,18 @@ async function restart() {
 async function loadReplay(name) {
   const response = await fetch(REPLAYS[name]);
   if (!response.ok) throw new Error(`could not load ${REPLAYS[name]}`);
-  state.replay = normalize(await response.json());
+  // Conformance documents are checked in gzipped.
+  const body = REPLAYS[name].endsWith('.gz')
+    ? new Response(response.body.pipeThrough(new DecompressionStream('gzip')))
+    : response;
+  state.replay = normalize(await body.json());
   $('replay').value = name;
+  // One viewer option per seat in this recording, plus the observer.
+  const viewer = $('viewer');
+  viewer.replaceChildren(...players().map(player => new Option(`Player ${player.playerIndex + 1}`, String(player.playerIndex))),
+    new Option('Observer', '-1'));
+  if (![...viewer.options].some(option => option.value === String(state.viewer))) state.viewer = 0;
+  viewer.value = String(state.viewer);
 }
 
 async function playAll() {
@@ -298,7 +351,8 @@ window.harness.ready = (async () => {
   } else {
     frame.src = guestUrl;
   }
-  await loadReplay(params.get('replay') === 'scenario' ? 'scenario' : 'full');
+  if (params.has('viewer')) state.viewer = Number(params.get('viewer'));
+  await loadReplay(Object.hasOwn(REPLAYS, params.get('replay') ?? '') ? params.get('replay') : 'full');
   await loaded;
   if (params.get('autostart') !== '0') await restart();
 })();

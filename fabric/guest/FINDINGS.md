@@ -6,6 +6,34 @@ references are to that commit. "Bundled" means the file is in the guest's
 import closure (132 modules; the list is in `dist/bundle-report.json` after a
 build).
 
+## What has changed since: where each finding stands
+
+Everything below this section is the original record, written against
+`34bfd655`. Stream A has since made most of the changes it asked for, and the
+guest was rebuilt on the result (`fabric/status/client-packages.md`). File and
+line references below are to the old tree: the client now lives in
+`server/static/packages/elements` and `server/static/packages/renderer-kit`.
+
+| # | Then | Now |
+|---|---|---|
+| F1 | Prototype patch over the path-computed `import()` | **Gone.** `RendererHost.loadRendererModule`; the guest's resolves for a bundled game. No `import(` is left in the bundle |
+| F2 | `api.ts` redirected to a refusing shim; `gameId` left empty | **Gone.** The kit has no HTTP import; board preview is `RendererHost.boardPreview`, which the guest does not supply. `gameId` is passed through |
+| F3 | `companionInfo` set to steer around cookie and storage reads | **Gone.** `RendererHost.resolveSurface`; the guest's returns the solo surface |
+| F4 | The same redirect, for the Table base's server calls; `API_HOST` declared | **Gone.** `RendererHost.tableActions`, absent in the guest; the declaration is deleted |
+| F5 | `socketActive = true` | **Still a shim**, one assignment. The property is the kit's word for "live" |
+| F6 | Fake move forms to carry legality | **Gone.** `boardgame-render-game.moveLegality` takes legality by move name |
+| F7 | Player info mounted by hand with `rendererLoaded = true` | **Gone.** `mountPlayerInfo()` with the host |
+| F8 | `expandGameStateSnapshot` imported from the Redux selector module, dragging in `reselect` | **Gone.** `@boardgame/elements/state/expand.js`; `reselect` is no longer a dependency |
+| F9 | No art or fonts cross the protocol | Unchanged. Token art now has a host resolver (`RendererHost.resolveTokenArt`); the guest supplies none, so a token with no art of its own draws its generated solid or nothing |
+| F10, F11 | Theme tokens copied from the webapp's stylesheet by path | The stylesheet is in the kit: `@boardgame/renderer-kit/theme/md3-theme.css`. The list of custom properties a host must set is still not written down |
+| F12 | `Sets` patched back on to projected choices | **Gone.** The kit reads an absent `Sets` as empty |
+| F14 | Side-effect registration of every element | Unchanged; seam S6 |
+| F17, F18 | Initial entrance animation; legacy overlap hook | Unchanged |
+
+The animation counters (`window.__bgAnimTestHooks`) are no longer published by
+importing the client. Both guest entry points call `installAnimTestHooks()`,
+because the guest's tests and the pattern's two-user script read them.
+
 ## Result
 
 `boardgame-render-game` mounts unmodified in a sandboxed, opaque-origin

@@ -1,12 +1,12 @@
 /** Interactive presentation fixture: installs deterministic snapshots, no game rules. */
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import { dieView } from '../components/component-view.js';
-import { SelectionDraftController } from '../moves/selection-draft.js';
-import type { BoardgameComponentAnimator } from '../components/boardgame-component-animator.js';
-import type { ExpandedStack, VisibleComponent } from '../types/boardgame-types.js';
-import '../components/boardgame-component-zone.js';
-import '../components/boardgame-component-animator.js';
+import { dieView } from '@boardgame/elements/components/component-view.js';
+import { SelectionDraftController } from '@boardgame/renderer-kit/moves/selection-draft.js';
+import type { BoardgameComponentAnimator } from '@boardgame/elements/components/boardgame-component-animator.js';
+import type { ExpandedStack, VisibleComponent } from '@boardgame/elements/types/boardgame-types.js';
+import '@boardgame/elements/components/boardgame-component-zone.js';
+import '@boardgame/elements/components/boardgame-component-animator.js';
 
 type DemoDie = VisibleComponent<{ Faces: number[] }, { SelectedFace: number; Value: number; RollCount: number }>;
 const makeDie = (index: number): DemoDie => ({ ID: `die-${index}`, Index: index, Deck: 'dice', GameName: 'dice-demo',

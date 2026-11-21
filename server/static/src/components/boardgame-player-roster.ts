@@ -8,7 +8,7 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 */
 import { createWebappRendererHost } from '../webapp/renderer-host.js';
-import type { RendererHost } from '../renderer-host/renderer-host.js';
+import type { RendererHost } from '@boardgame/renderer-kit/renderer-host/renderer-host.js';
 import { LitElement, html, css } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -18,7 +18,7 @@ import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import './boardgame-configure-game-properties.js';
 import './boardgame-player-roster-item.js';
-import { BoardgameBasePlayerInfoRenderer } from './boardgame-base-player-info-renderer.js';
+import { BoardgameBasePlayerInfoRenderer } from '@boardgame/renderer-kit/components/boardgame-base-player-info-renderer.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';

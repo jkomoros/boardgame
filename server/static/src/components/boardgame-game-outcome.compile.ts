@@ -1,4 +1,4 @@
-import './boardgame-game-outcome.js';
+import '@boardgame/elements/components/boardgame-game-outcome.js';
 
 const outcome = document.createElement('boardgame-game-outcome');
 outcome.finished = true;

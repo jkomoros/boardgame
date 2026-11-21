@@ -12,6 +12,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { analyze, readLayerTable } from './check-layers.mjs';
+import { clientPackages } from './packages.mjs';
 
 const table = readLayerTable();
 const result = analyze(table);
@@ -32,6 +33,27 @@ test('the layer table names no file that has been removed', () => {
 
 test('every relative import resolves to a file', () => {
   assert.deepEqual(result.unresolved, []);
+});
+
+// The package boundary. Layers 1 and 2 are packages (packages/elements,
+// packages/renderer-kit). Whatever is outside a package reaches it only by
+// its name and only through a subpath its package.json exports; a package
+// reaches another only if it declares the dependency; no relative import
+// crosses a package edge in either direction; and a package holds exactly the
+// files of its layer.
+test('every cross-package import goes through declared dependencies and explicit exports', () => {
+  assert.deepEqual(result.boundary, []);
+});
+
+test('the client packages exist and export something', () => {
+  const packages = clientPackages();
+  assert.deepEqual(packages.map(pkg => pkg.name), ['@boardgame/elements', '@boardgame/renderer-kit']);
+  for (const pkg of packages) assert.ok(pkg.exports.size > 0, `${pkg.name} exports nothing`);
+  const kit = packages[1];
+  assert.deepEqual(kit.dependencies.filter(name => name.startsWith('@boardgame/')), ['@boardgame/elements']);
+  assert.deepEqual(packages[0].dependencies.filter(name => name.startsWith('@boardgame/')), [],
+    'the elements package depends on no other client package');
+  assert.ok(kit.exports.has('@boardgame/renderer-kit/client.js'));
 });
 
 test('no runtime import goes from a lower layer to a higher one', () => {
@@ -60,10 +82,67 @@ test('the allow-lists hold only real, documented violations', () => {
   }
 });
 
-test('boardgame-render-game imports nothing from the host layer at runtime', { skip: Object.keys(table.allow.runtime).some(key => key.startsWith('src/components/boardgame-render-game.ts ->')) && 'still allow-listed' }, () => {
-  const edges = result.edges.filter(edge => edge.from === 'src/components/boardgame-render-game.ts'
+test('boardgame-render-game imports nothing from the host layer at runtime', () => {
+  assert.ok(result.edges.some(edge => edge.from === 'packages/renderer-kit/src/components/boardgame-render-game.ts'),
+    'the scan did not find boardgame-render-game, so this check is blind');
+  const edges = result.edges.filter(edge => edge.from === 'packages/renderer-kit/src/components/boardgame-render-game.ts'
     && edge.toLayer === 'host' && !edge.typeOnly);
   assert.deepEqual(edges.map(edge => edge.to), []);
+});
+
+test('the checker reports each kind of package-boundary breach', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'layers-packages-'));
+  try {
+    const write = (name, text) => {
+      mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+      writeFileSync(path.join(root, name), text);
+    };
+    write('packages/low/package.json', JSON.stringify({
+      name: '@fixture/low',
+      exports: { './public.js': './src/public.ts', './types.js': { types: './src/types.d.ts' }, './gone.js': './src/gone.ts' },
+    }));
+    write('packages/low/src/public.ts', "import './private.js';\nimport '../../../src/host.js';\nimport '@fixture/high/thing.js';\n");
+    write('packages/low/src/private.ts', 'export {};\n');
+    write('packages/low/src/types.d.ts', 'export type T = number;\n');
+    write('packages/high/package.json', JSON.stringify({
+      name: '@fixture/high', dependencies: { '@fixture/low': 'file:../low' }, exports: { './thing.js': './src/thing.ts' },
+    }));
+    write('packages/high/src/thing.ts', "import '@fixture/low/public.js';\nimport '@fixture/low/private.js';\nimport '@fixture/low/types.js';\nimport '../../low/src/public.js';\n");
+    write('src/host.ts', "import '@fixture/low/public.js';\nimport type { T } from '@fixture/low/types.js';\nimport '../packages/high/src/thing.js';\n");
+    write('src/stray.ts', 'export {};\n');
+    write('src/fixture.compile.ts', "import '@fixture/low/private.js';\n");
+    const fixture = analyze({
+      order: ['low', 'high', 'host'],
+      unranked: ['test-support'],
+      packages: { 'packages/low': 'low', 'packages/high': 'high' },
+      rules: [{ prefix: 'src/', suffix: '.compile.ts', layer: 'test-support' }],
+      files: {
+        'packages/low/src/public.ts': 'low',
+        'packages/low/src/private.ts': 'high',
+        'packages/high/src/thing.ts': 'high',
+        'src/host.ts': 'host',
+        'src/stray.ts': 'low',
+      },
+      allow: { runtime: {}, typeOnly: {} },
+    }, root);
+    assert.deepEqual(fixture.unresolved, []);
+    assert.deepEqual(fixture.boundary, [
+      "@fixture/low: export \"@fixture/low/gone.js\" points at a file that does not exist",
+      "packages/high/src/thing.ts -> ../../low/src/public.js: a relative import crosses a package boundary; use @fixture/low",
+      "packages/high/src/thing.ts -> @fixture/low/private.js: not in @fixture/low's exports",
+      "packages/high/src/thing.ts -> @fixture/low/types.js: a types-only export imported at runtime",
+      "packages/low/src/private.ts: is in @fixture/low (layer low) but the table says high",
+      "packages/low/src/public.ts -> ../../../src/host.js: a relative import crosses a package boundary; use no import at all",
+      "packages/low/src/public.ts -> @fixture/high/thing.js: @fixture/low does not declare @fixture/high as a dependency",
+      "src/host.ts -> ../packages/high/src/thing.js: a relative import crosses a package boundary; use @fixture/high",
+      "src/stray.ts: layer low lives in packages/low, not in src/",
+    ]);
+    // The upward imports are still reported as layer violations too.
+    assert.ok(fixture.violations.some(violation => violation.key === 'packages/low/src/public.ts -> src/host.ts'));
+    assert.ok(fixture.violations.some(violation => violation.key === 'packages/low/src/public.ts -> packages/high/src/thing.ts'));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 // The checker itself, against a throwaway tree, so a parser regression cannot

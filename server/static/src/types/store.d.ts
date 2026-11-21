@@ -5,9 +5,9 @@
  * while game and list are loaded on-demand when navigating to those views.
  */
 
-import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '@boardgame/elements/types/game-state.js';
 import type { ServerStateBundle } from './api';
-import type { CompanionInfo, GameChest, MoveForm, PlayerInfo } from './wire';
+import type { CompanionInfo, GameChest, MoveForm, PlayerInfo } from '@boardgame/elements/types/wire.js';
 
 // Wire types live in ./wire so layer-1 and kit code never imports the store's
 // types. Re-exported for the host code that has always imported them here.
@@ -18,7 +18,7 @@ export type {
   ExpandedGameState,
   GameChest,
   PlayerInfo,
-} from './wire';
+} from '@boardgame/elements/types/wire.js';
 
 /**
  * Root Redux state containing all slices.
@@ -168,7 +168,7 @@ export interface FetchedGameInfo {
   ViewingAsPlayer: number;
   StateVersion: number;
   MoveInputSchemaFingerprint: string;
-  ProjectedMoveChoices?: import('./wire').ProjectedMoveChoicesWire;
+  ProjectedMoveChoices?: import('@boardgame/elements/types/wire.js').ProjectedMoveChoicesWire;
 }
 
 /** Version payload retained only until the animation queue consumes it. */

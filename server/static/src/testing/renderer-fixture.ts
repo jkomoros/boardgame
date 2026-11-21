@@ -1,18 +1,18 @@
 import type { ProjectedMoveChoicesWire } from '../types/api.js';
-import { TimerService, TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '../timers/timer-service.js';
+import { TimerService, TIMER_SERVICE_REQUEST_EVENT, type TimerServiceRequestDetail } from '@boardgame/elements/timers/timer-service.js';
 import {
   MoveSubmissionGate,
   type MovePreviewTransport,
   type MoveSubmissionRequest,
   type MoveTransport,
-} from '../moves/action.js';
-import type { TargetPreviewTransport } from '../moves/target-action.js';
+} from '@boardgame/elements/moves/action.js';
+import type { TargetPreviewTransport } from '@boardgame/elements/moves/target-action.js';
 import {
   validatePlayerPresentations,
   type PlayerPresentation,
-} from '../status/player-presentation.js';
+} from '@boardgame/elements/status/player-presentation.js';
 
-import { setTokenArtResolver } from '../components/component-art.js';
+import { setTokenArtResolver } from '@boardgame/elements/components/component-art.js';
 import { webappTokenArt } from '../webapp/token-art.js';
 
 export const RENDERER_FIXTURE_SCHEMA_VERSION = 1 as const;

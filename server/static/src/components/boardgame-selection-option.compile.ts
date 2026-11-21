@@ -1,5 +1,5 @@
-import '../client.js';
-import type { SelectionDraftBinding } from '../client.js';
+import '@boardgame/renderer-kit/client.js';
+import type { SelectionDraftBinding } from '@boardgame/renderer-kit/client.js';
 
 declare const draft: SelectionDraftBinding<'clay' | 'ore', 'Trade', { Cards: string }>;
 const option = document.createElement('boardgame-selection-option');

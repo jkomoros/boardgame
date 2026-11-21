@@ -15,6 +15,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { clientPackages, packageOfFile, packageOfSpecifier } from './packages.mjs';
 
 export const staticRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const tablePath = path.join(staticRoot, 'scripts', 'layers.json');
@@ -32,7 +33,7 @@ function isTestFile(relative) {
   return /\.test\.(ts|js|mjs)$/.test(relative);
 }
 
-/** Every non-test source file under `src/`, as posix paths relative to `server/static`. */
+/** Every non-test source file under `src/` and `packages/<name>/src/`, as posix paths relative to `server/static`. */
 export function sourceFiles(root = staticRoot) {
   const found = [];
   const walk = (directory) => {
@@ -47,6 +48,21 @@ export function sourceFiles(root = staticRoot) {
     }
   };
   walk(path.join(root, 'src'));
+  // The client packages: packages/<name>/src.
+  let packageNames = [];
+  try {
+    packageNames = readdirSync(path.join(root, 'packages'));
+  } catch {
+    // A tree with no packages directory is only src/.
+  }
+  for (const name of packageNames) {
+    const sourceDir = path.join(root, 'packages', name, 'src');
+    try {
+      if (statSync(sourceDir).isDirectory()) walk(sourceDir);
+    } catch {
+      // Not a package directory.
+    }
+  }
   return found.sort();
 }
 
@@ -123,6 +139,7 @@ export function importsOf(root, file) {
  *   stale: string[],
  *   unknownLayers: string[],
  *   unresolved: string[],
+ *   boundary: string[],
  *   violations: {from: string, to: string, fromLayer: string, toLayer: string, typeOnly: boolean, key: string}[],
  *   edges: {from: string, to: string, fromLayer: string, toLayer: string, typeOnly: boolean}[],
  * }}
@@ -144,19 +161,76 @@ export function analyze(table = readLayerTable(), root = staticRoot) {
   const unresolved = [];
   const violations = [];
   const edges = [];
+  const boundary = [];
+  const packages = clientPackages(root);
+  const packageLayers = table.packages ?? {};
   const seen = new Map();
+  // A file's package must agree with its layer, in both directions: a package
+  // holds exactly one layer, and no file of that layer lives outside it.
+  const layerPackages = new Map(Object.entries(packageLayers).map(([dir, layer]) => [layer, dir]));
+  for (const file of files) {
+    const layer = layerOf(table, file);
+    if (layer === undefined) continue;
+    const pkg = packageOfFile(packages, file);
+    if (pkg) {
+      const expected = packageLayers[pkg.dir];
+      if (expected === undefined) boundary.push(`${file}: package ${pkg.dir} has no layer in the table's "packages"`);
+      else if (layer !== expected) boundary.push(`${file}: is in ${pkg.name} (layer ${expected}) but the table says ${layer}`);
+    } else if (layerPackages.has(layer)) {
+      boundary.push(`${file}: layer ${layer} lives in ${layerPackages.get(layer)}, not in src/`);
+    }
+  }
+  for (const pkg of packages) {
+    for (const [specifier, target] of pkg.exports) {
+      if (!isFile(target.file)) boundary.push(`${pkg.name}: export "${specifier}" points at a file that does not exist`);
+    }
+  }
   for (const from of files) {
     const fromLayer = layerOf(table, from);
     if (fromLayer === undefined) continue;
+    const fromPackage = packageOfFile(packages, from);
+    // Test support (compile-time contract tests, fixtures, demos) may reach a
+    // package's internals by specifier; ranked code may not.
+    const exempt = (table.unranked ?? []).includes(fromLayer);
     for (const { specifier, typeOnly } of importsOf(root, from)) {
-      if (!specifier.startsWith('.')) continue;
-      if (/\.(css|svg|json|png|jpg)(\?.*)?$/.test(specifier)) continue;
-      const to = resolveRelative(root, from, specifier);
-      if (to === undefined) {
-        unresolved.push(`${from} -> ${specifier}`);
+      let to;
+      const targetPackage = packageOfSpecifier(packages, specifier);
+      if (targetPackage) {
+        const exported = targetPackage.exports.get(specifier);
+        if (exported) {
+          to = path.relative(root, exported.file).split(path.sep).join('/');
+          if (exported.typesOnly && !typeOnly) {
+            boundary.push(`${from} -> ${specifier}: a types-only export imported at runtime`);
+          }
+        } else {
+          const sub = specifier.slice(targetPackage.name.length + 1);
+          to = resolveRelative(root, `${targetPackage.dir}/src/x`, `./${sub}`);
+          if (to === undefined) {
+            unresolved.push(`${from} -> ${specifier}`);
+            continue;
+          }
+          if (!exempt) boundary.push(`${from} -> ${specifier}: not in ${targetPackage.name}'s exports`);
+        }
+        if (fromPackage === targetPackage) {
+          boundary.push(`${from} -> ${specifier}: a package imports its own files by relative path`);
+        } else if (fromPackage && !fromPackage.dependencies.includes(targetPackage.name)) {
+          boundary.push(`${from} -> ${specifier}: ${fromPackage.name} does not declare ${targetPackage.name} as a dependency`);
+        }
+      } else if (specifier.startsWith('.')) {
+        if (/\.(css|svg|json|png|jpg)(\?.*)?$/.test(specifier)) continue;
+        to = resolveRelative(root, from, specifier);
+        if (to === undefined) {
+          unresolved.push(`${from} -> ${specifier}`);
+          continue;
+        }
+        const toPackage = packageOfFile(packages, to);
+        if (toPackage !== fromPackage) {
+          boundary.push(`${from} -> ${specifier}: a relative import crosses a package boundary; use ${toPackage ? toPackage.name : 'no import at all'}`);
+        }
+      } else {
         continue;
       }
-      if (!to.startsWith('src/') || isTestFile(to)) continue;
+      if (isTestFile(to)) continue;
       const toLayer = layerOf(table, to);
       if (toLayer === undefined) continue;
       // One edge per (from, to); a runtime import outranks a type-only one.
@@ -181,7 +255,8 @@ export function analyze(table = readLayerTable(), root = staticRoot) {
     if (upward) violations.push({ ...edge, key: `${edge.from} -> ${edge.to}` });
   }
   violations.sort((a, b) => a.key.localeCompare(b.key));
-  return { unassigned, stale, unknownLayers, unresolved, violations, edges };
+  boundary.sort();
+  return { unassigned, stale, unknownLayers, unresolved, violations, edges, boundary };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -197,6 +272,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     for (const file of result.unassigned) console.log(`UNASSIGNED ${file}`);
     for (const file of result.stale) console.log(`STALE ${file}`);
     for (const entry of result.unresolved) console.log(`UNRESOLVED ${entry}`);
+    for (const entry of result.boundary) console.log(`BOUNDARY ${entry}`);
     for (const violation of result.violations) {
       const allowed = (violation.typeOnly ? table.allow.typeOnly : table.allow.runtime)[violation.key] !== undefined;
       console.log(`${allowed ? 'allowed' : 'VIOLATION'}\t${violation.typeOnly ? 'type' : 'runtime'}\t${violation.fromLayer} -> ${violation.toLayer}\t${violation.key}`);

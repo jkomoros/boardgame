@@ -1,5 +1,5 @@
-import type { BoardViewportChange } from '../client.js';
-import { BoardgameBoardViewport } from './boardgame-board-viewport.js';
+import type { BoardViewportChange } from '@boardgame/renderer-kit/client.js';
+import { BoardgameBoardViewport } from '@boardgame/elements/components/boardgame-board-viewport.js';
 
 const viewport = new BoardgameBoardViewport();
 viewport.label = 'City map navigation';

@@ -2,7 +2,7 @@ import { html } from 'lit';
 import {
   BoardgameBasePlayerInfoRenderer,
   type PlayerChipPresentation,
-} from './boardgame-base-player-info-renderer.js';
+} from '@boardgame/renderer-kit/components/boardgame-base-player-info-renderer.js';
 
 interface PlayerState {
   readonly token: string;

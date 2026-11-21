@@ -1,7 +1,7 @@
 import type { ProjectedMoveChoicesWire } from '../types/api.js';
-import { playerPresentations } from '../status/player-presentation.js';
-import { expandGameStateSnapshot } from '../state/expand.js';
-import type { GameFromServer } from '../types/game-state.js';
+import { playerPresentations } from '@boardgame/elements/status/player-presentation.js';
+import { expandGameStateSnapshot } from '@boardgame/elements/state/expand.js';
+import type { GameFromServer } from '@boardgame/elements/types/game-state.js';
 import type { GameChest } from '../types/store.js';
 import type {
   RendererFixtureGameContract,

@@ -5,28 +5,6 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
-const clientSrc = resolve(repo, 'server/static/src');
-const gameSrc = resolve(repo, 'server/static/game-src');
-const realApi = resolve(clientSrc, 'api.ts');
-const apiShim = resolve(here, 'src/shims/api.ts');
-
-/**
- * The client source imports its HTTP layer by relative path. A guest has no
- * server, so every such import is redirected to a shim that fails loudly.
- */
-function redirectServerApi(): Plugin {
-  return {
-    name: 'guest-redirect-server-api',
-    enforce: 'pre',
-    async resolveId(source, importer, options) {
-      if (!importer || !source.startsWith('.')) return null;
-      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
-      if (resolved && resolved.id.split('?')[0] === realApi) return apiShim;
-      return null;
-    },
-  };
-}
-
 /**
  * Emit the one deliverable: dist/guest.html, with the whole bundle inlined
  * as a classic script, plus a JSON report of what the bundle is made of.
@@ -77,18 +55,16 @@ function emitSingleFile(): Plugin {
 
 export default defineConfig({
   root: here,
-  plugins: [redirectServerApi(), emitSingleFile()],
+  plugins: [emitSingleFile()],
   resolve: {
-    alias: {
-      '@client': clientSrc,
-      '@game-src': gameSrc,
-    },
-    // Game renderers are reached through server/static/game-src symlinks so
-    // that their `../../src/client.js` imports land in server/static/src.
+    // Game renderers are reached through the links under game-src/ so that
+    // their `../../src/client.js` imports land on this package's src/client.ts.
+    // The client packages are `file:` dependencies, linked into node_modules;
+    // keeping the link paths also keeps their `lit` import inside this
+    // package's node_modules.
     preserveSymlinks: true,
-    // The client source lives outside this package and has no node_modules
-    // of its own here; resolve its bare imports from this package, once.
-    dedupe: ['lit', 'lit-html', 'lit-element', '@lit/reactive-element', 'reselect'],
+    // One copy of Lit and of each client package, whoever imports them.
+    dedupe: ['lit', 'lit-html', 'lit-element', '@lit/reactive-element', '@boardgame/elements', '@boardgame/renderer-kit'],
   },
   esbuild: {
     // Lit's legacy decorators need these two flags. Vite would otherwise take

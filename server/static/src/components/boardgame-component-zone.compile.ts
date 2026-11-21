@@ -1,5 +1,5 @@
-import './boardgame-component-zone.js';
-import type { ProjectedStackChoices, SelectionDraftSelectionBinding, TargetAction } from '../client.js';
+import '@boardgame/elements/components/boardgame-component-zone.js';
+import type { ProjectedStackChoices, SelectionDraftSelectionBinding, TargetAction } from '@boardgame/renderer-kit/client.js';
 
 const zone = document.createElement('boardgame-component-zone');
 zone.label = 'Draw pile';

@@ -1,4 +1,4 @@
-import './boardgame-player-grid.js';
+import '@boardgame/elements/components/boardgame-player-grid.js';
 
 const grid = document.createElement('boardgame-player-grid');
 grid.label = 'Opponents';
