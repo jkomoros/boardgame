@@ -112,7 +112,8 @@ export class BgTurnStatus extends TableBound {
       finished: !!view.Finished,
       animating: false,
     };
-    return html`<boardgame-turn-status .turn=${turn} .playerLabels=${this.playerLabels}>
+    const labels = this.playerLabels.length ? this.playerLabels : this.table!.seatLabels;
+    return html`<boardgame-turn-status .turn=${turn} .playerLabels=${labels}>
     </boardgame-turn-status>`;
   }
 }
