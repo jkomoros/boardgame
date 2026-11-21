@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Page A: Memory from data</title>
+  <link rel="stylesheet" href="./pages/board.css">
+</head>
+<body>
+  <h1>Page A: Memory, layer-1 elements only</h1>
+  <p class="note">No renderer class. The markup below never changes; the script
+    parses a replay and assigns one <code>frame</code> property per state.</p>
+  <div class="controls">
+    <button id="next">Next state</button>
+    <span id="position"></span>
+  </div>
+
+  <bg-table id="table" name="memory" game-name="memory" animation-length="400"
+            hold-before='{"Capture Cards": 600}'>
+    <div class="board">
+      <bg-stack path="Game.Cards" layout="grid" messy
+                face="Type" pick='{"move":"Reveal Card","arg":"CardIndex","slots":"hidden"}'></bg-stack>
+      <bg-callout message="Match" path="Game.Cards.$count"></bg-callout>
+    </div>
+    <div class="won">
+      <div class="pile">
+        <div class="label">Player 0</div>
+        <bg-stack path="Players.0.WonCards" layout="stack" messy face="Type"></bg-stack>
+      </div>
+      <div class="pile">
+        <div class="label">Player 1</div>
+        <bg-stack path="Players.1.WonCards" layout="stack" messy face="Type"></bg-stack>
+      </div>
+    </div>
+    <div class="status">
+      <bg-action move="Hide Cards">Hide Cards</bg-action>
+      <bg-turn-status player-labels='["Player 0","Player 1"]'></bg-turn-status>
+    </div>
+  </bg-table>
+
+  <div id="log"></div>
+  <script type="module" src="./pages/memory.ts"></script>
+</body>
+</html>

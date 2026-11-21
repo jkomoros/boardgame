@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Page B: Memory with recreated children</title>
+  <link rel="stylesheet" href="./pages/board.css">
+</head>
+<body>
+  <h1>Page B: Memory, children recreated on every state</h1>
+  <p class="note">Simulates a pattern renderer. Query parameters:
+    <code>mode=all</code> recreates every stack (and so every card) on each state;
+    <code>mode=changed</code> recreates only stacks whose properties changed;
+    <code>mode=table</code> recreates the whole table.
+    <code>measure=live</code> turns off the table's remembered geometry.</p>
+  <div class="controls">
+    <button id="next">Next state</button>
+    <span id="position"></span>
+  </div>
+  <div id="mount"></div>
+  <div id="log"></div>
+  <script type="module" src="./pages/memory-recreate.ts"></script>
+</body>
+</html>

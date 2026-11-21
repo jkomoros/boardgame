@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Blackjack from data</title>
+  <link rel="stylesheet" href="./pages/board.css">
+  <style>
+    bg-table { --component-width: 44px; }
+    .piles { display: flex; align-items: center; justify-content: space-around; gap: 16px; }
+    .piles bg-stack { width: 120px; }
+    .seats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    bg-seat { border: 2px solid transparent; border-radius: 12px; padding: 8px 12px; background: #f3ead8; }
+    bg-seat[active] { border-color: #b8860b; }
+    bg-seat[eliminated] { filter: saturate(0.5) blur(1px); }
+    bg-seat[viewer] .who::after { content: " (you)"; }
+    .who { font-weight: 600; font-size: 14px; }
+    .hand { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 120px; position: relative; }
+    .hand bg-stack { width: auto; }
+  </style>
+</head>
+<body>
+  <h1>Blackjack, the same vocabulary</h1>
+  <p class="note">Per-player hands, face-down cards, a suit and rank mapping
+    table, and two argument-less moves. <code>viewer=1</code> shows the other seat's view.</p>
+  <div class="controls">
+    <button id="next">Next state</button>
+    <span id="position"></span>
+  </div>
+
+  <bg-table id="table" name="blackjack" game-name="blackjack" animation-length="350"
+            animation-lengths='{"Collect Cards": 700}'>
+    <template id="cards">{"props": {"suit": "Suit", "rotated": true,
+      "rank": {"field": "Rank", "map": {"Ace": "A", "Jack": "J", "Queen": "Q", "King": "K"}}}}</template>
+    <div class="piles">
+      <div class="pile"><div class="label">Draw pile</div>
+        <bg-stack class="cards" path="Game.DrawStack" layout="stack" messy></bg-stack></div>
+      <div class="status">
+        <bg-action move="Current Player Hit">Hit</bg-action>
+        <bg-action move="Current Player Stand">Stand</bg-action>
+      </div>
+      <div class="pile"><div class="label">Discard pile</div>
+        <bg-stack class="cards" path="Game.DiscardStack" layout="stack" messy></bg-stack></div>
+    </div>
+    <div class="seats">
+      <bg-seat index="0" flags="Eliminated Stood">
+        <div class="who">Player 0: <bg-value path="Computed.Players.0.HandValue"></bg-value></div>
+        <div class="hand">
+          <bg-stack class="cards" path="Players.0.HiddenHand" layout="fan" messy no-default-spacer></bg-stack>
+          <bg-stack class="cards" path="Players.0.VisibleHand" layout="fan" messy></bg-stack>
+          <bg-callout message="Busted!" path="Players.0.Eliminated"></bg-callout>
+          <bg-callout message="Stand!" path="Players.0.Stood"></bg-callout>
+        </div>
+      </bg-seat>
+      <bg-seat index="1" flags="Eliminated Stood">
+        <div class="who">Player 1: <bg-value path="Computed.Players.1.HandValue"></bg-value></div>
+        <div class="hand">
+          <bg-stack class="cards" path="Players.1.HiddenHand" layout="fan" messy no-default-spacer></bg-stack>
+          <bg-stack class="cards" path="Players.1.VisibleHand" layout="fan" messy></bg-stack>
+          <bg-callout message="Busted!" path="Players.1.Eliminated"></bg-callout>
+          <bg-callout message="Stand!" path="Players.1.Stood"></bg-callout>
+        </div>
+      </bg-seat>
+    </div>
+    <div class="status"><bg-turn-status player-labels='["Player 0","Player 1"]'></bg-turn-status></div>
+  </bg-table>
+
+  <div id="log"></div>
+  <script type="module" src="./pages/blackjack.ts"></script>
+</body>
+</html>

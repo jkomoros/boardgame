@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Page C: two tables</title>
+  <link rel="stylesheet" href="./pages/board.css">
+  <style>
+    .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    bg-table { --component-scale: 0.6; }
+    bg-table .won { --component-scale: 0.45; }
+    h2 { font-size: 15px; margin: 0 0 6px; }
+  </style>
+</head>
+<body>
+  <h1>Page C: two independent Memory tables</h1>
+  <p class="note">Each table plays its own replay on its own clock.
+    <code>scope=document</code> turns off the table's scoping, which is how the
+    animator behaves today. <code>same=1</code> gives both tables the same
+    replay, so every component id appears twice on the page.</p>
+  <div class="controls">
+    <button id="next-left">Next left</button>
+    <button id="next-right">Next right</button>
+    <span id="position"></span>
+  </div>
+  <div class="tables">
+    <template id="board">
+      <div class="board">
+        <bg-stack path="Game.Cards" layout="grid" messy face="Type"
+                  pick='{"move":"Reveal Card","arg":"CardIndex","slots":"hidden"}'></bg-stack>
+        <bg-callout message="Match" path="Game.Cards.$count"></bg-callout>
+      </div>
+      <div class="won">
+        <div class="pile"><div class="label">Player 0</div>
+          <bg-stack path="Players.0.WonCards" layout="stack" messy face="Type"></bg-stack></div>
+        <div class="pile"><div class="label">Player 1</div>
+          <bg-stack path="Players.1.WonCards" layout="stack" messy face="Type"></bg-stack></div>
+      </div>
+    </template>
+    <section>
+      <h2>Left: replay A</h2>
+      <bg-table id="left" name="left" game-name="memory" animation-length="600"></bg-table>
+    </section>
+    <section>
+      <h2>Right: replay B</h2>
+      <bg-table id="right" name="right" game-name="memory" animation-length="600"></bg-table>
+    </section>
+  </div>
+  <div id="log"></div>
+  <script type="module" src="./pages/two-tables.ts"></script>
+</body>
+</html>
