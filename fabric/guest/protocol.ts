@@ -63,12 +63,16 @@ export interface GuestMoveLegality {
   readonly error?: string;
 }
 
-/** Candidate legality for one move field, as the Go API projects it. */
+/**
+ * Candidate legality for moves that take one argument, as the Go API
+ * projects it (`api.ProjectMoveChoicesForViewer`). Go omits `Sets` when it
+ * is empty; the guest accepts that.
+ */
 export interface GuestProjectedChoices {
   readonly StateVersion: number;
-  readonly Status: string;
-  readonly MoveChoiceProjectionSchemaFingerprint?: string;
-  readonly ProjectionSchemaVersion?: number;
+  readonly Status: 'ready' | 'failed';
+  readonly MoveChoiceProjectionSchemaFingerprint: string;
+  readonly ProjectionSchemaVersion: number;
   readonly Sets?: readonly {
     readonly MoveName: string;
     readonly FieldName: string;
@@ -76,11 +80,9 @@ export interface GuestProjectedChoices {
     readonly Candidates: readonly {
       readonly Value: JsonValue;
       readonly Available: boolean;
-      readonly [extra: string]: JsonValue;
+      readonly Reason?: JsonValue;
     }[];
-    readonly [extra: string]: JsonValue | undefined;
   }[];
-  readonly [extra: string]: JsonValue | undefined;
 }
 
 /** One state version, as one viewer is allowed to see it. */

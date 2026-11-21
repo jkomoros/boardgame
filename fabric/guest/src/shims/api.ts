@@ -45,32 +45,17 @@ export interface ApiResponse<T> {
   status: number;
 }
 
-export function apiPath(path: string): string {
-  refused('apiPath');
-  return `guest-has-no-server:${path}`;
-}
-
 export function buildGameUrl(name: string, id: string, path = ''): string {
   refused('buildGameUrl');
   return `guest-has-no-server:${name}/${id}/${path}`;
 }
 
-export async function apiGet<T>(_url: string, ..._rest: unknown[]): Promise<ApiResponse<T>> {
-  return refused('apiGet');
-}
-
-export async function apiPost<T>(_url: string, ..._rest: unknown[]): Promise<ApiResponse<T>> {
-  return refused('apiPost');
-}
-
-export async function apiHttpPost<T>(_url: string, ..._rest: unknown[]): Promise<ApiResponse<T>> {
+/** Used by the Table surface's host actions (lock room, skip turn, solo). */
+export async function apiHttpPost(_url: string, ..._rest: unknown[]): Promise<ApiResponse<unknown>> {
   return refused('apiHttpPost');
 }
 
-export async function movePreview(..._args: unknown[]): Promise<ApiResponse<never>> {
-  return refused('movePreview');
-}
-
+/** Used by boardgame-render-game's board legality preview. */
 export async function movePreviewBatch(..._args: unknown[]): Promise<ApiResponse<never>> {
   return refused('movePreviewBatch');
 }

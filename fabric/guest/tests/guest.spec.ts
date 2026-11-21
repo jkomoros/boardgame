@@ -346,3 +346,46 @@ test('a guest that joins late cuts to the newest version instead of replaying th
   ]);
   expect(errorsOf(page)).toEqual([]);
 });
+
+test('the built file works opened straight from disk, with nothing beside it', async ({ page }) => {
+  const network = watchNetwork(page);
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(String(error)));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+
+  // Top-level, so the document is its own "host": it posts to itself.
+  await page.addInitScript(() => {
+    (window as unknown as { __guestMessages: unknown[] }).__guestMessages = [];
+    window.addEventListener('message', event => {
+      const data = event.data as { type?: string };
+      if (data?.type === 'ready' || data?.type === 'animations-done' || data?.type === 'error') {
+        (window as unknown as { __guestMessages: unknown[] }).__guestMessages.push(data);
+      }
+    });
+  });
+  await page.goto('file://' + resolve(here, '../dist/guest.html'));
+
+  const viewer = replay.versions[0]!.viewers['0']! as unknown as {
+    game: { CurrentState: unknown; CurrentPlayerIndex: number };
+    moveLegality: unknown;
+  };
+  await page.evaluate(({ chest, state, currentPlayerIndex, moveLegality }) => {
+    const send = (body: object) => window.postMessage({ channel: 'boardgame-guest', v: 1, ...body }, '*');
+    send({ type: 'init', gameName: 'memory', chest, viewer: 0,
+      players: [{ playerIndex: 0, label: 'One' }, { playerIndex: 1, label: 'Two' }] });
+    send({ type: 'state', viewer: 0, entries: [{
+      version: 0, state, move: null, currentPlayerIndex, moveLegality,
+      outcome: { finished: false, winners: [] },
+    }] });
+  }, {
+    chest: replay.chest, state: viewer.game.CurrentState,
+    currentPlayerIndex: viewer.game.CurrentPlayerIndex, moveLegality: viewer.moveLegality,
+  });
+
+  await expect(page.locator('boardgame-component-stack[layout="grid"] boardgame-card')).toHaveCount(10);
+  await expect.poll(() => page.evaluate(() =>
+    (window as unknown as { __guestMessages: { type: string }[] }).__guestMessages.map(m => m.type)))
+    .toEqual(['ready', 'ready', 'animations-done']);
+  expect(network.requests.map(request => request.url)).toEqual([page.url()]);
+  expect(errors).toEqual([]);
+});

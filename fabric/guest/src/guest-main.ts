@@ -20,6 +20,7 @@ import { setServerCallReporter } from './shims/api.js';
 // name its parent's origin, so messages are posted to '*'; they carry only
 // what the person did, never state.
 const hostWindow: Window = window.parent;
+const HOST_MESSAGE_TYPES: ReadonlySet<string> = new Set(['init', 'state', 'move-result']);
 
 function post(message: GuestToHostMessage): void {
   hostWindow.postMessage(message, '*');
@@ -70,6 +71,10 @@ window.addEventListener('message', (event: MessageEvent) => {
   // Only the embedding window may drive the guest.
   if (event.source !== hostWindow) return;
   if (!isGuestMessage(event.data)) return;
+  // Ignore everything but the three host messages, silently. Opened as a
+  // top-level document the guest is its own parent and hears what it posts;
+  // answering an unknown type with an error would then never stop.
+  if (!HOST_MESSAGE_TYPES.has(event.data.type)) return;
   try {
     host.handle(event.data as HostToGuestMessage);
   } catch (error) {

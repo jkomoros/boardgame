@@ -160,8 +160,6 @@ export class GuestHost {
       case 'init': this.handleInit(message); return;
       case 'state': this.handleState(message); return;
       case 'move-result': this.handleMoveResult(message); return;
-      default:
-        this.send({ type: 'error', message: `unknown message type ${JSON.stringify((message as { type: unknown }).type)}` });
     }
   }
 
@@ -395,13 +393,9 @@ export class GuestHost {
     this.setTimers(entry);
 
     // The same expansion the webapp runs: stacks gain their components from
-    // the chest. It mutates nothing, but FINDINGS F8 covers why the entry is
-    // cloned first.
-    const expanded = expandGameStateSnapshot(
-      structuredClone(entry.state) as never,
-      init.chest as never,
-      init.gameName,
-    );
+    // the chest. SHIM (FINDINGS F8): it is imported from selectors.ts, the
+    // Redux selector module, because that is where the pure function lives.
+    const expanded = expandGameStateSnapshot(entry.state as never, init.chest as never, init.gameName);
 
     // All of these land in one Lit update, in the order render-game's
     // updated() applies them; the state assignment is what starts the cycle.
