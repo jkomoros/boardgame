@@ -106,13 +106,21 @@ export async function installProbe(page: Page): Promise<void> {
       let done = false;
       const t0 = performance.now();
       h.next();
-      // Sample AFTER the frame's other callbacks have run, i.e. what was
-      // painted: the animator starts playback from its own rAF callback.
-      const channel = new MessageChannel();
-      channel.port1.onmessage = () => sample();
+      // Sample what each frame PAINTS. The animator starts playback from its
+      // own requestAnimationFrame callback, so sampling inside ours would read
+      // the layout before the inversion is applied, and sampling from a later
+      // task can land between a state install and the next frame. A
+      // ResizeObserver callback runs after every rAF callback and after
+      // layout, in the same frame, just before paint.
+      const beacon = document.createElement('div');
+      beacon.style.cssText = 'position:fixed;left:-99px;top:0;width:1px;height:1px;';
+      document.body.append(beacon);
+      let flip = 0;
+      const observer = new ResizeObserver(() => sample());
+      observer.observe(beacon);
       const tick = () => {
         if (done) return;
-        channel.port2.postMessage(0);
+        beacon.style.width = `${1 + (flip = 1 - flip)}px`;
         requestAnimationFrame(tick);
       };
       const sample = () => {
@@ -130,6 +138,8 @@ export async function installProbe(page: Page): Promise<void> {
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       await h.table.whenSettled();
       done = true;
+      observer.disconnect();
+      beacon.remove();
       const end = ids.map(id => center(id, side));
       return { start, end, samples, running, transformAnimations, ms: performance.now() - t0 };
     };

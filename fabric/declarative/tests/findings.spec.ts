@@ -82,6 +82,65 @@ test.describe('recreation', () => {
   });
 });
 
+test.describe('hints as data', () => {
+  test('a stagger cohort given as JSON delays the second card', async ({ page }) => {
+    await ready(page, '/memory.html?auto=0');
+    const delays = await page.evaluate(async ([index, ids]) => {
+      const probe = (window as any).probe;
+      const d = (window as any).declarative;
+      await probe.stepTo(index as number);
+      d.frames[(index as number) + 1].transition = {
+        move: 'Capture Cards',
+        cohorts: [{ kind: 'stagger', subjects: ids, intervalMs: 150 }],
+      };
+      d.next();
+      const seen = new Set<number>();
+      for (let i = 0; i < 80; i++) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        for (const animation of probe.animations()) {
+          seen.add(Number((animation.effect as KeyframeEffect).getTiming().delay));
+        }
+      }
+      await d.table.whenSettled();
+      return [...seen].sort((a, b) => a - b);
+    }, [want.bothUp, want.pairIds] as const);
+    expect(delays).toContain(0);
+    expect(delays).toContain(150);
+  });
+});
+
+test.describe('geometry', () => {
+  for (const [label, css] of [
+    ['a scaled ancestor', 'transform: scale(0.7); transform-origin: top left;'],
+    ['a scrolled container', 'height: 300px; overflow: auto;'],
+  ] as const) {
+    test(`a flight inside ${label} starts and ends in the right place`, async ({ page }) => {
+      await ready(page, '/memory.html?auto=0');
+      const track = await page.evaluate(async ([index, ids, style]) => {
+        const probe = (window as any).probe;
+        const d = (window as any).declarative;
+        const wrapper = document.createElement('div');
+        wrapper.setAttribute('style', style as string);
+        d.table.before(wrapper);
+        wrapper.append(d.table);
+        wrapper.scrollTop = 60;
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await probe.stepTo(index as number);
+        return probe.advanceAndTrack(ids);
+      }, [want.bothUp, want.pairIds, css] as const);
+      for (let which = 0; which < 2; which++) {
+        const { fractions } = progress(track, which);
+        // The table holds 600 ms before a capture, so skip the still frames.
+        const moving = fractions.filter(f => f > 0.02);
+        expect(moving[0]!).toBeLessThan(0.35);
+        expect(Math.max(...fractions)).toBeLessThan(1.05);
+        expect(Math.min(...fractions)).toBeGreaterThan(-0.05);
+        expect(fractions[fractions.length - 1]!).toBeGreaterThan(0.98);
+      }
+    });
+  }
+});
+
 test.describe('two tables', () => {
   const running = (side: string) => `(window.probe.animations('${side}').length)`;
 

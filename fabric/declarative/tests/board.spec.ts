@@ -90,6 +90,10 @@ for (const variant of variants) {
         expect(fractions[0]!).toBeLessThan(0.35);
         // It passed through the middle of its path on several frames.
         expect(fractions.filter(f => f > 0.1 && f < 0.9).length).toBeGreaterThanOrEqual(3);
+        // No painted frame shows the card at its destination and then back
+        // on its path: progress never drops by more than rounding noise.
+        const backwards = fractions.slice(1).map((f, i) => fractions[i]! - f);
+        expect(Math.max(...backwards)).toBeLessThan(0.05);
         // And it ended where the new state puts it.
         expect(fractions[fractions.length - 1]!).toBeGreaterThan(0.98);
       }
