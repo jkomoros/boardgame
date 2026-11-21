@@ -1,0 +1,126 @@
+From 1ef3d7ce9954ee65135483efda1c4fc062395405 Mon Sep 17 00:00:00 2001
+From: Alex Komoroske <jkomoros@gmail.com>
+Date: Sat, 21 Nov 2026 11:46:17 -0800
+Subject: [PATCH] spike(shell): Load one admitted set of custom elements beside
+ the cf-* set
+
+Not for merging. With CF_SPIKE_TRUSTED_COMPONENTS naming a built ES module,
+the shell bundles it as scripts/trusted-components and loads it at boot, so
+a pattern's JSX can use the elements it defines.
+
+Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
+---
+ runtime/shell/felt.config.ts                  | 19 +++++++++-
+ runtime/shell/src/index.ts                    |  1 +
+ .../shell/src/lib/spike-trusted-components.ts | 36 +++++++++++++++++++
+ 3 files changed, 55 insertions(+), 1 deletion(-)
+ create mode 100644 runtime/shell/src/lib/spike-trusted-components.ts
+
+diff --git a/runtime/shell/felt.config.ts b/runtime/shell/felt.config.ts
+index 4c54474edf..283faabf7f 100644
+--- a/runtime/shell/felt.config.ts
++++ b/runtime/shell/felt.config.ts
+@@ -2,7 +2,7 @@ import type { Config } from "@commonfabric/felt";
+ 
+ import ports from "@commonfabric/ports" with { type: "json" };
+ 
+-import { fromFileUrl } from "@std/path";
++import { fromFileUrl, relative, resolve } from "@std/path";
+ 
+ import {
+   compileCacheVersionSourceOf,
+@@ -32,6 +32,13 @@ const COMPILE_CACHE_RUNTIME_VERSION =
+       )
+       : await computeCurrentCompilerVersion());
+ 
++// SPIKE(boardgame-trusted-components): a path to one built ES module that
++// defines custom elements from outside this repository. The shell bundles it
++// as `scripts/trusted-components` and loads it beside the `cf-*` set, so a
++// pattern's JSX can name those elements. Nothing decides who may set this: it
++// stands in for a user's policy admitting a component set.
++const SPIKE_TRUSTED_COMPONENTS = Deno.env.get("CF_SPIKE_TRUSTED_COMPONENTS");
++
+ const SHELL_PORT = parseInt(
+   Deno.env.get("SHELL_PORT") || String(ports.shell),
+   10,
+@@ -70,6 +77,13 @@ const config: Config = {
+       // boot bundle. `index` above is a plain, unsplit bundle.
+       splitting: true,
+     },
++    ...(SPIKE_TRUSTED_COMPONENTS
++      ? [{
++        // An entry's path is joined to this directory, so it is made relative.
++        in: relative(Deno.cwd(), resolve(SPIKE_TRUSTED_COMPONENTS)),
++        out: "scripts/trusted-components",
++      }]
++      : []),
+   ],
+   outDir: "dist",
+   hostname: "127.0.0.1",
+@@ -101,6 +115,9 @@ const config: Config = {
+       "$ENVIRONMENT": ENVIRONMENT,
+       "$API_URL": Deno.env.get("API_URL"),
+       "$COMMIT_SHA": Deno.env.get("COMMIT_SHA"),
++      "$SPIKE_TRUSTED_COMPONENTS": SPIKE_TRUSTED_COMPONENTS
++        ? "/scripts/trusted-components.js"
++        : undefined,
+       "$EXPERIMENTAL_MODERN_CELL_REP": Deno.env.get(
+         "EXPERIMENTAL_MODERN_CELL_REP",
+       ),
+diff --git a/runtime/shell/src/index.ts b/runtime/shell/src/index.ts
+index 55ca14f2e7..5befb37dd8 100644
+--- a/runtime/shell/src/index.ts
++++ b/runtime/shell/src/index.ts
+@@ -24,6 +24,7 @@ import { setupHostToggles } from "./lib/host-toggles.ts";
+ import { handleLoomPairingLink } from "./lib/loom-pairing-login.ts";
+ import { consumeLoomPairingFragment } from "./lib/loom-pairing.ts";
+ 
++import "./lib/spike-trusted-components.ts";
+ import "./components/index.ts";
+ import "./views/index.ts";
+ 
+diff --git a/runtime/shell/src/lib/spike-trusted-components.ts b/runtime/shell/src/lib/spike-trusted-components.ts
+new file mode 100644
+index 0000000000..8127552fc9
+--- /dev/null
++++ b/runtime/shell/src/lib/spike-trusted-components.ts
+@@ -0,0 +1,36 @@
++/**
++ * SPIKE(boardgame-trusted-components). Not for merging.
++ *
++ * Loads one extra script of custom element definitions into the shell page,
++ * beside the `cf-*` set, when the shell was built with
++ * `CF_SPIKE_TRUSTED_COMPONENTS` naming it (see `felt.config.ts`).
++ *
++ * The renderer creates whatever tag a pattern's JSX names, and a tag with no
++ * definition is an inert element. So the one thing that admits an element
++ * into a pattern's view today is that the page defined it. This module is
++ * that admission, decided by whoever starts the shell.
++ *
++ * What a real version needs and this does not have: a record of which sets a
++ * user admitted, a check of the script against a digest that record holds,
++ * a namespace each set is confined to (a set here could define `cf-button`
++ * first), and an entry for each element's props in the reconciler's
++ * remote-load and text-integrity tables.
++ */
++declare global {
++  var $SPIKE_TRUSTED_COMPONENTS: string | undefined;
++}
++
++const script = typeof $SPIKE_TRUSTED_COMPONENTS === "string"
++  ? $SPIKE_TRUSTED_COMPONENTS
++  : undefined;
++
++if (script !== undefined) {
++  // A script element rather than `import()`: this entry is one unsplit
++  // bundle, and the set is a separate file on purpose.
++  const element = document.createElement("script");
++  element.type = "module";
++  element.src = script;
++  document.head.append(element);
++}
++
++export {};
+-- 
+2.54.0 (Apple Git-157)
+

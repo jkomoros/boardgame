@@ -6,8 +6,9 @@
  * items look up by walking their ancestors. It is a wrapper: all measurement,
  * FLIP solving and playback is the existing animator's.
  *
- * Inputs are attributes and JSON-serializable properties. The only event that
- * leaves it is `propose-move`.
+ * Inputs are attributes and JSON-serializable properties. Two events leave
+ * it: `propose-move` (a person activated something) and `timer-elapsed` (a
+ * timer of the installed version has run out by this browser's clock).
  *
  * Three things here are NOT in the existing elements, and each is a finding
  * (see FINDINGS.md):
@@ -33,6 +34,8 @@ import { captureHistoricalPresentation } from '../../../server/static/src/motion
 import type { MotionStaggerCohortSpec } from '../../../server/static/src/motion/cohort.js';
 import { expandStack, resolvePath, isWireStack } from './expand.js';
 import type { Chest, WireStack, WireView } from './expand.js';
+import { frameOf, isTableView, seatOf } from './table-view.js';
+import type { TableViewEntry, TableViewJSON } from './table-view.js';
 
 /** Per-version presentation hints. All data; computed by whoever supplies the view. */
 export interface Transition {
@@ -66,7 +69,20 @@ export interface Frame {
   /** Which moves need no argument and are legal now, by name. */
   readonly legality?: Readonly<Record<string, { readonly legalForPlayer?: boolean }>> | null;
   readonly transition?: Transition | null;
+  /** Timers running in this version, by id, with the time each had left when it was produced. */
+  readonly timers?: Readonly<Record<string, { readonly TimeLeft: number }>> | null;
 }
+
+/** Detail of `timer-elapsed`: the table's own clock says this timer has run out. */
+export interface TimerElapsedDetail {
+  readonly timerId: string;
+  readonly version: number | null;
+}
+
+/** How long after a timer's time is up the table first says so, and how it repeats. */
+const TIMER_GRACE_MS = 150;
+const TIMER_REPEAT_MS = 1000;
+const TIMER_REPEATS = 12;
 
 /** An element inside a table that re-renders when the installed view changes. */
 export interface TableChild extends HTMLElement {
@@ -107,6 +123,17 @@ const INTERNAL_EVENTS = [
   'will-animate', 'animation-done', 'stack-slot-geometry-changed',
   'component-tapped', 'motion-cycle-release',
 ] as const;
+
+/** Re-assign values set as own properties before the element's class was defined. */
+export function adoptEarlyProperties(element: HTMLElement, names: readonly string[]): void {
+  const bag = element as unknown as Record<string, unknown>;
+  for (const name of names) {
+    if (!Object.prototype.hasOwnProperty.call(element, name)) continue;
+    const value = bag[name];
+    delete bag[name];
+    bag[name] = value;
+  }
+}
 
 export function findTable(from: Node): BgTable | null {
   let node: Node | null = from;
@@ -193,6 +220,103 @@ export class BgTable extends LitElement {
   readonly stats = { cycles: 0, animatedCycles: 0, animationsStarted: 0, installs: 0, interrupted: 0 };
 
   // ---- the declarative input -------------------------------------------
+
+  private _tableView: TableViewJSON | null = null;
+  private _principal = '';
+  private _epoch: number | undefined = undefined;
+  private _queuedVersion = -1;
+  private _entryOf = new WeakMap<Frame, TableViewEntry>();
+  private _timerHandles: ReturnType<typeof setTimeout>[] = [];
+
+  /**
+   * The view a Common Fabric table releases, whole and untouched: seats, and
+   * a window of the most recent versions. The table queues every version it
+   * has not queued yet, so a caller that only ever holds "the newest value"
+   * loses no intermediate version. A value that is not a table view (the
+   * `undefined` before the first move) is ignored.
+   */
+  set tableView(value: TableViewJSON | null | undefined) {
+    if (!isTableView(value)) return;
+    this._tableView = value;
+    this.setAttribute('phase', value.phase ?? 'seating');
+    if (value.gameName && !this.gameName) this.gameName = value.gameName;
+    this._syncViewer();
+    const entries = value.entries ?? [];
+    if (value.epoch !== this._epoch) {
+      // A new deal: nothing before it is comparable.
+      this._epoch = value.epoch;
+      this._queuedVersion = -1;
+      this._queue = [];
+    }
+    const fresh = entries.filter(entry => entry.version > this._queuedVersion);
+    // Someone arriving mid-game is shown the present, not a replay.
+    const queue = this._queuedVersion < 0 ? fresh.slice(-1) : fresh;
+    for (const entry of queue) {
+      const frame = frameOf(entry, this.viewer);
+      this._entryOf.set(frame, entry);
+      this._queuedVersion = entry.version;
+      this.frame = frame;
+    }
+    for (const child of this._children) child.tableChanged();
+  }
+
+  get tableView(): TableViewJSON | null {
+    return this._tableView;
+  }
+
+  /** Who is looking, as the table names its seats' holders. Decides `viewer`. */
+  set principal(value: string | null | undefined) {
+    this._principal = typeof value === 'string' ? value : '';
+    this._syncViewer();
+  }
+
+  get principal(): string {
+    return this._principal;
+  }
+
+  /** Seat labels of the table view, in seat order. */
+  get seatLabels(): string[] {
+    return (this._tableView?.seats ?? []).map(seat => seat.label);
+  }
+
+  /** A viewer who sat down sees the same versions with their own legality. */
+  private _syncViewer(): void {
+    if (!this._tableView) return;
+    const seat = seatOf(this._tableView, this._principal);
+    if (seat === this.viewer) return;
+    this.viewer = seat;
+    const again = (frame: Frame): Frame => {
+      const entry = this._entryOf.get(frame);
+      if (!entry) return frame;
+      const next = { ...frameOf(entry, seat), view: frame.view };
+      this._entryOf.set(next, entry);
+      return next;
+    };
+    this._queue = this._queue.map(again);
+    if (this._frame) {
+      this._frame = again(this._frame);
+      // Same stacks, different legality: have every stack re-stamp its slots.
+      this._expanded = new WeakMap();
+      for (const child of this._children) child.tableChanged();
+    }
+  }
+
+  private _armTimers(frame: Frame): void {
+    for (const handle of this._timerHandles) clearTimeout(handle);
+    this._timerHandles = [];
+    for (const [timerId, timer] of Object.entries(frame.timers ?? {})) {
+      const fire = (left: number): void => {
+        if (this._frame !== frame || !this.isConnected) return;
+        const detail: TimerElapsedDetail = Object.freeze({
+          timerId, version: frame.view.Version ?? null,
+        });
+        this.dispatchEvent(new CustomEvent('timer-elapsed', { detail, bubbles: true, composed: true }));
+        if (left > 0) this._timerHandles.push(setTimeout(() => fire(left - 1), TIMER_REPEAT_MS));
+      };
+      this._timerHandles.push(setTimeout(() => fire(TIMER_REPEATS),
+        Math.max(0, timer.TimeLeft) + TIMER_GRACE_MS));
+    }
+  }
 
   /**
    * THE input. Assigning a frame queues that version; the table installs
@@ -309,6 +433,10 @@ export class BgTable extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    // A host may assign these before the element is defined. Lit re-applies
+    // its own reactive properties after an upgrade; plain accessors it does
+    // not know about stay shadowed by the instance value unless moved here.
+    adoptEarlyProperties(this, ['chest', 'principal', 'tableView', 'frame', 'view']);
     for (const type of INTERNAL_EVENTS) this.addEventListener(type, this._swallow);
     const retained = this.name ? retainedByName.get(this.name) : undefined;
     if (retained) {
@@ -323,6 +451,8 @@ export class BgTable extends LitElement {
     for (const type of INTERNAL_EVENTS) this.removeEventListener(type, this._swallow);
     this._resize?.disconnect();
     this._resize = null;
+    for (const handle of this._timerHandles) clearTimeout(handle);
+    this._timerHandles = [];
     if (this.name) retainedByName.set(this.name, { snapshot: this._snapshot, memory: this._memory });
     this._token++;
     this._open = 0;
@@ -413,6 +543,8 @@ export class BgTable extends LitElement {
         this._applyAnimationLength();
         for (const child of this._children) child.tableChanged();
         await this._cycleDone();
+        // Only the newest version's timers are still running.
+        if (this._queue.length === 0) this._armTimers(entry);
         const after = entry.transition?.holdMs ?? 0;
         if (after > 0 && this._queue.length > 0) {
           await new Promise(resolve => setTimeout(resolve, after));

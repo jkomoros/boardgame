@@ -1,5 +1,11 @@
 # Findings: a board driven by layer-1 elements alone, from data
 
+> **Later result.** Step 3 ran these elements under the real labs reconciler
+> (`../patterns-declarative/FINDINGS.md`). It never recreated an element, so
+> the recreation results below describe a host that does, not labs. It does
+> deliver props one at a time, which is the hazard the atomic `frame` input
+> answers.
+
 Stream D, step 2 of [the proposal](../PROPOSAL.md). Date: 2026-11-21.
 
 ## Verdict

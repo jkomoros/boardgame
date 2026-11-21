@@ -4,3 +4,4 @@ export * from './bg-stack.js';
 export * from './bg-extras.js';
 export * from './spec.js';
 export * from './expand.js';
+export * from './table-view.js';
