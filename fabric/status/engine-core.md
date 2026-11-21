@@ -37,10 +37,15 @@ uses 24.x). This session did not install any toolchain.
 | Final | Node 24.22.3 | `npm run test:unit` | 869 pass, 0 fail |
 | Final | Node 24.22.3 | `node --test --test-timeout=20000 --import=./scripts/test-budget.mjs 'src/engine/**/*.test.ts'` | 82 pass, 0 fail |
 
-Node 24.22.3 was found already present under `~/.nvm/versions/node` partway
-through the work; this session did not install it and does not know who did.
-The pre-existing count of 787 is the Node 24 total minus the engine's 82; the
-baseline suite was never run on its own under a Node that can run it.
+**The reported results are from Node 24.22.3**, rerun at the branch head
+after the orchestrating session confirmed it had been installed through nvm
+(this session did not install it). In that rerun the pre-existing tests were
+also run alone, every `*.test.ts` outside `src/engine`, with the same flags
+as `test:unit`: 787 pass, 0 fail. That is the baseline the Node 20 run could
+not produce.
+
+The Deno stand-in is not part of the repository: nothing was added for it,
+and no result in this document rests on it.
 
 Go commands ran through `./scripts/go-local` with go1.27.4.
 
