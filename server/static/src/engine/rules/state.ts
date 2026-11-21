@@ -245,9 +245,9 @@ export class RulesState {
 		return this.engine.view({ Group: 'player', Player: player, Prop: prop });
 	}
 
-	/** A component's static values. */
+	/** A component's static values ({} for a component that has none). */
 	component(deck: string, deckIndex: number): Readonly<Record<string, unknown>> {
-		return this.game.spec.decks[deck].components[deckIndex];
+		return this.game.spec.decks[deck].components[deckIndex] ?? {};
 	}
 
 	/** A component's dynamic values. */
@@ -385,14 +385,14 @@ export class RulesState {
 	// ----- phases --------------------------------------------------------
 
 	/** delegate.CurrentPhase: null when the game state has no Phase enum. */
-	currentPhase(): { key: number; name: string; ancestors: null } | null {
+	currentPhase(): { key: number; name: string; ancestors: readonly number[] | null } | null {
 		const prop = this.game.def.Game.Props.Phase;
 		if (!prop || prop.Type !== 'enum') return null;
 		const e = this.game.enums.get(prop.Enum);
 		if (e === null) return null;
 		const key = e.keyOf(this.g.Phase);
 		if (key === null) return null;
-		return { key, name: e.stringOf(key), ancestors: null };
+		return { key, name: e.stringOf(key), ancestors: e.ancestors ? e.ancestors(key) : null };
 	}
 
 	/** The current phase's key, or 0 with no phase (as Go records it). */
@@ -456,6 +456,7 @@ export class RulesState {
 		}
 		const move = { name, fields, version: this.version + 1, initiator: 0 };
 		if (compiled.spec.base === 'currentPlayer') fields.TargetPlayerIndex = this.ensureValid(this.currentPlayerIndex());
+		else if (compiled.spec.base === 'anyPlayer') fields.TargetPlayerIndex = OBSERVER_PLAYER_INDEX;
 		if (compiled.spec.defaults) compiled.spec.defaults(this, move);
 		return move;
 	}

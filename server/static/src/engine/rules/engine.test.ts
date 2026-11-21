@@ -61,7 +61,7 @@ class Table {
 /** Two hidden slots of a memory layout whose cards differ (or match). */
 function memorySlots(table: Table, wantMatch: boolean): [number, number] {
 	const hidden = (table.state.Game.HiddenCards as { Indexes: number[] }).Indexes;
-	const type = (index: number): string => memory.decks.cards.components[index].Type as string;
+	const type = (index: number): string => memory.decks.cards.components[index]?.Type as string;
 	for (let i = 0; i < hidden.length; i++) {
 		for (let j = i + 1; j < hidden.length; j++) {
 			if (hidden[i] < 0 || hidden[j] < 0) continue;

@@ -85,7 +85,8 @@ function emptySubState(spec: SubStateSpec, enums: Readonly<Record<string, EnumDe
 				break;
 			}
 			default:
-				node[name] = [];
+				// A slice property starts as Go's nil slice, which serializes as null.
+				node[name] = null;
 		}
 	}
 	if (spec.initial) Object.assign(node, spec.initial(index));
@@ -168,7 +169,9 @@ export function plainGameStackName(path: string | undefined): string | null {
 
 function moveFields(spec: MoveSpec): Record<string, MoveFieldSpec> {
 	const fields: Record<string, MoveFieldSpec> = {};
-	if (spec.base === 'currentPlayer') fields.TargetPlayerIndex = { type: 'playerIndex', input: 'context-owned', codec: 'player-index' };
+	if (spec.base === 'currentPlayer' || spec.base === 'anyPlayer') {
+		fields.TargetPlayerIndex = { type: 'playerIndex', input: 'context-owned', codec: 'player-index' };
+	}
 	for (const name of Object.keys(spec.fields ?? {})) fields[name] = (spec.fields as Record<string, MoveFieldSpec>)[name];
 	return fields;
 }

@@ -50,8 +50,8 @@ export interface MoveRecord {
 // ----- state shape --------------------------------------------------------
 
 export interface DeckSpec {
-	/** Each component's static values, by deck index. */
-	components: readonly Readonly<Record<string, unknown>>[];
+	/** Each component's static values, by deck index; null for a component with none (a plain token). */
+	components: readonly (Readonly<Record<string, unknown>> | null)[];
 	/** Declared types of those values. Needed for enum-valued ones. */
 	props?: Readonly<Record<string, ValuePropDef>>;
 }
@@ -90,6 +90,11 @@ export interface PlayerTraits {
 	inactive?: boolean;
 	/** behaviors.PlayerElimination: bool property Eliminated. */
 	elimination?: boolean;
+	/**
+	 * behaviors.PlayerRole: enum property Role (enum "role"), hidden from
+	 * other players. Viewers get a computed RoleValue where they may see it.
+	 */
+	role?: boolean;
 	/** A GameScore() method (behaviors.ScoreBehavior reads property Score). */
 	gameScore?: (state: RulesState, player: number) => number;
 	turn?: TurnHooks;
@@ -164,8 +169,12 @@ export interface MoveSpec {
 	 * 'currentPlayer' is moves.CurrentPlayer: the move has a TargetPlayerIndex
 	 * field defaulting to the current player, and (for a declared-legality
 	 * move) the base check that the proposer is that player.
+	 *
+	 * 'anyPlayer' is moves.AnyPlayer: a move any seated player makes for
+	 * themself. It has a TargetPlayerIndex field that the engine sets to the
+	 * proposer; call anyPlayerLegal first in the move's `legal`.
 	 */
-	base?: 'default' | 'currentPlayer';
+	base?: 'default' | 'currentPlayer' | 'anyPlayer';
 	/** Fields beyond what `base` supplies. */
 	fields?: Readonly<Record<string, MoveFieldSpec>>;
 	/** DefaultsForState, run after the base's defaults. */

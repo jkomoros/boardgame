@@ -142,7 +142,11 @@ function headerOf(game: CompiledGame, record: GameRecord): Record<string, unknow
 		decks[deckName] = spec.decks[deckName].components.map((values, index) => ({ Index: index, Values: values }));
 	}
 	const enums: Record<string, unknown> = {};
-	for (const e of game.enums.chestEnums()) enums[e.name] = { DefaultValue: e.def.DefaultValue, Values: e.def.Values };
+	for (const e of game.enums.chestEnums()) {
+		enums[e.name] = e.def.Parents
+			? { DefaultValue: e.def.DefaultValue, Parents: e.def.Parents, Values: e.def.Values }
+			: { DefaultValue: e.def.DefaultValue, Values: e.def.Values };
+	}
 	const computedTypes: Record<string, number> = { int: 1, bool: 2, string: 3, playerIndex: 4, intSlice: 6, boolSlice: 7, stringSlice: 8, playerIndexSlice: 9 };
 	const computed = (spec.computed ?? [])
 		.map(item => ({ EnumName: '', Name: item.name, Scope: item.scope, Type: computedTypes[item.type] }))
@@ -177,7 +181,8 @@ function headerOf(game: CompiledGame, record: GameRecord): Record<string, unknow
 		moveChoiceProjectionSchema: game.choiceSchema.length === 0 ? null : game.choiceSchema,
 		computedProperties: computed,
 		variantConfig: variantConfig(spec),
-		chest: { Decks: decks, Enums: enums, Constants: spec.constants ?? null, LegalTemplates: game.templates },
+		// A game with no decks serializes its (nil) deck map as null.
+		chest: { Decks: Object.keys(decks).length === 0 ? null : decks, Enums: enums, Constants: spec.constants ?? null, LegalTemplates: game.templates },
 	};
 }
 

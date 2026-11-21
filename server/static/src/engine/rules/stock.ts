@@ -6,6 +6,7 @@
 
 import type { PropDef } from '../definition.ts';
 import { mayMoveFirstTo, mayMoveFirstToSlot, mayMoveToSlot } from '../legal/catalogStack.ts';
+import { playerIndexEquivalent } from '../legal/playerIndex.ts';
 import { ADMIN_PLAYER_INDEX, OBSERVER_PLAYER_INDEX, type LegalSpec } from '../legal/types.ts';
 import type { Stack } from '../stack.ts';
 import { type ProgressionGroup, groupMoveNames, optionalGroup, serialGroup } from './progression.ts';
@@ -163,6 +164,33 @@ export function forceFinishTurn(options: { name: string; helpText?: string }): M
 		apply: finishTurnApply,
 	};
 }
+
+/**
+ * moves.AnyPlayer.Legal, for a move with base 'anyPlayer': any seated player
+ * may make the move for themself. Call it first in the move's `legal`.
+ *
+ * As in Go, it SETS the move's TargetPlayerIndex to the proposer when the
+ * move still has its default. That is how the applied move comes to name
+ * its proposer, and it also means a later check of the same move object by
+ * another proposer sees the first one's index.
+ */
+export function anyPlayerLegal(state: RulesState, move: MoveInstance, proposer: number, base: () => LegalResult): LegalResult {
+	const err = base();
+	if (err !== null) return err;
+	let target = move.fields.TargetPlayerIndex as number;
+	if (target === OBSERVER_PLAYER_INDEX && proposer >= 0) {
+		target = proposer;
+		move.fields.TargetPlayerIndex = proposer;
+	}
+	if (target < 0) return 'target player must be a seated player, not a special index';
+	if (target >= state.numPlayers()) return 'target player index is out of bounds';
+	if (!playerIndexEquivalent(target, proposer)) return 'you can only make this move for yourself';
+	if (state.game.spec.player.traits?.seat && state.players[target].SeatFilled !== true) return 'your seat is not yet filled';
+	return null;
+}
+
+/** behaviors.PlayerRole. Set the player trait `role`; the game needs an enum named "role". */
+export const roleProps: Readonly<Record<string, PropDef>> = { Role: { Type: 'enum', Enum: 'role', Sanitize: 'other:hidden' } };
 
 // ----- phases -------------------------------------------------------------
 

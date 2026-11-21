@@ -1,6 +1,7 @@
 // Enums as the rules layer uses them: the core's EnumDef (decimal key to
-// string value) bound to the lookups Go's enum.Enum offers. Tree enums
-// (enum.TreeEnum) are not modeled: ancestors() always answers "not a tree".
+// string value) bound to the lookups Go's enum.Enum offers. A tree enum
+// (enum.TreeEnum) is an EnumDef with Parents; of the tree API only
+// Ancestors and IsLeaf are provided.
 
 import type { EnumDef } from '../definition.ts';
 import type { LegalEnum, LegalEnumValue } from '../legal/access.ts';
@@ -43,7 +44,18 @@ export function bindEnum(name: string, def: EnumDef): BoundEnum {
 			if (/^[+-]?[0-9]+$/.test(s) && Object.prototype.hasOwnProperty.call(def.Values, String(Number(s)))) return Number(s);
 			return null;
 		},
-		ancestors: () => null,
+		// TreeEnum.Ancestors: the key, then each parent up to the root.
+		ancestors(key) {
+			const parents = def.Parents;
+			if (!parents) return null;
+			const chain = [key];
+			let current = key;
+			while (Object.prototype.hasOwnProperty.call(parents, String(current)) && parents[String(current)] !== current && chain.length <= keys.length) {
+				current = parents[String(current)];
+				chain.push(current);
+			}
+			return chain;
+		},
 		value: key => ({ enum: bound, value: key, string: bound.stringOf(key) }),
 	};
 	return bound;

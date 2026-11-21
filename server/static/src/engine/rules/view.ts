@@ -138,11 +138,21 @@ export function computedProperties(state: RulesState): { Global: Record<string, 
 		const err = spec.readyToStart(state);
 		if (err !== null) global.ReadyToStartError = err;
 	}
+	const hasRole = spec.player.traits?.role === true;
+	if (hasRole) {
+		const roles = state.game.enums.get('role');
+		if (roles !== null) global.AvailableRoles = roles.keys().map(key => ({ Key: key, Name: roles.stringOf(key) }));
+	}
 	const players: Record<string, unknown>[] = [];
 	const gameScore = spec.player.traits?.gameScore;
+	// PropertyFacetAvailable: on a sanitized state, whether the viewer may trust the property's value.
+	const visibility = state.engine.sanitized ? state.engine.visibility : null;
+	const valueVisible = (player: number, prop: string): boolean =>
+		!state.engine.sanitized || (visibility !== null && (visibility.Players[player]?.[prop] ?? []).indexOf('values') >= 0);
 	for (let i = 0; i < state.numPlayers(); i++) {
 		const values: Record<string, unknown> = { Color: cssColorForPlayer(state, i), MayBeActive: state.playerMayBeActive(i) };
 		if (gameScore) values.GameScore = gameScore(state, i);
+		if (hasRole && valueVisible(i, 'Role')) values.RoleValue = state.players[i].Role;
 		players.push(values);
 	}
 	for (const computed of spec.computed ?? []) {

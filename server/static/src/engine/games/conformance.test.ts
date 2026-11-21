@@ -1,6 +1,6 @@
-// The four ported games against the conformance corpus (conformance/ at the
-// repository root): every document for memory, blackjack, tictactoe and pig
-// is replayed on the TypeScript engine from its recorded id, salt, players,
+// The ported games against the conformance corpus (conformance/ at the
+// repository root): every document for memory, blackjack, tictactoe, pig,
+// debuganimations and werewolf is replayed on the TypeScript engine from its recorded id, salt, players,
 // variant, seating and outside inputs alone, and at every version the stored
 // state, the move record, and every viewer's game object, sanitized move,
 // legality and projected choices must equal what Go recorded.
@@ -16,9 +16,11 @@ import type { CompiledGame, GameSpec } from '../rules/index.ts';
 import { compileGame } from '../rules/index.ts';
 import { type ConformanceDocument, type DocumentResult, FIELDS, passTable, runDocument } from '../testing/conformance.ts';
 import { blackjack } from './blackjack.ts';
+import { debuganimations } from './debuganimations.ts';
 import { memory } from './memory.ts';
 import { pig } from './pig.ts';
 import { tictactoe } from './tictactoe.ts';
+import { werewolf } from './werewolf.ts';
 
 function corpusDir(): string {
 	let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -33,7 +35,8 @@ function corpusDir(): string {
 const dir = corpusDir();
 const index = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8')) as { file: string; game: string; name: string }[];
 
-const specs: Record<string, GameSpec> = { memory, blackjack, tictactoe, pig };
+// The four games this layer set out to port, and the two stretch games.
+const specs: Record<string, GameSpec> = { memory, blackjack, tictactoe, pig, debuganimations, werewolf };
 const compiled: Record<string, CompiledGame> = {};
 const results: DocumentResult[] = [];
 
@@ -43,7 +46,7 @@ test('every ported game compiles', () => {
 
 const entries = index.filter(entry => specs[entry.game] !== undefined);
 
-test('the corpus holds documents for all four games', () => {
+test('the corpus holds documents for every ported game', () => {
 	for (const name of Object.keys(specs)) assert.ok(entries.some(entry => entry.game === name), 'no document for ' + name);
 	assert.ok(entries.length >= 19, 'documents found: ' + entries.length);
 });
