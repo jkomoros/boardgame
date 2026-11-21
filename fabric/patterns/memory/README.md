@@ -40,11 +40,18 @@ the work"). What the runtime would and would not do is in
   cards only if its clock agrees.
 
 **What is weaker than designed.** `table.tsx`, under "The policy, and the
-interim seam", ships a release rule without the input witness and without
-the reader's role. It says what that gives up, and `FINDINGS.md` F1 to F3 say
-why. Separately, anyone who can read the space can read the sealed record
-today, because labs delivers a space's documents to every reader
-(specs#95).
+interim seam", ships a release rule without the input witness: the view is
+released over whatever is in the table's cell, not only over what `move`
+wrote. The runtime keeps no witness for a record its writer reads and then
+sets (`FINDINGS.md` F2), and the alternative, one JSON string, is not taken.
+Separately, anyone who can read the space can read the sealed record today,
+because labs delivers a space's documents to every reader (specs#95).
+
+**Which labs.** The release as designed needs labs' fix for served handlers
+(`5b1c700b4a`, on branch `worktree-agent-ad697e53f88bab905`; `FINDINGS.md`
+F1), and everything recorded here was run on that branch. The rule as shipped
+has no witness and so does not itself need the fix; it was not rerun on labs
+main.
 
 ## Tests, with no browser
 
@@ -67,7 +74,7 @@ players' views agree.
 ## Running it
 
 All commands from the repository root unless a `cd` says otherwise. `$LABS`
-is a labs checkout.
+is a labs checkout (see "Which labs" above).
 
 **1. Build the guest.** Once, and again after any change under `fabric/guest`
 or to the client it bundles.
@@ -144,11 +151,11 @@ the console names the browser's DID. Grant it and reload:
 
 ## What was run
 
-On 2026-11-21 against labs `8c6f09c5fc`, with the script: a complete game
-between two identities, 16 reveals, three mismatches hidden by the timer,
-five pairs captured, the same winner shown to both. The client's animation
-counters read 34 cycles and 282 animations in each guest, with no watchdog
-firing. Numbers and what they mean are in `FINDINGS.md`.
+On 2026-11-21 against labs `6e12b01bf7` (the fix branch), with the script: a
+complete game between two identities, 14 reveals, two mismatches hidden by
+the timer, five pairs captured, the same winner shown to both. The client's
+animation counters read 29 cycles and 238 animations in each guest, with no
+watchdog firing. Numbers and what they mean are in `FINDINGS.md`.
 
 | Screenshot | Shows |
 |---|---|

@@ -1,9 +1,17 @@
 # Memory on Common Fabric: findings
 
 What building `fabric/patterns/memory` showed about the Common Fabric runtime,
-against labs commit `8c6f09c5fc` (main, 2026-11-21), Deno 2.9.8, on local dev
-servers (`start-local-dev.sh --port-offset=340`) with server execution at its
-default, on.
+on Deno 2.9.8 and local dev servers (`start-local-dev.sh --port-offset=340`)
+with server execution at its default, on. Two labs commits were used:
+
+- **main**, `8c6f09c5fc` (2026-11-21). F1 to F6 were first met here.
+- **the fix branch**, `6e12b01bf7`, the tip of `worktree-agent-ad697e53f88bab905`,
+  which holds `5b1c700b4a`, "Attribute a served handler's transaction to the
+  handler, not to nobody". It is cut from an older main (`7be4b18d9b`). The
+  shipped pattern, its screenshots and the latency figures are from here.
+
+**The pattern depends on that fix** for the release it is designed to have.
+The rule it ships today does not (see F1).
 
 Each finding says how it is known:
 
@@ -24,20 +32,31 @@ The idiomatic shape works as far as the pattern goes: the table is a sealed
 and `seatView` returns a structured view in the boardgame client's wire shape.
 A full game was played in two browsers under two identities.
 
-The release rule could not be the one designed. Three behaviors of the
-runtime (F1 to F3) each refuse it, so `table.tsx` ships a weaker rule in one
-marked place, "The policy, and the interim seam". Two more (F4, F5) shaped
-the code without weakening it.
+The release rule is one condition short of the one designed. `table.tsx`
+ships it in one marked place, "The policy, and the interim seam".
 
 | | Rule as designed | Rule as shipped |
 |---|---|---|
 | Names the lift `seatView` | yes | yes |
-| Requires every confidential input to have been written by `move` | yes | **no** (F1, F2) |
-| Releases only to a reader of the table's space | yes | **no**: drops the clause (F3) |
+| Releases to the table's space, whose readers the display then admits | yes | yes |
+| Requires every confidential input to have been written by `move` | yes | **no** (F2) |
+
+Of the six findings, F2 is the one behind the seam. F1 is a bug with a fix
+on a labs branch, which was run here and works. F3 has an idiomatic answer,
+which the pattern uses. F4 and F5 shaped the code without weakening it.
+
+What was run on the fix branch, each a fresh piece played to the end by two
+browser identities (**Browser**):
+
+| State | Rule | Result |
+|---|---|---|
+| record | lift + witness, adds `Space` | nothing released (F2) |
+| one JSON string | lift + witness, adds `Space` | **whole game played**: the witnessed release fires on served runs, at the display boundary, for a 32 KB view of nested records, lists and maps |
+| record | lift, adds `Space` (**shipped**) | whole game played |
 
 ## Where the runtime refused the idiomatic shape
 
-### F1. A witnessed release never fires when the handler runs on the server
+### F1. On labs main, a witnessed release never fires when the handler runs on the server
 
 - **Attempted.** The rule in `table.tsx` under "AS DESIGNED": `TransformedBy`
   naming `seatView`, with an `inputWitness` naming `move`.
@@ -71,16 +90,15 @@ the code without weakening it.
   `render-confidentiality-ceiling`. The default is
   `runtime/memory/v2/server-execution-default.ts:46`. CI runs the pattern
   tests with it off only: `tasks/integration.ts:71` and `:797`. The cause was
-  not looked for. A labs branch that appeared while this was being written,
-  `fix/served-handler-write-identity` (`4815052651`, "Attribute a served
-  handler's transaction to the handler, not to nobody"), reads like the
-  cause and its fix; nothing here was run against it.
-- **Seam.** The shipped rule has no `inputWitness`.
-- **Not held today.** The policy releases `seatView`'s view of whatever is in
-  the table's cell, not only of what `move` wrote. `WriteAuthorizedBy` on the
-  cell is still enforced (see "What a table protects"), so the exposure is
-  where that check does not reach: a modified client with write access to the
-  space, and a second instance of this module pointed at this table's cell.
+  not looked for here.
+- **Fixed on the fix branch (Browser).** With `5b1c700b4a`, the string-state
+  pattern with the witnessed rule played a whole two-user game on served
+  runs. The labs spike's report names the cause: the serving loop's
+  processed-claim write is counted as the transaction's first authored write,
+  so the handler's transaction has two writers and is attributed to neither.
+  The spike had shown the fix at a write gate only; this is the same fix at
+  the display boundary, in a browser.
+- **Seam.** None for this finding. The pattern assumes the fix.
 
 ### F2. A record that its writer reads and then sets keeps no witness
 
@@ -104,7 +122,15 @@ the code without weakening it.
   writer's stamp. Without that, every sealed state machine has to store its
   state as one opaque scalar, which is the contortion this pattern was asked
   not to make.
-- **Seam, not held.** As F1: the same missing `inputWitness`.
+- **Still so on the fix branch (Browser).** Record state with the witnessed
+  rule released nothing; the same rule over a string state played a game.
+- **Seam.** The shipped rule has no `inputWitness`. This is the whole of the
+  interim seam.
+- **Not held today.** The policy releases `seatView`'s view of whatever is in
+  the table's cell, not only of what `move` wrote. `WriteAuthorizedBy` on the
+  cell is still enforced (see "What a table protects"), so the exposure is
+  where that check does not reach: a modified client with write access to the
+  space, and a second instance of this module pointed at this table's cell.
 
 ### F3. A rule that asks for a role releases each scalar and refuses the whole view
 
@@ -132,13 +158,19 @@ the code without weakening it.
   fact is minted for a display in `runtime/runner/src/cfc/render-ceiling.ts:68`
   to `:78`. Which location of the join failed was not identified; the gate's
   report said only `integrity: []` (see F6).
-- **Seam.** The shipped rule has no role and drops the clause.
-- **Not held today.** The released view carries no clause at all, so it is
-  readable by whoever the bytes reach rather than by readers of the table's
-  space. Today those are the same people, because a space's documents are
-  delivered to the space's readers and to nobody else. Once delivery checks
-  labels (specs#95), an unlabeled view is public, and the role has to be back
-  by then.
+- **The idiomatic answer (Browser, fix branch).** Release in two steps. The
+  module's rule is guarded by `TransformedBy` alone and adds
+  `Space(THIS_POLICY.subject)` to the clause; the runtime's standard display
+  rule then admits a reader of that space. Under it the guest reads the whole
+  view in one read, lists and lists of records included, which the labs
+  spike had left unrun. `cfcPattern` has no `space()` constructor, so the
+  atom is written raw:
+  `{ type: "https://commonfabric.org/cfc/atom/Space", id: THIS_POLICY.subject }`.
+- **Seam.** None. The shipped rule is the two-step form.
+- **Not held.** Nothing by this finding. Two things to weigh: `Space(table)`
+  is a wider release than `User(reader)`, since a value so labeled also fits
+  any store whose ceiling admits the table's space; and nothing warns an
+  author that putting a role in the same rule changes where it is evaluated.
 
 ### F4. A projection that returns part of its input unchanged is withheld whole
 
@@ -168,7 +200,8 @@ the code without weakening it.
 
 - **Attempted.** Draw the lobby from the view from the first paint.
 - **Actual (Browser).** On a fresh table the guest's first read of `view` is
-  refused, under the shipped rule as under the others. `seatView`
+  refused, under the shipped rule as under the others, on main and on the
+  fix branch. `seatView`
   returns `undefined` until the table's first accepted proposal, by design:
   under the rule as designed, a view of the default state carries no witness,
   and a field the first move leaves unchanged keeps that unwitnessed stamp
@@ -280,24 +313,29 @@ SHA-256 and falls back.
 ## Latency
 
 From `tools/play-two-users.mjs`, two headless Chromium contexts and the
-toolshed on one machine, one game of 16 reveals (**Browser**):
+toolshed on one machine, the shipped pattern on the fix branch, one game of
+14 reveals (**Browser**):
 
 | From a proposal leaving the mover's guest, to | min | median | max |
 |---|---|---|---|
-| `send()` resolving (the handler's run committed) | 146 ms | 576 ms | 1,407 ms |
-| the new view reaching the mover's own guest | 985 ms | 2,482 ms | 3,277 ms |
-| the new view reaching the other player's guest | 993 ms | 2,406 ms | 2,569 ms |
+| `send()` resolving (the handler's run committed) | 139 ms | 1,179 ms | 1,657 ms |
+| the new view reaching the mover's own guest | 1,083 ms | 1,760 ms | 2,173 ms |
+| the new view reaching the other player's guest | 1,088 ms | 1,755 ms | 2,173 ms |
+
+On labs main, under a rule that dropped the clause, the same medians were
+576 ms, 2,482 ms and 2,406 ms over 16 reveals. The two labs commits differ
+by more than the fix, so the difference is not attributed.
 
 - A click to the card's face showing, which adds the client's own
-  half-second animation, had a median of 2.5 s.
-- The first move of a game took about 1 s and later ones about 2.5 s. The
+  half-second animation, had a median of 1.8 s (2.5 s on main).
+- The first move of a game took about 1 s and later ones about 2 s. The
   difference tracks the size of what moves: the view is one value of about
   32 KB once its window of six versions is full, the table about 27 KB, and
   every move rewrites both whole. `cf test` logs hundreds of `get() took
   >50ms` warnings on the same cells.
 - An earlier state shape that listed the 110 unused cards in every version
   made the multi-user test take 129 s; without them it takes 73 s.
-- The hide-cards timer is four seconds. The cards were hidden 4.8 to 5.9 s
+- The hide-cards timer is four seconds. The cards were hidden 4.4 to 5.1 s
   after the second card showed in that game, and up to 6.9 s in others: the guest's tick is sent when four seconds
   have passed on its clock, and then travels like any move.
 
@@ -311,9 +349,9 @@ try.
 Nothing a player could see suggested it (**Browser**).
 
 - The mover's own guest received the new view no sooner than the other
-  player's did (medians 2,482 ms and 2,406 ms). A speculative run whose
+  player's did (medians 1,760 ms and 1,755 ms; 2,482 and 2,406 on main). A speculative run whose
   result reached the view would have shown first for the mover.
-- The dealer's bridge logs every distinct view it is given. In each of five
+- The dealer's bridge logs every distinct view it is given. In each of eight
   recorded games it saw exactly one deal (one epoch at version 0). A local
   run of `move` would have drawn its own salt, so its deal would have had a
   different epoch.
@@ -338,8 +376,8 @@ Filled in from `fabric/RESEARCH.md`, "What a table protects, and from whom".
 | A timer cannot be hurried | Holds. A tick before the deadline changes nothing; the table reads its own clock | `rules.test.ts`; Browser (ticks arrived and were applied only after 4 s) |
 | A player cannot forge the table | Refused through the stock client: `cf cell set --input table/phase` as a `WRITE` key fails with `writeAuthorizedBy requires a trusted verified binding identity at /table`. A modified client was not tried | CLI |
 | A player cannot forge the view | A `cf cell set view/phase` as a `WRITE` key failed and the value did not change. A modified client was not tried | CLI |
-| The release holds only for a state `move` wrote | **Not held**: F1, F2 | Browser |
-| The release reaches only the space's readers | **Not held by the label**; held by delivery today: F3 | Browser |
+| The release holds only for a state `move` wrote | **Not held**: F2 | Browser |
+| The release reaches only the space's readers | Held by the label as far as was seen: the view carries `Space(table)` and the display admits its readers. A principal outside the space cannot load the piece at all, so the label was not what stopped them | Browser |
 | The table owner cannot see hands | Not examined. The owner is a reader, so the second row applies | |
 
 ## Smaller things

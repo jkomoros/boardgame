@@ -10,7 +10,7 @@
  *   event.
  * - `seatView` is the only function whose output the policy releases. As
  *   designed, only when everything confidential it read was written by
- *   `move`; today neither that condition nor the reader's role is checked (see "The interim
+ *   `move`; today that last condition is not checked (see "The interim
  *   seam" below).
  *
  * This module is the policy's identity: the rule names `move` and `seatView`
@@ -47,51 +47,42 @@ import { type MemoryGame, memoryRules, type MemoryView } from "./rules.ts";
 // this heading and the next. It is the one place this game is weaker than
 // its design, and the one place to change as the runtime catches up.
 //
-// AS DESIGNED, the one release reads: a reader of the table's space may see
-// what `seatView` computed, when every confidential location it read was
-// written by `move`:
+// The release is in two steps. This module's rule turns the policy's clause
+// into "the table's space" for what `seatView` computed; the runtime's own
+// display rule then admits a reader of that space. A rule that asked for the
+// reader's role itself would be evaluated over a whole read at once, and
+// would refuse the one read of the whole view a `cf-iframe` guest makes
+// (FINDINGS.md F3). `cfcPattern` has no constructor for a space, so the atom
+// is written out.
 //
-//   {
-//     type: ".../TransformedBy",
+// AS DESIGNED, the guard also carries an input witness: the view is released
+// only when every confidential location `seatView` read was written by
+// `move`.
+//
+//   inputWitness: {
+//     type: "https://commonfabric.org/cfc/atom/TransformedBy",
 //     identity: { kind: "verified", moduleIdentity: THIS_POLICY.moduleIdentity,
-//                 symbol: "seatView" },
-//     inputWitness: {
-//       type: ".../TransformedBy",
-//       identity: { kind: "verified", moduleIdentity: THIS_POLICY.moduleIdentity,
-//                   symbol: "move" },
-//     },
+//                 symbol: "move" },
 //   },
-//   cfcPattern.hasRole(v("reader"), THIS_POLICY.subject, "reader"),
 //
-// with `post: { addAlternatives: [cfcPattern.user(v("reader"))] }`.
+// TODO(cfc): restore `inputWitness` when a record its writer reads and then
+// sets keeps the writer's stamp (FINDINGS.md F2; gap A of the labs spike).
+// `move` reads the table and sets it, and a destination the transaction read
+// is not stamped, so with the witness nothing of this table is ever
+// released. The alternative today is to store the table as one JSON string,
+// which this pattern declines to do.
 //
-// TODO(cfc): restore both conditions (FINDINGS.md F1 to F3). With them, the
-// runtime releases nothing of this table to a guest:
+// The witness also needs a served handler's writes to name the handler,
+// which labs main does not do (FINDINGS.md F1). That has a fix on a labs
+// branch, and this pattern assumes it; without the witness the rule below
+// does not depend on it.
 //
-//   F1. A handler run by the server, which is the default, leaves no input
-//       witness at all, whatever shape the state has.
-//   F2. Where the handler runs on a client, the witness survives only when
-//       the state is a single scalar. `move` reads the record and sets it,
-//       and a destination the transaction read is not stamped.
-//   F3. Under a rule that asks for a role, the display boundary releases
-//       each scalar of the view read alone and refuses one read of the
-//       whole view, which is the read a `cf-iframe` guest makes.
-//
-// AS SHIPPED, the rule below names `seatView` alone and drops the clause.
-// What that gives up:
-//
-//   - Without the witness, the policy releases `seatView`'s view of whatever
-//     is in the cell, not only of what `move` wrote. `WriteAuthorizedBy`
-//     still refuses a write to the table by any other code, so this matters
-//     where that check does not reach: a modified client with write access
-//     to the space, and a second instance of this module pointed at this
-//     table's cell.
-//   - Without the role, the released view carries no clause at all, so it is
-//     readable by whoever the bytes reach rather than by readers of the
-//     table's space. Today those are the same people, because a space's
-//     documents are delivered to its readers and to nobody else. Once
-//     delivery checks labels (specs#95) they are not, and the role has to
-//     be back by then.
+// AS SHIPPED, without the witness, the policy releases `seatView`'s view of
+// whatever is in the cell, not only of what `move` wrote. `WriteAuthorizedBy`
+// still refuses a write to the table by any other code, so this matters
+// where that check does not reach: a modified client with write access to
+// the space, and a second instance of this module pointed at this table's
+// cell.
 //
 export const releaseSeatView = exchangeRule({
   appliesTo: THIS_POLICY,
@@ -105,7 +96,12 @@ export const releaseSeatView = exchangeRule({
       },
     }],
   },
-  post: { dropClause: true },
+  post: {
+    addAlternatives: [{
+      type: "https://commonfabric.org/cfc/atom/Space",
+      id: THIS_POLICY.subject,
+    }],
+  },
 });
 
 export const tableRules = exchangeRules([releaseSeatView]);
