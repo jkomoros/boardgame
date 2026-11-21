@@ -26,6 +26,16 @@ import {
 } from '../selectors.js';
 
 import { surfaceForGame } from '../utils/companion-surface.js';
+import { ANIM_TEST_HOOKS_STORAGE_KEY, installAnimTestHooks } from '../utils/anim-test-hooks.js';
+
+// The animation counters are published on `window` only when asked for: the
+// Playwright suites seed this key (playwright.config.ts), and a person
+// collecting a bug report can set it by hand and reload.
+try {
+  if (window.localStorage.getItem(ANIM_TEST_HOOKS_STORAGE_KEY) === '1') installAnimTestHooks();
+} catch {
+  // Storage can be unavailable (privacy modes); the hooks stay unpublished.
+}
 
 import {
   navigated,

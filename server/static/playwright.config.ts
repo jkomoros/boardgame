@@ -36,6 +36,18 @@ export default defineConfig({
     // Base URL to use in actions like `await page.goto('/')`
     baseURL: 'http://localhost:8080',
 
+    // Opt in to the animation instrumentation counters. The webapp publishes
+    // `window.__bgAnimTestHooks` only when this localStorage key is set
+    // (src/utils/anim-test-hooks.ts); the animation specs read it. Contexts a
+    // spec creates with `browser.newContext()` inherit this default too.
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: 'http://localhost:8080',
+        localStorage: [{ name: 'boardgame:anim-test-hooks', value: '1' }],
+      }],
+    },
+
     // Headless mode by default, can be overridden with HEADED env var
     headless: !process.env.HEADED,
 
