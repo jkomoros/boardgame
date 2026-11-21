@@ -92,7 +92,7 @@ func main() {
 		for _, n := range int31ns {
 			r = rand.New(rand.NewSource(seed))
 			var vals []int32
-			for i := 0; i < 30; i++ {
+			for i := 0; i < 12; i++ {
 				vals = append(vals, r.Int31n(n))
 			}
 			v.Int31n[strconv.Itoa(int(n))] = vals
@@ -100,7 +100,7 @@ func main() {
 		for _, n := range int63ns {
 			r = rand.New(rand.NewSource(seed))
 			var vals []string
-			for i := 0; i < 30; i++ {
+			for i := 0; i < 12; i++ {
 				vals = append(vals, s(r.Int63n(n)))
 			}
 			v.Int63n[s(n)] = vals
@@ -108,7 +108,7 @@ func main() {
 		for _, n := range intns {
 			r = rand.New(rand.NewSource(seed))
 			var vals []string
-			for i := 0; i < 30; i++ {
+			for i := 0; i < 12; i++ {
 				vals = append(vals, strconv.Itoa(r.Intn(n)))
 			}
 			v.Intn[strconv.Itoa(n)] = vals

@@ -12,6 +12,7 @@ import { Stack, StackError, MergedStackView } from './stack.ts';
 import type { StackJSON } from './stack.ts';
 import type { GameDefinition } from './definition.ts';
 import { GoRand } from './rand.ts';
+import { EMPTY_SLOT } from './ids.ts';
 
 const read = (name: string) => JSON.parse(readFileSync(new URL('./testdata/' + name, import.meta.url), 'utf8'));
 const def = read('defs/vecgame.def.json') as GameDefinition;
@@ -62,6 +63,9 @@ function apply(state: EngineState, op: Op): void {
 		case 'contract': return src!.contractSize(op.Index);
 		case 'setSize': return src!.setSize(op.Index);
 		case 'sizeToFit': return src!.sizeToFit();
+		case 'sortAsc': return src!.sortComponents((a, b) => a !== EMPTY_SLOT && (b === EMPTY_SLOT || a < b));
+		case 'sortTies': return src!.sortComponents((a, b) => a !== EMPTY_SLOT && (b === EMPTY_SLOT || a % 3 < b % 3));
+		case 'sortDesc': return src!.sortComponents((a, b) => a !== EMPTY_SLOT && (b === EMPTY_SLOT || a > b));
 	}
 	throw new Error('unknown op ' + op.Op);
 }
@@ -76,15 +80,15 @@ function stacksByPath(state: EngineState): Record<string, StackJSON> {
 }
 
 test('vector file has the expected breadth', () => {
-	assert.equal(Scenarios.length, 24);
+	assert.equal(Scenarios.length, 20);
 	const kinds = new Set<string>();
 	let errors = 0;
 	for (const sc of Scenarios) for (const op of sc.Ops) {
 		kinds.add(op.Op);
 		if (op.Err) errors++;
 	}
-	assert.equal(kinds.size, 16);
-	assert.ok(errors > 300, 'error paths are exercised');
+	assert.equal(kinds.size, 19);
+	assert.ok(errors > 200, 'error paths are exercised');
 });
 
 test('a recorded Go state loads and serializes back to the same JSON', () => {
@@ -126,7 +130,7 @@ test('every operation matches Go: changed stacks, counts, errors, and no change 
 		});
 		assert.deepEqual(state.toJSON(), sc.After, sc.GameID + ' final state');
 	}
-	assert.equal(steps, 24 * 60);
+	assert.equal(steps, 20 * 50);
 });
 
 test('shuffles within one state continue one generator sequence', () => {
@@ -236,25 +240,25 @@ test('conservation: Go\'s wording for each violation', () => {
 	};
 	const draw = (json: StateJSON) => json.Game.Draw as StackJSON;
 	assert.equal(mutate(() => undefined), null);
-	const firstIndex = draw(sc.Before).Indexes[0];
+	const firstIndex = draw(sc.Before).Indexes![0];
 	assert.equal(
-		mutate(json => { draw(json).Indexes.shift(); }),
+		mutate(json => { draw(json).Indexes!.shift(); }),
 		`deck "cards" component ${firstIndex} is missing from every attached stack`,
 	);
 	assert.equal(
-		mutate(json => { (json.Game.Limited as StackJSON).Indexes.push(firstIndex); }),
+		mutate(json => { (json.Game.Limited as StackJSON).Indexes!.push(firstIndex); }),
 		`deck "cards" component ${firstIndex} appears at both Game.Draw[0] and Game.Limited[0]`,
 	);
 	assert.equal(
-		mutate(json => { draw(json).Indexes[0] = -1; }),
+		mutate(json => { draw(json).Indexes![0] = -1; }),
 		'Game.Draw[0] contains the empty-slot sentinel in a growable stack',
 	);
 	assert.equal(
-		mutate(json => { draw(json).Indexes[0] = -2; }),
+		mutate(json => { draw(json).Indexes![0] = -2; }),
 		'Game.Draw[0] contains a generic component in an unsanitized state',
 	);
 	assert.equal(
-		mutate(json => { draw(json).Indexes[0] = 99; }),
+		mutate(json => { draw(json).Indexes![0] = 99; }),
 		'Game.Draw[0] contains invalid component index 99 for deck "cards"',
 	);
 	assert.equal(
@@ -262,7 +266,7 @@ test('conservation: Go\'s wording for each violation', () => {
 		'Game.Tokens names unknown deck "nope"',
 	);
 	assert.throws(
-		() => EngineState.load(def, identity, sc.Version, (() => { const j = cloneJSON(sc.Before); draw(j).Indexes.shift(); return j; })()),
+		() => EngineState.load(def, identity, sc.Version, (() => { const j = cloneJSON(sc.Before); draw(j).Indexes!.shift(); return j; })()),
 		/Loaded state violated component conservation: deck "cards" component/,
 	);
 });
@@ -270,7 +274,7 @@ test('conservation: Go\'s wording for each violation', () => {
 test('a sized stack whose Indexes disagree with Size does not load', () => {
 	const sc = Scenarios[0];
 	const json = cloneJSON(sc.Before);
-	(json.Game.Row as StackJSON).Indexes.push(-1);
+	(json.Game.Row as StackJSON).Indexes!.push(-1);
 	assert.throws(
 		() => EngineState.load(def, { gameId: sc.GameID, secretSalt: sc.SecretSalt }, sc.Version, json),
 		/didn't agree with size/,

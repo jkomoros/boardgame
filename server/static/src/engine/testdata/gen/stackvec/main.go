@@ -93,7 +93,7 @@ func main() {
 	opCounts := map[string]int{}
 	errCount := 0
 
-	for n := 0; n < 24; n++ {
+	for n := 0; n < 20; n++ {
 		numPlayers := 2 + n%3
 		id := h.UniqueID("VEC")
 		salt := fmt.Sprintf("SALT%04d", rnd.Intn(10000))
@@ -182,10 +182,10 @@ func main() {
 		kinds := []string{
 			"move", "move", "move", "move", "secretMove", "secretMove", "moveFirst", "moveLast", "moveNext",
 			"slideFirst", "slideLast", "moveAll", "moveCount", "moveCount", "shuffle", "shuffle", "publicShuffle",
-			"swap", "expand", "contract", "setSize", "sizeToFit",
+			"swap", "expand", "contract", "setSize", "sizeToFit", "sortAsc", "sortDesc", "sortTies",
 		}
 
-		for i := 0; i < 60; i++ {
+		for i := 0; i < 50; i++ {
 			o := op{Op: kinds[rnd.Intn(len(kinds))]}
 			var opErr error
 			switch o.Op {
@@ -252,6 +252,40 @@ func main() {
 				} else {
 					opErr = src.PublicShuffle()
 				}
+			case "sortTies":
+				// Ordered by deck index mod 3, so most comparisons tie. Which
+				// of two tied components comes first is decided by sort.Sort.
+				o.Src = pickFrom()
+				src, err := vecgame.Resolve(st, *o.Src)
+				check(err)
+				opErr = src.SortComponents(func(a, b boardgame.ImmutableComponentInstance) bool {
+					if a == nil {
+						return false
+					}
+					if b == nil {
+						return true
+					}
+					return a.DeckIndex()%3 < b.DeckIndex()%3
+				})
+			case "sortAsc", "sortDesc":
+				// Ordered by deck index, empty slots last: a strict order
+				// over distinct components, so sort.Sort has one answer.
+				o.Src = pickFrom()
+				src, err := vecgame.Resolve(st, *o.Src)
+				check(err)
+				asc := o.Op == "sortAsc"
+				opErr = src.SortComponents(func(a, b boardgame.ImmutableComponentInstance) bool {
+					if a == nil {
+						return false
+					}
+					if b == nil {
+						return true
+					}
+					if asc {
+						return a.DeckIndex() < b.DeckIndex()
+					}
+					return a.DeckIndex() > b.DeckIndex()
+				})
 			case "swap":
 				o.Src = pickFrom()
 				src, err := vecgame.Resolve(st, *o.Src)

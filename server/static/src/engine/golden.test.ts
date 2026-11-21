@@ -100,7 +100,7 @@ function stackNodes(value: unknown, path = ''): { path: string; node: StackJSON 
 	if (Array.isArray(value)) return value.flatMap((v, i) => stackNodes(v, `${path}[${i}]`));
 	if (value === null || typeof value !== 'object') return [];
 	const obj = value as Record<string, unknown>;
-	if (typeof obj.Deck === 'string' && Array.isArray(obj.Indexes)) return [{ path, node: obj as unknown as StackJSON }];
+	if (typeof obj.Deck === 'string' && 'Indexes' in obj) return [{ path, node: obj as unknown as StackJSON }];
 	return Object.keys(obj).flatMap(key => stackNodes(obj[key], path ? `${path}.${key}` : key));
 }
 
@@ -140,7 +140,7 @@ for (const name of ['memory', 'blackjack']) {
 				for (const { path, node } of stackNodes(state)) {
 					const merged = /\.(Cards|Hand)$/.test(path);
 					if (merged) continue;
-					node.Indexes.forEach((deckIndex, slot) => {
+					(node.Indexes ?? []).forEach((deckIndex, slot) => {
 						const expected = deckIndex < 0
 							? ''
 							: componentId(identity, node.Deck, deckIndex, secretMoveCountFor(state.SecretMoveCount, node.Deck, deckIndex));

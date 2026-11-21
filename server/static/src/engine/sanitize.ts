@@ -10,6 +10,7 @@
 import { EMPTY_SLOT, GENERIC_COMPONENT } from './ids.ts';
 import { EngineState, StateError, compareGoStrings, sortedKeys } from './state.ts';
 import type { BoardJSON, StateJSON, SubStateJSON, SubStateRef, VisibilityJSON } from './state.ts';
+import { indexesOf } from './stack.ts';
 import type { StackJSON } from './stack.ts';
 import { GROUP_ALL, GROUP_OTHER, GROUP_SELF, POLICY_ORDER, policyMapFor } from './definition.ts';
 import type { EnumDef, GameDefinition, PolicyName, PropDef, SubStateDef } from './definition.ts';
@@ -300,7 +301,7 @@ function enumDefault(def: GameDefinition, prop: PropDef, path: string): string {
 /** growableStack / sizedStack applySanitizationPolicy, on the JSON in place. */
 function sanitizeStack(node: StackJSON, sized: boolean, policy: PolicyName): void {
 	if (policy === 'visible') return;
-	const indexes = node.Indexes;
+	const indexes = indexesOf(node);
 
 	if (policy === 'len' || policy === 'order') {
 		// Ids are kept (the stack's already hold each component's id, ""
@@ -443,10 +444,10 @@ function sanitizeSubState(
 		// A visible stack makes the dynamic values of its components visible.
 		if (prop.Type === 'stack' || prop.Type === 'sizedStack') {
 			const stack = node[propName] as StackJSON;
-			markStack(visible, stack.Deck, stack.Indexes, deckSize(stack.Deck));
+			markStack(visible, stack.Deck, indexesOf(stack), deckSize(stack.Deck));
 		} else if (prop.Type === 'board') {
 			for (const space of (node[propName] as BoardJSON).Spaces) {
-				markStack(visible, space.Deck, space.Indexes, deckSize(space.Deck));
+				markStack(visible, space.Deck, indexesOf(space), deckSize(space.Deck));
 			}
 		} else if (prop.Type === 'mergedStack' && mergedIndexesBefore !== null) {
 			// See SanitizeOptions: reproduce Go examining the merged stack
@@ -519,7 +520,7 @@ export function sanitizedForPlayer(state: EngineState, viewer: number, options: 
 		if (!sub || !values) continue;
 		for (const stack of physicalStackNodes(sub, values)) {
 			const size = def.Decks[stack.Deck] ? def.Decks[stack.Deck].Size : 0;
-			for (const index of markStack(visible, stack.Deck, stack.Indexes, size)) work.push({ deck: stack.Deck, index });
+			for (const index of markStack(visible, stack.Deck, indexesOf(stack), size)) work.push({ deck: stack.Deck, index });
 		}
 	}
 

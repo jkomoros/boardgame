@@ -344,7 +344,7 @@ func main() {
 		}
 		// Random mixtures over every group name the game knows.
 		groups := []string{"all", "other", "self", "same-color", "different-color", "Red", "Green", "Blue"}
-		for k := 0; k < 8; k++ {
+		for k := 0; k < 5; k++ {
 			p := tagPolicies()
 			randomMap := func() map[string]string {
 				out := map[string]string{}

@@ -10,12 +10,21 @@
 // before anything is mutated, as in Go.
 
 import { EMPTY_SLOT, GENERIC_COMPONENT } from './ids.ts';
+import { goSort } from './gosort.ts';
 import type { EngineState } from './state.ts';
 
 /** stackJSONObj in stack.go. Size and MaxSize are omitted when zero. */
 export interface StackJSON {
 	Deck: string;
-	Indexes: number[];
+	/**
+	 * Deck index per slot. Go serializes a nil slice as null, and one
+	 * operation leaves a physical stack's slice nil: SortComponents on a
+	 * stack with no slots (sortComponentsImpl copies with append([]int(nil),
+	 * ...)). The null then persists through storage until something is
+	 * inserted. It is kept here as null so the JSON matches Go's; read
+	 * through Stack.indexes() or indexesOf() to get an array.
+	 */
+	Indexes: number[] | null;
 	/**
 	 * One id per slot. Always an array on a physical stack. Go serializes
 	 * null here for a concatenated merged stack with no slots at all (see
@@ -26,6 +35,11 @@ export interface StackJSON {
 	ShuffleCount: number;
 	Size?: number;
 	MaxSize?: number;
+}
+
+/** A stack's Indexes as an array, treating Go's nil (null) as empty. */
+export function indexesOf(node: StackJSON): number[] {
+	return node.Indexes === null ? [] : node.Indexes;
 }
 
 export class StackError extends Error {
@@ -87,22 +101,27 @@ export class Stack implements StackView {
 		return this.node.Deck;
 	}
 
+	/** The live Indexes array; a throwaway empty one while Go's would be nil. */
+	private get ix(): number[] {
+		return indexesOf(this.node);
+	}
+
 	isSized(): boolean {
 		return this.kind === 'sized';
 	}
 
 	len(): number {
-		return this.node.Indexes.length;
+		return this.ix.length;
 	}
 
 	indexes(): number[] {
-		return this.node.Indexes.slice();
+		return this.ix.slice();
 	}
 
 	numComponents(): number {
-		if (this.kind === 'growable') return this.node.Indexes.length;
+		if (this.kind === 'growable') return this.ix.length;
 		let count = 0;
-		for (const index of this.node.Indexes) if (index !== EMPTY_SLOT) count++;
+		for (const index of this.ix) if (index !== EMPTY_SLOT) count++;
 		return count;
 	}
 
@@ -130,7 +149,7 @@ export class Stack implements StackView {
 			return max - this.len();
 		}
 		let count = 0;
-		for (const index of this.node.Indexes) if (index === EMPTY_SLOT) count++;
+		for (const index of this.ix) if (index === EMPTY_SLOT) count++;
 		return count;
 	}
 
@@ -141,7 +160,7 @@ export class Stack implements StackView {
 	 */
 	componentAt(index: number): number | null {
 		if (index >= this.len() || index < 0) return null;
-		const deckIndex = this.node.Indexes[index];
+		const deckIndex = this.ix[index];
 		const deck = this.state.def.Decks[this.node.Deck];
 		if (!deck) return null;
 		if (deckIndex >= deck.Size) return null;
@@ -152,26 +171,26 @@ export class Stack implements StackView {
 
 	firstComponentIndex(): number {
 		if (this.kind === 'growable') return 0;
-		for (let i = 0; i < this.node.Indexes.length; i++) if (this.node.Indexes[i] !== EMPTY_SLOT) return i;
+		for (let i = 0; i < this.ix.length; i++) if (this.ix[i] !== EMPTY_SLOT) return i;
 		return -1;
 	}
 
 	lastComponentIndex(): number {
 		if (this.kind === 'growable') return this.len() - 1;
-		for (let i = this.node.Indexes.length - 1; i >= 0; i--) if (this.node.Indexes[i] !== EMPTY_SLOT) return i;
+		for (let i = this.ix.length - 1; i >= 0; i--) if (this.ix[i] !== EMPTY_SLOT) return i;
 		return -1;
 	}
 
 	/** The first slot a component could be moved into, or -1. */
 	firstSlot(): number {
 		if (this.kind === 'growable') return 0;
-		for (let i = 0; i < this.node.Indexes.length; i++) if (this.node.Indexes[i] === EMPTY_SLOT) return i;
+		for (let i = 0; i < this.ix.length; i++) if (this.ix[i] === EMPTY_SLOT) return i;
 		return -1;
 	}
 
 	lastSlot(): number {
 		if (this.kind === 'growable') return this.len();
-		for (let i = this.node.Indexes.length - 1; i >= 0; i--) if (this.node.Indexes[i] === EMPTY_SLOT) return i;
+		for (let i = this.ix.length - 1; i >= 0; i--) if (this.ix[i] === EMPTY_SLOT) return i;
 		return -1;
 	}
 
@@ -193,7 +212,7 @@ export class Stack implements StackView {
 	toJSON(): StackJSON {
 		const out: StackJSON = {
 			Deck: this.node.Deck,
-			Indexes: this.node.Indexes.slice(),
+			Indexes: this.node.Indexes === null ? null : this.ix.slice(),
 			IDs: (this.node.IDs ?? []).slice(),
 			IDsLastSeen: { ...this.node.IDsLastSeen },
 			ShuffleCount: this.node.ShuffleCount,
@@ -207,7 +226,7 @@ export class Stack implements StackView {
 
 	/** Recomputes IDs from Indexes and the state's secret-move counts. */
 	syncIds(): void {
-		const ids = new Array<string>(this.node.Indexes.length);
+		const ids = new Array<string>(this.ix.length);
 		for (let i = 0; i < ids.length; i++) {
 			const deckIndex = this.componentAt(i);
 			ids[i] = deckIndex === null ? '' : this.state.componentId(this.node.Deck, deckIndex);
@@ -235,7 +254,7 @@ export class Stack implements StackView {
 
 	/** scrambleIds: see every component, bump its count, see it again. */
 	private scrambleIds(): void {
-		for (let i = 0; i < this.node.Indexes.length; i++) {
+		for (let i = 0; i < this.ix.length; i++) {
 			const deckIndex = this.componentAt(i);
 			if (deckIndex === null) continue;
 			this.idSeen(this.state.componentId(this.node.Deck, deckIndex));
@@ -245,22 +264,23 @@ export class Stack implements StackView {
 	}
 
 	private removeComponentAt(componentIndex: number): number {
-		const deckIndex = this.node.Indexes[componentIndex];
+		const deckIndex = this.ix[componentIndex];
 		if (this.kind === 'growable') {
-			this.node.Indexes.splice(componentIndex, 1);
+			this.ix.splice(componentIndex, 1);
 			this.state.updateIndexForAllComponents(this);
 		} else {
 			// As in Go, a sized stack leaves the removed component's entry
 			// in the state's component index; the insert that follows
 			// replaces it.
-			this.node.Indexes[componentIndex] = EMPTY_SLOT;
+			this.ix[componentIndex] = EMPTY_SLOT;
 		}
 		return deckIndex;
 	}
 
 	private insertComponentAt(slotIndex: number, deckIndex: number): void {
-		if (this.kind === 'growable') this.node.Indexes.splice(slotIndex, 0, deckIndex);
-		else this.node.Indexes[slotIndex] = deckIndex;
+		if (this.node.Indexes === null) this.node.Indexes = [];
+		if (this.kind === 'growable') this.ix.splice(slotIndex, 0, deckIndex);
+		else this.ix[slotIndex] = deckIndex;
 		this.idSeen(this.state.componentId(this.node.Deck, deckIndex));
 		if (this.kind === 'growable') this.state.updateIndexForAllComponents(this);
 		else this.state.componentAdded(this.node.Deck, deckIndex, this, slotIndex);
@@ -431,7 +451,7 @@ export class Stack implements StackView {
 		// validateLiveComponentTransferPlan: each component that will move
 		// must pass MayMoveTo against the state as it is now.
 		let validated = 0;
-		for (let i = 0; i < this.node.Indexes.length && validated < count; i++) {
+		for (let i = 0; i < this.ix.length && validated < count; i++) {
 			const deckIndex = this.componentAt(i);
 			if (deckIndex === null) continue;
 			const may = this.mayMoveToError(deckIndex, dest);
@@ -496,7 +516,7 @@ export class Stack implements StackView {
 	}
 
 	private permute(): void {
-		const current = this.node.Indexes;
+		const current = this.ix;
 		const perm = this.state.rand().perm(current.length);
 		const next = new Array<number>(current.length);
 		for (let i = 0; i < perm.length; i++) next[i] = current[perm[i]];
@@ -521,7 +541,7 @@ export class Stack implements StackView {
 	swapComponents(i: number, j: number): void {
 		const err = this.maySwapComponents(i, j);
 		if (err !== null) throw new StackError(err);
-		const indexes = this.node.Indexes;
+		const indexes = this.ix;
 		const t = indexes[i];
 		indexes[i] = indexes[j];
 		indexes[j] = t;
@@ -532,16 +552,25 @@ export class Stack implements StackView {
 
 	/**
 	 * Stack.SortComponents. `less` receives deck indexes (EMPTY_SLOT for an
-	 * empty slot). Go uses sort.Sort, which is not stable and whose exact
-	 * permutation for equal elements is an implementation detail of Go's
-	 * pdqsort; this port uses a stable sort, so `less` must be a strict total
-	 * order over the stack's contents for results to match Go.
+	 * empty slot in a sized stack). Like Go this is sort.Sort, which is not
+	 * stable; the order of elements that compare equal is whatever Go's
+	 * algorithm produces, reproduced exactly by goSort.
 	 */
 	sortComponents(less: (a: number, b: number) => boolean): void {
 		this.requireModifiable();
-		const sorted = this.node.Indexes.slice();
-		sorted.sort((a, b) => (less(a, b) ? -1 : less(b, a) ? 1 : 0));
-		this.node.Indexes = sorted;
+		const sorted = this.ix.slice();
+		goSort(
+			sorted.length,
+			(i, j) => less(sorted[i], sorted[j]),
+			(i, j) => {
+				const t = sorted[i];
+				sorted[i] = sorted[j];
+				sorted[j] = t;
+			},
+		);
+		// Go copies with append([]int(nil), indexes...), which stays nil for
+		// an empty stack and then serializes as null.
+		this.node.Indexes = sorted.length === 0 ? null : sorted;
 		this.state.updateIndexForAllComponents(this);
 		this.syncIds();
 	}
@@ -562,7 +591,8 @@ export class Stack implements StackView {
 			return;
 		}
 		if (newSlots < 1) throw new StackError("Can't add 0 or negative slots to a sized stack");
-		for (let i = 0; i < newSlots; i++) this.node.Indexes.push(EMPTY_SLOT);
+		if (this.node.Indexes === null) this.node.Indexes = [];
+		for (let i = 0; i < newSlots; i++) this.ix.push(EMPTY_SLOT);
 		setOrDelete(this.node, 'Size', (this.node.Size ?? 0) + newSlots);
 		this.syncIds();
 	}
@@ -600,7 +630,7 @@ export class Stack implements StackView {
 			// (stack.go, sizedStack.ContractSize), so components to the
 			// right of a removed slot keep a stale entry. Reproduced
 			// deliberately: see EngineState.locateComponent.
-			this.node.Indexes.splice(slotIndex, 1);
+			this.ix.splice(slotIndex, 1);
 		}
 		setOrDelete(this.node, 'Size', newSize);
 		this.syncIds();

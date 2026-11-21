@@ -9,7 +9,7 @@
 import { GoRand, stateRand } from './rand.ts';
 import { componentId, secretMoveCountFor, EMPTY_SLOT, GENERIC_COMPONENT } from './ids.ts';
 import type { GameIdentity } from './ids.ts';
-import { MergedStackView, Stack } from './stack.ts';
+import { MergedStackView, Stack, indexesOf } from './stack.ts';
 import type { StackJSON, StackView } from './stack.ts';
 import type { GameDefinition, PropDef, SubStateDef } from './definition.ts';
 
@@ -258,7 +258,7 @@ export class EngineState {
 	}
 
 	private register(node: StackJSON, kind: 'growable' | 'sized', path: string, inBoard: boolean): void {
-		if (kind === 'sized' && node.Indexes.length !== (node.Size ?? 0)) {
+		if (kind === 'sized' && indexesOf(node).length !== (node.Size ?? 0)) {
 			throw new StateError("Couldn't unmarshal sized stack: lenght of indexes didn't agree with size");
 		}
 		const stack = new Stack(this, node, kind, path, inBoard);
@@ -413,7 +413,7 @@ export class EngineState {
 	private buildComponentIndex(): void {
 		this.componentIndex = {};
 		for (const stack of this.stackList) {
-			for (let i = 0; i < stack.node.Indexes.length; i++) {
+			for (let i = 0; i < stack.len(); i++) {
 				this.componentAddedImpl(stack.node.Deck, stack.componentAt(i), stack, i);
 			}
 		}
@@ -432,7 +432,7 @@ export class EngineState {
 
 	/** state.updateIndexForAllComponents. Called by stacks; not for game code. */
 	updateIndexForAllComponents(stack: Stack): void {
-		for (let i = 0; i < stack.node.Indexes.length; i++) {
+		for (let i = 0; i < stack.len(); i++) {
 			this.componentAdded(stack.node.Deck, stack.componentAt(i), stack, i);
 		}
 	}
@@ -537,7 +537,7 @@ export class EngineState {
 			const deckName = stack.node.Deck;
 			const locations = found[deckName];
 			if (!locations) return stack.path + ' names unknown deck ' + goQuote(deckName);
-			const indexes = stack.node.Indexes;
+			const indexes = indexesOf(stack.node);
 			for (let slot = 0; slot < indexes.length; slot++) {
 				const index = indexes[slot];
 				const location = stack.path + '[' + slot + ']';
@@ -579,7 +579,7 @@ function normalizeStack(value: unknown, path: string, prop: PropDef): StackJSON 
 	if (value === null || typeof value !== 'object') throw new StateError(path + ' is nil');
 	const node = value as StackJSON;
 	if (typeof node.Deck !== 'string' || node.Deck === '') node.Deck = prop.Deck ?? '';
-	if (!Array.isArray(node.Indexes)) node.Indexes = [];
+	if (!Array.isArray(node.Indexes)) node.Indexes = null; // Go's nil slice
 	if (!Array.isArray(node.IDs)) node.IDs = [];
 	if (node.IDsLastSeen === null || typeof node.IDsLastSeen !== 'object') node.IDsLastSeen = {};
 	if (typeof node.ShuffleCount !== 'number') node.ShuffleCount = 0;
