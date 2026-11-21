@@ -1,0 +1,26 @@
+{
+  "name": "boardgame-fabric-guest",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "license": "BSD-3-Clause",
+  "description": "Self-contained iframe guest that mounts the boardgame renderer host from JSON messages.",
+  "scripts": {
+    "build": "vite build",
+    "type-check": "tsc --noEmit",
+    "serve": "node tools/serve.mjs",
+    "replay": "cd ../.. && ./scripts/go-local run ./fabric/guest/tools/export-replay -out fabric/guest/replays/memory-full.json",
+    "test": "npm run build && playwright test",
+    "test:only": "playwright test"
+  },
+  "dependencies": {
+    "lit": "3.3.3",
+    "reselect": "4.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/node": "^20.0.0",
+    "typescript": "5.9.3",
+    "vite": "6.4.3"
+  }
+}

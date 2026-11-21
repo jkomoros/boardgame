@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guest harness</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme: light; font: 14px/1.4 system-ui, sans-serif; }
+  body { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; height: 100vh; }
+  main { display: flex; flex-direction: column; min-width: 0; }
+  #controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 12px;
+    border-bottom: 1px solid #ccc; background: #f6f4ef; }
+  #controls label { display: inline-flex; gap: 4px; align-items: center; }
+  #controls input[type=number] { width: 3.5em; }
+  button, select, input { font: inherit; }
+  #position { font-variant-numeric: tabular-nums; }
+  iframe { flex: 1; border: 0; width: 100%; min-height: 0; background: #fff; }
+  aside { border-left: 1px solid #ccc; display: flex; flex-direction: column; min-height: 0; }
+  aside h2 { font-size: 13px; margin: 0; padding: 6px 10px; background: #f6f4ef; border-bottom: 1px solid #ccc; }
+  ol.log { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; min-height: 0;
+    font: 12px/1.35 ui-monospace, Menlo, monospace; }
+  ol.log li { padding: 3px 10px; border-bottom: 1px solid #eee; white-space: pre-wrap; overflow-wrap: anywhere; }
+  ol.log li.propose-move { background: #fff3c4; }
+  ol.log li.error { background: #ffd9d6; }
+  ol.log li.tick { background: #e3f0ff; }
+  #proposals { flex: 0 0 30%; }
+</style>
+</head>
+<body>
+<main>
+  <div id="controls">
+    <label>Replay
+      <select id="replay">
+        <option value="full">Every version (complete small game)</option>
+        <option value="scenario">Decision points only (scenario-replay.json)</option>
+      </select>
+    </label>
+    <label>Seat
+      <select id="viewer">
+        <option value="0">Player 1</option>
+        <option value="1">Player 2</option>
+        <option value="-1">Observer</option>
+      </select>
+    </label>
+    <button id="restart" type="button">Restart</button>
+    <button id="step" type="button">Step</button>
+    <label>Deliver <input id="count" type="number" min="1" value="4"> at once</label>
+    <button id="deliver" type="button">Deliver window</button>
+    <button id="play" type="button">Play all</button>
+    <label title="How many earlier versions each message repeats, as a latest-value cell would">
+      Overlap <input id="overlap" type="number" min="0" value="2">
+    </label>
+    <label>Proposed moves
+      <select id="answer">
+        <option value="none">leave unanswered</option>
+        <option value="reject">reject</option>
+        <option value="advance">accept, then step the replay</option>
+      </select>
+    </label>
+    <span id="position"></span>
+  </div>
+  <iframe id="guest" sandbox="allow-scripts" title="Boardgame guest"></iframe>
+</main>
+<aside>
+  <h2>Moves proposed by the guest</h2>
+  <ol class="log" id="proposals"></ol>
+  <h2>All messages from the guest</h2>
+  <ol class="log" id="received"></ol>
+</aside>
+<script type="module">
+// The harness plays the part of the pattern: it owns the history and posts
+// plain JSON to the sandboxed guest. It never reaches into the iframe.
+const CHANNEL = 'boardgame-guest';
+const PROTOCOL = 1;
+const params = new URLSearchParams(location.search);
+const guestUrl = 'dist/guest.html' + (params.get('csp') ? `?csp=${encodeURIComponent(params.get('csp'))}` : '');
+const REPLAYS = {
+  full: 'replays/memory-full.json',
+  scenario: '../../examples/memory/client/scenario-replay.json',
+};
+const PLAYERS = [
+  { playerIndex: 0, label: 'Ada', color: '#1f77b4' },
+  { playerIndex: 1, label: 'Grace', color: '#d62728' },
+];
+
+const $ = id => document.getElementById(id);
+const frame = $('guest');
+
+const state = {
+  replay: null,       // normalized: { gameName, chest, fingerprint, versions: [{version, label, viewers}] }
+  viewer: 0,
+  epoch: 0,
+  cursor: -1,         // index of the newest version delivered
+  guestLoaded: false,
+  mounted: false,
+  playing: false,
+};
+const received = [];
+const sent = [];
+const waiters = [];
+
+/** Both replay formats become: versions[].viewers[seat] = protocol entry. */
+function normalize(raw) {
+  const base = { gameName: raw.gameName, chest: raw.chest, fingerprint: raw.moveInputSchemaFingerprint };
+  const entry = (version, item) => ({
+    version,
+    state: item.game.CurrentState,
+    move: item.move ?? null,
+    currentPlayerIndex: item.game.CurrentPlayerIndex,
+    timers: item.game.ActiveTimers ?? {},
+    outcome: { finished: item.game.Finished === true, winners: item.game.Winners ?? [] },
+    ...(item.moveLegality ? { moveLegality: item.moveLegality } : {}),
+    ...(item.zeroInputMoves ? { zeroInputMoves: item.zeroInputMoves } : {}),
+    ...(item.projectedMoveChoices ? { projectedMoveChoices: item.projectedMoveChoices } : {}),
+  });
+  if (Array.isArray(raw.versions)) {
+    return { ...base, versions: raw.versions.map(v => ({
+      version: v.version, label: v.label ?? '',
+      viewers: Object.fromEntries(Object.entries(v.viewers).map(([seat, item]) => [seat, entry(v.version, item)])),
+    })) };
+  }
+  // boardgame-util/lib/scenario output: settled decision points only, no
+  // move records, and only the final frame knows the outcome.
+  return { ...base, versions: raw.frames.map(f => ({
+    version: f.version, label: f.label,
+    viewers: Object.fromEntries(f.viewers.map(item => [String(item.viewer), entry(f.version, item)])),
+  })) };
+}
+
+function post(body) {
+  const message = { channel: CHANNEL, v: PROTOCOL, ...body };
+  sent.push(message);
+  frame.contentWindow.postMessage(message, '*');
+}
+
+function line(list, text, cls) {
+  const item = document.createElement('li');
+  item.textContent = text;
+  if (cls) item.className = cls;
+  list.append(item);
+  list.scrollTop = list.scrollHeight;
+}
+
+function describe(message) {
+  const { channel, v, type, ...rest } = message;
+  return `${type} ${JSON.stringify(rest)}`;
+}
+
+function showPosition() {
+  const versions = state.replay?.versions ?? [];
+  const at = versions[state.cursor];
+  $('position').textContent = at
+    ? `delivered through v${at.version} (${state.cursor + 1}/${versions.length})${at.label ? ': ' + at.label : ''}`
+    : `nothing delivered (0/${versions.length})`;
+}
+
+function sendInit() {
+  state.mounted = false;
+  post({
+    type: 'init',
+    gameName: state.replay.gameName,
+    gameId: 'harness',
+    chest: state.replay.chest,
+    viewer: state.viewer,
+    players: PLAYERS,
+    moveInputSchemaFingerprint: state.replay.fingerprint,
+  });
+}
+
+/** Send versions[from..to] (indexes, inclusive) as one window. */
+function sendWindow(from, to) {
+  const versions = state.replay.versions;
+  const lo = Math.max(0, from);
+  const hi = Math.min(versions.length - 1, to);
+  if (hi < lo) return;
+  post({
+    type: 'state',
+    viewer: state.viewer,
+    epoch: state.epoch,
+    entries: versions.slice(lo, hi + 1).map(v => v.viewers[String(state.viewer)]),
+  });
+  state.cursor = Math.max(state.cursor, hi);
+  showPosition();
+}
+
+/** Advance by `count` versions, repeating `overlap` already-delivered ones. */
+function deliver(count) {
+  const overlap = Math.max(0, Number($('overlap').value) || 0);
+  const from = state.cursor + 1;
+  const to = Math.min(state.replay.versions.length - 1, state.cursor + count);
+  if (to < from) return false;
+  sendWindow(from - overlap, to);
+  return true;
+}
+
+function waitFor(predicate, timeoutMs = 20000) {
+  const hit = received.find(predicate);
+  if (hit) return Promise.resolve(hit);
+  return new Promise((resolve, reject) => {
+    const waiter = { predicate, resolve };
+    waiters.push(waiter);
+    setTimeout(() => {
+      const index = waiters.indexOf(waiter);
+      if (index >= 0) { waiters.splice(index, 1); reject(new Error('harness: timed out waiting for a guest message')); }
+    }, timeoutMs);
+  });
+}
+
+function waitForNext(predicate, timeoutMs) {
+  const seen = received.length;
+  return waitFor(m => received.indexOf(m) >= seen && predicate(m), timeoutMs);
+}
+
+async function restart() {
+  state.playing = false;
+  state.cursor = -1;
+  state.epoch += 1;
+  showPosition();
+  const mounted = waitForNext(m => m.type === 'ready' && m.stage === 'mounted');
+  sendInit();
+  await mounted;
+  state.mounted = true;
+  deliver(1);
+}
+
+async function loadReplay(name) {
+  const response = await fetch(REPLAYS[name]);
+  if (!response.ok) throw new Error(`could not load ${REPLAYS[name]}`);
+  state.replay = normalize(await response.json());
+  $('replay').value = name;
+}
+
+async function playAll() {
+  state.playing = true;
+  while (state.playing && state.cursor < state.replay.versions.length - 1) {
+    const target = state.replay.versions[state.cursor + 1].version;
+    const done = waitForNext(m => m.type === 'animations-done' && m.version === target);
+    deliver(1);
+    await done;
+  }
+  state.playing = false;
+}
+
+window.addEventListener('message', event => {
+  if (event.source !== frame.contentWindow) return;
+  const message = event.data;
+  if (!message || message.channel !== CHANNEL || message.v !== PROTOCOL) return;
+  received.push(message);
+  line($('received'), describe(message), message.type);
+  if (message.type === 'ready' && message.stage === 'loaded') state.guestLoaded = true;
+  if (message.type === 'propose-move') {
+    line($('proposals'), `${message.name} ${JSON.stringify(message.arguments)} at v${message.snapshotVersion} as seat ${message.viewer}`, 'propose-move');
+    const answer = $('answer').value;
+    if (answer === 'reject') {
+      post({ type: 'move-result', requestId: message.requestId, ok: false, error: 'the harness refuses every move' });
+    } else if (answer === 'advance') {
+      // A recording cannot apply an arbitrary move; it can only move on.
+      post({ type: 'move-result', requestId: message.requestId, ok: true });
+      deliver(1);
+    }
+  }
+  for (const waiter of [...waiters]) {
+    if (waiter.predicate(message)) {
+      waiters.splice(waiters.indexOf(waiter), 1);
+      waiter.resolve(message);
+    }
+  }
+});
+
+$('step').addEventListener('click', () => deliver(1));
+$('deliver').addEventListener('click', () => deliver(Math.max(1, Number($('count').value) || 1)));
+$('play').addEventListener('click', () => { void playAll(); });
+$('restart').addEventListener('click', () => { void restart(); });
+$('viewer').addEventListener('change', event => {
+  // A seat change re-sends what was already delivered, computed for the new
+  // seat. The guest cuts to it without animating.
+  state.viewer = Number(event.target.value);
+  if (state.cursor >= 0) sendWindow(state.cursor - (Number($('overlap').value) || 0), state.cursor);
+});
+$('replay').addEventListener('change', async event => {
+  await loadReplay(event.target.value);
+  await restart();
+});
+
+// For tests and the console.
+window.harness = {
+  state, received, sent, post, deliver, sendWindow, sendInit, restart, playAll, loadReplay, waitFor, waitForNext,
+  setViewer(seat) { $('viewer').value = String(seat); $('viewer').dispatchEvent(new Event('change')); },
+  ready: null,
+};
+
+window.harness.ready = (async () => {
+  const loaded = waitFor(m => m.type === 'ready' && m.stage === 'loaded');
+  if (params.get('srcdoc')) {
+    // How a host with no URL of its own for the guest would embed it.
+    frame.srcdoc = await (await fetch(guestUrl)).text();
+  } else {
+    frame.src = guestUrl;
+  }
+  await loadReplay(params.get('replay') === 'scenario' ? 'scenario' : 'full');
+  await loaded;
+  if (params.get('autostart') !== '0') await restart();
+})();
+</script>
+</body>
+</html>
