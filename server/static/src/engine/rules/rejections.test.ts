@@ -57,12 +57,12 @@ const vectors = JSON.parse(readFileSync(fileURLToPath(new URL('../testdata/rejec
 // everywhere or only once the first move has been made.
 const spin = noOp({ name: 'Spin', helpText: 'A fix-up that is always legal' });
 const specs: Record<string, GameSpec> = {
-	memory,
-	blackjack,
-	tictactoe,
-	pig,
-	'spin-always': { ...tictactoe, name: 'main', moves: [...tictactoe.moves, spin] },
-	'spin-after-first-move': { ...tictactoe, name: 'main', moves: [...tictactoe.moves, ...addForPhase(1, spin)] },
+	memory: memory(),
+	blackjack: blackjack(),
+	tictactoe: tictactoe(),
+	pig: pig(),
+	'spin-always': { ...tictactoe(), name: 'main', moves: [...tictactoe().moves, spin] },
+	'spin-after-first-move': { ...tictactoe(), name: 'main', moves: [...tictactoe().moves, ...addForPhase(1, spin)] },
 };
 const compiled: Record<string, CompiledGame> = {};
 const gameFor = (name: string): CompiledGame => (compiled[name] ??= compileGame(specs[name]));

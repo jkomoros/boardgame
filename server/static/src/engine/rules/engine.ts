@@ -8,10 +8,13 @@
 // caller stores (see ../README.md, "What the host does").
 
 import { ADMIN_PLAYER_INDEX, OBSERVER_PLAYER_INDEX } from '../legal/types.ts';
-import { EngineState } from '../state.ts';
+import { loadEngineState } from '../state.ts';
+import type { EngineState } from '../state.ts';
 import type { StateJSON } from '../state.ts';
-import { GameSpecError, emptyStateJSON, newVariant } from './compile.ts';
-import { type CompiledGame, type CompiledMove, type Environment, RulesState, findMove } from './state.ts';
+import { emptyStateJSON, newVariant, isGameSpecError } from './compile.ts';
+import type { GameSpecError } from './compile.ts';
+import { type CompiledGame, type CompiledMove, type Environment, findMove, newRulesState } from './state.ts';
+import type { RulesState } from './state.ts';
 import {
 	type TimerGuard,
 	type TimerRecord,
@@ -225,7 +228,7 @@ function applyMove(run: Run, current: RulesState, move: MoveInstance, proposer: 
 	if (legal !== null) return legal;
 
 	const phase = current.currentPhaseKey();
-	const next = new RulesState(run.game, current.engine.copy(versionToSet), run.record, run.history, run.env, current);
+	const next = newRulesState(run.game, current.engine.copy(versionToSet), run.record, run.history, run.env, current);
 	if (guard !== null) {
 		const err = consumeTimer(next.engine, guard);
 		if (err !== null) return err;
@@ -253,7 +256,7 @@ function applyMove(run: Run, current: RulesState, move: MoveInstance, proposer: 
 
 	// Go reads the committed state back from storage, so nothing built while
 	// applying the move (the component index in particular) carries over.
-	const committed = new RulesState(run.game, next.engine.copy(versionToSet), run.record, run.history, run.env);
+	const committed = newRulesState(run.game, next.engine.copy(versionToSet), run.record, run.history, run.env);
 	const fixUp = committed.proposeFixUpMove();
 	if (fixUp !== null) {
 		const err = applyMove(run, committed, fixUp, ADMIN_PLAYER_INDEX, true, recurseCount + 1, initiator, null);
@@ -359,9 +362,9 @@ export function moveFromRecord(state: RulesState, name: string, fields: Readonly
 /** Loads a stored state as the rules see it. */
 export function loadState(game: CompiledGame, snapshot: GameSnapshot, env: Environment = { pendingSeat: null }): RulesState {
 	const identity = { gameId: snapshot.record.id, secretSalt: snapshot.record.secretSalt };
-	const engine = EngineState.load(game.def, identity, snapshot.history.length, snapshot.state);
+	const engine = loadEngineState(game.def, identity, snapshot.history.length, snapshot.state);
 	syncTimerRecords(engine);
-	return new RulesState(game, engine, snapshot.record, snapshot.history, env);
+	return newRulesState(game, engine, snapshot.record, snapshot.history, env);
 }
 
 /**
@@ -379,7 +382,7 @@ export function createGame(game: CompiledGame, options: CreateOptions): CreateRe
 	try {
 		variant = newVariant(spec, options.variant);
 	} catch (thrown) {
-		if (!(thrown instanceof GameSpecError)) throw thrown;
+		if (!(isGameSpecError(thrown))) throw thrown;
 		return refuse('That variation is not legal for this game: ' + thrown.message);
 	}
 	let agents = options.agents;
@@ -390,10 +393,10 @@ export function createGame(game: CompiledGame, options: CreateOptions): CreateRe
 	}
 
 	const record: GameRecord = { name: spec.name, id: options.id, secretSalt: options.secretSalt, numPlayers, variant, agents, seating: options.seating === true };
-	const engine = EngineState.load(game.def, { gameId: record.id, secretSalt: record.secretSalt }, 0, emptyStateJSON(game, numPlayers), { skipConservation: true });
+	const engine = loadEngineState(game.def, { gameId: record.id, secretSalt: record.secretSalt }, 0, emptyStateJSON(game, numPlayers), { skipConservation: true });
 	syncTimerRecords(engine);
 	const run: Run = { game, record, history: [], env: { pendingSeat: null }, now: options.now, versions: [], finished: false };
-	const state = new RulesState(game, engine, record, run.history, run.env);
+	const state = newRulesState(game, engine, record, run.history, run.env);
 
 	try {
 		if (spec.setUp.begin) spec.setUp.begin(state, variant ?? {});
@@ -455,7 +458,7 @@ export function gameStatus(game: CompiledGame, snapshot: GameSnapshot): { finish
 export function propose(game: CompiledGame, snapshot: GameSnapshot, input: Input, options: StepOptions): StepResult {
 	const env: Environment = { pendingSeat: null };
 	const history = snapshot.history.slice();
-	const current = new RulesState(game, loadState(game, snapshot).engine, snapshot.record, history, env);
+	const current = newRulesState(game, loadState(game, snapshot).engine, snapshot.record, history, env);
 	const run: Run = {
 		game,
 		record: snapshot.record,

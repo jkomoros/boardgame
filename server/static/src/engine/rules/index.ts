@@ -1,8 +1,10 @@
 // The rules layer's public surface. See ../README.md.
 
 export * from './types.ts';
-export { compileGame, emptyStateJSON, gameDisplayName, newVariant, variantConfig, plainGameStackName, GameSpecError } from './compile.ts';
-export { RulesState, TimerHandle, rulesOf } from './state.ts';
+export { compileGame, emptyStateJSON, gameDisplayName, newVariant, variantConfig, plainGameStackName, gameSpecError, isGameSpecError } from './compile.ts';
+export type { GameSpecError } from './compile.ts';
+export { newRulesState, rulesOf } from './state.ts';
+export type { RulesState, TimerHandle } from './state.ts';
 export type { CompiledGame, CompiledMove, ChoiceSchemaItem, Environment, InputField } from './state.ts';
 export {
 	createGame, propose, loadState, gameStatus, checkGameFinished, moveWithInput, moveFromRecord,
@@ -18,7 +20,9 @@ export type { ActiveTimer, TimerGuard, TimerMove, TimerRecord, TimerRef, TimerSt
 export { formatInstant, parseInstant, ZERO_TIME } from './time.ts';
 export * from './progression.ts';
 export * from './stock.ts';
-export { bindLegalState, bindLegalMove, bindLegalChest, subStateReader, valueReader, BoundStack, PROPERTY_TYPE_NAMES } from './binding.ts';
+export { bindLegalState, bindLegalMove, bindLegalChest, subStateReader, valueReader, newBoundStack, PROPERTY_TYPE_NAMES } from './binding.ts';
+export type { BoundStack } from './binding.ts';
 export type { BindingContext, ComponentSchema, DelegateAnswers, ValuePropDef } from './binding.ts';
-export { EnumRegistry, bindEnum } from './enums.ts';
+export { newEnumRegistry, bindEnum } from './enums.ts';
+export type { EnumRegistry } from './enums.ts';
 export type { BoundEnum } from './enums.ts';

@@ -47,9 +47,9 @@ export interface LegalPredicate {
   /** The verdict function. Run it through evalLegalPredicate, never directly. */
   evaluate: (ctx: LegalContext) => LegalVerdict;
   /** Boot contract: the property at each path must have exactly this type. */
-  requiredReadTypes?: Readonly<Record<string, PropertyType>>;
+  requiredReadTypes?: Readonly<Record<string, PropertyType>> | undefined;
   /** Boot contract: the property at each path must have one of these types. */
-  allowedReadTypes?: Readonly<Record<string, readonly PropertyType[]>>;
+  allowedReadTypes?: Readonly<Record<string, readonly PropertyType[]>> | undefined;
   requiredComponentFields?: readonly LegalComponentFieldRequirement[];
   /** Copied from the spec by resolveLegalSpecs. */
   adminPolicy: LegalAdminPolicy;
@@ -81,11 +81,22 @@ export function legalPredicateSerializable(p: LegalPredicate | null | undefined)
  * they are thrown by resolveLegalSpecs, at the equivalent "boot" moment.
  * `message` is Go's error text.
  */
-export class LegalSpecError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'LegalSpecError';
-  }
+export interface LegalSpecError extends Error {
+  readonly name: 'LegalSpecError';
+}
+
+/**
+ * Creates a `LegalSpecError`. An ordinary `Error` named `LegalSpecError`, not a subclass:
+ * a Common Fabric pattern module may not declare a class (see README.md,
+ * "No classes").
+ */
+export function legalSpecError(message: string): LegalSpecError {
+  return Object.assign(new Error(message), { name: 'LegalSpecError' as const });
+}
+
+/** Whether `thrown` is a `LegalSpecError`. */
+export function isLegalSpecError(thrown: unknown): thrown is LegalSpecError {
+  return thrown instanceof Error && thrown.name === 'LegalSpecError';
 }
 
 /** Go: LegalPredicateConstructor. */
@@ -232,8 +243,8 @@ function typeList(types: readonly PropertyType[]): string {
  * across a compositor's children and rejects contradictory ones.
  */
 function unionReadTypes(subs: readonly LegalPredicate[]): {
-  required?: Record<string, PropertyType>;
-  allowed?: Record<string, readonly PropertyType[]>;
+  required?: Record<string, PropertyType> | undefined;
+  allowed?: Record<string, readonly PropertyType[]> | undefined;
 } {
   const required = new Map<string, PropertyType>();
   const allowed = new Map<string, readonly PropertyType[]>();
@@ -241,11 +252,11 @@ function unionReadTypes(subs: readonly LegalPredicate[]): {
     for (const [path, expected] of Object.entries(sub.requiredReadTypes ?? {})) {
       const prior = required.get(path);
       if (prior !== undefined && prior !== expected) {
-        throw new LegalSpecError(`composed predicates require conflicting types for ${goQuote(path)} (${prior} and ${expected})`);
+        throw legalSpecError(`composed predicates require conflicting types for ${goQuote(path)} (${prior} and ${expected})`);
       }
       const choices = allowed.get(path);
       if (choices !== undefined && !choices.includes(expected)) {
-        throw new LegalSpecError(
+        throw legalSpecError(
           `composed predicates require conflicting types for ${goQuote(path)} (${expected} and one of ${typeList(choices)})`,
         );
       }
@@ -257,7 +268,7 @@ function unionReadTypes(subs: readonly LegalPredicate[]): {
       const expected = required.get(path);
       if (expected !== undefined) {
         if (!choices.includes(expected)) {
-          throw new LegalSpecError(
+          throw legalSpecError(
             `composed predicates require conflicting types for ${goQuote(path)} (${expected} and one of ${typeList(choices)})`,
           );
         }
@@ -268,7 +279,7 @@ function unionReadTypes(subs: readonly LegalPredicate[]): {
         const narrowed = choices;
         choices = prior.filter((candidate, i) => narrowed.includes(candidate) && prior.indexOf(candidate) === i);
         if (choices.length === 0) {
-          throw new LegalSpecError(`composed predicates have disjoint allowed types for ${goQuote(path)}`);
+          throw legalSpecError(`composed predicates have disjoint allowed types for ${goQuote(path)}`);
         }
       }
       allowed.set(path, [...choices]);
@@ -284,7 +295,7 @@ function unionReadTypes(subs: readonly LegalPredicate[]): {
 function resolveAnySpec(spec: LegalSpec, resolve: (spec: LegalSpec) => LegalPredicate): LegalPredicate {
   const subSpecs = spec.sub ?? [];
   if (subSpecs.length < 2) {
-    throw new LegalSpecError(
+    throw legalSpecError(
       `boardgame: legal spec ${goQuote(spec.name)}: ${goQuote(LEGAL_ANY_NAME)} compositor requires at least 2 sub-specs, got ${subSpecs.length}`,
     );
   }
@@ -294,7 +305,7 @@ function resolveAnySpec(spec: LegalSpec, resolve: (spec: LegalSpec) => LegalPred
   try {
     types = unionReadTypes(subs);
   } catch (err) {
-    throw new LegalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: ${thrownText(err)}`);
+    throw legalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: ${thrownText(err)}`);
   }
   return newLegalPredicate({
     name: LEGAL_ANY_NAME,
@@ -424,11 +435,11 @@ export function validateLegalPredicateForBoot(
 /** What resolveLegalSpecs validates declared paths against. Both default to null (skip). */
 export interface LegalResolveOptions {
   /** The component chest, for constructors that read it (propEquals' typo guard). */
-  chest?: LegalChest | null;
+  chest?: LegalChest | null | undefined;
   /** An example state: validates game/player/proposer/players[*] paths. */
-  exampleState?: LegalState | null;
+  exampleState?: LegalState | null | undefined;
   /** An example move's reader: validates move.* paths. */
-  moveReader?: LegalPropertyReader | null;
+  moveReader?: LegalPropertyReader | null | undefined;
 }
 
 /**
@@ -453,7 +464,7 @@ export function resolveLegalSpecs(
   const resolve = (spec: LegalSpec, insideAny: boolean): LegalPredicate => {
     if (spec.name === LEGAL_ANY_NAME) {
       if (insideAny) {
-        throw new LegalSpecError(
+        throw legalSpecError(
           `boardgame: legal spec ${goQuote(spec.name)}: nested ${goQuote(LEGAL_ANY_NAME)} compositor is not allowed (any is depth-1 only, no nested any anywhere beneath another any)`,
         );
       }
@@ -462,7 +473,7 @@ export function resolveLegalSpecs(
     }
     const ctor = registry.get(spec.name);
     if (ctor === undefined) {
-      throw new LegalSpecError(
+      throw legalSpecError(
         `boardgame: legal spec ${goQuote(spec.name)}: unknown predicate name ${goQuote(spec.name)}`,
       );
     }
@@ -470,10 +481,10 @@ export function resolveLegalSpecs(
     try {
       pred = ctor.construct(spec, chest, sub => resolve(sub, insideAny));
     } catch (err) {
-      throw new LegalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: constructor failed: ${thrownText(err)}`);
+      throw legalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: constructor failed: ${thrownText(err)}`);
     }
     if (!pred) {
-      throw new LegalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: constructor returned a nil predicate`);
+      throw legalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: constructor returned a nil predicate`);
     }
     pred.adminPolicy = spec.adminPolicy ?? '';
     return pred;
@@ -483,11 +494,11 @@ export function resolveLegalSpecs(
     const pred = resolve(spec, false);
     const nested = checkNoNestedAny(pred, false);
     if (nested !== null) {
-      throw new LegalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: ${nested}`);
+      throw legalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: ${nested}`);
     }
     const invalid = validateLegalPredicateForBoot(pred, exampleState, moveReader);
     if (invalid !== null) {
-      throw new LegalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: ${invalid}`);
+      throw legalSpecError(`boardgame: legal spec ${goQuote(spec.name)}: ${invalid}`);
     }
     return pred;
   });

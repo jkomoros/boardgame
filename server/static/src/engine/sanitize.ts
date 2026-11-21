@@ -8,7 +8,8 @@
 // LEAST restrictive one wins.
 
 import { EMPTY_SLOT, GENERIC_COMPONENT } from './ids.ts';
-import { EngineState, StateError, compareGoStrings, sortedKeys } from './state.ts';
+import { compareGoStrings, sortedKeys } from './state.ts';
+import type { EngineState, StateError } from './state.ts';
 import type { BoardJSON, StateJSON, SubStateJSON, SubStateRef, VisibilityJSON } from './state.ts';
 import { indexesOf } from './stack.ts';
 import type { StackJSON } from './stack.ts';
@@ -22,11 +23,22 @@ export const ADMIN_PLAYER_INDEX = -2;
 /** state.go AnyPlayerIndex: sanitized as the observer. */
 export const ANY_PLAYER_INDEX = -3;
 
-export class SanitizeError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = 'SanitizeError';
-	}
+export interface SanitizeError extends Error {
+	readonly name: 'SanitizeError';
+}
+
+/**
+ * Creates a `SanitizeError`. An ordinary `Error` named `SanitizeError`, not a subclass:
+ * a Common Fabric pattern module may not declare a class (see README.md,
+ * "No classes").
+ */
+export function sanitizeError(message: string): SanitizeError {
+	return Object.assign(new Error(message), { name: 'SanitizeError' as const });
+}
+
+/** Whether `thrown` is a `SanitizeError`. */
+export function isSanitizeError(thrown: unknown): thrown is SanitizeError {
+	return thrown instanceof Error && thrown.name === 'SanitizeError';
 }
 
 /** The effective policy of every property for one viewer. */
@@ -158,7 +170,7 @@ export function computedGroupMembership(
 	if (groupName === GROUP_OTHER) return player !== viewer;
 
 	const fail = (reason: string): never => {
-		throw new SanitizeError("Couldn't get group membership for groupName: " + groupName + ': ' + reason);
+		throw sanitizeError("Couldn't get group membership for groupName: " + groupName + ': ' + reason);
 	};
 	const parts = groupName.split('-');
 	if (parts.length !== 2) return fail('Unsupported group name: ' + groupName);
@@ -223,9 +235,9 @@ export function sanitizationTransformation(state: EngineState, viewer: number): 
 	}
 
 	for (const deckName of Object.keys(state.data.Components)) {
-		if (state.data.Components[deckName].length === 0) throw new SanitizeError('No deck values');
+		if (state.data.Components[deckName].length === 0) throw sanitizeError('No deck values');
 		const sub = def.DynamicComponentValues[deckName];
-		if (!sub) throw new SanitizeError('no dynamic component values are defined for deck ' + deckName);
+		if (!sub) throw sanitizeError('no dynamic component values are defined for deck ' + deckName);
 		result.DynamicComponentValues[deckName] = subStateTransformation(sub, GROUP_ALL, viewerMembership);
 	}
 	return result;
@@ -294,7 +306,7 @@ function sanitizedSlice(policy: PolicyName, value: unknown, zero: unknown): unkn
 
 function enumDefault(def: GameDefinition, prop: PropDef, path: string): string {
 	const e = prop.Enum ? def.Enums[prop.Enum] : undefined;
-	if (!e) throw new SanitizeError(path + ' names an enum the definition does not have');
+	if (!e) throw sanitizeError(path + ' names an enum the definition does not have');
 	return e.Values[String(e.DefaultValue)];
 }
 
@@ -348,7 +360,7 @@ function sanitizeStack(node: StackJSON, sized: boolean, policy: PolicyName): voi
 
 /** applyPolicy for one property of one sub-state, on the JSON in place. */
 function applyPolicy(def: GameDefinition, node: SubStateJSON, propName: string, prop: PropDef, policy: PolicyName, path: string): void {
-	if (policy === 'invalid') throw new SanitizeError('Effective policy computed to PolicyInvalid');
+	if (policy === 'invalid') throw sanitizeError('Effective policy computed to PolicyInvalid');
 	if (policy === 'visible') return;
 	switch (prop.Type) {
 		case 'bool':
@@ -393,7 +405,7 @@ function applyPolicy(def: GameDefinition, node: SubStateJSON, propName: string, 
 			// applyPolicy asserts the property to a mutable Stack, which a
 			// merged stack is not: Go panics. A merged stack is a view; hide
 			// the stacks it is made of instead.
-			throw new SanitizeError(
+			throw sanitizeError(
 				path + ' is a merged stack and cannot carry policy "' + policy + '" (Go panics here); sanitize its parts',
 			);
 	}
@@ -466,7 +478,7 @@ function sanitizeSubState(
  * the number of players, get the state itself, unsanitized, as in Go.
  */
 export function sanitizedForPlayer(state: EngineState, viewer: number, options: SanitizeOptions = {}): EngineState {
-	if (state.sanitized) throw new SanitizeError('the state is already sanitized');
+	if (state.sanitized) throw sanitizeError('the state is already sanitized');
 	if (viewer === ANY_PLAYER_INDEX) viewer = OBSERVER_PLAYER_INDEX;
 	if (viewer < -1 || viewer >= state.numPlayers()) return state;
 
@@ -479,7 +491,7 @@ export function sanitizedForPlayer(state: EngineState, viewer: number, options: 
 	for (const deckName of Object.keys(data.Components)) visible[deckName] = {};
 
 	const extend = (err: unknown, message: string): never => {
-		if (err instanceof SanitizeError) throw new SanitizeError(message + ' : ' + err.message);
+		if (isSanitizeError(err)) throw sanitizeError(message + ' : ' + err.message);
 		throw err;
 	};
 
@@ -582,4 +594,4 @@ export function viewFor(state: EngineState, viewer: number, options: ViewOptions
 	return out;
 }
 
-export { StateError };
+export type { StateError };

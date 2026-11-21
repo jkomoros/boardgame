@@ -20,7 +20,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { EngineState, cloneJSON, compareGoStrings } from './state.ts';
+import { cloneJSON, compareGoStrings, loadEngineState } from './state.ts';
+import type { EngineState } from './state.ts';
 import type { StateJSON } from './state.ts';
 import type { StackJSON } from './stack.ts';
 import type { GameDefinition } from './definition.ts';
@@ -159,7 +160,7 @@ for (const name of ['memory', 'blackjack']) {
 			history.States.forEach((recorded, v) => {
 				// load() discards recorded ids and merged views and checks
 				// conservation; toJSON() recomputes both.
-				const state = EngineState.load(def, identity, v, recorded);
+				const state = loadEngineState(def, identity, v, recorded);
 				assert.equal(state.conservationError(), null, `${go.File} v${v}`);
 				assert.deepEqual(state.toJSON(), recorded, `${go.File} v${v}`);
 			});
@@ -172,7 +173,7 @@ for (const name of ['memory', 'blackjack']) {
 			const identity = { gameId: go.GameID, secretSalt: go.SecretSalt };
 			for (const versionKey of Object.keys(go.Views)) {
 				const v = Number(versionKey);
-				const state = EngineState.load(def, identity, v, history.States[v]);
+				const state = loadEngineState(def, identity, v, history.States[v]);
 				for (const viewer of viewersOf(go.NumPlayers)) {
 					assert.deepEqual(viewFor(state, viewer), go.Views[versionKey][String(viewer)], `${go.File} v${v} viewer ${viewer}`);
 					compared++;
@@ -187,7 +188,7 @@ for (const name of ['memory', 'blackjack']) {
 		for (const { go, history } of histories) {
 			const identity = { gameId: go.GameID, secretSalt: go.SecretSalt };
 			history.States.forEach((recorded, v) => {
-				const state = EngineState.load(def, identity, v, recorded, { skipConservation: true });
+				const state = loadEngineState(def, identity, v, recorded, { skipConservation: true });
 				for (const viewer of viewersOf(go.NumPlayers)) {
 					assert.equal(digest(viewFor(state, viewer)), go.ViewDigests[v][String(viewer)], `${go.File} v${v} viewer ${viewer}`);
 					compared++;
@@ -232,7 +233,7 @@ test('blackjack: the generator reproduces the recorded set-up shuffle from salt 
 		const before = cloneJSON(recorded);
 		delete before.SecretMoveCount;
 		before.Game.DrawStack = starterStack(identity, 'cards', def.Decks.cards.Size);
-		const state = EngineState.load(def, identity, 0, before);
+		const state = loadEngineState(def, identity, 0, before);
 		state.gameStack('DrawStack').shuffle();
 		assert.deepEqual(state.toJSON(), recorded, go.File);
 		// And directly: the recorded order IS Perm(52) of the version-0 generator.
@@ -258,7 +259,7 @@ test('memory: the generator reproduces both recorded set-up shuffles from salt a
 			Deck: 'cards', Indexes: Array.from({ length: hiddenSize }, () => -1), IDs: [], IDsLastSeen: {}, ShuffleCount: 0, Size: hiddenSize,
 		} as StackJSON;
 
-		const state = EngineState.load(def, identity, 0, before);
+		const state = loadEngineState(def, identity, 0, before);
 		const unused = state.gameStack('UnusedCards');
 		const hidden = state.gameStack('HiddenCards');
 		const numCards = state.game.NumCards as number;

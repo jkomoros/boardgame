@@ -64,10 +64,11 @@ test('engine modules use no platform API, clock, timer, or ambient randomness', 
 
 test('the public surface is what README.md documents', () => {
 	assert.deepEqual(Object.keys(engine).sort(), [
-		'ADMIN_PLAYER_INDEX', 'ANY_PLAYER_INDEX', 'EMPTY_SLOT', 'EngineState', 'GENERIC_COMPONENT', 'GROUP_ALL', 'GROUP_OTHER',
-		'GROUP_SELF', 'GoRand', 'MergedStackView', 'OBSERVER_PLAYER_INDEX', 'POLICY_ORDER', 'SanitizeError', 'Stack', 'StackError',
-		'StateError', 'UNLIMITED_SLOTS', 'cloneJSON', 'componentId', 'facetSurvives', 'fnv1_64', 'fnv1_64Bytes', 'goSort', 'indexesOf', 'parseSanitizeTag',
-		'policyFromString', 'policyMapFor', 'resolveSanitizationPolicy', 'sanitizationTransformation', 'sanitizedForPlayer',
-		'secretMoveCountFor', 'sha1Hex', 'sha1HexBytes', 'stateRand', 'stateRandSeed', 'stateRandSeedInput', 'viewFor', 'visibleFacets',
+		'ADMIN_PLAYER_INDEX', 'ANY_PLAYER_INDEX', 'EMPTY_SLOT', 'GENERIC_COMPONENT', 'GROUP_ALL', 'GROUP_OTHER', 'GROUP_SELF',
+		'OBSERVER_PLAYER_INDEX', 'POLICY_ORDER', 'UNLIMITED_SLOTS', 'cloneJSON', 'componentId', 'facetSurvives', 'fnv1_64', 'fnv1_64Bytes',
+		'goSort', 'indexesOf', 'isMergedStackView', 'isSanitizeError', 'isStack', 'isStackError', 'isStateError', 'loadEngineState', 'newGoRand',
+		'parseSanitizeTag', 'policyFromString', 'policyMapFor', 'resolveSanitizationPolicy', 'sanitizationTransformation', 'sanitizeError',
+		'sanitizedForPlayer', 'secretMoveCountFor', 'sha1Hex', 'sha1HexBytes', 'stackError', 'stateError', 'stateRand', 'stateRandSeed',
+		'stateRandSeedInput', 'viewFor', 'visibleFacets',
 	]);
 });

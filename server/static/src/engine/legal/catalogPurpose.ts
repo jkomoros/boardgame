@@ -6,7 +6,8 @@ import type { LegalComponent, LegalContext, LegalEnumValue } from './access.ts';
 import { enumValuesEqual, readEnumProp, specArgs, specError, specTemplate, unknownFrom } from './catalogSupport.ts';
 import { goAtoi, goQuote } from './goformat.ts';
 import { type Result, resolveEnumPath, resolveIntPath, resolveStackPath } from './path.ts';
-import { LegalPanic } from './playerIndex.ts';
+import { legalPanic } from './playerIndex.ts';
+import type { LegalPanic } from './playerIndex.ts';
 import { type LegalComponentFieldRequirement, type LegalPredicateConstructor, newLegalPredicate, unionLegalReads } from './predicate.ts';
 import {
   TEMPLATE_ALREADY_REVEALED,
@@ -151,7 +152,7 @@ export function componentPropEqualsCurrentPlayerConstructor(): LegalPredicateCon
           const values = comp.values();
           if (values === null) {
             // Go dereferences comp.Values().Reader() unguarded here.
-            throw new LegalPanic('runtime error: invalid memory address or nil pointer dereference');
+            throw legalPanic('runtime error: invalid memory address or nil pointer dereference');
           }
           const compVal = readEnumProp(values, prop);
           if (!compVal.ok) {

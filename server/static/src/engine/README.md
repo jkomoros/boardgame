@@ -25,12 +25,41 @@ is pure TypeScript:
 
 - no DOM, no Node APIs, no `crypto`, no timers, no clock, no `Math.random`;
 - no `BigInt`, no `TextEncoder`, no asynchrony;
-- no dependencies: engine modules import only each other (`legal/` also
-  imports the client's `src/legal/renderLegalMessage.ts`).
+- no dependencies: engine modules import only each other, always with the
+  `.ts` extension.
 
 `purity.test.ts` and `rules/purity.test.ts` enforce this by reading the
 sources. Nothing is kept between calls: everything that persists is what the
 host stores.
+
+### No classes, and nothing but functions and data at module scope
+
+The engine loads inside a Common Fabric pattern, whose sandbox checks every
+module-scope statement before a module may run. Its rule
+(labs `docs/specs/sandboxing/SES_SANDBOXING_SPEC.md`, section 4.2) is that a
+module-scope binding is a function, or data it can freeze: no class, because
+a class "creates mutable prototype/static state", no `let`, no record of
+functions. That is deliberate, not a gap, so the engine is written to it:
+
+| Instead of | The engine has |
+|---|---|
+| `class Stack { ... }` and `new Stack(...)` | `interface Stack` and a factory, `newStack(...)`, returning an object whose methods are its own properties. Calls read the same: `stack.moveComponent(i, dest, slot)` |
+| A static method, `EngineState.load(...)` | A function, `loadEngineState(...)` |
+| `x instanceof MergedStackView` | `isMergedStackView(x)`, over a `merged` field every stack view carries |
+| `class StackError extends Error`, `throw new StackError(m)`, `e instanceof StackError` | `throw stackError(m)`: an ordinary `Error` whose `name` is `'StackError'`; `isStackError(e)` |
+| `export const memory: GameSpec = { ... }` | `export function memory(): GameSpec { return { ... }; }`. A spec holds functions, so it is built when asked for |
+| A table of functions, `{ '==': (a, b) => a === b }` | A `switch` in a function |
+| `x as unknown as T` | One cast, or a typed helper. The pattern compiler rejects the double cast |
+
+Methods of one of these objects use `this`, so call them on the object; do
+not detach them. `private` no longer exists: an interface lists every member,
+and the ones a caller should leave alone say so.
+
+`sandbox.test.ts` enforces all of it by reading the sources.
+`npx tsc --noEmit -p src/engine/tsconfig.sandbox.json` type-checks the engine
+under the one extra compiler option a pattern is compiled with
+(`exactOptionalPropertyTypes`). Neither needs labs. Loading in a real
+pattern is checked from `fabric/patterns/`.
 
 State is plain JSON in exactly the shape the Go server serializes, so a
 recorded Go state loads directly, and what the engine serializes is what Go
@@ -68,7 +97,8 @@ would have.
 
 ## Defining a game
 
-A game is a `GameSpec` (`rules/types.ts`): plain data plus functions. There
+A game is a function returning a `GameSpec` (`rules/types.ts`): plain data
+plus functions. There
 are no base classes, decorators, reflection or generated code. Everything a
 Go game spreads across its delegate, its state structs with their tags and
 embedded behaviors, and `ConfigureMoves` is in one object.
@@ -80,7 +110,7 @@ The worked example is memory, `games/memory.ts`, a move-for-move port of
 import { compileGame } from './rules/index.ts';
 import { memory } from './games/memory.ts';
 
-const game = compileGame(memory);   // once; throws GameSpecError or LegalSpecError on a bad spec
+const game = compileGame(memory());   // once; throws a GameSpecError or a LegalSpecError on a bad spec
 ```
 
 `compileGame` does what Go's `NewGameManager` does at boot: it derives the
@@ -181,7 +211,9 @@ each viewer's **sanitized** state, so use the read-only views there.
 ### Moves
 
 A move is a `MoveSpec`: a name, whether it is a fix-up, its fields, its
-legality, and `apply`.
+legality, and `apply`. In the source each one is returned from a function
+(`function hideCards(): MoveSpec { return { ... }; }`), as the game is; the
+excerpts below show the object.
 
 ```ts
 const hideCards: MoveSpec = {
@@ -362,7 +394,7 @@ authenticating the proposer is the host's job.
 ```ts
 import { compileGame, createGame, propose, viewerOutput, activeTimers } from './rules/index.ts';
 
-const game = compileGame(memory);
+const game = compileGame(memory());
 
 // Create. versions[0] is version 0; any set-up fix-ups follow it.
 const created = createGame(game, { id, secretSalt, numPlayers: 2, variant: { numcards: 'small' }, seating: false, now });
@@ -486,10 +518,10 @@ results for the four ported games, and `rules/engine.test.ts` checks each
 ### Using the core directly
 
 ```ts
-import { EngineState, viewFor, OBSERVER_PLAYER_INDEX } from './index.ts';
+import { loadEngineState, viewFor, OBSERVER_PLAYER_INDEX } from './index.ts';
 
 const identity = { gameId, secretSalt };
-const current = EngineState.load(def, identity, version, stateJSON);
+const current = loadEngineState(def, identity, version, stateJSON);
 
 const next = current.copy(version + 1);
 next.gameStack('DrawStack').moveComponentToNextSlot(0, next.playerStack(0, 'Hand'));
@@ -503,7 +535,7 @@ const forObservers = viewFor(next, OBSERVER_PLAYER_INDEX);
 
 ### State
 
-- `EngineState.load(def, identity, version, json, options?)` copies the JSON,
+- `loadEngineState(def, identity, version, json, options?)` copies the JSON,
   recomputes every id (recorded ids are ignored, as in Go), and throws if
   component conservation fails. `{ sanitized: true }` loads a per-viewer view
   instead: ids are kept as given and nothing can be modified.
@@ -545,7 +577,8 @@ Here they are methods on the stack that take the component's slot:
 | `s.SortComponents(less)` | `stack.sortComponents(less)` (`less` gets deck indexes) |
 | `s.ExpandSize/ContractSize/SetSize/SizeToFit` | `stack.expandSize/contractSize/setSize/sizeToFit` |
 
-A failed operation throws `StackError` with Go's message and changes nothing.
+A failed operation throws a `StackError` (test with `isStackError`) with Go's
+message and changes nothing.
 
 A component is a `(deck name, deck index)` pair. `stack.componentAt(i)`
 returns the deck index, `GENERIC_COMPONENT` (-2) in a sanitized stack, or
@@ -577,6 +610,8 @@ everything. Each `*.test.ts` says at its top what it proves.
 | `rules/binding.test.ts` | The legal corpus and every Go predicate verdict, through the real state |
 | `rules/engine.test.ts` | Timers against a moving clock, seat inputs, purity of a step, and each game's state definition against the one Go derives |
 | `rules/purity.test.ts`, `purity.test.ts` | The sandbox constraints |
+| `sandbox.test.ts` | Nothing at module scope that a Common Fabric pattern's sandbox refuses: no class, no `let`, no record of functions, no double cast, no import that leaves the engine |
+| `legal/message.test.ts` | The engine's legal-message renderer gives the same text as the client's |
 | the core's and `legal/`'s tests | See the two status reports |
 
 The expected values are never hand-derived. They come from Go:

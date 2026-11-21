@@ -6,12 +6,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { EngineState, cloneJSON } from './state.ts';
+import { cloneJSON, loadEngineState } from './state.ts';
+import type { EngineState } from './state.ts';
 import type { StateJSON, StackRef } from './state.ts';
-import { Stack, StackError, MergedStackView } from './stack.ts';
+import { isMergedStackView, isStack, isStackError } from './stack.ts';
+import type { Stack, StackError, MergedStackView } from './stack.ts';
 import type { StackJSON } from './stack.ts';
 import type { GameDefinition } from './definition.ts';
-import { GoRand } from './rand.ts';
+import type { GoRand } from './rand.ts';
 import { EMPTY_SLOT } from './ids.ts';
 
 const read = (name: string) => JSON.parse(readFileSync(new URL('./testdata/' + name, import.meta.url), 'utf8'));
@@ -40,7 +42,7 @@ interface Scenario {
 const { Scenarios } = read('stacks.vectors.json') as { Scenarios: Scenario[] };
 
 function loadScenario(sc: Scenario): EngineState {
-	return EngineState.load(def, { gameId: sc.GameID, secretSalt: sc.SecretSalt }, sc.Version, sc.Before);
+	return loadEngineState(def, { gameId: sc.GameID, secretSalt: sc.SecretSalt }, sc.Version, sc.Before);
 }
 
 function apply(state: EngineState, op: Op): void {
@@ -94,7 +96,7 @@ test('vector file has the expected breadth', () => {
 test('a recorded Go state loads and serializes back to the same JSON', () => {
 	for (const sc of Scenarios) {
 		assert.deepEqual(loadScenario(sc).toJSON(), sc.Before, sc.GameID);
-		const after = EngineState.load(def, { gameId: sc.GameID, secretSalt: sc.SecretSalt }, sc.Version, sc.After);
+		const after = loadEngineState(def, { gameId: sc.GameID, secretSalt: sc.SecretSalt }, sc.Version, sc.After);
 		assert.deepEqual(after.toJSON(), sc.After, sc.GameID + ' after');
 	}
 });
@@ -114,9 +116,9 @@ test('every operation matches Go: changed stacks, counts, errors, and no change 
 				thrown = e;
 			}
 			if (op.NoComponent) {
-				assert.ok(thrown instanceof StackError, label + ': expected a refusal for a missing component');
+				assert.ok(isStackError(thrown), label + ': expected a refusal for a missing component');
 			} else if (op.Err !== '') {
-				assert.ok(thrown instanceof StackError, label + ': expected error ' + op.Err);
+				assert.ok(isStackError(thrown), label + ': expected error ' + op.Err);
 				assert.equal((thrown as Error).message, op.Err, label);
 			} else {
 				assert.equal(thrown, null, label + ': unexpected error ' + (thrown as Error | null)?.message);
@@ -139,7 +141,7 @@ test('shuffles within one state continue one generator sequence', () => {
 	const sc = Scenarios[0];
 	const a = loadScenario(sc);
 	const before = a.gameStack('Draw').indexes();
-	assert.ok(a.rand() instanceof GoRand);
+	assert.equal(typeof a.rand().intn, 'function');
 	assert.equal(a.rand(), a.rand(), 'state.Rand() is memoized');
 	a.gameStack('Draw').publicShuffle();
 	const once = a.gameStack('Draw').indexes();
@@ -200,8 +202,8 @@ test('merged views are views, and reject being used as physical stacks', () => {
 	const state = loadScenario(Scenarios[0]);
 	assert.throws(() => state.gameStack('All'), /is a view, not a physical stack/);
 	const all = state.view({ Group: 'game', Prop: 'All' });
-	assert.ok(all instanceof MergedStackView);
-	assert.ok(state.view({ Group: 'game', Prop: 'Draw' }) instanceof Stack);
+	assert.ok(isMergedStackView(all));
+	assert.ok(isStack(state.view({ Group: 'game', Prop: 'Draw' })));
 	const draw = state.gameStack('Draw');
 	const limited = state.gameStack('Limited');
 	draw.moveComponent(0, limited, 0);
@@ -236,7 +238,7 @@ test('conservation: Go\'s wording for each violation', () => {
 	const mutate = (f: (json: StateJSON) => void): string | null => {
 		const json = cloneJSON(sc.Before);
 		f(json);
-		return EngineState.load(def, identity, sc.Version, json, { skipConservation: true }).conservationError();
+		return loadEngineState(def, identity, sc.Version, json, { skipConservation: true }).conservationError();
 	};
 	const draw = (json: StateJSON) => json.Game.Draw as StackJSON;
 	assert.equal(mutate(() => undefined), null);
@@ -266,7 +268,7 @@ test('conservation: Go\'s wording for each violation', () => {
 		'Game.Tokens names unknown deck "nope"',
 	);
 	assert.throws(
-		() => EngineState.load(def, identity, sc.Version, (() => { const j = cloneJSON(sc.Before); draw(j).Indexes!.shift(); return j; })()),
+		() => loadEngineState(def, identity, sc.Version, (() => { const j = cloneJSON(sc.Before); draw(j).Indexes!.shift(); return j; })()),
 		/Loaded state violated component conservation: deck "cards" component/,
 	);
 });
@@ -276,7 +278,7 @@ test('a sized stack whose Indexes disagree with Size does not load', () => {
 	const json = cloneJSON(sc.Before);
 	(json.Game.Row as StackJSON).Indexes!.push(-1);
 	assert.throws(
-		() => EngineState.load(def, { gameId: sc.GameID, secretSalt: sc.SecretSalt }, sc.Version, json),
+		() => loadEngineState(def, { gameId: sc.GameID, secretSalt: sc.SecretSalt }, sc.Version, json),
 		/didn't agree with size/,
 	);
 });

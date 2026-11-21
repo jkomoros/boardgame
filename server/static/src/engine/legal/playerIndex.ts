@@ -10,11 +10,22 @@ import { ADMIN_PLAYER_INDEX, ANY_PLAYER_INDEX, OBSERVER_PLAYER_INDEX } from './t
  * evalLegalPredicate turns it into the same fail-closed Unknown Go's recover
  * does, with the same text.
  */
-export class LegalPanic extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'LegalPanic';
-  }
+export interface LegalPanic extends Error {
+  readonly name: 'LegalPanic';
+}
+
+/**
+ * Creates a `LegalPanic`. An ordinary `Error` named `LegalPanic`, not a subclass:
+ * a Common Fabric pattern module may not declare a class (see README.md,
+ * "No classes").
+ */
+export function legalPanic(message: string): LegalPanic {
+  return Object.assign(new Error(message), { name: 'LegalPanic' as const });
+}
+
+/** Whether `thrown` is a `LegalPanic`. */
+export function isLegalPanic(thrown: unknown): thrown is LegalPanic {
+  return thrown instanceof Error && thrown.name === 'LegalPanic';
 }
 
 function isSpecial(p: number): boolean {
@@ -28,10 +39,10 @@ function isSpecial(p: number): boolean {
 function mayBeActiveAt(state: LegalState, p: number): boolean {
   const count = state.players().length;
   if (p < 0) {
-    throw new LegalPanic(`runtime error: index out of range [${p}]`);
+    throw legalPanic(`runtime error: index out of range [${p}]`);
   }
   if (p >= count) {
-    throw new LegalPanic(`runtime error: index out of range [${p}] with length ${count}`);
+    throw legalPanic(`runtime error: index out of range [${p}] with length ${count}`);
   }
   return state.playerMayBeActive(p);
 }

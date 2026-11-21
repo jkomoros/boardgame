@@ -8,7 +8,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { EngineState } from './state.ts';
+import { loadEngineState } from './state.ts';
+import type { EngineState } from './state.ts';
 import type { StateJSON } from './state.ts';
 import type { GameDefinition, PropDef } from './definition.ts';
 import { sanitizedForPlayer, ADMIN_PLAYER_INDEX, ANY_PLAYER_INDEX } from './sanitize.ts';
@@ -166,7 +167,7 @@ for (const [i, c] of cases.entries()) {
 		const input = patchTreeJSON(join(TESTDATA, c.inputPatchTree)) as unknown as StateJSON;
 		const expected = patchTreeJSON(join(TESTDATA, c.expectedPatchTree)) as unknown as StateJSON;
 		// "version doesn't matter in this context": the Go test loads at 0.
-		const state = EngineState.load(testGameDefinition(c.policy), IDENTITY, 0, input);
+		const state = loadEngineState(testGameDefinition(c.policy), IDENTITY, 0, input);
 		const sanitized = sanitizedForPlayer(state, c.playerIndex);
 		assert.deepEqual(marshal(sanitized), expected);
 	});
@@ -177,7 +178,7 @@ test('the fixtures\' recorded ids recompute from the test id and salt', () => {
 	// unsanitized fixture back therefore checks every id in it.
 	for (const tree of ['sanitize', 'after_dynamic_component_move', 'after_move', 'no_op']) {
 		const input = patchTreeJSON(join(TESTDATA, tree)) as unknown as StateJSON;
-		const state = EngineState.load(testGameDefinition({}), IDENTITY, 0, input);
+		const state = loadEngineState(testGameDefinition({}), IDENTITY, 0, input);
 		assert.deepEqual(marshal(state), input, tree);
 	}
 });

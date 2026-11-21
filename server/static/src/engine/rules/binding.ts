@@ -21,7 +21,8 @@ import type {
 	LegalState,
 } from '../legal/access.ts';
 import type { PropertyType } from '../legal/types.ts';
-import { MergedStackView, Stack } from '../stack.ts';
+import { isMergedStackView, isStack } from '../stack.ts';
+import type { MergedStackView, Stack } from '../stack.ts';
 import type { StackView } from '../stack.ts';
 import type { BoardJSON, EngineState, SubStateJSON, SubStateRef } from '../state.ts';
 import type { EnumRegistry } from './enums.ts';
@@ -120,138 +121,153 @@ function enumValue(enums: EnumRegistry, enumName: string | undefined, raw: unkno
 	return e.value(key);
 }
 
-class BoundComponent implements LegalComponent {
-	private readonly state: EngineState;
-	private readonly ctx: BindingContext;
+interface BoundComponent extends LegalComponent {
+	readonly state: EngineState;
+	readonly ctx: BindingContext;
 	readonly deckName: string;
 	readonly deckIndex: number;
-
-	constructor(state: EngineState, ctx: BindingContext, deckName: string, deckIndex: number) {
-		this.state = state;
-		this.ctx = ctx;
-		this.deckName = deckName;
-		this.deckIndex = deckIndex;
-	}
-
-	values(): LegalPropertyReader | null {
-		const deck = this.state.def.Decks[this.deckName];
-		const all = deck ? deck.Components : undefined;
-		if (!all || this.deckIndex < 0) return null;
-		const values = all[this.deckIndex];
-		if (values === null || typeof values !== 'object') return null;
-		const schema = this.ctx.components ? this.ctx.components[this.deckName] : undefined;
-		return valueReader(values as Record<string, unknown>, schema, this.ctx.enums);
-	}
-
+	values(): LegalPropertyReader | null;
 	/** componentInstance.MayMoveTo. */
-	mayMoveTo(destination: LegalStack): string | null {
-		const dest = (destination as BoundStack).physical();
-		if (dest === null) return 'destination stack is not attached: stack is not an attached owner in this state';
-		const found = this.state.locateComponent(this.deckName, this.deckIndex);
-		if (typeof found === 'string') return 'component is not in any stack: ' + found;
-		return found.stack.mayMoveComponentTo(found.slotIndex, dest);
-	}
-
+	mayMoveTo(destination: LegalStack): string | null;
 	/** componentInstance.MayMoveToSlot. */
-	mayMoveToSlot(destination: LegalStack, slotIndex: number): string | null {
-		const err = this.mayMoveTo(destination);
-		if (err !== null) return err;
-		const dest = (destination as BoundStack).physical() as Stack;
-		if (slotIndex < 0) return 'slot index must be non-negative';
-		if (dest.isSized()) {
-			if (slotIndex >= dest.len()) return 'slot index ' + slotIndex + ' is out of range (stack length ' + dest.len() + ')';
-			if (dest.componentAt(slotIndex) !== null) return 'slot ' + slotIndex + ' is already occupied';
-		} else if (slotIndex > dest.len()) {
-			return 'slot index ' + slotIndex + ' is out of range (stack length ' + dest.len() + ')';
-		}
-		return null;
-	}
+	mayMoveToSlot(destination: LegalStack, slotIndex: number): string | null;
+}
+
+/** Creates a `BoundComponent`. */
+function newBoundComponent(state: EngineState, ctx: BindingContext, deckName: string, deckIndex: number): BoundComponent {
+	const self: BoundComponent = {
+		state,
+		ctx,
+		deckName,
+		deckIndex,
+		values(): LegalPropertyReader | null {
+			const deck = this.state.def.Decks[this.deckName];
+			const all = deck ? deck.Components : undefined;
+			if (!all || this.deckIndex < 0) return null;
+			const values = all[this.deckIndex];
+			if (values === null || typeof values !== 'object') return null;
+			const schema = this.ctx.components ? this.ctx.components[this.deckName] : undefined;
+			return valueReader(values as Record<string, unknown>, schema, this.ctx.enums);
+		},
+		/** componentInstance.MayMoveTo. */
+		mayMoveTo(destination: LegalStack): string | null {
+			const dest = (destination as BoundStack).physical();
+			if (dest === null) return 'destination stack is not attached: stack is not an attached owner in this state';
+			const found = this.state.locateComponent(this.deckName, this.deckIndex);
+			if (typeof found === 'string') return 'component is not in any stack: ' + found;
+			return found.stack.mayMoveComponentTo(found.slotIndex, dest);
+		},
+		/** componentInstance.MayMoveToSlot. */
+		mayMoveToSlot(destination: LegalStack, slotIndex: number): string | null {
+			const err = this.mayMoveTo(destination);
+			if (err !== null) return err;
+			const dest = (destination as BoundStack).physical() as Stack;
+			if (slotIndex < 0) return 'slot index must be non-negative';
+			if (dest.isSized()) {
+				if (slotIndex >= dest.len()) return 'slot index ' + slotIndex + ' is out of range (stack length ' + dest.len() + ')';
+				if (dest.componentAt(slotIndex) !== null) return 'slot ' + slotIndex + ' is already occupied';
+			} else if (slotIndex > dest.len()) {
+				return 'slot index ' + slotIndex + ' is out of range (stack length ' + dest.len() + ')';
+			}
+			return null;
+		},
+	};
+	return self;
 }
 
 /** Any stack property of a state, physical or merged, as the evaluator sees it. */
-export class BoundStack implements LegalStack {
-	private readonly state: EngineState;
-	private readonly ctx: BindingContext;
+export interface BoundStack extends LegalStack {
+	readonly state: EngineState;
+	readonly ctx: BindingContext;
 	readonly view: StackView;
-
-	constructor(state: EngineState, ctx: BindingContext, view: StackView) {
-		this.state = state;
-		this.ctx = ctx;
-		this.view = view;
-	}
-
 	/** The physical stack, or null for a merged view. */
-	physical(): Stack | null {
-		return this.view instanceof Stack ? this.view : null;
-	}
-
-	len(): number {
-		return this.view.len();
-	}
-
-	numComponents(): number {
-		return this.view.numComponents();
-	}
-
-	componentAt(index: number): LegalComponent | null {
-		if (typeof index !== 'number' || index !== Math.floor(index)) return null;
-		const deckIndex = this.view.componentAt(index);
-		if (deckIndex === null) return null;
-		return new BoundComponent(this.state, this.ctx, this.view.deckName, deckIndex);
-	}
-
-	first(): LegalComponent | null {
-		const length = this.view.len();
-		for (let i = 0; i < length; i++) {
-			const deckIndex = this.view.componentAt(i);
-			if (deckIndex !== null) return new BoundComponent(this.state, this.ctx, this.view.deckName, deckIndex);
-		}
-		return null;
-	}
-
-	private transfer(method: string, destination: LegalStack): { source: Stack; dest: Stack } | string {
-		if (this.view instanceof MergedStackView) return method + ' is not supported on MergedStacks';
-		const dest = (destination as BoundStack).physical();
-		if (dest === null) return 'destination is a view, not a physical stack';
-		return { source: this.view as Stack, dest };
-	}
-
-	mayMoveAllTo(destination: LegalStack): string | null {
-		const ends = this.transfer('MayMoveAllTo', destination);
-		if (typeof ends === 'string') return ends;
-		return ends.source.mayMoveAllTo(ends.dest);
-	}
-
-	mayMoveCountTo(destination: LegalStack, count: number): string | null {
-		const ends = this.transfer('MayMoveCountTo', destination);
-		if (typeof ends === 'string') return ends;
-		return ends.source.mayMoveCountTo(ends.dest, count);
-	}
-
-	maySwapComponents(i: number, j: number): string | null {
-		if (this.view instanceof MergedStackView) return 'MaySwapComponents is not supported on MergedStacks';
-		return (this.view as Stack).maySwapComponents(i, j);
-	}
+	physical(): Stack | null;
+	len(): number;
+	numComponents(): number;
+	componentAt(index: number): LegalComponent | null;
+	first(): LegalComponent | null;
+	transfer(method: string, destination: LegalStack): { source: Stack; dest: Stack } | string;
+	mayMoveAllTo(destination: LegalStack): string | null;
+	mayMoveCountTo(destination: LegalStack, count: number): string | null;
+	maySwapComponents(i: number, j: number): string | null;
 }
 
-class BoundBoard implements LegalBoard {
-	private readonly spaces: readonly LegalStack[];
+/** Creates a `BoundStack`. */
+export function newBoundStack(state: EngineState, ctx: BindingContext, view: StackView): BoundStack {
+	const self: BoundStack = {
+		state,
+		ctx,
+		view,
+		/** The physical stack, or null for a merged view. */
+		physical(): Stack | null {
+			return isStack(this.view) ? this.view : null;
+		},
+		len(): number {
+			return this.view.len();
+		},
+		numComponents(): number {
+			return this.view.numComponents();
+		},
+		componentAt(index: number): LegalComponent | null {
+			if (typeof index !== 'number' || index !== Math.floor(index)) return null;
+			const deckIndex = this.view.componentAt(index);
+			if (deckIndex === null) return null;
+			return newBoundComponent(this.state, this.ctx, this.view.deckName, deckIndex);
+		},
+		first(): LegalComponent | null {
+			const length = this.view.len();
+			for (let i = 0; i < length; i++) {
+				const deckIndex = this.view.componentAt(i);
+				if (deckIndex !== null) return newBoundComponent(this.state, this.ctx, this.view.deckName, deckIndex);
+			}
+			return null;
+		},
+		transfer(method: string, destination: LegalStack): { source: Stack; dest: Stack } | string {
+			if (isMergedStackView(this.view)) return method + ' is not supported on MergedStacks';
+			const dest = (destination as BoundStack).physical();
+			if (dest === null) return 'destination is a view, not a physical stack';
+			return { source: this.view as Stack, dest };
+		},
+		mayMoveAllTo(destination: LegalStack): string | null {
+			const ends = this.transfer('MayMoveAllTo', destination);
+			if (typeof ends === 'string') return ends;
+			return ends.source.mayMoveAllTo(ends.dest);
+		},
+		mayMoveCountTo(destination: LegalStack, count: number): string | null {
+			const ends = this.transfer('MayMoveCountTo', destination);
+			if (typeof ends === 'string') return ends;
+			return ends.source.mayMoveCountTo(ends.dest, count);
+		},
+		maySwapComponents(i: number, j: number): string | null {
+			if (isMergedStackView(this.view)) return 'MaySwapComponents is not supported on MergedStacks';
+			return (this.view as Stack).maySwapComponents(i, j);
+		},
+	};
+	return self;
+}
 
-	constructor(spaces: readonly LegalStack[]) {
-		this.spaces = spaces;
-	}
+interface BoundBoard extends LegalBoard {
+	readonly spaces: readonly LegalStack[];
+	enum(): null;
+	spaceAt(index: number): LegalStack | null;
+	spaceAtKey(key: number): LegalStack | null;
+}
 
-	enum(): null {
-		return null;
-	}
-
-	spaceAt(index: number): LegalStack | null {
-		return index === Math.floor(index) && index >= 0 && index < this.spaces.length ? this.spaces[index] : null;
-	}
-
-	spaceAtKey(key: number): LegalStack | null {
-		return this.spaceAt(key);
-	}
+/** Creates a `BoundBoard`. */
+function newBoundBoard(spaces: readonly LegalStack[]): BoundBoard {
+	const self: BoundBoard = {
+		spaces,
+		enum(): null {
+			return null;
+		},
+		spaceAt(index: number): LegalStack | null {
+			return index === Math.floor(index) && index >= 0 && index < this.spaces.length ? this.spaces[index] : null;
+		},
+		spaceAtKey(key: number): LegalStack | null {
+			return this.spaceAt(key);
+		},
+	};
+	return self;
 }
 
 /** The reader of one sub-state of a state. */
@@ -270,14 +286,14 @@ export function subStateReader(state: EngineState, ctx: BindingContext, ref: Sub
 				case 'stack':
 				case 'sizedStack':
 				case 'mergedStack':
-					return new BoundStack(state, ctx, state.view({ ...ref, Prop: name }));
+					return newBoundStack(state, ctx, state.view({ ...ref, Prop: name }));
 				case 'board': {
 					const board = node[name] as BoardJSON;
 					const spaces: LegalStack[] = [];
 					for (let i = 0; i < board.Spaces.length; i++) {
-						spaces.push(new BoundStack(state, ctx, state.stack({ ...ref, Prop: name, Space: i })));
+						spaces.push(newBoundStack(state, ctx, state.stack({ ...ref, Prop: name, Space: i })));
 					}
-					return new BoundBoard(spaces);
+					return newBoundBoard(spaces);
 				}
 				default:
 					return node[name];

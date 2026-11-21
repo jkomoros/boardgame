@@ -96,170 +96,176 @@ function moveAll(options: { name: string; helpText: string; from: string; to: st
 	};
 }
 
-const flipHiddenCard: MoveSpec = {
-	name: 'Flip Card Between Hidden and Revealed',
-	helpText: 'Flips the card between hidden and revealed',
-	fixUp: false,
-	legal(state, _move, _proposer, base) {
-		const err = base();
-		if (err !== null) return err;
-		const hidden = count(state, 'HiddenCard');
-		const visible = count(state, 'VisibleCard');
-		if (hidden < 1 && visible < 1) return 'Neither the HiddenCard nor RevealedCard is set';
-		if (hidden > 0 && visible > 0) return 'both hidden and revealed are full';
-		return null;
-	},
-	apply(state) {
-		const hidden = state.gameStack('HiddenCard');
-		const visible = state.gameStack('VisibleCard');
-		if (hidden.numComponents() > 0) firstToFirstSlot(hidden, visible);
-		else firstToFirstSlot(visible, hidden);
-	},
-};
-
-const fanTooSmall = [{ ...stackCount('game.FanStack', '>', 1), message: 'debuganimations.fan_stack_too_small' }];
-
-export const debuganimations: GameSpec = {
-	name: 'debuganimations',
-	displayName: 'Animations Debugger',
-	minNumPlayers: 2,
-	maxNumPlayers: 2,
-	defaultNumPlayers: 2,
-
-	decks: {
-		cards: { components: cards() },
-		// Tokens have no values of their own.
-		tokens: { components: Array.from({ length: NUM_TOKENS }, () => null) },
-	},
-	// A tree enum: "Normal" is a child of the unnamed root. The default of a
-	// tree enum is its first leaf.
-	enums: { phase: { Values: { 0: '', 1: 'Normal' }, DefaultValue: 1, Parents: { 0: 0, 1: 0 } } },
-
-	game: {
-		props: {
-			...currentPlayerProps,
-			...phaseProps,
-			DiscardStack: { Type: 'stack', Deck: 'cards' },
-			DrawStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
-			FirstShortStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
-			SecondShortStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
-			HiddenCard: { Type: 'sizedStack', Deck: 'cards', Size: 1, Sanitize: 'order' },
-			VisibleCard: { Type: 'sizedStack', Deck: 'cards', Size: 1 },
-			Card: { Type: 'mergedStack', Deck: 'cards', Overlap: true, Stacks: ['VisibleCard', 'HiddenCard'] },
-			FanStack: { Type: 'stack', Deck: 'cards' },
-			FanDiscard: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
-			FanShuffleCount: { Type: 'int' },
-			VisibleStack: { Type: 'stack', Deck: 'cards' },
-			HiddenStack: { Type: 'stack', Deck: 'cards', Sanitize: 'nonempty' },
-			AllVisibleStack: { Type: 'stack', Deck: 'cards' },
-			AllHiddenStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
-			TokensFrom: { Type: 'stack', Deck: 'tokens' },
-			TokensTo: { Type: 'stack', Deck: 'tokens' },
-			SanitizedTokensFrom: { Type: 'stack', Deck: 'tokens' },
-			SanitizedTokensTo: { Type: 'stack', Deck: 'tokens', Sanitize: 'nonempty' },
+function flipHiddenCard(): MoveSpec {
+	return {
+		name: 'Flip Card Between Hidden and Revealed',
+		helpText: 'Flips the card between hidden and revealed',
+		fixUp: false,
+		legal(state, _move, _proposer, base) {
+			const err = base();
+			if (err !== null) return err;
+			const hidden = count(state, 'HiddenCard');
+			const visible = count(state, 'VisibleCard');
+			if (hidden < 1 && visible < 1) return 'Neither the HiddenCard nor RevealedCard is set';
+			if (hidden > 0 && visible > 0) return 'both hidden and revealed are full';
+			return null;
 		},
-	},
-	player: {
-		props: { ...seatProps, ...inactivePlayerProps, Hand: { Type: 'stack', Deck: 'cards', MaxSize: 1 } },
-		traits: { seat: true, inactive: true },
-	},
-
-	legalTemplates: {
-		'debuganimations.fan_stack_too_small': "Aren't enough cards to shuffle",
-		'debuganimations.fan_discard_empty': 'FanDiscard has no cards to shuffle',
-		'debuganimations.all_visible_stack_empty': 'No components in visible stack to move',
-		'debuganimations.all_hidden_stack_occupied': "The hidden stack already has items. Use the 'To Visible' move",
-		'debuganimations.all_hidden_stack_empty': 'No components in hidden stack to move',
-		'debuganimations.all_visible_stack_occupied': "The visible stack already has items. Use the 'To Hidden' move",
-	},
-
-	// Every move is open to any player at any time.
-	moves: add(
-		seatPlayer(),
-		moveBetween({
-			name: 'Move Card Between Short Stacks',
-			helpText: 'Moves a card between two short stacks',
-			field: 'FromFirst',
-			whenTrue: ['FirstShortStack', 'SecondShortStack'],
-			defaultTrue: state => count(state, 'FirstShortStack') >= 1,
-		}),
-		moveBetween({
-			name: 'Move Card Between Draw And Discard Stacks',
-			helpText: 'Moves a card between draw and discard stacks',
-			field: 'FromDraw',
-			whenTrue: ['DrawStack', 'DiscardStack'],
-			defaultTrue: state => count(state, 'DiscardStack') < 3,
-		}),
-		flipHiddenCard,
-		toggleThird({
-			name: 'Move Fan Card', helpText: 'Moves a card from or to Fan and Fan Discard',
-			full: 'FanStack', other: 'FanDiscard', fullCount: 6, otherCount: 3, error: "Fan stacks aren't in known toggle state",
-		}),
-		{
-			name: 'Visible Shuffle',
-			helpText: 'Performs a visible shuffle',
-			fixUp: false,
-			preconditions: fanTooSmall,
-			// Everyone can follow where each card went.
-			apply: state => state.gameStack('FanStack').publicShuffle(),
+		apply(state) {
+			const hidden = state.gameStack('HiddenCard');
+			const visible = state.gameStack('VisibleCard');
+			if (hidden.numComponents() > 0) firstToFirstSlot(hidden, visible);
+			else firstToFirstSlot(visible, hidden);
 		},
-		{
-			name: 'Shuffle',
-			helpText: 'Performs a secret shuffle',
-			fixUp: false,
-			preconditions: fanTooSmall,
-			// Every card's id changes, so nobody can follow.
-			apply: state => state.gameStack('FanStack').shuffle(),
+	};
+}
+
+function fanTooSmall() {
+	return [{ ...stackCount('game.FanStack', '>', 1), message: 'debuganimations.fan_stack_too_small' }];
+}
+
+export function debuganimations(): GameSpec {
+	return {
+		name: 'debuganimations',
+		displayName: 'Animations Debugger',
+		minNumPlayers: 2,
+		maxNumPlayers: 2,
+		defaultNumPlayers: 2,
+
+		decks: {
+			cards: { components: cards() },
+			// Tokens have no values of their own.
+			tokens: { components: Array.from({ length: NUM_TOKENS }, () => null) },
 		},
-		toggleThird({
-			name: 'Move Between Hidden', helpText: 'Moves between hidden and visible stacks',
-			full: 'VisibleStack', other: 'HiddenStack', fullCount: 5, otherCount: 4, error: "Cards aren't in known position",
-		}),
-		toggleThird({
-			name: 'Move Token', helpText: 'Moves tokens',
-			full: 'TokensFrom', other: 'TokensTo', fullCount: 10, otherCount: 9, error: "tokens aren't in known position",
-		}),
-		toggleThird({
-			name: 'Move Token Sanitized', helpText: 'Moves tokens',
-			full: 'SanitizedTokensFrom', other: 'SanitizedTokensTo', fullCount: 10, otherCount: 9, error: "tokens aren't in known position",
-		}),
-		moveAll({
-			name: 'Start Move All Components To Hidden', helpText: 'Moves all components from visible to hidden',
-			from: 'AllVisibleStack', to: 'AllHiddenStack',
-			emptyMessage: 'debuganimations.all_visible_stack_empty', occupiedMessage: 'debuganimations.all_hidden_stack_occupied',
-		}),
-		moveAll({
-			name: 'Start Move All Components To Visible', helpText: 'Moves all components from hidden to visible',
-			from: 'AllHiddenStack', to: 'AllVisibleStack',
-			emptyMessage: 'debuganimations.all_hidden_stack_empty', occupiedMessage: 'debuganimations.all_visible_stack_occupied',
-		}),
-		{
-			name: 'Shuffle Hidden',
-			helpText: 'Shuffles the fan discard pile and increments the shuffle count',
-			fixUp: false,
-			// Only the proposer learns this move happened by name. With no
-			// alias, everyone else gets no move record, only the new state.
-			nameSanitization: 'self:visible',
-			preconditions: [{ ...stackNotEmpty('game.FanDiscard'), message: 'debuganimations.fan_discard_empty' }],
-			apply(state) {
-				state.gameStack('FanDiscard').shuffle();
-				state.g.FanShuffleCount = (state.g.FanShuffleCount as number) + 1;
+		// A tree enum: "Normal" is a child of the unnamed root. The default of a
+		// tree enum is its first leaf.
+		enums: { phase: { Values: { 0: '', 1: 'Normal' }, DefaultValue: 1, Parents: { 0: 0, 1: 0 } } },
+
+		game: {
+			props: {
+				...currentPlayerProps,
+				...phaseProps,
+				DiscardStack: { Type: 'stack', Deck: 'cards' },
+				DrawStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
+				FirstShortStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
+				SecondShortStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
+				HiddenCard: { Type: 'sizedStack', Deck: 'cards', Size: 1, Sanitize: 'order' },
+				VisibleCard: { Type: 'sizedStack', Deck: 'cards', Size: 1 },
+				Card: { Type: 'mergedStack', Deck: 'cards', Overlap: true, Stacks: ['VisibleCard', 'HiddenCard'] },
+				FanStack: { Type: 'stack', Deck: 'cards' },
+				FanDiscard: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
+				FanShuffleCount: { Type: 'int' },
+				VisibleStack: { Type: 'stack', Deck: 'cards' },
+				HiddenStack: { Type: 'stack', Deck: 'cards', Sanitize: 'nonempty' },
+				AllVisibleStack: { Type: 'stack', Deck: 'cards' },
+				AllHiddenStack: { Type: 'stack', Deck: 'cards', Sanitize: 'order' },
+				TokensFrom: { Type: 'stack', Deck: 'tokens' },
+				TokensTo: { Type: 'stack', Deck: 'tokens' },
+				SanitizedTokensFrom: { Type: 'stack', Deck: 'tokens' },
+				SanitizedTokensTo: { Type: 'stack', Deck: 'tokens', Sanitize: 'nonempty' },
 			},
 		},
-	),
-
-	setUp: {
-		distribute(state, deck) {
-			const fill = (prop: string, target: number): Stack | null => (count(state, prop) < target ? state.gameStack(prop) : null);
-			if (deck === 'tokens') {
-				return fill('TokensTo', 9) ?? fill('SanitizedTokensFrom', 10) ?? fill('SanitizedTokensTo', 9) ?? state.gameStack('TokensFrom');
-			}
-			return (
-				fill('FirstShortStack', 1) ?? fill('SecondShortStack', 1) ?? fill('DiscardStack', 2) ?? fill('HiddenCard', 1) ?? fill('FanStack', 6) ??
-				fill('FanDiscard', 3) ?? fill('VisibleStack', 5) ?? fill('HiddenStack', 4) ?? fill('AllVisibleStack', 4) ?? state.gameStack('DrawStack')
-			);
+		player: {
+			props: { ...seatProps, ...inactivePlayerProps, Hand: { Type: 'stack', Deck: 'cards', MaxSize: 1 } },
+			traits: { seat: true, inactive: true },
 		},
-		finish: state => state.gameStack('DrawStack').shuffle(),
-	},
-	// Never ends.
-};
+
+		legalTemplates: {
+			'debuganimations.fan_stack_too_small': "Aren't enough cards to shuffle",
+			'debuganimations.fan_discard_empty': 'FanDiscard has no cards to shuffle',
+			'debuganimations.all_visible_stack_empty': 'No components in visible stack to move',
+			'debuganimations.all_hidden_stack_occupied': "The hidden stack already has items. Use the 'To Visible' move",
+			'debuganimations.all_hidden_stack_empty': 'No components in hidden stack to move',
+			'debuganimations.all_visible_stack_occupied': "The visible stack already has items. Use the 'To Hidden' move",
+		},
+
+		// Every move is open to any player at any time.
+		moves: add(
+			seatPlayer(),
+			moveBetween({
+				name: 'Move Card Between Short Stacks',
+				helpText: 'Moves a card between two short stacks',
+				field: 'FromFirst',
+				whenTrue: ['FirstShortStack', 'SecondShortStack'],
+				defaultTrue: state => count(state, 'FirstShortStack') >= 1,
+			}),
+			moveBetween({
+				name: 'Move Card Between Draw And Discard Stacks',
+				helpText: 'Moves a card between draw and discard stacks',
+				field: 'FromDraw',
+				whenTrue: ['DrawStack', 'DiscardStack'],
+				defaultTrue: state => count(state, 'DiscardStack') < 3,
+			}),
+			flipHiddenCard(),
+			toggleThird({
+				name: 'Move Fan Card', helpText: 'Moves a card from or to Fan and Fan Discard',
+				full: 'FanStack', other: 'FanDiscard', fullCount: 6, otherCount: 3, error: "Fan stacks aren't in known toggle state",
+			}),
+			{
+				name: 'Visible Shuffle',
+				helpText: 'Performs a visible shuffle',
+				fixUp: false,
+				preconditions: fanTooSmall(),
+				// Everyone can follow where each card went.
+				apply: state => state.gameStack('FanStack').publicShuffle(),
+			},
+			{
+				name: 'Shuffle',
+				helpText: 'Performs a secret shuffle',
+				fixUp: false,
+				preconditions: fanTooSmall(),
+				// Every card's id changes, so nobody can follow.
+				apply: state => state.gameStack('FanStack').shuffle(),
+			},
+			toggleThird({
+				name: 'Move Between Hidden', helpText: 'Moves between hidden and visible stacks',
+				full: 'VisibleStack', other: 'HiddenStack', fullCount: 5, otherCount: 4, error: "Cards aren't in known position",
+			}),
+			toggleThird({
+				name: 'Move Token', helpText: 'Moves tokens',
+				full: 'TokensFrom', other: 'TokensTo', fullCount: 10, otherCount: 9, error: "tokens aren't in known position",
+			}),
+			toggleThird({
+				name: 'Move Token Sanitized', helpText: 'Moves tokens',
+				full: 'SanitizedTokensFrom', other: 'SanitizedTokensTo', fullCount: 10, otherCount: 9, error: "tokens aren't in known position",
+			}),
+			moveAll({
+				name: 'Start Move All Components To Hidden', helpText: 'Moves all components from visible to hidden',
+				from: 'AllVisibleStack', to: 'AllHiddenStack',
+				emptyMessage: 'debuganimations.all_visible_stack_empty', occupiedMessage: 'debuganimations.all_hidden_stack_occupied',
+			}),
+			moveAll({
+				name: 'Start Move All Components To Visible', helpText: 'Moves all components from hidden to visible',
+				from: 'AllHiddenStack', to: 'AllVisibleStack',
+				emptyMessage: 'debuganimations.all_hidden_stack_empty', occupiedMessage: 'debuganimations.all_visible_stack_occupied',
+			}),
+			{
+				name: 'Shuffle Hidden',
+				helpText: 'Shuffles the fan discard pile and increments the shuffle count',
+				fixUp: false,
+				// Only the proposer learns this move happened by name. With no
+				// alias, everyone else gets no move record, only the new state.
+				nameSanitization: 'self:visible',
+				preconditions: [{ ...stackNotEmpty('game.FanDiscard'), message: 'debuganimations.fan_discard_empty' }],
+				apply(state) {
+					state.gameStack('FanDiscard').shuffle();
+					state.g.FanShuffleCount = (state.g.FanShuffleCount as number) + 1;
+				},
+			},
+		),
+
+		setUp: {
+			distribute(state, deck) {
+				const fill = (prop: string, target: number): Stack | null => (count(state, prop) < target ? state.gameStack(prop) : null);
+				if (deck === 'tokens') {
+					return fill('TokensTo', 9) ?? fill('SanitizedTokensFrom', 10) ?? fill('SanitizedTokensTo', 9) ?? state.gameStack('TokensFrom');
+				}
+				return (
+					fill('FirstShortStack', 1) ?? fill('SecondShortStack', 1) ?? fill('DiscardStack', 2) ?? fill('HiddenCard', 1) ?? fill('FanStack', 6) ??
+					fill('FanDiscard', 3) ?? fill('VisibleStack', 5) ?? fill('HiddenStack', 4) ?? fill('AllVisibleStack', 4) ?? state.gameStack('DrawStack')
+				);
+			},
+			finish: state => state.gameStack('DrawStack').shuffle(),
+		},
+		// Never ends.
+	};
+}

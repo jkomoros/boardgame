@@ -19,12 +19,14 @@ export {
   validateLegalPathTypes,
 } from './path.ts';
 export {
-  LegalPanic,
+  legalPanic,
+  isLegalPanic,
   playerIndexEnsureValid,
   playerIndexEquivalent,
   playerIndexNext,
   playerIndexValid,
 } from './playerIndex.ts';
+export type { LegalPanic } from './playerIndex.ts';
 export * from './predicate.ts';
 export * from './templates.ts';
 export * from './message.ts';

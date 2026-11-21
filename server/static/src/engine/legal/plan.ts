@@ -20,14 +20,15 @@ import {
   LEGAL_ANY_NAME,
   type LegalPredicate,
   type LegalRegistry,
-  LegalSpecError,
   evalLegalPredicate,
   legalPredicateSerializable,
   legalReadsIncludeMovePath,
   newLegalPredicate,
   resolveLegalSpecs,
   unionLegalReads,
+  legalSpecError,
 } from './predicate.ts';
+import type { LegalSpecError } from './predicate.ts';
 import { LEGAL_COST_EXPENSIVE, type LegalRead, type LegalSpec, type LegalVerdict } from './types.ts';
 
 /**
@@ -87,7 +88,7 @@ export interface LegalBaseChecks {
   /** The owning move type's name; the inProgression predicate's argument. */
   moveName: string;
   /** Go: WithLegalPhases. Enum keys; empty or absent contributes nothing. */
-  legalPhases?: readonly number[];
+  legalPhases?: readonly number[] | undefined;
   /** Go: WithLegalMoveProgression was given a non-nil group. */
   hasMoveProgression?: boolean;
   /**
@@ -148,7 +149,7 @@ export function validateLegalSuppressions(
       : 'none at all — this move contributes no specs, so no suppression could ever match';
   for (const name of suppressions) {
     if (!names.has(name)) {
-      throw new LegalSpecError(
+      throw legalSpecError(
         `move ${goQuote(moveName)} suppresses ${goQuote(name)} via WithoutLegalPrecondition but contributes no spec with that name: suppression only removes a CONTRIBUTED atom from the plan, so an unmatched name is either a typo or an opt-out of a check this move never had (this move's contributed spec names: ${contributedDesc})`,
       );
     }
@@ -201,13 +202,13 @@ function hasKey(table: Readonly<Record<string, string>>, key: string): boolean {
 function validateTemplateTree(spec: LegalSpec, pred: LegalPredicate, table: Readonly<Record<string, string>>): void {
   if (spec.message) {
     if (!hasKey(table, spec.message)) {
-      throw new LegalSpecError(
+      throw legalSpecError(
         `boardgame: legal spec ${goQuote(spec.name)}: template key ${goQuote(spec.message)} (Spec.Message override) not found in template table`,
       );
     }
   } else if (pred.name === LEGAL_ANY_NAME) {
     if (!hasKey(table, LEGAL_ANY_FAILED_TEMPLATE)) {
-      throw new LegalSpecError(
+      throw legalSpecError(
         `boardgame: legal spec ${goQuote(spec.name)}: default template key ${goQuote(LEGAL_ANY_FAILED_TEMPLATE)} not found in template table`,
       );
     }
@@ -226,7 +227,7 @@ function formatNames(names: readonly string[]): string {
 function validateEmittedTemplates(pred: LegalPredicate, table: Readonly<Record<string, string>>): void {
   for (const key of pred.emittedTemplates) {
     if (!hasKey(table, key)) {
-      throw new LegalSpecError(
+      throw legalSpecError(
         `boardgame: predicate ${goQuote(pred.name)} may emit template key ${goQuote(key)}, which is not found in the game's template table`,
       );
     }
@@ -241,7 +242,7 @@ function validateEmittedBindings(pred: LegalPredicate, table: Readonly<Record<st
       .filter(key => !pred.emittedTemplates.includes(key))
       .sort();
     if (strays.length > 0) {
-      throw new LegalSpecError(
+      throw legalSpecError(
         `boardgame: predicate ${goQuote(pred.name)} declares EmittedBindings metadata for template key(s) ${formatNames(strays)} not listed in its EmittedTemplates (${formatNames(pred.emittedTemplates)}) — a bindings entry for an unlisted key is never validated against any template body, so this is almost certainly a typo'd or stale metadata key; list the key in EmittedTemplates or fix the EmittedBindings entry`,
       );
     }
@@ -253,7 +254,7 @@ function validateEmittedBindings(pred: LegalPredicate, table: Readonly<Record<st
       const body = table[key];
       for (const placeholder of legalTemplatePlaceholders(body)) {
         if (!bindings.includes(placeholder)) {
-          throw new LegalSpecError(
+          throw legalSpecError(
             `boardgame: predicate ${goQuote(pred.name)} emits template key ${goQuote(key)} whose body (${goQuote(body)}) references placeholder {${placeholder}}, but the predicate does not guarantee a binding named ${goQuote(placeholder)} on every emission of that key (guaranteed bindings: ${formatNames(bindings)}) — the placeholder would render as its bare name mid-game; fix the template body or point the spec at a template whose placeholders the predicate always fills`,
           );
         }
@@ -276,7 +277,7 @@ export function validateLegalPlanTemplates(
   table: Readonly<Record<string, string>>,
 ): void {
   if (specs.length !== predicates.length) {
-    throw new LegalSpecError(
+    throw legalSpecError(
       `boardgame: validateLegalTemplates: specs and predicates must be parallel slices of equal length, got ${specs.length} specs and ${predicates.length} predicates`,
     );
   }
@@ -336,7 +337,7 @@ export function buildLegalPlan(input: LegalPlanInput): LegalPlan {
       validateLegalPlanTemplates(specs, predicates, input.templates);
     }
   } catch (err) {
-    throw new LegalSpecError(`move ${goQuote(input.moveName)}: ${err instanceof Error ? err.message : String(err)}`);
+    throw legalSpecError(`move ${goQuote(input.moveName)}: ${err instanceof Error ? err.message : String(err)}`);
   }
   const steps = predicates.map(predicate => ({
     predicate,

@@ -19,18 +19,23 @@ import {
 } from './types.ts';
 
 /** Go: legalCompareOps. The closed set of comparison operators. */
-export const LEGAL_COMPARE_OPS: Readonly<Record<string, (value: number, n: number) => boolean>> = {
-  '==': (value, n) => value === n,
-  '!=': (value, n) => value !== n,
-  '<': (value, n) => value < n,
-  '<=': (value, n) => value <= n,
-  '>': (value, n) => value > n,
-  '>=': (value, n) => value >= n,
-};
+export const LEGAL_COMPARE_OPS: readonly string[] = ['==', '!=', '<', '<=', '>', '>='];
 
-/** Looks up a comparison operator; undefined for anything outside the closed set. */
+/**
+ * Looks up a comparison operator; undefined for anything outside the closed
+ * set. A switch, not a table of functions: a Common Fabric pattern module
+ * may hold only plain data at module scope.
+ */
 export function legalCompareOp(op: string): ((value: number, n: number) => boolean) | undefined {
-  return Object.prototype.hasOwnProperty.call(LEGAL_COMPARE_OPS, op) ? LEGAL_COMPARE_OPS[op] : undefined;
+  switch (op) {
+    case '==': return (value, n) => value === n;
+    case '!=': return (value, n) => value !== n;
+    case '<': return (value, n) => value < n;
+    case '<=': return (value, n) => value <= n;
+    case '>': return (value, n) => value > n;
+    case '>=': return (value, n) => value >= n;
+    default: return undefined;
+  }
 }
 
 /** Go: legal.PropAtLeast. */

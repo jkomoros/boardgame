@@ -12,17 +12,19 @@ import { any, playerBoolAt, proposer, proposerIsPlayerFromMove } from './catalog
 import { stackEmpty } from './catalogStack.ts';
 import { goAtoi, goQuote, goStringSlice } from './goformat.ts';
 import { legalErrorf, legalTemplatePlaceholders, renderLegalMessage, renderLegalVerdict } from './message.ts';
-import { LegalPanic, playerIndexEnsureValid, playerIndexEquivalent, playerIndexNext, playerIndexValid } from './playerIndex.ts';
+import { playerIndexEnsureValid, playerIndexEquivalent, playerIndexNext, playerIndexValid, legalPanic } from './playerIndex.ts';
+import type { LegalPanic } from './playerIndex.ts';
 import {
   type LegalPredicate,
   type LegalPredicateConstructor,
-  LegalSpecError,
   evalLegalPredicate,
   legalPredicateSerializable,
   legalRegistry,
   newLegalPredicate,
   resolveLegalSpecs,
+  isLegalSpecError,
 } from './predicate.ts';
+import type { LegalSpecError } from './predicate.ts';
 import { defaultLegalTemplates, mergeLegalTemplates } from './templates.ts';
 import * as fx from './testing/fixtures.ts';
 import { ADMIN_PLAYER_INDEX, ANY_PLAYER_INDEX, LEGAL_CATALOG_VERSION, type LegalVerdict, OBSERVER_PLAYER_INDEX, failT, passVerdict, unknownVerdict } from './types.ts';
@@ -64,7 +66,7 @@ test('a throwing predicate is unknown, with the reason Go gives a panic', () => 
     fixed(
       'thrower',
       () => {
-        throw new LegalPanic('runtime error: index out of range [-6]');
+        throw legalPanic('runtime error: index out of range [-6]');
       },
       { reads },
     );
@@ -218,7 +220,7 @@ test('any cannot be shadowed, and a game constructor overrides a catalog one by 
   assert.deepEqual(evalLegalPredicate(overridden, withMove), { outcome: 'fail', message: { template: 'mine' } });
   assert.throws(
     () => resolveLegalSpecs([{ name: 'nope' }], registry),
-    (err: unknown) => err instanceof LegalSpecError && err.message === 'boardgame: legal spec "nope": unknown predicate name "nope"',
+    (err: unknown) => isLegalSpecError(err) && err.message === 'boardgame: legal spec "nope": unknown predicate name "nope"',
   );
 });
 

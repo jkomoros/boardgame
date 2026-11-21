@@ -23,10 +23,12 @@ import {
 	viewFor,
 	visibleFacets,
 } from '../sanitize.ts';
-import { EngineState } from '../state.ts';
+import { loadEngineState } from '../state.ts';
+import type { EngineState } from '../state.ts';
 import type { StateJSON, VisibilityJSON } from '../state.ts';
 import { checkGameFinished, moveFromRecord } from './engine.ts';
-import { type CompiledGame, type CompiledMove, RulesState } from './state.ts';
+import { type CompiledGame, type CompiledMove, newRulesState } from './state.ts';
+import type { RulesState } from './state.ts';
 import { activeTimersView, syncTimerRecords } from './timers.ts';
 import type { GameRecord, MoveInstance, MoveRecord } from './types.ts';
 
@@ -43,7 +45,7 @@ export interface VersionSnapshot {
 	/** This version's stored state. */
 	state: StateJSON;
 	/** The state of the version before (absent for version 0). Move visibility groups are judged against it. */
-	previousState?: StateJSON;
+	previousState?: StateJSON | undefined;
 	/**
 	 * True when the engine was waiting for outside input at this version (the
 	 * last version an input produced). Projected choices exist only then.
@@ -100,9 +102,9 @@ export interface ViewerOutput {
 }
 
 function loadVersion(game: CompiledGame, record: GameRecord, history: readonly MoveRecord[], state: StateJSON, version: number): RulesState {
-	const engine = EngineState.load(game.def, { gameId: record.id, secretSalt: record.secretSalt }, version, state);
+	const engine = loadEngineState(game.def, { gameId: record.id, secretSalt: record.secretSalt }, version, state);
 	syncTimerRecords(engine);
-	return new RulesState(game, engine, record, history, { pendingSeat: null });
+	return newRulesState(game, engine, record, history, { pendingSeat: null });
 }
 
 /** Whether the game is finished as of a version, and who won. Version 0 is never finished. */
@@ -347,7 +349,7 @@ export function viewerOutput(game: CompiledGame, at: VersionSnapshot, viewer: nu
 	let currentPlayerIndex = OBSERVER_PLAYER_INDEX;
 	const currentState = viewFor(state.engine, viewer, {
 		computed: sanitized => {
-			const rules = new RulesState(game, sanitized, at.record, at.history, { pendingSeat: null });
+			const rules = newRulesState(game, sanitized, at.record, at.history, { pendingSeat: null });
 			currentPlayerIndex = rules.currentPlayerIndex();
 			return computedProperties(rules);
 		},

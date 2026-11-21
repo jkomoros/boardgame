@@ -55,96 +55,102 @@ function boardTokens(state: RulesState): string[] {
 
 // "Play the first of my unused tokens into the slot I chose." The source is
 // a stack on the player the move names.
-const place = moveComponentToSlot({ source: 'players[move.TargetPlayerIndex].UnusedTokens', destination: 'game.Slots', slotField: 'Slot' });
+function place() {
+	return moveComponentToSlot({ source: 'players[move.TargetPlayerIndex].UnusedTokens', destination: 'game.Slots', slotField: 'Slot' });
+}
 
-const placeToken: MoveSpec = {
-	name: 'Place Token',
-	helpText: "Place a player's token in a specific space.",
-	fixUp: false,
-	...place,
-	// Only the proposer sees the move's name and where the token went;
-	// everyone else gets an opaque "Hidden Action" and reads the result from
-	// the state.
-	nameSanitization: 'self:visible',
-	hiddenAnimationKey: 'Hidden Action',
-	fields: { Slot: { type: 'int', sanitize: 'self:visible' } },
-	defaults(state, move) {
-		const slots = state.gameStack('Slots');
-		for (let i = 0; i < slots.len(); i++) {
-			if (slots.componentAt(i) !== null) continue;
-			move.fields.Slot = i;
-			break;
-		}
-	},
-	apply(state, move) {
-		place.apply(state, move);
-		const player = state.players[state.ensureValid(move.fields.TargetPlayerIndex as number)];
-		player.TokensToPlaceThisTurn = (player.TokensToPlaceThisTurn as number) - 1;
-		state.setPhase(PHASE_AFTER_FIRST_MOVE);
-	},
-};
-
-export const tictactoe: GameSpec = {
-	name: 'tictactoe',
-	displayName: 'Tic Tac Toe',
-	minNumPlayers: 2,
-	maxNumPlayers: 2,
-	defaultNumPlayers: 2,
-
-	decks: { tokens: { components: newDeck() } },
-	enums: { phase: { Values: { 0: 'Before First Move', 1: 'After First Move' }, DefaultValue: 0 } },
-	constants: { TOTAL_DIM },
-
-	game: {
-		props: {
-			...currentPlayerProps,
-			Slots: { Type: 'sizedStack', Deck: 'tokens', Size: TOTAL_DIM },
-			...phaseProps,
+function placeToken(): MoveSpec {
+	return {
+		name: 'Place Token',
+		helpText: "Place a player's token in a specific space.",
+		fixUp: false,
+		...place(),
+		// Only the proposer sees the move's name and where the token went;
+		// everyone else gets an opaque "Hidden Action" and reads the result from
+		// the state.
+		nameSanitization: 'self:visible',
+		hiddenAnimationKey: 'Hidden Action',
+		fields: { Slot: { type: 'int', sanitize: 'self:visible' } },
+		defaults(state, move) {
+			const slots = state.gameStack('Slots');
+			for (let i = 0; i < slots.len(); i++) {
+				if (slots.componentAt(i) !== null) continue;
+				move.fields.Slot = i;
+				break;
+			}
 		},
-	},
-	player: {
-		props: {
-			...seatProps,
-			...inactivePlayerProps,
-			TokenValue: { Type: 'string' },
-			// Go constrains this stack to tokens of one value (same(Value)).
-			// Stack constraints are not ported; nothing ever moves in here
-			// after set-up, so the constraint is never consulted.
-			UnusedTokens: { Type: 'stack', Deck: 'tokens' },
-			TokensToPlaceThisTurn: { Type: 'int' },
+		apply(state, move) {
+			place().apply(state, move);
+			const player = state.players[state.ensureValid(move.fields.TargetPlayerIndex as number)];
+			player.TokensToPlaceThisTurn = (player.TokensToPlaceThisTurn as number) - 1;
+			state.setPhase(PHASE_AFTER_FIRST_MOVE);
 		},
-		initial: player => ({ TokensToPlaceThisTurn: 1, TokenValue: player === 1 ? O : X }),
-		traits: {
-			seat: true,
-			inactive: true,
-			turn: {
-				turnDone: (state, player) =>
-					(state.players[player].TokensToPlaceThisTurn as number) > 0 ? 'they still have tokens left to place this turn' : null,
-				resetForTurnStart(state, player) {
-					state.players[player].TokensToPlaceThisTurn = 1;
-				},
-				resetForTurnEnd: () => undefined,
+	};
+}
+
+export function tictactoe(): GameSpec {
+	return {
+		name: 'tictactoe',
+		displayName: 'Tic Tac Toe',
+		minNumPlayers: 2,
+		maxNumPlayers: 2,
+		defaultNumPlayers: 2,
+
+		decks: { tokens: { components: newDeck() } },
+		enums: { phase: { Values: { 0: 'Before First Move', 1: 'After First Move' }, DefaultValue: 0 } },
+		constants: { TOTAL_DIM },
+
+		game: {
+			props: {
+				...currentPlayerProps,
+				Slots: { Type: 'sizedStack', Deck: 'tokens', Size: TOTAL_DIM },
+				...phaseProps,
 			},
 		},
-	},
-
-	// The one failure message this game rewords.
-	legalTemplates: { 'legal.no_component_to_move': "there aren't any remaining tokens for the current player to place" },
-
-	moves: add(seatPlayer(), activateInactivePlayer(), placeToken, finishTurn()),
-
-	setUp: {
-		distribute: (state, _deck, index) => state.playerStack(state.component('tokens', index).Value === X ? 0 : 1, 'UnusedTokens'),
-	},
-
-	end: {
-		check(state) {
-			const { finished, winner } = boardResult(boardTokens(state));
-			if (!finished) return { finished: false, winners: [] };
-			if (winner === EMPTY) return { finished: true, winners: [] };
-			let winningPlayer = 0;
-			for (let i = 0; i < state.numPlayers(); i++) if (state.players[i].TokenValue === winner) winningPlayer = i;
-			return { finished: true, winners: [winningPlayer] };
+		player: {
+			props: {
+				...seatProps,
+				...inactivePlayerProps,
+				TokenValue: { Type: 'string' },
+				// Go constrains this stack to tokens of one value (same(Value)).
+				// Stack constraints are not ported; nothing ever moves in here
+				// after set-up, so the constraint is never consulted.
+				UnusedTokens: { Type: 'stack', Deck: 'tokens' },
+				TokensToPlaceThisTurn: { Type: 'int' },
+			},
+			initial: player => ({ TokensToPlaceThisTurn: 1, TokenValue: player === 1 ? O : X }),
+			traits: {
+				seat: true,
+				inactive: true,
+				turn: {
+					turnDone: (state, player) =>
+						(state.players[player].TokensToPlaceThisTurn as number) > 0 ? 'they still have tokens left to place this turn' : null,
+					resetForTurnStart(state, player) {
+						state.players[player].TokensToPlaceThisTurn = 1;
+					},
+					resetForTurnEnd: () => undefined,
+				},
+			},
 		},
-	},
-};
+
+		// The one failure message this game rewords.
+		legalTemplates: { 'legal.no_component_to_move': "there aren't any remaining tokens for the current player to place" },
+
+		moves: add(seatPlayer(), activateInactivePlayer(), placeToken(), finishTurn()),
+
+		setUp: {
+			distribute: (state, _deck, index) => state.playerStack(state.component('tokens', index).Value === X ? 0 : 1, 'UnusedTokens'),
+		},
+
+		end: {
+			check(state) {
+				const { finished, winner } = boardResult(boardTokens(state));
+				if (!finished) return { finished: false, winners: [] };
+				if (winner === EMPTY) return { finished: true, winners: [] };
+				let winningPlayer = 0;
+				for (let i = 0; i < state.numPlayers(); i++) if (state.players[i].TokenValue === winner) winningPlayer = i;
+				return { finished: true, winners: [winningPlayer] };
+			},
+		},
+	};
+}

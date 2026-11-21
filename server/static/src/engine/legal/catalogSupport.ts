@@ -3,7 +3,8 @@
 
 import type { LegalEnumValue, LegalPropertyReader } from './access.ts';
 import type { Result } from './path.ts';
-import { LegalSpecError } from './predicate.ts';
+import { legalSpecError } from './predicate.ts';
+import type { LegalSpecError } from './predicate.ts';
 import { type LegalSpec, type LegalVerdict, unknownVerdict } from './types.ts';
 
 /** A spec's args, never undefined. */
@@ -18,7 +19,7 @@ export function specTemplate(spec: LegalSpec, defaultTemplate: string): string {
 
 /** Throws the construction error Go's constructor returns. */
 export function specError(message: string): never {
-  throw new LegalSpecError(message);
+  throw legalSpecError(message);
 }
 
 /** Go: `return UnknownVerdict(err.Error())`. */
