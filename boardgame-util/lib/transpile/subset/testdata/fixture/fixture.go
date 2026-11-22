@@ -14,6 +14,7 @@ import (
 	"unsafe"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
@@ -50,6 +51,16 @@ type moveZ struct {
 	moves.StartPhase
 }
 
+// teamPlayer embeds a behavior the engine does not port (EngineGaps).
+type teamPlayer struct {
+	behaviors.PlayerTeam
+}
+
+// moveW embeds a stock move the engine cannot build (EngineGaps).
+type moveW struct {
+	moves.Increment
+}
+
 // want: package-var-write
 func setWritten() {
 	written = "x"
@@ -70,7 +81,7 @@ func readConstant() string {
 	return constantNames[0] + strings.Repeat("y", limit)
 }
 
-// want: engine-gap
+// want: none
 func readFramework() int {
 	return len(spacesEnum.ValueToRange(0))
 }
@@ -80,9 +91,14 @@ func unknownCall() string {
 	return strings.Title("x")
 }
 
-// want: engine-gap
-func engineGap(s boardgame.Stack) error {
+// want: none
+func swapByKey(s boardgame.Stack) error {
 	return s.SwapComponentsByKey(0, 1)
+}
+
+// want: engine-gap
+func engineGap(m *moveW, state boardgame.State) error {
+	return m.Increment.Apply(state)
 }
 
 // want: unknown-type
@@ -302,10 +318,15 @@ func (m *moveX) DefaultsForState(state boardgame.ImmutableState) {
 	_ = x
 }
 
-// want: engine-gap
+// want: none
 func (m *moveY) Apply(state boardgame.State) error {
 	if m.ComponentIndex < 0 {
 		return errors.New("negative")
 	}
 	return nil
+}
+
+// want: engine-gap
+func readsUnportedBehavior(p *teamPlayer) bool {
+	return p.Team == nil
 }

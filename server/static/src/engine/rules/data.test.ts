@@ -88,7 +88,24 @@ interface Adapter {
 	/** Moves given the hand port's parts through `stock:` / whole through `move:`. */
 	standIns: string[];
 	overrides: string[];
+	/** FnRefs served by a TEST_BODIES entry. */
+	testBodies: string[];
 }
+
+/**
+ * Bodies for Go functions a hand port has no separate function for, because
+ * the hand port leaves to an engine default what the Go game declares as a
+ * method. Each is the Go function, written from the hand port's pieces.
+ */
+const TEST_BODIES: Record<string, (hand: GameSpec) => AnyBody | undefined> = {
+	// `return pState.(*playerState).GameScore()`. The hand port leaves
+	// end.playerScore unset, so the engine scores with the gameScore trait
+	// (rules/engine.ts checkGameFinished): this is that default.
+	'memory.(*gameDelegate).PlayerScore': hand => hand.player.traits?.gameScore,
+	// `return false, nil` (never finished). The hand port has no end, which the
+	// engine reads as never finished.
+	'debuganimations.(*gameDelegate).CheckGameFinished': () => (): { finished: boolean; winners: number[] } => ({ finished: false, winners: [] }),
+};
 
 /**
  * The hand port's functions as bodies, by the role the data names each
@@ -98,15 +115,24 @@ interface Adapter {
  */
 function handPortBodies(data: GameData, hand: GameSpec, wholeMoves: boolean): Adapter {
 	const table = new Map<string, AnyBody>();
-	const add = (ref: string | undefined, body: AnyBody | undefined, role: string): void => {
+	const adapter: Adapter = { bodies: ref => table.get(ref), standIns: [], overrides: [], testBodies: [] };
+	const add = (ref: string | undefined, handBody: AnyBody | undefined, role: string): void => {
 		if (ref === undefined) return;
+		let body = handBody;
+		if (body === undefined && TEST_BODIES[ref] !== undefined) {
+			body = TEST_BODIES[ref](hand);
+			if (body !== undefined && !adapter.testBodies.includes(ref)) adapter.testBodies.push(ref);
+		}
 		assert.ok(body !== undefined, 'the hand port has no ' + role + ' for ' + ref);
 		const existing = table.get(ref);
-		assert.ok(existing === undefined || existing === body, 'two different hand-port functions for ' + ref);
-		table.set(ref, body);
+		// One Go method shared by several move configs (werewolf's moveCastVote
+		// for Cast Vote and Cast Night Vote) is one closure per config in a hand
+		// port built by a factory. The same function expression is accepted and
+		// the first kept: the corpus then runs every config sharing it on that one.
+		assert.ok(existing === undefined || existing === body || existing.toString() === body.toString(), 'two different hand-port functions for ' + ref);
+		if (existing === undefined) table.set(ref, body);
 	};
 	const handMoves = new Map(hand.moves.map(move => [move.name, move] as const));
-	const adapter: Adapter = { bodies: ref => table.get(ref), standIns: [], overrides: [] };
 	for (const move of data.Moves) {
 		const hm = handMoves.get(move.Name);
 		assert.ok(hm, 'the hand port has no move ' + move.Name);
@@ -272,7 +298,8 @@ function proveLoader(t: { diagnostic(message: string): void }, data: GameData, n
 		const run = runCorpus(loaded, name);
 		t.diagnostic(
 			name + (wholeMoves ? ' (every move through move:)' : ' (bodies)') + ': ' + run.documents + ' documents, ' + run.versions + ' versions pass; ' +
-				(wholeMoves ? adapter.overrides.length + ' move: overrides' : adapter.standIns.length + ' of ' + data.Moves.length + ' moves had stock parts through stock: [' + adapter.standIns.join(', ') + ']'),
+				(wholeMoves ? adapter.overrides.length + ' move: overrides' : adapter.standIns.length + ' of ' + data.Moves.length + ' moves had stock parts through stock: [' + adapter.standIns.join(', ') + ']') +
+				'; test bodies [' + adapter.testBodies.join(', ') + ']',
 		);
 	}
 }

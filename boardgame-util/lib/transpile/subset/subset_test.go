@@ -1,6 +1,7 @@
 package subset
 
 import (
+	"encoding/json"
 	"go/ast"
 	"go/types"
 	"os"
@@ -171,47 +172,67 @@ func TestTableIsWellFormed(t *testing.T) {
 			seen[name] = true
 		}
 	}
-	// Exactly the proposal's "none (gap)" rows are gaps among the facade calls.
-	var gaps []string
+	// The proposal's "none (gap)" rows. The engine now exports every one
+	// (engine/go/api.ts), so none is a gap; a facade gap is checked against
+	// the engine in TestEngineGapsMatchStockInventory.
+	facades := map[string]bool{}
 	for _, entry := range Table {
-		if entry.Gap() {
-			gaps = append(gaps, entry.Facade)
+		facades[entry.Facade] = true
+	}
+	for _, name := range []string{"componentAtKey", "neighborsByKey", "rangeToValue", "rangeValue", "swapComponentsByKey", "valueToRange"} {
+		if !facades[name] {
+			t.Errorf("no API table row has facade %s", name)
 		}
 	}
-	sort.Strings(gaps)
-	want := "componentAtKey,neighborsByKey,rangeToValue,rangeValue,swapComponentsByKey,valueToRange"
-	if strings.Join(gaps, ",") != want {
-		t.Errorf("gap rows = %v, want %s", gaps, want)
+	for key := range EngineGaps {
+		if !strings.Contains(key, ".") && !facades[key] {
+			t.Errorf("EngineGaps lists facade %s, which no API table row emits", key)
+		}
 	}
 }
 
-var tsMention = regexp.MustCompile(`\b(moves|behaviors)\.([A-Z][A-Za-z]+)`)
+// inventoryEntry is one row of server/static/src/engine/rules/stock-inventory.json.
+type inventoryEntry struct {
+	GoType       string   `json:"goType"`
+	Kind         string   `json:"kind"`
+	Ported       bool     `json:"ported"`
+	RegistryName *string  `json:"registryName"`
+	VerifiedBy   []string `json:"verifiedBy"`
+	Notes        string   `json:"notes"`
+}
 
-// TestEngineGapsMatchStockTS keeps EngineGaps' stock and behavior entries
-// equal to what the engine's rules/*.ts does not mention: every stock move
-// type of package moves and every behavior struct is either mentioned there
-// (ported) or listed as a gap, never both.
-func TestEngineGapsMatchStockTS(t *testing.T) {
-	rulesDir := filepath.Join("..", "..", "..", "..", "server", "static", "src", "engine", "rules")
-	entries, err := os.ReadDir(rulesDir)
+var tsExport = regexp.MustCompile(`(?m)^export (?:function|const) ([A-Za-z_][A-Za-z0-9_]*)`)
+
+// TestEngineGapsMatchStockInventory holds EngineGaps to the engine's own
+// machine-readable inventory, rules/stock-inventory.json, the one source of
+// truth for what is ported. The inventory must list exactly the stock move
+// types of package moves and the behavior structs Go has. A stock move type
+// is a gap unless the inventory has it ported and names its registryName (a
+// type ported only as parts, which stockMove cannot build from a definition,
+// is a gap: see EngineGaps); a behavior is a gap unless it is ported. A
+// facade name in EngineGaps must not be exported by engine/go or engine/lib.
+func TestEngineGapsMatchStockInventory(t *testing.T) {
+	engineDir := filepath.Join("..", "..", "..", "..", "server", "static", "src", "engine")
+	raw, err := os.ReadFile(filepath.Join(engineDir, "rules", "stock-inventory.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	mentioned := map[string]bool{
-		// A fix-up moves.Default: MoveSpec.isFixUp.
-		"moves.FixUp": true,
+	var inventory []inventoryEntry
+	if err := json.Unmarshal(raw, &inventory); err != nil {
+		t.Fatal(err)
 	}
-	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Name(), ".ts") {
+	inventoried := map[string]inventoryEntry{}
+	for _, entry := range inventory {
+		if entry.Kind != "move" && entry.Kind != "behavior" {
 			continue
 		}
-		src, err := os.ReadFile(filepath.Join(rulesDir, entry.Name()))
-		if err != nil {
-			t.Fatal(err)
+		if _, dup := inventoried[entry.GoType]; dup {
+			t.Errorf("%s is in the inventory twice", entry.GoType)
 		}
-		for _, match := range tsMention.FindAllStringSubmatch(string(src), -1) {
-			mentioned[match[1]+"."+match[2]] = true
+		if entry.Ported && len(entry.VerifiedBy) == 0 {
+			t.Errorf("%s: the inventory says ported but names nothing that verifies it", entry.GoType)
 		}
+		inventoried[entry.GoType] = entry
 	}
 
 	config := &packages.Config{Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports}
@@ -256,25 +277,72 @@ func TestEngineGapsMatchStockTS(t *testing.T) {
 			}
 			count[pkg.Types.Name()]++
 			counted[key] = true
-			ported, gap := mentioned[key], IsGap(key)
-			if ported == gap {
-				t.Errorf("%s: mentioned in rules/*.ts = %v, in EngineGaps = %v; want exactly one", key, ported, gap)
+			entry, ok := inventoried[key]
+			if !ok {
+				t.Errorf("%s is a stock type Go has but stock-inventory.json does not list", key)
+				continue
+			}
+			wantKind := map[string]string{"moves": "move", "behaviors": "behavior"}[pkg.Types.Name()]
+			if entry.Kind != wantKind {
+				t.Errorf("%s: inventory kind %q, want %q", key, entry.Kind, wantKind)
+			}
+			ported := entry.Ported
+			if entry.Kind == "move" {
+				ported = ported && entry.RegistryName != nil
+			}
+			if gap := IsGap(key); gap == ported {
+				t.Errorf("%s: inventory ported=%v registryName=%v, in EngineGaps=%v; want a gap exactly when it is not buildable", key, entry.Ported, entry.RegistryName != nil, gap)
 			}
 		}
 	}
-	for key := range EngineGaps {
-		if !strings.HasPrefix(key, "moves.") && !strings.HasPrefix(key, "behaviors.") {
-			continue
-		}
-		if mentioned[key] {
-			t.Errorf("%s is a gap but rules/*.ts ports it", key)
-		}
+	for key := range inventoried {
 		if !counted[key] {
-			t.Errorf("%s is a gap but is not a stock move type or behavior", key)
+			t.Errorf("stock-inventory.json lists %s, which is not a Go stock move type or behavior", key)
+		}
+	}
+	for key := range EngineGaps {
+		if strings.HasPrefix(key, "moves.") || strings.HasPrefix(key, "behaviors.") {
+			if !counted[key] {
+				t.Errorf("%s is a gap but is not a stock move type or behavior", key)
+			}
 		}
 	}
 	if count["behaviors"] != 18 {
 		t.Errorf("found %d behaviors, want 18 (the proposal's count)", count["behaviors"])
 	}
-	t.Logf("stock move types %d, behaviors %d", count["moves"], count["behaviors"])
+
+	exported := map[string]string{}
+	for _, dir := range []string{"go", "lib"} {
+		entries, err := os.ReadDir(filepath.Join(engineDir, dir))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, file := range entries {
+			if !strings.HasSuffix(file.Name(), ".ts") || strings.HasSuffix(file.Name(), ".test.ts") {
+				continue
+			}
+			src, err := os.ReadFile(filepath.Join(engineDir, dir, file.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, match := range tsExport.FindAllStringSubmatch(string(src), -1) {
+				exported[match[1]] = dir + "/" + file.Name()
+			}
+		}
+	}
+	for key := range EngineGaps {
+		if strings.Contains(key, ".") {
+			continue
+		}
+		if file, ok := exported[key]; ok {
+			t.Errorf("EngineGaps lists facade %s, but %s exports it", key, file)
+		}
+	}
+	gaps := 0
+	for key := range EngineGaps {
+		if strings.HasPrefix(key, "moves.") {
+			gaps++
+		}
+	}
+	t.Logf("stock move types %d (%d gaps), behaviors %d (%d gaps)", count["moves"], gaps, count["behaviors"], len(EngineGaps)-gaps)
 }
