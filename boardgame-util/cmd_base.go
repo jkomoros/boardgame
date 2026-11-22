@@ -33,6 +33,7 @@ type boardgameUtil struct {
 	Imagegen        imagegenCmd
 	Conformance     conformanceCmd
 	Gamedef         gamedefCmd
+	Fuzz            fuzzCmd
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -121,6 +122,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Imagegen,
 		&b.Conformance,
 		&b.Gamedef,
+		&b.Fuzz,
 	}
 }
 
