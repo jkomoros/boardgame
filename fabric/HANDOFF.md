@@ -31,6 +31,7 @@ the head commit.
 | `fix/served-handler-write-identity` | Pushed, draft PR commonfabric/labs#10111, CI green | Served handlers are attributed to the handler. Every pattern here depends on it for a witnessed release |
 | `worktree-agent-ad697e53f88bab905` | Local | First spike: a sealed state machine. Findings copied to [labs-spikes/SEALED-STATE-MACHINE-FINDINGS.md](labs-spikes/SEALED-STATE-MACHINE-FINDINGS.md) |
 | `worktree-agent-ac9c0255af3654f11` | Local | Port of the list-release draft (labs#8608) and a card table with per-seat views. Findings copied to [labs-spikes/SEAT-VIEWS-FINDINGS.md](labs-spikes/SEAT-VIEWS-FINDINGS.md), which ends with an unposted draft comment for specs#59 |
+| `worktree-agent-a53d3b2fae9b79d6b` | Local, head `70f5c390ec` | **Viewer-bound release**, the CFC extension this use case asked for, behind the `viewerBoundRelease` option (off by default). A lift asks `currentPrincipal()`; the runtime stamps that viewer on the `TransformedBy` evidence; a module rule releases to that viewer. Also fixes the witness on a record its writer reads and sets, and stale stamps on unchanged outputs. Worked example `patterns/examples/cfc-exchange-rules/card-table.tsx`; draft specification change and an unposted specs#59 comment in `MODULE-NAMED-AUDIENCE-PROPOSAL.md` beside it. See "Viewer-bound release" below |
 | `spike/boardgame-trusted-components` | Local | The shell loads a script of boardgame elements when an environment variable is set. Also here as a patch under `fabric/patterns-declarative/labs-spike/` |
 
 ## The combined branch
@@ -76,12 +77,68 @@ as instructed. These are the properties a reader should not assume.
    not a run. This needs a ruling; no pattern can close it.
 5. **No modified client was tried** against any of this.
 
+Items 2, 3 and 4 are what the viewer-bound release answers; see the next
+section. They still describe the patterns on this branch until the port in
+`status/viewer-bound-port.md` is merged.
+
+## Viewer-bound release
+
+Alex's direction on seeing items 3 and 4: fix it in CFC and the runtime, not
+in the pattern. A labs agent built that on `worktree-agent-a53d3b2fae9b79d6b`.
+
+- **Shape.** One sealed record, one `move` handler, one blessed lift that
+  takes the record, asks the runtime who it is computed for, and returns that
+  principal's view. One rule releases the output to that principal. No list,
+  no per-seat cell, no second handler; the seat count is a number in the
+  state.
+- **Why the owner gains nothing.** The audience is not an input. Binding
+  `move` from another module, or running the module again over the live
+  state, computes the caller's own view. Both are pinned by tests there.
+- **Tested there:** the card table's pattern tests (26 and 28, server
+  execution on and off), a three-principal display test (6 tests, 22 steps;
+  the one suite the orchestrator reran), and the runner's CFC slice (510
+  files, 0 failed).
+- **Not done there:** no browser, no Lean, the runner's whole suite (849 of
+  about 1,400 files ran), and `check-cfc-correspondence` fails on 16
+  citations from the list-release port the branch sits on. A landable pull
+  request should be cut without that port.
+- **Needs a reviewer who knows the specs pin:** the two fixes are on by
+  default, classed as conforming against specs `main`, not the pinned
+  snapshot.
+- **Still open under it:** a value a pattern derives from the released view
+  with code no rule names is sealed again (decision 3 below); the state must
+  default to `null`; a modified client is trusted for its own user's view
+  when server execution is off.
+
+## Userland machinery the runtime should own
+
+The orchestrator's reading of why blackjack is slow, made before the port and
+not from a profile: the patterns rebuild, in stored documents, things the
+runtime already has or should have. Each row is something a pattern author
+should not write. The port measures what removing each one buys.
+
+| What the pattern does today | What the runtime should offer | State |
+|---|---|---|
+| Stores one view per seat, recomputed on every move whoever is looking | A computation per viewer, released to that viewer | Built on the labs branch above |
+| Computes each viewer's redacted copy itself and releases the copy whole | Labels on fields of one record, filtered at delivery; needs a join finer than one per transaction (gap F) | Not built |
+| Keeps a window of past versions in every view so the client can animate the last move | A reader asks a cell for its previous value, or for the change | Not built |
+| Keeps the move history inside the sealed state | The transaction log, readable under the same labels | Not built |
+| A `tick` proposal a client sends on a timer | A timer or scheduled event in the trusted runtime | Not built |
+| An `identify` handler so a guest learns who it is | `currentPrincipal()` | Built on the labs branch above, for lifts |
+| State held as one string to keep its witness | A record keeps its writer's witness | Fixed on the labs branch above |
+
+Unattributed: Memory with hand-written rules still took about 1.8 s a move,
+so some floor is the runtime's own.
+
 ## Decisions for you
 
 Ordered by how much later work they shape.
 
-1. **Is a table owner who can read hands acceptable for now?** It decides
-   whether blackjack waits for a specs ruling or ships as a demo. Item 4 above.
+1. **Is the viewer-bound release the mechanism to propose?** It replaces the
+   earlier question (is an owner who can read hands acceptable). If yes, the
+   next steps are a labs pull request cut without the list-release port, a
+   specs pull request from `MODULE-NAMED-AUDIENCE-PROPOSAL.md`, and the
+   specs#59 follow-up. None has been opened or sent.
 2. **Does "trusted component" mean full trust?** An admitted element runs with
    the shell's authority over the whole page. If that is acceptable for a set
    a user chose, admission is bookkeeping; if not, it is an isolation project.
@@ -121,8 +178,9 @@ Ordered by how much later work they shape.
 
 ## For the Fabric team
 
-Nothing below has been sent. The specs#59 follow-up is drafted at the end of
-`labs-spikes/SEAT-VIEWS-FINDINGS.md`.
+Nothing below has been sent. The specs#59 follow-up drafted at the end of
+`labs-spikes/SEAT-VIEWS-FINDINGS.md` is superseded by the one at the end of
+`MODULE-NAMED-AUDIENCE-PROPOSAL.md` on the labs branch.
 
 | Finding | Kind | Where |
 |---|---|---|
@@ -134,6 +192,8 @@ Nothing below has been sent. The specs#59 follow-up is drafted at the end of
 | A cell position typed `unknown` reads back as `{}` silently | Gap | Memory FINDINGS F7 |
 | `pattern-tests` runs in CI only with server execution off | CI gap | labs#10111 |
 | No way for a guest to read the viewer's own principal | Missing feature | `status/fabric-memory.md`, question 6 |
+| A module cannot release to a principal its sealed state names | Semantic gap; proposal drafted, option D built behind a flag | `MODULE-NAMED-AUDIENCE-PROPOSAL.md` on the labs branch |
+| Machinery patterns build that the runtime should own | Requests | "Userland machinery the runtime should own" above |
 
 A question to ask them, drafted and not sent:
 
