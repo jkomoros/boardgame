@@ -703,7 +703,11 @@ export function viewForPrincipal(
   stored: TableState | null | undefined,
   principal: string | undefined,
 ): TableView {
-  const table = stored ?? emptyTable();
+  // One plain copy, read once. A lift is handed the stored table through
+  // the runtime's own view of the cell, and the engine reads a state many
+  // times over: in labs' harness a view computed from the copy took about
+  // 80 ms where one computed from what the lift was handed took about 110.
+  const table = tableOf(stored);
   return seatViewOf(game, table, seatOf(table, principal));
 }
 

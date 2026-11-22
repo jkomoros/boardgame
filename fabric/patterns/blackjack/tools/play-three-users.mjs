@@ -320,24 +320,49 @@ const motion = await Promise.all(everyone.map(who => who.frame.evaluate(() => {
 check(motion.every(counters => counters.watchdogFirings === 0), 'no animation watchdog fired', motion);
 check(motion.every(counters => counters.plays > 0), 'animations played in every guest', motion);
 
-// Proposal sent to the view carrying its version reaching the mover's guest.
+// Proposal sent to the view carrying its version reaching the mover's guest,
+// and to `send()` resolving, which is the table's commit settling. Each pair
+// also says how many versions the proposal produced.
 const logs = await Promise.all(players.map(who => who.frame.evaluate(() => globalThis.__boardgameFabricLog)));
 const toOwnView = [];
+const toSettled = [];
+const split = [];
 for (const log of logs) {
   log.forEach((entry, at) => {
     if (entry.what !== 'sent' || entry.kind !== 'play') return;
     const lastSeen = log.slice(0, at).filter(prior => prior.what === 'view').pop()?.version ?? -1;
     const mine = log.slice(at).find(later => later.what === 'view' && later.version > lastSeen);
-    if (mine) toOwnView.push(Math.round(mine.wall - entry.wall));
+    const settledAt = log.slice(at).find(later => later.what === 'settled' || later.what === 'refused');
+    if (!mine) return;
+    toOwnView.push(Math.round(mine.wall - entry.wall));
+    if (settledAt?.what === 'settled') {
+      toSettled.push(Math.round(settledAt.wall - entry.wall));
+      split.push({ versions: mine.version - lastSeen, settledMs: Math.round(settledAt.wall - entry.wall), viewMs: Math.round(mine.wall - entry.wall) });
+    }
   });
 }
 toOwnView.sort((a, b) => a - b);
+toSettled.sort((a, b) => a - b);
+// Every proposal's `send()` round trip, by kind: sitting writes a table of a
+// few hundred bytes, a move one of tens of kilobytes.
+const everyLog = await Promise.all(everyone.map(who => who.frame.evaluate(() => globalThis.__boardgameFabricLog)));
+const sendMsByKind = {};
+for (const log of everyLog) {
+  log.forEach((entry, at) => {
+    if (entry.what !== 'sent') return;
+    const done = log.slice(at).find(later => later.what === 'settled' || later.what === 'refused');
+    if (done?.what === 'settled') (sendMsByKind[entry.kind] ??= []).push(Math.round(done.wall - entry.wall));
+  });
+}
 const failed = checks.filter(item => !item.ok);
 console.log(JSON.stringify({
   moves,
   result: end.map(status => `${status.who}: ${status.note}`),
   motion,
   proposalToOwnViewMs: { n: toOwnView.length, min: toOwnView[0], median: toOwnView[Math.floor(toOwnView.length / 2)], max: toOwnView[toOwnView.length - 1] },
+  proposalToSendSettledMs: { n: toSettled.length, min: toSettled[0], median: toSettled[Math.floor(toSettled.length / 2)], max: toSettled[toSettled.length - 1] },
+  split,
+  sendMsByKind,
   checks: { passed: checks.length - failed.length, failed: failed.length, failures: failed.map(item => item.what) },
   consoleErrors: Object.fromEntries(everyone.map(who => [who.name, who.problems.slice(0, 5)])),
 }));

@@ -18,6 +18,11 @@
  * runtime of their own on one memory server. `SERVED=1` adds a serving
  * runtime that runs the table's handlers and computations for them, as a
  * deployment with server execution on does.
+ *
+ * `TIMING=1` adds a test that times a deal and one move with no browser in
+ * the way: how long `send()` takes, how long after it every principal's view
+ * arrives, what the display check costs, and where the runtime's own timing
+ * statistics say the time went.
  */
 import { expect } from "@std/expect";
 
@@ -35,6 +40,7 @@ import {
   createRuntimeCfcModulePolicySource,
 } from "@commonfabric/runner/cfc";
 import { defer } from "@commonfabric/async/defer";
+import { getTimingStatsBreakdown } from "@commonfabric/logger";
 
 import { ExecutorHost } from "../../runner/src/executor/host.ts";
 import { EmulatedStorageManager } from "../../runner/src/storage/v2-emulate.ts";
@@ -45,6 +51,7 @@ import type { RenderPolicy } from "../src/worker/types.ts";
 const ROOT = Deno.env.get("BOARDGAME_ROOT");
 if (!ROOT) throw new Error("set BOARDGAME_ROOT to a boardgame checkout");
 const SERVED = Deno.env.get("SERVED") === "1";
+const TIMING = Deno.env.get("TIMING") === "1";
 
 const TABLE = "/fabric/patterns/blackjack/table.tsx";
 
@@ -488,6 +495,7 @@ Deno.test(
         const mine = viewOf(table).get();
         expect(mine.seats.map((seat) => seat.label)).toEqual(["Bob", "Eve"]);
         expect(mine.viewer).toBe(1);
+        await seen(bobs, 2);
         expect(viewOf(bobs).get().viewer).toBe(0);
         // She leaves again, so that she only watches the deal.
         await send(alice, borrowed, "move", { kind: "leave" });
@@ -575,6 +583,8 @@ Deno.test(`blackjack against a write by other code${label}`, async (t) => {
       expect(view.seats.map((seat) => seat.label)).toEqual(["Bob", "Carol"]);
       // Nobody's seat changed hands: the owner still holds none.
       expect(view.viewer).toBe(-1);
+      await viewOf(bobs).pull();
+      await viewOf(carols).pull();
       expect(viewOf(bobs).get().viewer).toBe(0);
       expect(viewOf(carols).get().viewer).toBe(1);
     });
@@ -592,4 +602,103 @@ Deno.test(`blackjack against a write by other code${label}`, async (t) => {
       expect(refusal(carol, viewOf(carols), space)).toBeUndefined();
     });
   });
+});
+
+//
+// Timing
+//
+
+type Timings = Record<string, { total: number; count: number }>;
+
+/** The runtime's timing statistics so far, by operation, for this process. */
+function timings(): Timings {
+  const out: Timings = {};
+  const all = getTimingStatsBreakdown() as Record<
+    string,
+    Record<string, { totalTime?: number; count?: number }>
+  >;
+  for (const category of Object.keys(all)) {
+    for (const operation of Object.keys(all[category])) {
+      const stat = all[category][operation];
+      if (typeof stat?.totalTime === "number") {
+        out[operation] = { total: stat.totalTime, count: stat.count ?? 0 };
+      }
+    }
+  }
+  return out;
+}
+
+/** Prints what took 15 ms or more since `before`. Spans nest, so rows overlap. */
+function spent(what: string, before: Timings, wall: number): void {
+  const after = timings();
+  const rows = Object.keys(after).map((operation) => ({
+    operation,
+    total: after[operation].total - (before[operation]?.total ?? 0),
+    count: after[operation].count - (before[operation]?.count ?? 0),
+  })).filter((row) => row.total >= 15).sort((a, b) => b.total - a.total);
+  console.log(`${what}: ${Math.round(wall)} ms`);
+  for (const row of rows.slice(0, 24)) {
+    console.log(
+      `  ${String(Math.round(row.total)).padStart(6)} ms  n=${
+        String(row.count).padEnd(5)
+      } ${row.operation}`,
+    );
+  }
+}
+
+Deno.test({
+  name: `blackjack, timed${label}`,
+  ignore: !TIMING,
+  fn: async () => {
+    await atTable(async ({ space, bob, carol, table, join }) => {
+      const bobs = await join(bob, table);
+      const carols = await join(carol, table);
+      await send(bob, bobs, "move", { kind: "sit", label: "Bob" });
+      await seen(carols, 1);
+      await send(carol, carols, "move", { kind: "sit", label: "Carol" });
+      await seen(bobs, 2);
+
+      let before = timings();
+      let sent = performance.now();
+      await send(bob, bobs, "move", {
+        kind: "start",
+        options: { maxrounds: "1" },
+      });
+      let settled = performance.now();
+      spent("the deal, send()", before, settled - sent);
+      before = timings();
+      for (const one of [table, bobs, carols]) await seen(one, 3);
+      spent("the deal, until all three views", before, performance.now() - settled);
+
+      const view = viewOf(bobs).get();
+      const checked = performance.now();
+      const refused = refusal(bob, viewOf(bobs), space);
+      console.log(
+        `the display check of a view of ${view.entries.length} version(s), ${
+          JSON.stringify(view).length
+        } bytes: ${Math.round(performance.now() - checked)} ms, ${
+          refused === undefined ? "shown" : "refused"
+        }`,
+      );
+
+      before = timings();
+      sent = performance.now();
+      await send(bob, bobs, "move", {
+        kind: "play",
+        name: "Current Player Stand",
+        arguments: {},
+      });
+      settled = performance.now();
+      spent("a stand, send()", before, settled - sent);
+      before = timings();
+      for (const one of [table, bobs, carols]) await seen(one, 4);
+      spent("a stand, until all three views", before, performance.now() - settled);
+      const after = viewOf(bobs).get();
+      console.log(
+        `the stand produced ${after.entries.length} version(s); a view is ${
+          JSON.stringify(after).length
+        } bytes`,
+      );
+    });
+  },
 });

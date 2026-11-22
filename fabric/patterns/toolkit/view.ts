@@ -165,6 +165,14 @@ export interface Proposal {
    * `start` deals. `play` proposes a move of the game. `tick` asks the table
    * to check a timer's deadline against its own clock. `restart` clears a
    * finished table for a new deal.
+   *
+   * TODO(cfc): `tick` exists because nothing wakes a pattern at a time. A
+   * guest that was shown a timer sends it when its own clock runs out, and
+   * the table fires the timer only if its own clock agrees. With a wake at
+   * an instant a pattern's state names (labs
+   * `docs/plans/scheduled-work-in-the-server.md` proposes one on an
+   * interval of minutes, which is too coarse), the table would fire its own
+   * timers and no client would be involved.
    */
   kind: "sit" | "leave" | "start" | "play" | "tick" | "restart";
   /** `sit`: the name to show for the seat. */
