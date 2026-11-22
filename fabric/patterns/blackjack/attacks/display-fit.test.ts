@@ -179,7 +179,8 @@ interface View {
   phase: string;
   revision: number;
   version: number;
-  seats: { principal: string; label: string }[];
+  viewer: number;
+  seats: { label: string }[];
   entries: {
     version: number;
     currentPlayerIndex: number;
@@ -484,8 +485,10 @@ Deno.test(
           principal: bob.did,
         });
         await seen(table, 2);
-        const seats = viewOf(table).get().seats;
-        expect(seats.map((seat) => seat.principal)).toEqual([bob.did, alice.did]);
+        const mine = viewOf(table).get();
+        expect(mine.seats.map((seat) => seat.label)).toEqual(["Bob", "Eve"]);
+        expect(mine.viewer).toBe(1);
+        expect(viewOf(bobs).get().viewer).toBe(0);
         // She leaves again, so that she only watches the deal.
         await send(alice, borrowed, "move", { kind: "leave" });
         await seen(table, 3);
@@ -569,10 +572,11 @@ Deno.test(`blackjack against a write by other code${label}`, async (t) => {
       await viewOf(table).pull();
       const view = viewOf(table).get();
       expect(view.revision).toBe(proposals);
-      expect(view.seats.map((seat) => seat.principal)).toEqual([
-        bob.did,
-        carol.did,
-      ]);
+      expect(view.seats.map((seat) => seat.label)).toEqual(["Bob", "Carol"]);
+      // Nobody's seat changed hands: the owner still holds none.
+      expect(view.viewer).toBe(-1);
+      expect(viewOf(bobs).get().viewer).toBe(0);
+      expect(viewOf(carols).get().viewer).toBe(1);
     });
 
     await t.step("shows the owner no hole card", () => {

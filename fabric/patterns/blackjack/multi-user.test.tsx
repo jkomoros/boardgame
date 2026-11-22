@@ -251,8 +251,8 @@ export const bob = pattern<{ setup: Setup }>(({ setup }) => {
       kind: "play" as const,
       name: "Current Player Hit",
       arguments: {},
-      proposer: table.view?.seats[0]?.principal,
-      acting: table.view?.seats[0]?.principal,
+      proposer: "did:key:somebody-else",
+      acting: "did:key:somebody-else",
       viewer: 0,
       seat: 0,
     };

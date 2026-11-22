@@ -3,8 +3,8 @@
  * in a sandboxed `cf-iframe`.
  *
  * The pattern holds one sealed table (`table.tsx`) and hands the guest the
- * view computed for whoever is looking, the game's public facts, the
- * viewer's own principal, and the two verbs a browser may send. The guest is
+ * view computed for whoever is looking, the game's public facts, and the one
+ * verb a browser may send. The guest is
  * the generic boardgame guest of `fabric/guest`; nothing in it is specific
  * to Memory but the renderer compiled into it.
  *
@@ -13,13 +13,10 @@
  */
 import {
   computed,
-  currentPrincipal,
   dataFile,
   type Default,
-  handler,
   NAME,
   pattern,
-  type PerUser,
   type Stream,
   UI,
   type VNode,
@@ -37,8 +34,6 @@ const GUEST_SCRIPT = dataFile("../guest/guest.js");
 export interface MemoryInput {
   /** The sealed table, which starts as nothing. */
   table: Writable<Default<SealedTable, null>>;
-  /** The viewer's own principal, once `identify` has run for them. */
-  me?: PerUser<Writable<Default<string, "">>>;
 }
 
 /** A table of Memory. */
@@ -51,25 +46,11 @@ export interface MemoryOutput {
   info: TableInfo;
   /** Propose something as whoever sends it. */
   move: Stream<Proposal>;
-  /** Record the sender's principal where only they read it. */
-  identify: Stream<void>;
 }
 
-/**
- * Writes the acting principal into that person's own cell, so their guest
- * can tell which seat in the view is theirs. Not a writer of the table.
- */
-const identifyViewer = handler<void, { me: Writable<string> }>(
-  (_, { me }) => {
-    const principal = currentPrincipal();
-    if (principal !== undefined && me.get() !== principal) me.set(principal);
-  },
-);
-
-export default pattern<MemoryInput, MemoryOutput>(({ table, me }) => {
+export default pattern<MemoryInput, MemoryOutput>(({ table }) => {
   const view = viewFor({ table });
   const propose = move({ table });
-  const identify = identifyViewer({ me });
   const info = computed(() => memoryInfo());
   return {
     [NAME]: "Memory",
@@ -78,13 +59,11 @@ export default pattern<MemoryInput, MemoryOutput>(({ table, me }) => {
         <cf-iframe
           src={GUEST_HTML}
           script={GUEST_SCRIPT}
-          $context={{ view, info, me, move: propose, identify }}
+          $context={{ view, info, move: propose }}
           resourceKinds={{
             view: "readonly",
             info: "readonly",
-            me: "readonly",
             move: "stream",
-            identify: "stream",
           }}
         />
       </div>
@@ -92,6 +71,5 @@ export default pattern<MemoryInput, MemoryOutput>(({ table, me }) => {
     view,
     info,
     move: propose,
-    identify,
   };
 });

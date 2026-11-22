@@ -85,9 +85,8 @@ export interface ViewEntry<S = JsonObject> {
   viewers: Record<string, ViewerPart>;
 }
 
+/** A seat as a view names it: by the name its occupant chose, not by who they are. */
 export interface SeatView {
-  /** The DID of whoever holds the seat. */
-  principal: string;
   label: string;
 }
 
@@ -105,6 +104,11 @@ export interface TableView<S = JsonObject> {
   revision: number;
   /** The head game version, or -1 before the deal. */
   version: number;
+  /**
+   * The seat of the principal this view was computed for, or -1 when they
+   * hold none. Every entry is sanitized for this seat.
+   */
+  viewer: number;
   seats: SeatView[];
   minPlayers: number;
   maxPlayers: number;

@@ -446,8 +446,8 @@ export const bob = pattern<{ setup: Setup }>(({ setup }) => {
       kind: "play" as const,
       name: "Reveal Card",
       arguments: { CardIndex: "0" },
-      proposer: table.view?.seats[0]?.principal,
-      acting: table.view?.seats[0]?.principal,
+      proposer: "did:key:somebody-else",
+      acting: "did:key:somebody-else",
       seat: 0,
     };
     table.move.send(forged as Proposal);
@@ -519,7 +519,7 @@ export const carol = pattern<{ setup: Setup }>(({ setup }) => {
       kind: "play" as const,
       name: "Reveal Card",
       arguments: { CardIndex: "1" },
-      proposer: table.view?.seats[0]?.principal,
+      proposer: "did:key:somebody-else",
     };
     table.move.send(forged as Proposal);
   });

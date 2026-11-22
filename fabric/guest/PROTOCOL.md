@@ -175,11 +175,9 @@ The types are in `fabric/patterns/toolkit/view.ts`.
 
 | Name | Kind | Holds |
 |---|---|---|
-| `view` | cell, read-only | A `TableView` computed for whoever is looking: who is seated, the phase, and a window of entries sanitized for the viewer's seat, or for a watcher if they hold none |
+| `view` | cell, read-only | A `TableView` computed for whoever is looking: the viewer's seat, each seat's name, the phase, and the versions the last input produced, sanitized for the viewer's seat, or for a watcher if they hold none |
 | `info` | cell, read-only | A `TableInfo`: the game's name and display name, its chest, the engine's `moveInputSchemaFingerprint`, seat colours, and `setupOptions` for the lobby |
-| `me` | cell, read-only | The viewer's own principal, once `identify` has run |
 | `move` | stream | A `Proposal`. No proposer is sent |
-| `identify` | stream | Asks the pattern to fill in `me` |
 
 ### One view, computed for the viewer
 
@@ -191,9 +189,10 @@ principal who looks, and each guest is handed its own
 their own hole card and nobody else's; a watcher's holds nobody's.
 
 The guest does not choose what it is shown and has nothing to ask for but
-`view`. The bridge finds the viewer's seat from `me` and the seats the view
-names, and draws nothing until it knows it. Each entry's `viewers` holds one
-part, the viewer's own.
+`view`. The view's `viewer` is the seat it was computed for, or `-1`; the
+guest never learns its own principal or anyone else's, and a seat is named
+only by the label its occupant chose. The head entry's `viewers` holds one
+part, the viewer's own; a version that is not settled holds none.
 
 What keeps one principal's instance from another is the pattern's release
 rule, at the runtime's display boundary.

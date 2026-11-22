@@ -35,7 +35,6 @@ import { type Json, type JsonObject, toJson, toJsonObject } from "./json.ts";
 import type {
   MoveLegality,
   Proposal,
-  SeatView,
   SetupOption,
   TableInfo,
   TableView,
@@ -59,10 +58,17 @@ export interface StoredRecord {
   seating: boolean;
 }
 
+/** A seat and who holds it. */
+export interface Seat {
+  /** The DID of whoever holds the seat. */
+  principal: string;
+  label: string;
+}
+
 /** Everything a table knows. No person reads this. */
 export interface TableState {
   phase: "seating" | "playing" | "finished";
-  seats: SeatView[];
+  seats: Seat[];
   record: StoredRecord;
   /** Changes with every deal; a guest keys what it has shown by it. */
   epoch: number;
@@ -601,6 +607,7 @@ function entryOf(
 function frame(
   game: CompiledGame,
   table: TableState,
+  viewer: number,
 ): Omit<TableView, "entries"> {
   const seats = Array.isArray(table.seats) ? table.seats : [];
   return {
@@ -609,10 +616,10 @@ function frame(
     epoch: table.epoch,
     revision: table.revision,
     version: table.version,
-    seats: seats.map((seat) => ({
-      principal: seat.principal,
-      label: seat.label,
-    })),
+    viewer,
+    // A seat's name, and not who holds it: a view tells its viewer which
+    // seat is theirs, and nobody needs anyone's identity.
+    seats: seats.map((seat) => ({ label: seat.label })),
     minPlayers: game.spec.minNumPlayers,
     maxPlayers: game.spec.maxNumPlayers,
   };
@@ -644,7 +651,7 @@ export function seatViewOf(
       at.settled ? { [String(viewer)]: viewerPart(game, output) } : {},
     );
   });
-  return { ...frame(game, table), entries };
+  return { ...frame(game, table, viewer), entries };
 }
 
 /** The seat `principal` holds at `table`, or `OBSERVER_SEAT`. */
