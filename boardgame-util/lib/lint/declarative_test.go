@@ -73,11 +73,13 @@ var measuredDifferences = map[string]map[string]int{
 	// (*gameState).tokenValue is reached by nothing (unreached), not agent code.
 	"tictactoe": {"notPorted": 5},
 	// The proposal's 11 was an estimate (six move methods, five token
-	// methods). Measured: (*moveCrownToken).Apply, (*moveMoveToken).Apply and
-	// LegalCustom, (*movePlaceToken).DefaultsForState, and (*token).Legal,
-	// AllNextSpaces, LegalCaptureSpaces, FreeNextSpaces. (*movePlaceToken)'s
-	// Apply and LegalCustom and (*token).Dynamic use nothing the engine lacks.
-	"checkers": {"needEngineFeature": 8},
+	// methods); the first measurement, against the engine of the freeze, was
+	// 8. The engine now has everything those 8 needed (componentAtKey,
+	// swapComponentsByKey, rangeValue, rangeToValue, valueToRange and
+	// neighborsByKey in engine/go/api.ts; moves.DefaultComponent and
+	// behaviors.ComponentColor and PlayerColor in rules/stock-inventory.json),
+	// so none of checkers' functions needs an engine feature.
+	"checkers": {"needEngineFeature": 0},
 }
 
 func baselineField(b Baseline, name string) int {
@@ -231,14 +233,14 @@ func TestDeclarativeReport(t *testing.T) {
 func TestDeclarativeMaxRefused(t *testing.T) {
 	checkers := filepath.Join("..", "..", "..", "examples", "checkers")
 	refused := Declarative([]string{checkers}, DeclarativeOptions{MaxRefused: -1})
-	if !refused.OK || refused.MaxRefused != nil || refused.Refused != 9 {
-		t.Fatalf("no limit: ok %v, limit %v, refused %d (want 9: one outside, eight needing engine features)", refused.OK, refused.MaxRefused, refused.Refused)
+	if !refused.OK || refused.MaxRefused != nil || refused.Refused != 1 {
+		t.Fatalf("no limit: ok %v, limit %v, refused %d (want 1: ConfigurePredicateConstructors, outside the subset)", refused.OK, refused.MaxRefused, refused.Refused)
 	}
-	if report := Declarative([]string{checkers}, DeclarativeOptions{MaxRefused: 8}); report.OK {
-		t.Error("9 refused passed --max-refused 8")
+	if report := Declarative([]string{checkers}, DeclarativeOptions{MaxRefused: 0}); report.OK {
+		t.Error("1 refused passed --max-refused 0")
 	}
-	if report := Declarative([]string{checkers}, DeclarativeOptions{MaxRefused: 9}); !report.OK || report.MaxRefused == nil || *report.MaxRefused != 9 {
-		t.Error("9 refused failed --max-refused 9")
+	if report := Declarative([]string{checkers}, DeclarativeOptions{MaxRefused: 1}); !report.OK || report.MaxRefused == nil || *report.MaxRefused != 1 {
+		t.Error("1 refused failed --max-refused 1")
 	}
 }
 

@@ -7,10 +7,30 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame/boardgame-util/lib/transpile/refusal"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/transpile/subset"
 )
+
+// fixtureGaps are the engine gaps the staticgame fixture was written
+// against: countKeyed calls componentAtKey and moveGap embeds
+// moves.DefaultComponent. The engine has both now (subset.EngineGaps follows
+// rules/stock-inventory.json), so loadFixture restores them as gaps for the
+// fixture's load only. The fixture then keeps covering the engineGap bucket,
+// its callee propagation and an unported stock ancestor, whatever the engine
+// ports next.
+var fixtureGaps = map[string]string{
+	"componentAtKey":         "fixture gap (enum-keyed stack access)",
+	"moves.DefaultComponent": "fixture gap (stock move)",
+}
 
 func loadFixture(t *testing.T) *StaticReport {
 	t.Helper()
+	for key, what := range fixtureGaps {
+		if subset.IsGap(key) {
+			continue
+		}
+		subset.EngineGaps[key] = what
+		t.Cleanup(func() { delete(subset.EngineGaps, key) })
+	}
 	report, err := LoadStatic("./testdata/staticgame", "")
 	if err != nil {
 		t.Fatal(err)
