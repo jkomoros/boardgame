@@ -218,15 +218,15 @@ export class BgTable extends LitElement {
   // ---- the declarative input -------------------------------------------
 
   private _tableView: TableViewJSON | null = null;
-  private _principal = '';
   private _epoch: number | undefined = undefined;
   private _queuedVersion = -1;
   private _entryOf = new WeakMap<Frame, TableViewEntry>();
   private _timerHandles: ReturnType<typeof setTimeout>[] = [];
 
   /**
-   * The view a Common Fabric table releases, whole and untouched: seats, and
-   * a window of the most recent versions. The table queues every version it
+   * The view a Common Fabric table releases to this viewer, whole and
+   * untouched: whose it is, the seats, and the versions the last input
+   * produced. The table queues every version it
    * has not queued yet, so a caller that only ever holds "the newest value"
    * loses no intermediate version. A value that is not a table view (the
    * `undefined` before the first move) is ignored.
@@ -260,25 +260,18 @@ export class BgTable extends LitElement {
     return this._tableView;
   }
 
-  /** Who is looking, as the table names its seats' holders. Decides `viewer`. */
-  set principal(value: string | null | undefined) {
-    this._principal = typeof value === 'string' ? value : '';
-    this._syncViewer();
-  }
-
-  get principal(): string {
-    return this._principal;
-  }
-
   /** Seat labels of the table view, in seat order. */
   get seatLabels(): string[] {
     return (this._tableView?.seats ?? []).map(seat => seat.label);
   }
 
-  /** A viewer who sat down sees the same versions with their own legality. */
+  /**
+   * The view says whose it is. A viewer who sat down gets a new view, for
+   * their seat; versions already queued are re-read for it.
+   */
   private _syncViewer(): void {
     if (!this._tableView) return;
-    const seat = seatOf(this._tableView, this._principal);
+    const seat = seatOf(this._tableView);
     if (seat === this.viewer) return;
     this.viewer = seat;
     const again = (frame: Frame): Frame => {
@@ -432,7 +425,7 @@ export class BgTable extends LitElement {
     // A host may assign these before the element is defined. Lit re-applies
     // its own reactive properties after an upgrade; plain accessors it does
     // not know about stay shadowed by the instance value unless moved here.
-    adoptEarlyProperties(this, ['chest', 'principal', 'tableView', 'frame', 'view']);
+    adoptEarlyProperties(this, ['chest', 'tableView', 'frame', 'view']);
     for (const type of INTERNAL_EVENTS) this.addEventListener(type, this._swallow);
     const retained = this.name ? retainedByName.get(this.name) : undefined;
     if (retained) {

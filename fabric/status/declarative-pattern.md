@@ -199,6 +199,92 @@ This is one capture a game on one screen, in headless Chromium. Flips and
 the hide after a mismatch are still counted only: a flip does not move a
 card's box.
 
+## On the viewer-bound release (2026-11-21)
+
+`fabric-factoring` at `ff70c37c` merged in (a fast-forward; it holds
+`a0a66980`, the merge of the port). The pattern is on the per-viewer view
+and two games were played on it.
+
+- **Labs:** a new local branch `spike/boardgame-trusted-components-viewer-bound`
+  at `87788f82c8`: the spike patch applied with `git am` on `70f5c390ec`. It
+  applied unchanged, so `labs-spike/0001-…patch` is still the one patch. The
+  worktree is `labs/.claude/worktrees/boardgame-trusted-components-vb`.
+  Neither existing labs branch was committed to. Nothing pushed. Servers on
+  offset 460 with `EXPERIMENTAL_VIEWER_BOUND_RELEASE=true`, stopped.
+
+### What changed here
+
+| File | Change |
+|---|---|
+| `fabric/declarative/src/table-view.ts` | A view has `viewer` and its seats have only a `label`. `seatOf(view)` reads `view.viewer` |
+| `fabric/declarative/src/bg-table.ts` | The `principal` property is gone; the seat comes from the view |
+| `fabric/patterns-declarative/elements.ts` | `principal` removed from `bg-table`'s props |
+| `memory/main.tsx`, `per-stack.tsx`, `probe-release.tsx` | `viewFor({ table })`; the table defaults to `null`; no `me` cell, and `sit` no longer writes one |
+| `memory/probe-release.tsx` | Also shows `view.viewer` by path, and the view through a module-scope `lift` |
+| `fabric/guest/README.md` | "The Common Fabric build" no longer names a `me` cell |
+
+The pattern lost its only per-user identity cell. It now holds a name field
+and nothing else of its own.
+
+### Is a `computed` over the view shown to its viewer? No.
+
+**Ran:** `memory/probe-release.tsx` with `tools/probe-release.mjs`, two
+identities seated at one table, read from each one's screen after the deal.
+
+| Read of the view | Seat 0's screen | Seat 1's screen |
+|---|---|---|
+| `{view?.revision}` | `3` | `3` |
+| `{view?.viewer}` | `0` | `1` |
+| `computed(() => view?.revision ?? -1)` | Content hidden by policy | Content hidden by policy |
+| a module-scope `lift` of the same | Content hidden by policy | Content hidden by policy |
+| `view?.seats.map(seat => …)` | Content hidden by policy | Content hidden by policy |
+| `<bg-stack stack={…state.Game.Cards}>`, by path | 10 cards | 10 cards |
+
+So the limit stands exactly as before the port: a fixed-path read of the
+released view is shown, each viewer's own; anything a pattern computes from
+it is withheld from the very viewer it was released to. `per-stack.tsx`,
+which picks the newest entry in a `computed`, still draws two placeholders
+and an empty board. The viewer-intrinsic rule changed who a view is for,
+not what may be done with it. I did not trace why in the runtime; the port
+session reports the same from the guest's side.
+
+### What ran
+
+| | Result |
+|---|---|
+| First experiment's Playwright tests | 34 passed |
+| Bundle | 408.91 kB |
+| `cf check`, four patterns, with the flag | clean |
+| Game 1 | 16 reveals; Bob 6 to 4 on both screens; 3 timer hides |
+| Game 2 | 16 reveals; Alice 6 to 4 on both screens; 3 timer hides |
+| Animator plays, watchdog firings, each player | 58, 0 (both games) |
+| Motion cycles that started an animation | 24 of 35 (both games) |
+| `tableView` assignments | 22 (game 1), 24 (game 2), for 35 versions |
+| Connections of the table and each stack | 1 each |
+| Placeholders "hidden by policy" in the game | 0 |
+| Each player's own seat, from `view.viewer` | found by both in both games: the script waits for it and each then moves only on their own turn |
+| Capture seen in flight | Game 1: 18 animation frames, 307 ms, 510 px and 616 px. Game 2: 21 frames, 302 ms |
+| Click to face, median (first move) | 1.6 s and 1.5 s (15 s) |
+
+Click to face was 3.4 s and 3.9 s on the earlier labs. The port session's
+status attributes most of that to labs itself having become faster; I did
+not separate the causes. Game 1's output and screenshots are in
+`memory/screenshots/`; I looked at none of this run's screenshots, only the
+counts.
+
+The pattern has no `cf test` file; its tests are these browser scripts.
+
+### Not run
+
+- The reconciler probe. It reads nothing from a table and nothing in it
+  changed.
+- A watcher (someone with no seat), a third player, or the table's owner
+  looking on.
+- Whether a view can still skip a revision. A view now carries the versions
+  of the last input only, where it carried a window of recent ones. 22
+  assignments delivered 35 versions with none missed in these two games,
+  but a reader that missed a whole revision would now miss its versions.
+
 ## Decisions for the owner
 
 1. **Is "trusted" meant to be full trust?** An admitted element can read

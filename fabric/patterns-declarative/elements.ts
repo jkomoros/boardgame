@@ -79,10 +79,8 @@ interface BgTableProps extends Common {
   gameName?: string;
   /** The game's component catalogue (`TableInfo.chest`). */
   chest?: In<unknown>;
-  /** The released `TableView`, untouched. */
+  /** The `TableView` released to this viewer, untouched. It says whose it is. */
   tableView?: In<unknown>;
-  /** The viewer's own principal; the table finds their seat. */
-  principal?: In<string | undefined>;
   animationLength?: number;
   animationLengths?: Record<string, number>;
   holdBefore?: Record<string, number>;

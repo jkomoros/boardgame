@@ -84,9 +84,11 @@ This writes `../patterns/guest/guest.js` and `guest.html`, which a pattern
 reads with `dataFile()` and hands to `cf-iframe` as `script` and `src`. It is
 the same renderer host and the same bundled renderers as the standalone
 guest. The transport differs: `src/fabric-bridge.ts` reads the pattern's
-`view`, `info` and `me` cells, turns each new `view` into the `init` and
-`state` messages of [`PROTOCOL.md`](PROTOCOL.md), and sends the host's
-`propose-move` and `tick` to the pattern's `move` stream. Neither build
+`view` and `info` cells, turns each new `view` into the `init` and `state`
+messages of [`PROTOCOL.md`](PROTOCOL.md), and sends the host's
+`propose-move` and `tick` to the pattern's `move` stream. The `view` is the
+one computed for whoever is looking and says which seat is theirs
+(`view.viewer`); the guest holds no identity of its own. Neither build
 output nor `vendor/` is checked in. The pattern that uses it is
 [`../patterns/memory`](../patterns/memory/README.md).
 

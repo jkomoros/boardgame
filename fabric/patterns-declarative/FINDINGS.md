@@ -184,6 +184,14 @@ Consequences, each of which shaped the design:
 This is a property of the Memory table's policy, not of the elements. A
 table whose rule also blessed a second lift could hand out reshaped values.
 
+**Still so on the viewer-bound release (Ran, later).** The table now exports
+`viewFor`, computed for each viewer and released to that viewer by a rule
+that names the viewer the runtime stamped on the value. A `computed`, a
+module-scope `lift` and a `.map` over that view are all still shown to their
+own viewer as "Content hidden by policy"; fixed-path reads are shown, each
+viewer's own. The table is in the status file, "On the viewer-bound release".
+Where this section says `seatView`, read `viewFor`.
+
 ### R3. With nothing confidential, per-stack props still do not animate (Ran)
 
 `reconciler/main.tsx`: six cards, public state, a grid bound to a computed

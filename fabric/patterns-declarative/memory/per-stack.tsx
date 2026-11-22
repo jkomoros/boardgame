@@ -11,7 +11,6 @@
  */
 import {
   computed,
-  currentPrincipal,
   type Default,
   handler,
   NAME,
@@ -25,27 +24,24 @@ import {
 
 import "../elements.ts";
 import type { ElementEvent, ProposeMoveDetail } from "../elements.ts";
-import type { Proposal } from "../../patterns/toolkit/view.ts";
+import type { Proposal, TableView } from "../../patterns/toolkit/view.ts";
 import { memoryInfo } from "../../patterns/memory/game.ts";
 import {
-  EMPTY_TABLE,
-  type MemoryTableView,
   move,
   type SealedTable,
-  seatView,
+  viewFor,
 } from "../../patterns/memory/table.tsx";
 import type { MemoryState } from "./state.ts";
 
 export interface MemoryInput {
-  table: Writable<Default<SealedTable, typeof EMPTY_TABLE>>;
-  me?: PerUser<Writable<Default<string, "">>>;
+  table: Writable<Default<SealedTable, null>>;
   seatName?: PerUser<Writable<Default<string, "">>>;
 }
 
 export interface MemoryOutput {
   [NAME]: string;
   [UI]: VNode;
-  view: MemoryTableView | undefined;
+  view: TableView;
   move: Stream<Proposal>;
 }
 
@@ -64,12 +60,9 @@ const sit = handler<
   unknown,
   {
     move: Stream<Proposal>;
-    me: Writable<string>;
     seatName: Writable<string>;
   }
->((_, { move, me, seatName }) => {
-  const principal = currentPrincipal();
-  if (principal !== undefined && me.get() !== principal) me.set(principal);
+>((_, { move, seatName }) => {
   move.send({ kind: "sit", label: seatName.get() || "Player" });
 });
 
@@ -90,8 +83,8 @@ const PILE = {
 };
 
 export default pattern<MemoryInput, MemoryOutput>(
-  ({ table, me, seatName }) => {
-    const view = seatView(table);
+  ({ table, seatName }) => {
+    const view = viewFor({ table });
     const propose = move({ table });
     const info = computed(() => memoryInfo());
     // The newest version, picked by the pattern.
@@ -112,7 +105,7 @@ export default pattern<MemoryInput, MemoryOutput>(
         <div style={{ padding: "12px", fontFamily: "system-ui, sans-serif" }}>
           <div id="lobby" style={{ marginBottom: "12px" }}>
             <cf-input $value={seatName} placeholder="Your name" />
-            <cf-button id="sit" onClick={sit({ move: propose, me, seatName })}>
+            <cf-button id="sit" onClick={sit({ move: propose, seatName })}>
               Sit down
             </cf-button>
             <cf-button id="deal" onClick={deal({ move: propose })}>

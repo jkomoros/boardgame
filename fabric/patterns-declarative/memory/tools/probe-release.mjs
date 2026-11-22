@@ -18,7 +18,9 @@ const read = who => who.page.evaluate(() => {
   const stack = globalThis.__deep('bg-stack')[0];
   return {
     direct: text('#direct'),
+    viewer: text('#viewer'),
     derived: text('#derived'),
+    lifted: text('#lifted'),
     seats: text('#seats .seat'),
     seatsBox: text('#seats'),
     cardsInStack: stack?.renderRoot.querySelectorAll('boardgame-card').length ?? null,

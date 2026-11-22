@@ -2,18 +2,18 @@
  * Memory at one table, drawn by the pattern's own JSX with the boardgame
  * declarative elements, in the shell's document: no `cf-iframe`, no guest.
  *
- * The table, its one writer `move` and its one released lift `seatView` are
+ * The table, its one writer `move` and its one released lift `viewFor` are
  * those of `fabric/patterns/memory/table.tsx`, imported, not copied. This
  * file is the view only.
  *
- * The view is handed to `<bg-table>` exactly as the policy released it. The
- * element finds the viewer's seat, queues every version it has not shown,
- * and owns the animation. The board below it is markup whose props never
+ * `viewFor` is computed for whoever is looking and released to them alone
+ * (labs' `viewerBoundRelease`). It is handed to `<bg-table>` exactly as
+ * released. The element reads whose view it is from the view, queues every
+ * version it has not shown, and owns the animation. The board below it is markup whose props never
  * change, so nothing the reconciler does between two states touches it.
  */
 import {
   computed,
-  currentPrincipal,
   type Default,
   handler,
   NAME,
@@ -31,21 +31,21 @@ import type {
   ProposeMoveDetail,
   TimerElapsedDetail,
 } from "../elements.ts";
-import type { Proposal, TableInfo } from "../../patterns/toolkit/view.ts";
+import type {
+  Proposal,
+  TableInfo,
+  TableView,
+} from "../../patterns/toolkit/view.ts";
 import { memoryInfo } from "../../patterns/memory/game.ts";
 import {
-  EMPTY_TABLE,
-  type MemoryTableView,
   move,
   type SealedTable,
-  seatView,
+  viewFor,
 } from "../../patterns/memory/table.tsx";
 
 export interface MemoryInput {
   /** The sealed table, which starts as the table before anyone sat down. */
-  table: Writable<Default<SealedTable, typeof EMPTY_TABLE>>;
-  /** The viewer's own principal, once they have sat down. */
-  me?: PerUser<Writable<Default<string, "">>>;
+  table: Writable<Default<SealedTable, null>>;
   /** What the viewer typed as their name. */
   seatName?: PerUser<Writable<Default<string, "">>>;
 }
@@ -53,7 +53,7 @@ export interface MemoryInput {
 export interface MemoryOutput {
   [NAME]: string;
   [UI]: VNode;
-  view: MemoryTableView | undefined;
+  view: TableView;
   info: TableInfo;
   move: Stream<Proposal>;
 }
@@ -82,17 +82,14 @@ const tick = handler<
   move.send({ kind: "tick", timerId: event.detail.timerId });
 });
 
-/** Take a seat, and note who is looking where only they read it. */
+/** Take a seat. Who is sitting is the runtime's to say, inside `move`. */
 const sit = handler<
   unknown,
   {
     move: Stream<Proposal>;
-    me: Writable<string>;
     seatName: Writable<string>;
   }
->((_, { move, me, seatName }) => {
-  const principal = currentPrincipal();
-  if (principal !== undefined && me.get() !== principal) me.set(principal);
+>((_, { move, seatName }) => {
   move.send({ kind: "sit", label: seatName.get() || "Player" });
 });
 
@@ -109,8 +106,8 @@ const PILE = {
 };
 
 export default pattern<MemoryInput, MemoryOutput>(
-  ({ table, me, seatName }) => {
-    const view = seatView(table);
+  ({ table, seatName }) => {
+    const view = viewFor({ table });
     const propose = move({ table });
     const info = computed(() => memoryInfo());
     return {
@@ -119,7 +116,7 @@ export default pattern<MemoryInput, MemoryOutput>(
         <div style={{ padding: "12px", fontFamily: "system-ui, sans-serif" }}>
           <div id="lobby" style={{ marginBottom: "12px" }}>
             <cf-input $value={seatName} placeholder="Your name" />
-            <cf-button id="sit" onClick={sit({ move: propose, me, seatName })}>
+            <cf-button id="sit" onClick={sit({ move: propose, seatName })}>
               Sit down
             </cf-button>
             <cf-button id="deal" onClick={deal({ move: propose })}>
@@ -131,7 +128,6 @@ export default pattern<MemoryInput, MemoryOutput>(
             gameName="memory"
             chest={info.chest}
             tableView={view}
-            principal={me}
             animationLength={400}
             holdBefore={{ "Capture Cards": 600 }}
             onpropose-move={play({ move: propose })}
