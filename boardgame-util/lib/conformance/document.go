@@ -8,7 +8,20 @@ import (
 )
 
 // SchemaVersion is bumped whenever the Document format changes shape.
+//
+// It is the version of every document that carries no Rejections, which
+// includes every document FromScenario, FromGolden and FromHistory produce
+// and the whole checked-in corpus. Version 2 differs from version 1 only by
+// the optional top-level rejections field, so a version-1 document is also
+// a valid version-2 document; existing documents stay version 1 and are not
+// regenerated.
 const SchemaVersion = 1
+
+// SchemaVersionWithRejections is the version of a document whose Rejections
+// is non-empty (the fuzzer's documents that recorded a refused input). The
+// rule: a document is version 2 exactly when it carries rejections;
+// otherwise it is SchemaVersion.
+const SchemaVersionWithRejections = 2
 
 // Clock is the fixed manual timer clock every export runs under. It is the
 // same instant scenario.Run uses, so a scenario and its export agree.
@@ -40,6 +53,32 @@ type Document struct {
 	// Chest is the wire chest: Decks, Enums, Constants and LegalTemplates.
 	Chest    json.RawMessage `json:"chest"`
 	Versions []Version       `json:"versions"`
+	// Rejections are outside inputs the engine refused, each between two
+	// versions. Absent from every document without one; a document with
+	// any has SchemaVersion SchemaVersionWithRejections.
+	Rejections []Rejection `json:"rejections,omitempty"`
+}
+
+// Rejection is one outside input the engine refused: nothing changed, and
+// the state stayed at AtVersion.
+type Rejection struct {
+	// AtVersion is the version the game was at when the input arrived; the
+	// rejection is replayed after that version and before the next.
+	AtVersion int `json:"atVersion"`
+	// Kind is "propose", "timer" or "seat", as MoveRecord.Trigger names the
+	// accepted forms.
+	Kind string `json:"kind"`
+	// Name is the proposed move's name ("" for a timer or seat input that
+	// names none).
+	Name string `json:"name"`
+	// Input is the fields the proposer supplied.
+	Input map[string]json.RawMessage `json:"input"`
+	// Proposer is who proposed it (-2 for the admin).
+	Proposer boardgame.PlayerIndex `json:"proposer"`
+	// ExpectedVersion is the version the proposer named.
+	ExpectedVersion int `json:"expectedVersion"`
+	// Error is Go's error text.
+	Error string `json:"error"`
 }
 
 // Source says where the run came from.

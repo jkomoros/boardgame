@@ -52,6 +52,11 @@ export interface PropDef {
 	Overlap?: boolean;
 	/** mergedStack: the sibling properties it views, in order. */
 	Stacks?: readonly string[];
+	/**
+	 * Stacks: the constraint strings from the stack's struct tag
+	 * (`same(Color)`), in tag order. Absent: none. Not yet honored.
+	 */
+	Constraints?: readonly string[];
 }
 
 export interface SubStateDef {
@@ -63,6 +68,23 @@ export interface DeckDef {
 	Size: number;
 	/** The components' static values, by deck index. Not used by the core. */
 	Components?: readonly unknown[];
+	/**
+	 * What Deck.SetGenericValues set: the values a generic (sanitized)
+	 * component shows. Absent or null: none. Not yet used by the core.
+	 */
+	GenericValues?: Readonly<Record<string, unknown>> | null;
+	/**
+	 * Each component value property's type and, for an enum, its enum (what
+	 * DeckSpec.props carries by hand). Absent for a deck whose components
+	 * have no values.
+	 */
+	ComponentProps?: Readonly<Record<string, ComponentPropDef>>;
+}
+
+/** The declared type of one component value property (rules/binding.ts ValuePropDef). */
+export interface ComponentPropDef {
+	Type: PropType;
+	Enum?: string;
 }
 
 export interface EnumDef {
@@ -75,6 +97,12 @@ export interface EnumDef {
 	 * its own parent. Absent for an ordinary enum. The core ignores it.
 	 */
 	Parents?: Readonly<Record<string, number>>;
+	/**
+	 * For a range enum (enum.RangeEnum): its dimensions, RangeDimensions()
+	 * (`[8, 8]` for an 8 by 8 grid). Absent for other enums. The core
+	 * ignores it.
+	 */
+	Range?: readonly number[];
 }
 
 export interface GameDefinition {

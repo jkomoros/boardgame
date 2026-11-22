@@ -54,6 +54,12 @@ export interface DeckSpec {
 	components: readonly (Readonly<Record<string, unknown>> | null)[];
 	/** Declared types of those values. Needed for enum-valued ones. */
 	props?: Readonly<Record<string, ValuePropDef>>;
+	/**
+	 * Deck.SetGenericValues: the values a generic (sanitized) component
+	 * shows. Absent or null: none were set. Loaded from GameData; not yet
+	 * honored by compileGame.
+	 */
+	generic?: Readonly<Record<string, unknown>> | null;
 }
 
 export interface SubStateSpec {
@@ -64,6 +70,16 @@ export interface SubStateSpec {
 	 * player index, or the deck index for dynamic component values.
 	 */
 	initial?: (index: number) => Record<string, unknown>;
+	/**
+	 * The same as `initial`, as data (GameData.Initial): entry `index` is the
+	 * non-zero starting values for that index. For the game sub-state it has
+	 * one entry, at 0. For player sub-states, one per player index
+	 * 0 .. maxNumPlayers-1. For a deck's dynamic component values, one per
+	 * deck index. An index past the end, or an entry with no key, means
+	 * every property starts at its zero value. When both are given, `initial`
+	 * wins. Not yet honored by compileGame.
+	 */
+	initialValues?: readonly Readonly<Record<string, unknown>>[];
 }
 
 /** What Go's embedded game-state behaviors provide. */
@@ -228,6 +244,15 @@ export interface MoveSpec {
 	legalPhases?: readonly number[];
 	/** moves.WithLegalMoveProgression. */
 	progression?: ProgressionGroup;
+
+	/**
+	 * The legal plan Go assembled ((*GameManager).LegalPlanSpecs, carried in
+	 * GameData's MoveData.Plan.Specs): base checks, contributions and
+	 * authored specs with suppressions applied. When present it is used
+	 * verbatim, and `contributes` and `suppress` are ignored. Not yet
+	 * honored by compileGame.
+	 */
+	plan?: readonly LegalSpec[];
 }
 
 // ----- the game -----------------------------------------------------------

@@ -35,12 +35,50 @@ export const countBetween = (min: number, max: number): ValidCounter => (current
 export const countExactly = (target: number): ValidCounter => current =>
 	target === current ? null : target > current ? 'currentCount is not yet targetCount' : 'currentCount has already passed targetCount';
 
+/**
+ * A counter as data: one of the seven stock families of moves/count.go, or
+ * a custom counter named by its Go function (GameData's CounterData, key
+ * for key). The loader replaces a custom counter with its translated
+ * function; evalCounter refuses one that reaches it.
+ */
+export type CounterData =
+	| { readonly Kind: 'any' | 'all' | 'infinite' }
+	| { readonly Kind: 'atLeast' | 'atMost' | 'exactly'; readonly N: number }
+	| { readonly Kind: 'between'; readonly Min: number; readonly Max: number }
+	| { readonly Kind: 'custom'; readonly Count: string };
+
+/** A counter as a function, or as data. */
+export type Counter = ValidCounter | CounterData;
+
+/** Evaluates a counter in either form, as the stock family's function would. */
+export function evalCounter(counter: Counter, currentCount: number, length: number): string | null {
+	if (typeof counter === 'function') return counter(currentCount, length);
+	switch (counter.Kind) {
+		case 'any':
+			return countAny()(currentCount, length);
+		case 'all':
+			return countAll()(currentCount, length);
+		case 'infinite':
+			return countInfinite()(currentCount, length);
+		case 'atLeast':
+			return countAtLeast(counter.N)(currentCount, length);
+		case 'atMost':
+			return countAtMost(counter.N)(currentCount, length);
+		case 'exactly':
+			return countExactly(counter.N)(currentCount, length);
+		case 'between':
+			return countBetween(counter.Min, counter.Max)(currentCount, length);
+		case 'custom':
+			throw new Error('evalCounter: custom counter ' + counter.Count + ' was not resolved to a function');
+	}
+}
+
 export type ProgressionGroup =
 	/** One move type. allowMultiple is interfaces.AllowMultipleInProgression. */
 	| { kind: 'move'; name: string; allowMultiple: boolean }
 	| { kind: 'serial'; children: readonly ProgressionGroup[] }
-	| { kind: 'repeat'; count: ValidCounter; child: ProgressionGroup }
-	| { kind: 'parallel'; count: ValidCounter; children: readonly ProgressionGroup[] };
+	| { kind: 'repeat'; count: Counter; child: ProgressionGroup }
+	| { kind: 'parallel'; count: Counter; children: readonly ProgressionGroup[] };
 
 /** moves.Serial. */
 export function serialGroup(...children: ProgressionGroup[]): ProgressionGroup {
@@ -112,7 +150,7 @@ function satisfied(group: ProgressionGroup, tape: readonly string[], head: numbe
 		}
 		case 'repeat': {
 			let tapeHead = head;
-			let lowerBoundReached = group.count(0, 1) === null;
+			let lowerBoundReached = evalCounter(group.count, 0, 1) === null;
 			let iteration = 1;
 			for (;;) {
 				if (tapeHead === end) return { rest: end, err: null };
@@ -121,7 +159,7 @@ function satisfied(group: ProgressionGroup, tape: readonly string[], head: numbe
 					if (lowerBoundReached) return { rest: tapeHead, err: null };
 					return { rest: end, err: match.err };
 				}
-				const boundErr = group.count(iteration, 1);
+				const boundErr = evalCounter(group.count, iteration, 1);
 				if (lowerBoundReached) {
 					if (boundErr !== null) break;
 				} else if (boundErr === null) {
@@ -137,7 +175,7 @@ function satisfied(group: ProgressionGroup, tape: readonly string[], head: numbe
 			const matched: boolean[] = group.children.map(() => false);
 			let matchedCount = 0;
 			for (;;) {
-				if (group.count(matchedCount, group.children.length) === null) break;
+				if (evalCounter(group.count, matchedCount, group.children.length) === null) break;
 				if (tapeHead === end) return { rest: end, err: null };
 				// Go keeps the longest match (sort.Slice, descending length). A
 				// match that consumes the whole tape counts as infinitely long.

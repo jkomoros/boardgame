@@ -18,7 +18,11 @@ export type PlayerIndex = number;
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
 export interface ConformanceDocument {
-	schemaVersion: 1;
+	/**
+	 * 1 for every document without rejections (the whole checked-in corpus);
+	 * 2 exactly when `rejections` is present. Version 2 adds only that field.
+	 */
+	schemaVersion: 1 | 2;
 	name: string;
 	source: Source;
 	normalization: NormalizationRule[];
@@ -39,6 +43,28 @@ export interface ConformanceDocument {
 	chest: Chest;
 	/** One entry per state version; versions[i].version === i. */
 	versions: Version[];
+	/**
+	 * Outside inputs the engine refused, each leaving the state untouched at
+	 * `atVersion`. Present only in a version-2 document.
+	 */
+	rejections?: Rejection[];
+}
+
+/** One refused outside input (Go: conformance.Rejection). */
+export interface Rejection {
+	/** The version the game was at; replayed after it and before the next. */
+	atVersion: number;
+	kind: 'propose' | 'timer' | 'seat';
+	/** The proposed move's name; '' for a timer or seat input that names none. */
+	name: string;
+	/** The fields the proposer supplied. */
+	input: { [field: string]: Json };
+	/** -2 for the admin. */
+	proposer: PlayerIndex;
+	/** The version the proposer named. */
+	expectedVersion: number;
+	/** Go's error text. */
+	error: string;
 }
 
 export interface Source {
