@@ -139,8 +139,17 @@ reran none of it.
   tests; guest 28 of 28; a display-boundary attack test in labs' harness
   (4 tests, 13 steps); three browser games of blackjack with an owner
   watching (424 of 424 secrecy checks) and two of Memory.
-- **Broken by it, being fixed:** `fabric/patterns-declarative` and
-  `fabric/declarative/src/table-view.ts` read the old per-seat shape.
+- **The JSX-board pattern is on it too**
+  ([status/declarative-pattern.md](status/declarative-pattern.md), "On the
+  viewer-bound release"): two two-identity Memory games played, 34 of 34
+  element tests, on a new local labs branch
+  `spike/boardgame-trusted-components-viewer-bound` (`87788f82c8`).
+- **A derived value is still withheld from its own viewer.** A `computed`, a
+  module-scope `lift` and a `.map` over the released view each showed
+  "Content hidden by policy" to the viewer the view was released to. The
+  draft proposal says the opposite ("a viewer's own derivations of their
+  view stay theirs", citing §5.3). One of the two is wrong, and it should be
+  settled before the proposal is filed.
 
 ## Userland machinery the runtime should own
 
