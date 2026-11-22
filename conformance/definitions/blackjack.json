@@ -456,7 +456,12 @@
 			"Seat": true,
 			"Inactive": true,
 			"Elimination": true,
-			"GameScore": "score"
+			"GameScore": "score",
+			"Turn": {
+				"TurnDone": "blackjack.(*playerState).TurnDone",
+				"ResetForTurnStart": "blackjack.(*playerState).ResetForTurnStart",
+				"ResetForTurnEnd": "blackjack.(*playerState).ResetForTurnEnd"
+			}
 		}
 	},
 	"Variants": {
@@ -524,7 +529,7 @@
 			"Name": "HandValue",
 			"Scope": "player",
 			"Type": "int",
-			"Compute": ""
+			"Compute": "blackjack.(*gameDelegate).ConfigureComputedProperties.func1"
 		}
 	],
 	"LegalTemplates": {
@@ -1188,7 +1193,10 @@
 				],
 				"HasCustom": true
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "blackjack.(*moveCurrentPlayerHit).Apply",
+				"LegalCustom": "blackjack.(*moveCurrentPlayerHit).LegalCustom"
+			}
 		},
 		{
 			"Name": "Current Player Stand",
@@ -1268,7 +1276,9 @@
 				],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "blackjack.(*moveCurrentPlayerStand).Apply"
+			}
 		},
 		{
 			"Name": "Reveal Hidden Card",
@@ -1331,7 +1341,10 @@
 				],
 				"HasCustom": true
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "blackjack.(*moveRevealHiddenCard).Apply",
+				"LegalCustom": "blackjack.(*moveRevealHiddenCard).LegalCustom"
+			}
 		},
 		{
 			"Name": "Finish Turn",
@@ -2254,7 +2267,10 @@
 				"Specs": [],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "blackjack.(*moveAccumulateScores).Apply",
+				"Legal": "blackjack.(*moveAccumulateScores).Legal"
+			}
 		},
 		{
 			"Name": "Collect Cards",
@@ -2332,7 +2348,10 @@
 				"Specs": [],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "blackjack.(*moveCollectCards).Apply",
+				"Legal": "blackjack.(*moveCollectCards).Legal"
+			}
 		},
 		{
 			"Name": "Reset Player For New Round",
@@ -2410,7 +2429,10 @@
 				"Specs": [],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "blackjack.(*moveResetPlayerForNewRound).Apply",
+				"Legal": "blackjack.(*moveResetPlayerForNewRound).Legal"
+			}
 		},
 		{
 			"Name": "Increment Rounds Completed",
@@ -2488,7 +2510,10 @@
 				"Specs": [],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "blackjack.(*moveIncrementRoundsCompleted).Apply",
+				"Legal": "blackjack.(*moveIncrementRoundsCompleted).Legal"
+			}
 		},
 		{
 			"Name": "Start Next Round",
@@ -2573,9 +2598,254 @@
 		}
 	],
 	"SetUp": {
-		"Distribute": ""
+		"Begin": "blackjack.(*gameDelegate).BeginSetUp",
+		"Distribute": "blackjack.(*gameDelegate).DistributeComponentToStarterStack",
+		"Finish": "blackjack.(*gameDelegate).FinishSetUp"
 	},
-	"End": {},
+	"End": {
+		"ConditionMet": "blackjack.(*gameDelegate).GameEndConditionMet"
+	},
 	"Agents": [],
-	"Functions": []
+	"Functions": [
+		{
+			"Func": "blackjack.(*gameDelegate).BeginSetUp",
+			"Role": "setUpBegin",
+			"File": "main.go",
+			"Line": 82,
+			"SourceHash": "sha256:7361ad12208743d08ca0d44f2c72b001a0bab98fc66ab5d92102cc11af069c01",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*gameDelegate).ConfigureComputedProperties.func1",
+			"Role": "computed",
+			"File": "main.go",
+			"Line": 94,
+			"SourceHash": "sha256:b0fecea58f46c8cbba2254dea383d305a679b89eca6be7917bf70ca174ae8151",
+			"Calls": [
+				"blackjack.(*playerState).HandValue"
+			],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*gameDelegate).DistributeComponentToStarterStack",
+			"Role": "distribute",
+			"File": "main.go",
+			"Line": 100,
+			"SourceHash": "sha256:59616b0172d9373fe681cc7645adefa529e118a987bfacd0be817f66f3a3b635",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*gameDelegate).FinishSetUp",
+			"Role": "setUpFinish",
+			"File": "main.go",
+			"Line": 176,
+			"SourceHash": "sha256:1c46a188b65bd751c8cd6a24d89d8e4b40ebc3e46cfd8e3d43b21aa360fedfc0",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*gameDelegate).GameEndConditionMet",
+			"Role": "conditionMet",
+			"File": "main.go",
+			"Line": 163,
+			"SourceHash": "sha256:261869860b5b942c61e5aeaa5ae3063ee1140ba53ddc5a9a96a40203cad43f86",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveAccumulateScores).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 106,
+			"SourceHash": "sha256:c1b5e4934b8a1fdafc6489e426575a6764811945b440364a6486d18162f251ff",
+			"Calls": [
+				"blackjack.(*playerState).HandValue"
+			],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveAccumulateScores).Legal",
+			"Role": "legal",
+			"File": "moves.go",
+			"Line": 89,
+			"SourceHash": "sha256:0e41bab6d27627532e2aaa7b5e399f0c671cc8142d8d4b4ea9ac29e2f1d05cc2",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveCollectCards).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 140,
+			"SourceHash": "sha256:2dd385b148d14217fc1395137597ea7ddc83594ff3aaeaea9d2a85c34b2862a6",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveCollectCards).Legal",
+			"Role": "legal",
+			"File": "moves.go",
+			"Line": 127,
+			"SourceHash": "sha256:b46c3c06b3428368409ac9f7566a8aaf5e45267aea9b2ef2af3221fa53289364",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveCurrentPlayerHit).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 244,
+			"SourceHash": "sha256:4d837fe9f26cb78c356d43282dacf062ad407162ac178171a99c0762a4547c29",
+			"Calls": [
+				"blackjack.(*playerState).HandValue"
+			],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveCurrentPlayerHit).LegalCustom",
+			"Role": "legalCustom",
+			"File": "moves.go",
+			"Line": 230,
+			"SourceHash": "sha256:0e3f5df8d9e22c490f11930ffae0f49403c74fe10ad763e056337fb053b2272f",
+			"Calls": [
+				"blackjack.(*playerState).HandValue"
+			],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveCurrentPlayerStand).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 299,
+			"SourceHash": "sha256:7522d35af77844760ee8445eb8d3d7a21614bca54dd0f6aca77771d1ef416606",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveIncrementRoundsCompleted).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 212,
+			"SourceHash": "sha256:44a0472032abad8a4c11afa78511fd0f2e8f8a08ac832918e7d68f4ea09c8787",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveIncrementRoundsCompleted).Legal",
+			"Role": "legal",
+			"File": "moves.go",
+			"Line": 192,
+			"SourceHash": "sha256:6492849526c35dac41be3800fac0238045fa1281f79f180f82953eddb1f72b9d",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveResetPlayerForNewRound).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 176,
+			"SourceHash": "sha256:3e111bc927eb3e822a1004326e48f81a5e860038ffd71e8d0e70dc8f928a8b38",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveResetPlayerForNewRound).Legal",
+			"Role": "legal",
+			"File": "moves.go",
+			"Line": 160,
+			"SourceHash": "sha256:1ba74148d2b8a15b10439651c9d2d6003cdc6a7a3524af9eb8b3f513c52fb7d2",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveRevealHiddenCard).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 333,
+			"SourceHash": "sha256:088cb06fd481f8f26cfb1e8cdca70e20122475704e200929bfcfa3d90c7b2269",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*moveRevealHiddenCard).LegalCustom",
+			"Role": "legalCustom",
+			"File": "moves.go",
+			"Line": 320,
+			"SourceHash": "sha256:d4e4505714cb9a4044a4e5c7b34006e2debaa58eac039087df69b2ad28c6e0b7",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*playerState).HandValue",
+			"Role": "helper",
+			"File": "state.go",
+			"Line": 108,
+			"SourceHash": "sha256:1d95e3f957abc4686677117b25fb64ff0e71d9b8c9e83c4080a460db6ce38242",
+			"Calls": [
+				"blackjack.handValue"
+			],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*playerState).ResetForTurnEnd",
+			"Role": "resetForTurnEnd",
+			"File": "state.go",
+			"Line": 71,
+			"SourceHash": "sha256:8c7e867dbd3f6817aa0fc616f33af19867dfe8ed843c56953df326f2fc9d45e5",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*playerState).ResetForTurnStart",
+			"Role": "resetForTurnStart",
+			"File": "state.go",
+			"Line": 66,
+			"SourceHash": "sha256:f283d9e71e7db3a8763a9f3097a446f594f009398bdc4aa9b3bf88fa902db621",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.(*playerState).TurnDone",
+			"Role": "turnDone",
+			"File": "state.go",
+			"Line": 59,
+			"SourceHash": "sha256:91bb825ed56b743937dd69a26b1b1a12f39e5e70f2b33b696e1d2934d0939503",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "blackjack.handValue",
+			"Role": "helper",
+			"File": "state.go",
+			"Line": 75,
+			"SourceHash": "sha256:e5564940940f5ea7d05fa1db0dd0e1c501f2a434600aaaea59c7b37f769b4698",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		}
+	]
 }

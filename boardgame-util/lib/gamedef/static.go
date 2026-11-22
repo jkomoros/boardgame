@@ -1357,15 +1357,6 @@ func sortRefusals(refusals []refusal.Refusal) {
 	})
 }
 
-func sortedKeys(m map[FnRef]token.Pos) []FnRef {
-	keys := make([]FnRef, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
 // calleeFirst orders refs so that every callee comes before its callers;
 // among functions free to go next, and to break a cycle, the smallest FnRef
 // goes first.

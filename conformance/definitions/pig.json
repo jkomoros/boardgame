@@ -167,7 +167,12 @@
 			"Seat": true,
 			"Inactive": true,
 			"Elimination": true,
-			"GameScore": "score"
+			"GameScore": "score",
+			"Turn": {
+				"TurnDone": "pig.(*playerState).TurnDone",
+				"ResetForTurnStart": "pig.(*playerState).ResetForTurnStart",
+				"ResetForTurnEnd": "pig.(*playerState).ResetForTurnEnd"
+			}
 		}
 	},
 	"Variants": {},
@@ -288,7 +293,9 @@
 				],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "pig.(*moveRollDice).Apply"
+			}
 		},
 		{
 			"Name": "Done Turn",
@@ -355,7 +362,9 @@
 				],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "pig.(*moveDoneTurn).Apply"
+			}
 		},
 		{
 			"Name": "Count Die",
@@ -409,7 +418,9 @@
 				],
 				"HasCustom": false
 			},
-			"Bodies": {}
+			"Bodies": {
+				"Apply": "pig.(*moveCountDie).Apply"
+			}
 		},
 		{
 			"Name": "Finish Turn",
@@ -437,9 +448,117 @@
 		}
 	],
 	"SetUp": {
-		"Distribute": ""
+		"Distribute": "pig.(*gameDelegate).DistributeComponentToStarterStack",
+		"Finish": "pig.(*gameDelegate).FinishSetUp"
 	},
-	"End": {},
+	"End": {
+		"ConditionMet": "pig.(*gameDelegate).GameEndConditionMet"
+	},
 	"Agents": [],
-	"Functions": []
+	"Functions": [
+		{
+			"Func": "pig.(*gameDelegate).DistributeComponentToStarterStack",
+			"Role": "distribute",
+			"File": "main.go",
+			"Line": 59,
+			"SourceHash": "sha256:3699b10a6c4f1ecd754b0996f68f0fabf50c90dc942c29dbd6f362196c348a97",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*gameDelegate).FinishSetUp",
+			"Role": "setUpFinish",
+			"File": "main.go",
+			"Line": 64,
+			"SourceHash": "sha256:eaaa6142ec38ff23e4b64a585a1ed2159b3a122a9dd501436dc815d4f098815f",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*gameDelegate).GameEndConditionMet",
+			"Role": "conditionMet",
+			"File": "main.go",
+			"Line": 78,
+			"SourceHash": "sha256:440856002ca378f3bd1d9110fded8314c6671bc6849a3e32a73594ef7b599133",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*moveCountDie).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 132,
+			"SourceHash": "sha256:b13ee12e4912c303863e23298bd50c0097a2b66058f6704b8f6abd6d81b1bf8b",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*moveDoneTurn).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 95,
+			"SourceHash": "sha256:0ea200ddec0c52ae96f7c01d13a8def39a006d34cb87b8cad4917f1d7a2b82bc",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*moveRollDice).Apply",
+			"Role": "apply",
+			"File": "moves.go",
+			"Line": 57,
+			"SourceHash": "sha256:27975b948ff9ec437f7b2056ca95a583dafc017c2b43dcea2d5994ea91fefd7f",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*playerState).ResetForTurn",
+			"Role": "helper",
+			"File": "state.go",
+			"Line": 55,
+			"SourceHash": "sha256:e1294c7d789a1702d9e6fa275665f4f6abf492412ce8b3cea0ac4419b80f2f43",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*playerState).ResetForTurnEnd",
+			"Role": "resetForTurnEnd",
+			"File": "state.go",
+			"Line": 67,
+			"SourceHash": "sha256:0f7484e302b65494cd0754d0aa3aca5132170277b40b0e6b08290b01a9795ca0",
+			"Calls": [
+				"pig.(*playerState).ResetForTurn"
+			],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*playerState).ResetForTurnStart",
+			"Role": "resetForTurnStart",
+			"File": "state.go",
+			"Line": 62,
+			"SourceHash": "sha256:728a16bde652f5a33b0f8503b8d97f616291a308b2e1f9d406c45d10da5c9025",
+			"Calls": [
+				"pig.(*playerState).ResetForTurn"
+			],
+			"Verdict": "subset",
+			"Refusals": []
+		},
+		{
+			"Func": "pig.(*playerState).TurnDone",
+			"Role": "turnDone",
+			"File": "state.go",
+			"Line": 43,
+			"SourceHash": "sha256:c79a4a5e2fb20877cfa4ca3b77e1a994454630614cbcd53908bc89803f62a41c",
+			"Calls": [],
+			"Verdict": "subset",
+			"Refusals": []
+		}
+	]
 }
