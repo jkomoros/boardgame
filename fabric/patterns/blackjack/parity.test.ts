@@ -19,6 +19,7 @@ import { asACellStoresIt, recordingsOf } from "../toolkit/recordings.ts";
 import {
   dealTable,
   emptyTable,
+  headOnly,
   held,
   OBSERVER_SEAT,
   seatViewOf,
@@ -212,6 +213,42 @@ test("a principal is shown their own seat's view, and anyone else a watcher's", 
   assert.deepEqual(viewForPrincipal(GAME, table, "0"), watcher);
   // Nothing stored yet.
   assert.equal(viewForPrincipal(GAME, null, "p0").phase, "seating");
+});
+
+test("a table keeps only the head of a deal, and shows it as the whole deal does", () => {
+  const recording = recordings.find((one) => !one.game.seating)!;
+  let table = emptyTable();
+  for (let seat = 0; seat < recording.game.numPlayers; seat++) {
+    table.seats.push({ principal: `p${seat}`, label: `P${seat}` });
+  }
+  const whole = dealTable(GAME, table, {
+    id: recording.game.id,
+    secretSalt: recording.game.secretSalt,
+  }, {
+    numPlayers: recording.game.numPlayers,
+    variant: recording.game.variant,
+    seating: false,
+    now: 0,
+  });
+  assert.ok(whole.table.states.length > 5, `${whole.table.states.length} versions`);
+  const kept = headOnly(whole);
+  assert.equal(kept.table.states.length, 1);
+  assert.equal(kept.table.version, whole.table.version);
+  for (let viewer = OBSERVER_SEAT; viewer < recording.game.numPlayers; viewer++) {
+    const all = seatViewOf(GAME, whole.table, viewer);
+    const head = seatViewOf(GAME, kept.table, viewer);
+    assert.equal(head.entries.length, 1);
+    assert.deepEqual(head.entries[0], all.entries.at(-1));
+  }
+  // The pattern's own deal is the trimmed one.
+  const dealt = stepTable(GAME, table, { kind: "start" }, {
+    proposer: "p0",
+    now: 0,
+    entropy: () => 0.5,
+  });
+  assert.equal(dealt.error, "");
+  assert.equal(dealt.table.states.length, 1);
+  assert.equal(seatViewOf(GAME, dealt.table, 0).entries.length, 1);
 });
 
 test("the public facts are the recorded chest", () => {

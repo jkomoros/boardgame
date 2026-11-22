@@ -273,8 +273,9 @@ function withVersions(
  * Deals: creates the game with the engine. `id` and `secretSalt` are the
  * game's identity; everything random about it derives from them.
  *
- * `stepTable` calls this with a freshly drawn identity. A test that replays
- * a recording calls it with the recorded one.
+ * `stepTable` calls this with a freshly drawn identity and keeps only the
+ * head (`headOnly`). A test that replays a recording calls it with the
+ * recorded one, and compares every version the deal went through.
  */
 export function dealTable(
   game: CompiledGame,
@@ -309,6 +310,28 @@ export function dealTable(
       options.now,
     ),
   });
+}
+
+/**
+ * A step with only its head held: the versions before it are dropped, and
+ * the one just before it becomes `before`.
+ *
+ * For a deal. A deal starts a new epoch, and a guest shows the newest
+ * version of an epoch it has not shown before without playing the ones that
+ * led to it (`fabric/guest/PROTOCOL.md`, "How the guest plays a window"), so
+ * the versions a deal goes through, a card at a time, are nobody's to see.
+ */
+export function headOnly(step: TableStep): TableStep {
+  const states = step.table.states;
+  if (step.error !== "" || states.length < 2) return step;
+  return {
+    error: "",
+    table: {
+      ...step.table,
+      states: [states[states.length - 1]],
+      before: states[states.length - 2],
+    },
+  };
 }
 
 /**
@@ -438,12 +461,12 @@ export function stepTable(
       const id = randomHex(context.entropy, 16);
       const secretSalt = randomHex(context.entropy, 32);
       // Every seat here is a person already, so the engine seats nobody.
-      return dealTable(game, table, { id, secretSalt }, {
+      return headOnly(dealTable(game, table, { id, secretSalt }, {
         numPlayers: table.seats.length,
         variant: proposal.options ?? null,
         seating: false,
         now: context.now,
-      });
+      }));
     }
     case "restart": {
       if (table.phase !== "finished") {
