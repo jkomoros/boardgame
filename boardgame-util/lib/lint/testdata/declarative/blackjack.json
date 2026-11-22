@@ -1,0 +1,719 @@
+{
+  "package": "github.com/jkomoros/boardgame/examples/blackjack",
+  "name": "blackjack",
+  "baseline": {
+    "moveConfigs": 23,
+    "dataOnly": 16,
+    "withGameCode": 7,
+    "declaredPreconditionSpecs": 6,
+    "functions": 23,
+    "inSubset": 23,
+    "outside": 0,
+    "needEngineFeature": 0,
+    "notPorted": 1
+  },
+  "shares": {
+    "dataOnly": "16/23",
+    "declaredLegality": "19/23",
+    "inSubset": "23/23"
+  },
+  "buckets": {
+    "engineGap": 0,
+    "outside": 0,
+    "subset": 23
+  },
+  "moves": [
+    {
+      "type": "moves.ShuffleDiscardIntoDraw",
+      "stock": "ShuffleDiscardIntoDraw",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 190
+    },
+    {
+      "type": "moves.SeatPlayer",
+      "stock": "SeatPlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 196
+    },
+    {
+      "type": "moves.ActivateInactivePlayer",
+      "moveNameSuffix": "Gathering",
+      "stock": "ActivateInactivePlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 207
+    },
+    {
+      "type": "moves.WaitForEnoughPlayers",
+      "moveNameSuffix": "Gathering",
+      "stock": "WaitForEnoughPlayers",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 212
+    },
+    {
+      "type": "moves.InactivateEmptySeat",
+      "moveNameSuffix": "Gathering",
+      "stock": "InactivateEmptySeat",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 217
+    },
+    {
+      "type": "moves.StartPhase",
+      "moveName": "Begin Game",
+      "stock": "StartPhase",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 222
+    },
+    {
+      "type": "blackjack.moveStartRoundCleanup",
+      "stock": "StartPhase",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 229
+    },
+    {
+      "type": "blackjack.moveCurrentPlayerHit",
+      "stock": "DrawToPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "LegalCustom"
+      ],
+      "preconditionSpecs": 2,
+      "imperativeLegal": false,
+      "legalCustom": true,
+      "file": "main.go",
+      "line": 254
+    },
+    {
+      "type": "blackjack.moveCurrentPlayerStand",
+      "stock": "CurrentPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply"
+      ],
+      "preconditionSpecs": 2,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 266
+    },
+    {
+      "type": "blackjack.moveRevealHiddenCard",
+      "stock": "CurrentPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "LegalCustom"
+      ],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": true,
+      "file": "main.go",
+      "line": 283
+    },
+    {
+      "type": "moves.FinishTurn",
+      "stock": "FinishTurn",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 291
+    },
+    {
+      "type": "moves.ForceFinishTurn",
+      "moveName": "Force Finish Turn",
+      "stock": "ForceFinishTurn",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 309
+    },
+    {
+      "type": "moves.ActivateInactivePlayer",
+      "expandedFrom": "moves.DefaultRoundSetup",
+      "stock": "ActivateInactivePlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 318
+    },
+    {
+      "type": "moves.WaitForEnoughPlayers",
+      "expandedFrom": "moves.DefaultRoundSetup",
+      "stock": "WaitForEnoughPlayers",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 318
+    },
+    {
+      "type": "moves.InactivateEmptySeat",
+      "expandedFrom": "moves.DefaultRoundSetup",
+      "stock": "InactivateEmptySeat",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 318
+    },
+    {
+      "type": "moves.DealCountComponents",
+      "moveName": "Deal Initial Hidden Card",
+      "stock": "DealCountComponents",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 319
+    },
+    {
+      "type": "moves.DealCountComponents",
+      "moveName": "Deal Initial Visible Card",
+      "stock": "DealCountComponents",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 326
+    },
+    {
+      "type": "moves.StartPhase",
+      "stock": "StartPhase",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 333
+    },
+    {
+      "type": "blackjack.moveAccumulateScores",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 339
+    },
+    {
+      "type": "blackjack.moveCollectCards",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 343
+    },
+    {
+      "type": "blackjack.moveResetPlayerForNewRound",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 347
+    },
+    {
+      "type": "blackjack.moveIncrementRoundsCompleted",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 351
+    },
+    {
+      "type": "moves.StartPhase",
+      "moveName": "Start Next Round",
+      "stock": "StartPhase",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 355
+    }
+  ],
+  "imperativeLegal": [
+    {
+      "type": "blackjack.moveAccumulateScores",
+      "legal": "blackjack.(*moveAccumulateScores).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "blackjack.moveCollectCards",
+      "legal": "blackjack.(*moveCollectCards).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "blackjack.moveResetPlayerForNewRound",
+      "legal": "blackjack.(*moveResetPlayerForNewRound).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "blackjack.moveIncrementRoundsCompleted",
+      "legal": "blackjack.(*moveIncrementRoundsCompleted).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    }
+  ],
+  "functions": [
+    {
+      "func": "blackjack.(*gameDelegate).BeginSetUp",
+      "role": "setUpBegin",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 82,
+      "sourceHash": "sha256:7361ad12208743d08ca0d44f2c72b001a0bab98fc66ab5d92102cc11af069c01",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.handValue",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 75,
+      "sourceHash": "sha256:e5564940940f5ea7d05fa1db0dd0e1c501f2a434600aaaea59c7b37f769b4698",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*playerState).HandValue",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 108,
+      "sourceHash": "sha256:1d95e3f957abc4686677117b25fb64ff0e71d9b8c9e83c4080a460db6ce38242",
+      "calls": [
+        "blackjack.handValue"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*gameDelegate).ConfigureComputedProperties.func1",
+      "role": "computed",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 94,
+      "sourceHash": "sha256:b0fecea58f46c8cbba2254dea383d305a679b89eca6be7917bf70ca174ae8151",
+      "calls": [
+        "blackjack.(*playerState).HandValue"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*gameDelegate).DistributeComponentToStarterStack",
+      "role": "distribute",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 100,
+      "sourceHash": "sha256:59616b0172d9373fe681cc7645adefa529e118a987bfacd0be817f66f3a3b635",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*gameDelegate).FinishSetUp",
+      "role": "setUpFinish",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 176,
+      "sourceHash": "sha256:1c46a188b65bd751c8cd6a24d89d8e4b40ebc3e46cfd8e3d43b21aa360fedfc0",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*gameDelegate).GameEndConditionMet",
+      "role": "conditionMet",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 163,
+      "sourceHash": "sha256:261869860b5b942c61e5aeaa5ae3063ee1140ba53ddc5a9a96a40203cad43f86",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveAccumulateScores).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 106,
+      "sourceHash": "sha256:c1b5e4934b8a1fdafc6489e426575a6764811945b440364a6486d18162f251ff",
+      "calls": [
+        "blackjack.(*playerState).HandValue"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveAccumulateScores).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 89,
+      "sourceHash": "sha256:0e41bab6d27627532e2aaa7b5e399f0c671cc8142d8d4b4ea9ac29e2f1d05cc2",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveCollectCards).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 140,
+      "sourceHash": "sha256:2dd385b148d14217fc1395137597ea7ddc83594ff3aaeaea9d2a85c34b2862a6",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveCollectCards).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 127,
+      "sourceHash": "sha256:b46c3c06b3428368409ac9f7566a8aaf5e45267aea9b2ef2af3221fa53289364",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveCurrentPlayerHit).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 244,
+      "sourceHash": "sha256:4d837fe9f26cb78c356d43282dacf062ad407162ac178171a99c0762a4547c29",
+      "calls": [
+        "blackjack.(*playerState).HandValue"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveCurrentPlayerHit).LegalCustom",
+      "role": "legalCustom",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 230,
+      "sourceHash": "sha256:0e3f5df8d9e22c490f11930ffae0f49403c74fe10ad763e056337fb053b2272f",
+      "calls": [
+        "blackjack.(*playerState).HandValue"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveCurrentPlayerStand).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 299,
+      "sourceHash": "sha256:7522d35af77844760ee8445eb8d3d7a21614bca54dd0f6aca77771d1ef416606",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveIncrementRoundsCompleted).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 212,
+      "sourceHash": "sha256:44a0472032abad8a4c11afa78511fd0f2e8f8a08ac832918e7d68f4ea09c8787",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveIncrementRoundsCompleted).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 192,
+      "sourceHash": "sha256:6492849526c35dac41be3800fac0238045fa1281f79f180f82953eddb1f72b9d",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveResetPlayerForNewRound).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 176,
+      "sourceHash": "sha256:3e111bc927eb3e822a1004326e48f81a5e860038ffd71e8d0e70dc8f928a8b38",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveResetPlayerForNewRound).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 160,
+      "sourceHash": "sha256:1ba74148d2b8a15b10439651c9d2d6003cdc6a7a3524af9eb8b3f513c52fb7d2",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveRevealHiddenCard).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 333,
+      "sourceHash": "sha256:088cb06fd481f8f26cfb1e8cdca70e20122475704e200929bfcfa3d90c7b2269",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*moveRevealHiddenCard).LegalCustom",
+      "role": "legalCustom",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 320,
+      "sourceHash": "sha256:d4e4505714cb9a4044a4e5c7b34006e2debaa58eac039087df69b2ad28c6e0b7",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*playerState).ResetForTurnEnd",
+      "role": "resetForTurnEnd",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 71,
+      "sourceHash": "sha256:8c7e867dbd3f6817aa0fc616f33af19867dfe8ed843c56953df326f2fc9d45e5",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*playerState).ResetForTurnStart",
+      "role": "resetForTurnStart",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 66,
+      "sourceHash": "sha256:f283d9e71e7db3a8763a9f3097a446f594f009398bdc4aa9b3bf88fa902db621",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "blackjack.(*playerState).TurnDone",
+      "role": "turnDone",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 59,
+      "sourceHash": "sha256:91bb825ed56b743937dd69a26b1b1a12f39e5e70f2b33b696e1d2934d0939503",
+      "calls": [],
+      "refusals": []
+    }
+  ],
+  "warnings": [],
+  "notPorted": [
+    {
+      "func": "blackjack.(*gameDelegate).Diagram",
+      "why": "Diagram",
+      "file": "main.go",
+      "line": 114
+    }
+  ],
+  "notCounted": [
+    {
+      "func": "blackjack.(*gameDelegate).ConfigureComputedProperties",
+      "why": "ConfigureComputedProperties",
+      "file": "main.go",
+      "line": 92
+    },
+    {
+      "func": "blackjack.(*gameDelegate).ConfigureDecks",
+      "why": "ConfigureDecks",
+      "file": "main.go",
+      "line": 386
+    },
+    {
+      "func": "blackjack.(*gameDelegate).ConfigureLegalTemplates",
+      "why": "ConfigureLegalTemplates",
+      "file": "main.go",
+      "line": 375
+    },
+    {
+      "func": "blackjack.(*gameDelegate).ConfigureMoves",
+      "why": "ConfigureMoves",
+      "file": "main.go",
+      "line": 184
+    },
+    {
+      "func": "blackjack.(*gameDelegate).DefaultNumPlayers",
+      "why": "DefaultNumPlayers",
+      "file": "main.go",
+      "line": 58
+    },
+    {
+      "func": "blackjack.(*gameDelegate).Description",
+      "why": "Description",
+      "file": "main.go",
+      "line": 46
+    },
+    {
+      "func": "blackjack.(*gameDelegate).GameStateConstructor",
+      "why": "GameStateConstructor",
+      "file": "main.go",
+      "line": 168
+    },
+    {
+      "func": "blackjack.(*gameDelegate).MaxNumPlayers",
+      "why": "MaxNumPlayers",
+      "file": "main.go",
+      "line": 54
+    },
+    {
+      "func": "blackjack.(*gameDelegate).MinNumPlayers",
+      "why": "MinNumPlayers",
+      "file": "main.go",
+      "line": 50
+    },
+    {
+      "func": "blackjack.(*gameDelegate).Name",
+      "why": "Name",
+      "file": "main.go",
+      "line": 32
+    },
+    {
+      "func": "blackjack.(*gameDelegate).PlayerStateConstructor",
+      "why": "PlayerStateConstructor",
+      "file": "main.go",
+      "line": 172
+    },
+    {
+      "func": "blackjack.(*gameDelegate).Variants",
+      "why": "Variants",
+      "file": "main.go",
+      "line": 62
+    },
+    {
+      "func": "blackjack.NewDelegate",
+      "why": "NewDelegate",
+      "file": "main.go",
+      "line": 393
+    }
+  ],
+  "erased": [
+    {
+      "func": "blackjack.concreteStates",
+      "why": "erased",
+      "file": "state.go",
+      "line": 20
+    }
+  ],
+  "unreached": []
+}

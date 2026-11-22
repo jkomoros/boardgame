@@ -1,0 +1,703 @@
+{
+  "package": "github.com/jkomoros/boardgame/examples/debuganimations",
+  "name": "debuganimations",
+  "baseline": {
+    "moveConfigs": 13,
+    "dataOnly": 1,
+    "withGameCode": 12,
+    "declaredPreconditionSpecs": 7,
+    "functions": 24,
+    "inSubset": 24,
+    "outside": 0,
+    "needEngineFeature": 0,
+    "notPorted": 1
+  },
+  "shares": {
+    "dataOnly": "1/13",
+    "declaredLegality": "6/13",
+    "inSubset": "24/24"
+  },
+  "buckets": {
+    "engineGap": 0,
+    "outside": 0,
+    "subset": 24
+  },
+  "moves": [
+    {
+      "type": "moves.SeatPlayer",
+      "stock": "SeatPlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 151
+    },
+    {
+      "type": "debuganimations.moveMoveCardBetweenShortStacks",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "DefaultsForState",
+        "HelpText",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 152
+    },
+    {
+      "type": "debuganimations.moveMoveCardBetweenDrawAndDiscardStacks",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "DefaultsForState",
+        "HelpText",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 153
+    },
+    {
+      "type": "debuganimations.moveFlipHiddenCard",
+      "moveName": "Flip Card Between Hidden and Revealed",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 154
+    },
+    {
+      "type": "debuganimations.moveMoveCardBetweenFanStacks",
+      "moveName": "Move Fan Card",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 156
+    },
+    {
+      "type": "debuganimations.moveVisibleShuffleCards",
+      "moveName": "Visible Shuffle",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText"
+      ],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 159
+    },
+    {
+      "type": "debuganimations.moveShuffleCards",
+      "moveName": "Shuffle",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText"
+      ],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 168
+    },
+    {
+      "type": "debuganimations.moveMoveBetweenHidden",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 176
+    },
+    {
+      "type": "debuganimations.moveMoveToken",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 177
+    },
+    {
+      "type": "debuganimations.moveMoveTokenSanitized",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 178
+    },
+    {
+      "type": "debuganimations.moveStartMoveAllComponentsToHidden",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText"
+      ],
+      "preconditionSpecs": 2,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 179
+    },
+    {
+      "type": "debuganimations.moveStartMoveAllComponentsToVisible",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText"
+      ],
+      "preconditionSpecs": 2,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 188
+    },
+    {
+      "type": "debuganimations.moveShuffleHidden",
+      "moveName": "Shuffle Hidden",
+      "stock": "",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "HelpText"
+      ],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 196
+    }
+  ],
+  "imperativeLegal": [
+    {
+      "type": "debuganimations.moveMoveCardBetweenShortStacks",
+      "legal": "debuganimations.(*moveMoveCardBetweenShortStacks).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "debuganimations.moveMoveCardBetweenDrawAndDiscardStacks",
+      "legal": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "debuganimations.moveFlipHiddenCard",
+      "move": "Flip Card Between Hidden and Revealed",
+      "legal": "debuganimations.(*moveFlipHiddenCard).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "debuganimations.moveMoveCardBetweenFanStacks",
+      "move": "Move Fan Card",
+      "legal": "debuganimations.(*moveMoveCardBetweenFanStacks).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "debuganimations.moveMoveBetweenHidden",
+      "legal": "debuganimations.(*moveMoveBetweenHidden).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "debuganimations.moveMoveToken",
+      "legal": "debuganimations.(*moveMoveToken).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "debuganimations.moveMoveTokenSanitized",
+      "legal": "debuganimations.(*moveMoveTokenSanitized).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    }
+  ],
+  "functions": [
+    {
+      "func": "debuganimations.(*gameDelegate).CheckGameFinished",
+      "role": "checkGameFinished",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 141,
+      "sourceHash": "sha256:e76e83bc6297746a4f202680db89400d30946a0fdbe996d58b0eb80981e45f5b",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).DistributeComponentToStarterStack",
+      "role": "distribute",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 68,
+      "sourceHash": "sha256:dab21ffbbc0c12879f33b0697479e91f3bd377fa0d420137b113a80ff800531d",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).FinishSetUp",
+      "role": "setUpFinish",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 128,
+      "sourceHash": "sha256:04f07e18234a218cd5a1e8ac7e926e5e58fed72866e0f5193b5e58126804c72d",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveFlipHiddenCard).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 276,
+      "sourceHash": "sha256:4735d34b6639c77dad57d49546555ac243f8f24929b514f2f970972c1548cb2f",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveFlipHiddenCard).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 257,
+      "sourceHash": "sha256:25d92c18bd593285fd488e8df9b8e90250776ac67beffad490070f27ae1de788",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveBetweenHidden).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 414,
+      "sourceHash": "sha256:6b5636f436d3076dd7c80ac32323f2c308e561509b6593c234d5fae14f59cb1a",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveBetweenHidden).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 395,
+      "sourceHash": "sha256:17548fcabed65f8c2ae489c915c5b8b560e8e4b57dea54fdb27d8c5692cb2397",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 228,
+      "sourceHash": "sha256:0df8e2222bee33151a086086f91a50778781675f280cc27cf5601b99d3c29b3c",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).DefaultsForState",
+      "role": "defaults",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 192,
+      "sourceHash": "sha256:4ef8abc0afe47ad8eac12dffcb9c86f2033f6d763596402744269f5a94275ce2",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 202,
+      "sourceHash": "sha256:597ec86629497358966c31a18cbeaec1a1fd2c9575b148b3a8449fd21361e760",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenFanStacks).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 324,
+      "sourceHash": "sha256:cc0c04adff5cc08502af37b6640de9afa3736b0667905d20162a959a2f182672",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenFanStacks).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 305,
+      "sourceHash": "sha256:c015963cd0318a01cf9471542fd8e850426825b079b9f7c29f618f7204219bce",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenShortStacks).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 163,
+      "sourceHash": "sha256:a07f16a2015cac9087d15b9d5825f3b8fb66dadaf7049701d8eccc965046e4ea",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenShortStacks).DefaultsForState",
+      "role": "defaults",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 127,
+      "sourceHash": "sha256:522b87c67496da511914fd0b7539be79cca436254dfe50cbc29b7f5ebc2e81c3",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenShortStacks).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 137,
+      "sourceHash": "sha256:480bac00ee2b41ffc6621a1ef7abc7ad0dace72514593c3a4085c1b9f06b836b",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveToken).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 455,
+      "sourceHash": "sha256:f1525d5f8c8a7f035933d1f295ff71e636e25e79bd7abac25e84b618edacaba9",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveToken).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 436,
+      "sourceHash": "sha256:47234e21cef071002533a0ac013dc340db20061cabc564e099f6ad802052d5ae",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveTokenSanitized).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 496,
+      "sourceHash": "sha256:7a5c2c0454dbf0a12b91c892edcd48418e962d2ceab6f89e86b8563b3401f727",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveMoveTokenSanitized).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 477,
+      "sourceHash": "sha256:3e34996135143c34e1c1871b9f4cb74b36515fe7d6596344eeb602f757ba0c68",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveShuffleCards).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 377,
+      "sourceHash": "sha256:a6f8beb7cb7dcfd974bdb4c0f391c3cf4757c5744f194fa7b270e6f69aee01ad",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveShuffleHidden).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 593,
+      "sourceHash": "sha256:22ff5f939a46f6165576c3aa77b45ae441515e900ae34439a910197f987a2758",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveStartMoveAllComponentsToHidden).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 532,
+      "sourceHash": "sha256:302b1944d47d04a9380aca6c3e148d81647e5a371aa388b617f760e3c128c2c5",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveStartMoveAllComponentsToVisible).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 560,
+      "sourceHash": "sha256:3fc2f5b5381d2ba24f92292a443b047b843b3ccf4c17bfb77f319fae0f102560",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "debuganimations.(*moveVisibleShuffleCards).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 355,
+      "sourceHash": "sha256:5106ad0fdae3745487a2f9b39503b0034d04426023b19e646fbd7d1a8efff37f",
+      "calls": [],
+      "refusals": []
+    }
+  ],
+  "warnings": [],
+  "notPorted": [
+    {
+      "func": "debuganimations.(*gameDelegate).Diagram",
+      "why": "Diagram",
+      "file": "main.go",
+      "line": 137
+    }
+  ],
+  "notCounted": [
+    {
+      "func": "debuganimations.(*gameDelegate).ConfigureDecks",
+      "why": "ConfigureDecks",
+      "file": "main.go",
+      "line": 227
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).ConfigureLegalTemplates",
+      "why": "ConfigureLegalTemplates",
+      "file": "main.go",
+      "line": 216
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).ConfigureMoves",
+      "why": "ConfigureMoves",
+      "file": "main.go",
+      "line": 146
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).Description",
+      "why": "Description",
+      "file": "main.go",
+      "line": 44
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).DisplayName",
+      "why": "DisplayName",
+      "file": "main.go",
+      "line": 40
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).GameStateConstructor",
+      "why": "GameStateConstructor",
+      "file": "main.go",
+      "line": 60
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).MaxNumPlayers",
+      "why": "MaxNumPlayers",
+      "file": "main.go",
+      "line": 56
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).MinNumPlayers",
+      "why": "MinNumPlayers",
+      "file": "main.go",
+      "line": 52
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).Name",
+      "why": "Name",
+      "file": "main.go",
+      "line": 26
+    },
+    {
+      "func": "debuganimations.(*gameDelegate).PlayerStateConstructor",
+      "why": "PlayerStateConstructor",
+      "file": "main.go",
+      "line": 64
+    },
+    {
+      "func": "debuganimations.(*moveFlipHiddenCard).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 253
+    },
+    {
+      "func": "debuganimations.(*moveMoveBetweenHidden).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 391
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 188
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenFanStacks).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 301
+    },
+    {
+      "func": "debuganimations.(*moveMoveCardBetweenShortStacks).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 123
+    },
+    {
+      "func": "debuganimations.(*moveMoveToken).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 432
+    },
+    {
+      "func": "debuganimations.(*moveMoveTokenSanitized).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 473
+    },
+    {
+      "func": "debuganimations.(*moveShuffleCards).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 369
+    },
+    {
+      "func": "debuganimations.(*moveShuffleHidden).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 579
+    },
+    {
+      "func": "debuganimations.(*moveStartMoveAllComponentsToHidden).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 514
+    },
+    {
+      "func": "debuganimations.(*moveStartMoveAllComponentsToVisible).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 551
+    },
+    {
+      "func": "debuganimations.(*moveVisibleShuffleCards).HelpText",
+      "why": "HelpText",
+      "file": "moves.go",
+      "line": 341
+    },
+    {
+      "func": "debuganimations.NewDelegate",
+      "why": "NewDelegate",
+      "file": "main.go",
+      "line": 257
+    }
+  ],
+  "erased": [
+    {
+      "func": "debuganimations.concreteStates",
+      "why": "erased",
+      "file": "state.go",
+      "line": 9
+    }
+  ],
+  "unreached": [
+    {
+      "func": "debuganimations.(*gameDelegate).DefaultNumPlayeres",
+      "why": "unreached",
+      "file": "main.go",
+      "line": 48
+    }
+  ]
+}

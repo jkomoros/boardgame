@@ -11,8 +11,10 @@ import (
 
 type lintCmd struct {
 	baseSubCommand
-	JSON bool
-	Fix  bool
+	JSON        bool
+	Fix         bool
+	Declarative bool
+	MaxRefused  int
 }
 
 func (l *lintCmd) Name() string { return "lint" }
@@ -32,7 +34,16 @@ stable order and any diagnostic produces a nonzero exit status.
 PKG may be an import path, directory, or go-list pattern such as ./.... If no
 PKG is supplied, the current package is checked. Non-game packages inside a
 pattern are ignored. Pass --fix to safely refresh boardgame-owned generated
-Go files before runtime validation.`
+Go files before runtime validation.
+
+With --declarative, lint instead reports how declarative each game is and how
+much of its code the Go-to-TypeScript translator would take: the move configs
+that are data and those with game code, the declared precondition specs, the
+moves whose legality is an imperative Legal override, every function reaching
+engine output with its verdict and refusals, and constructs with no single
+answer (range over a map, the global math/rand, ValueFromString). It writes
+nothing and exits 0, unless --max-refused N is given and more than N
+functions are refused.`
 }
 
 func (l *lintCmd) Usage() string { return "[PKG]..." }
@@ -51,10 +62,26 @@ func (l *lintCmd) WritOptions() []*writ.Option {
 			Decoder:     writ.NewFlagDecoder(&l.Fix),
 			Flag:        true,
 		},
+		{
+			Names:       []string{"declarative"},
+			Description: "Report declarativeness and translator verdicts instead of preflighting.",
+			Decoder:     writ.NewFlagDecoder(&l.Declarative),
+			Flag:        true,
+		},
+		{
+			Names:       []string{"max-refused"},
+			Description: "With --declarative, exit nonzero when more than this many functions are refused.",
+			Decoder:     writ.NewDefaulter(writ.NewOptionDecoder(&l.MaxRefused), "-1"),
+			Placeholder: "N",
+		},
 	}
 }
 
 func (l *lintCmd) Run(_ writ.Path, positional []string) {
+	if l.Declarative {
+		l.runDeclarative(positional)
+		return
+	}
 	report := lintpkg.Check(positional, lintpkg.Options{Fix: l.Fix})
 	if l.JSON {
 		_ = json.NewEncoder(os.Stdout).Encode(report)
@@ -85,6 +112,20 @@ func (l *lintCmd) Run(_ writ.Path, positional []string) {
 			}
 		}
 		fmt.Printf("Game author preflight failed with %d diagnostic(s) across %d package(s)\n", len(report.Diagnostics), len(report.Packages))
+	}
+	if !report.OK {
+		quit(1)
+	}
+}
+
+func (l *lintCmd) runDeclarative(positional []string) {
+	report := lintpkg.Declarative(positional, lintpkg.DeclarativeOptions{MaxRefused: l.MaxRefused})
+	if l.JSON {
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		_ = encoder.Encode(report)
+	} else {
+		lintpkg.WriteDeclarativeText(os.Stdout, report)
 	}
 	if !report.OK {
 		quit(1)
