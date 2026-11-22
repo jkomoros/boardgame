@@ -347,6 +347,9 @@
 			"Construct": "checkers.(*gameDelegate).ConfigurePredicateConstructors"
 		}
 	],
+	"ComponentLegal": {
+		"Tokens": "checkers.(*token).Legal"
+	},
 	"Moves": [
 		{
 			"Name": "Seat Player",

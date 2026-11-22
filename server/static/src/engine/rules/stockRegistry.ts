@@ -198,10 +198,14 @@ export function stockMove(type: string, config: Readonly<Record<string, unknown>
 			return { spec, apply, legal };
 		}
 		case 'MoveComponentToSlot': {
+			// Go discovers the slot field at boot when WithSlotField is absent
+			// (the move's only int property) and stores nothing; the exporter
+			// writes what Go resolved as ResolvedSlotField (gamedef
+			// ResolvedSlotFieldKey). A configured SlotField is accepted alone.
 			const options: { source: string; destination: string; slotField: string; sourceSlotField?: string } = {
 				source: required(config, 'SourceProperty', name),
 				destination: required(config, 'DestinationProperty', name),
-				slotField: required(config, 'SlotField', name),
+				slotField: configString(config, 'ResolvedSlotField') ?? required(config, 'SlotField', name),
 			};
 			const sourceSlotField = configString(config, 'SourceSlotField');
 			if (sourceSlotField !== undefined) options.sourceSlotField = sourceSlotField;

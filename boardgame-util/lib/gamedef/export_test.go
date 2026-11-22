@@ -784,3 +784,77 @@ func TestWithoutAdditionsLeavesOriginal(t *testing.T) {
 		}
 	}
 }
+
+// TestResolvedSlotField: every MoveComponentToSlot carries the slot field Go
+// resolved (moves.ResolvedSlotField), the same field Go's own contributed
+// slot precondition reads; no other stock type gets the key.
+func TestResolvedSlotField(t *testing.T) {
+	want := map[string]string{"memory/Reveal Card": "CardIndex", "tictactoe/Place Token": "Slot"}
+	got := map[string]string{}
+	for _, g := range games {
+		data := export(t, g)
+		for _, move := range data.Moves {
+			if move.Stock == nil {
+				continue
+			}
+			field, has := move.Stock.Config[gamedef.ResolvedSlotFieldKey]
+			if move.Stock.Type != "MoveComponentToSlot" {
+				if has {
+					t.Errorf("%s/%s (%s) has %s", g.name, move.Name, move.Stock.Type, gamedef.ResolvedSlotFieldKey)
+				}
+				continue
+			}
+			name, _ := field.(string)
+			got[g.name+"/"+move.Name] = name
+			found := false
+			for _, spec := range move.Plan.Specs {
+				if (spec.Name == "mayMoveToSlot" || spec.Name == "mayMoveFirstToSlot") && len(spec.Args) > 0 && spec.Args[len(spec.Args)-1] == "move."+name {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%s/%s: no slot precondition of Go's plan reads move.%s: %+v", g.name, move.Name, name, move.Plan.Specs)
+			}
+		}
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("resolved slot fields: got %v, want %v", got, want)
+	}
+}
+
+// TestComponentLegal: checkers' Tokens deck names (*token).Legal, which is
+// in Functions with role component and a verdict; no other game has one;
+// and a static half that lacks the method is an error, not an omission.
+func TestComponentLegal(t *testing.T) {
+	for _, g := range games {
+		data := export(t, g)
+		if g.name != "checkers" {
+			if data.ComponentLegal != nil {
+				t.Errorf("%s: ComponentLegal %v", g.name, data.ComponentLegal)
+			}
+			continue
+		}
+		const ref = "checkers.(*token).Legal"
+		if !reflect.DeepEqual(data.ComponentLegal, map[string]gamedef.FnRef{"Tokens": ref}) {
+			t.Errorf("checkers ComponentLegal: %v", data.ComponentLegal)
+		}
+		found := false
+		for _, fn := range data.Functions {
+			if fn.Func == ref {
+				found = true
+				if fn.Role != gamedef.RoleComponent || fn.Verdict == "" {
+					t.Errorf("%s: role %q verdict %q", ref, fn.Role, fn.Verdict)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s is not in Functions", ref)
+		}
+
+		info := static(t, g)
+		info.ComponentLegal = map[string]gamedef.FnRef{}
+		if _, err := gamedef.Export(newManager(t, g), info); err == nil || !strings.Contains(err.Error(), "checkers.token implements LegalComponent") {
+			t.Errorf("export without the static Legal: %v", err)
+		}
+	}
+}

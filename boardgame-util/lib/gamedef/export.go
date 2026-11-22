@@ -156,6 +156,10 @@ func Export(manager *boardgame.GameManager, static *StaticInfo) (*GameData, erro
 		data.Moves = append(data.Moves, *entry)
 	}
 
+	if data.ComponentLegal, err = componentLegal(manager, static); err != nil {
+		return nil, fmt.Errorf("component legal: %w", err)
+	}
+
 	if static != nil {
 		data.SetUp = static.SetUp
 		data.End = EndData{ConditionMet: static.End.ConditionMet, PlayerScore: static.End.PlayerScore, Check: static.End.Check}
@@ -441,6 +445,56 @@ func joinTraits(runtime Traits, static *StaticInfo) (Traits, error) {
 	return result, nil
 }
 
+// ----- component legality ---------------------------------------------------
+
+// componentLegal joins the static half's Legal methods, keyed by component
+// values type, with the decks: a deck gets the FnRef of its components'
+// values type when that type implements interfaces.LegalComponent (what
+// moves.DefaultComponent calls). Nil when no deck has one, or static is nil.
+//
+// A deck whose values implement LegalComponent but whose type the static
+// half has no Legal for (a method promoted from another package), or a deck
+// mixing values types with different Legal methods, is an error: the loader
+// could only guess.
+func componentLegal(manager *boardgame.GameManager, static *StaticInfo) (map[string]FnRef, error) {
+	if static == nil {
+		return nil, nil
+	}
+	var result map[string]FnRef
+	chest := manager.Chest()
+	for _, deckName := range chest.DeckNames() {
+		var ref FnRef
+		for _, c := range chest.Deck(deckName).Components() {
+			if c == nil || isNil(c.Values()) {
+				continue
+			}
+			if _, ok := c.Values().(interfaces.LegalComponent); !ok {
+				continue
+			}
+			valuesType := structType(reflect.TypeOf(c.Values()))
+			if valuesType == nil {
+				return nil, fmt.Errorf("deck %s: component values are not a struct", deckName)
+			}
+			found, ok := static.ComponentLegal[valuesType.String()]
+			if !ok {
+				return nil, fmt.Errorf("deck %s: %s implements LegalComponent, but the static half has no Legal declared on it", deckName, valuesType)
+			}
+			if ref != "" && ref != found {
+				return nil, fmt.Errorf("deck %s: components have two Legal methods, %s and %s", deckName, ref, found)
+			}
+			ref = found
+		}
+		if ref == "" {
+			continue
+		}
+		if result == nil {
+			result = map[string]FnRef{}
+		}
+		result[deckName] = ref
+	}
+	return result, nil
+}
+
 // ----- computed properties --------------------------------------------------
 
 // computed lists the computed properties in the order the delegate declares
@@ -527,6 +581,9 @@ func moveData(manager *boardgame.GameManager, move boardgame.Move, choices map[s
 	if stockType != "" {
 		serialized, err := serializeConfig(config)
 		if err != nil {
+			return nil, err
+		}
+		if err := addResolvedConfig(move, stockType, serialized); err != nil {
 			return nil, err
 		}
 		entry.Stock = &StockData{Type: stockType, Config: serialized}
@@ -622,6 +679,31 @@ func moveData(manager *boardgame.GameManager, move boardgame.Move, choices map[s
 		entry.EndsPhaseProgression = true
 	}
 	return entry, nil
+}
+
+// ResolvedSlotFieldKey is the Stock.Config key under which Export writes the
+// move property a MoveComponentToSlot reads its slot from. Go stores nothing
+// for it: when WithSlotField is absent the move discovers its only int
+// property every time it needs it (moves.ResolvedSlotField). The exporter
+// writes what Go resolved, as DrawToPlayer's ValidConfiguration itself
+// records ResolvedDrawSource and ResolvedDrawDestination, so the engine's
+// registry never re-implements the inference.
+const ResolvedSlotFieldKey = movesPkgPath + ".ResolvedSlotField"
+
+// addResolvedConfig adds to a serialized stock configuration what Go infers
+// at boot but does not store. Every other stock type either stores its
+// resolution in the configuration (DrawToPlayer) or infers nothing the
+// engine needs from the configuration.
+func addResolvedConfig(move boardgame.Move, stockType string, config map[string]any) error {
+	if stockType != "MoveComponentToSlot" {
+		return nil
+	}
+	field, err := moves.ResolvedSlotField(move)
+	if err != nil {
+		return fmt.Errorf("slot field: %w", err)
+	}
+	config[ResolvedSlotFieldKey] = field
+	return nil
 }
 
 var movesTypes = map[string]reflect.Type{

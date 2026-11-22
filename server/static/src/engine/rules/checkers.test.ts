@@ -18,15 +18,13 @@
 //     Token's Legal (the token's own Legal method) and Apply, Finish Turn,
 //     the end condition and scores.
 //
-// THE BODIES ARE A STAND-IN. The static half of the exporter has not landed,
-// so checkers.json names no function (Functions is empty, every FnRef is
-// ""). Until it does, the functions below are checkers' Go transliterated by
-// hand onto the facade (engine/go/), bugs included, and patchRefs writes
-// their FnRefs into the loaded data. Each slot is patched only where the
-// data leaves it empty; where the data names a function, the name must be
-// the one in STAND_IN_REFS or the test fails, naming both, so the day the
-// static half fills checkers.json this test either uses its names or says
-// exactly which spelling differs.
+// THE BODIES ARE A STAND-IN for the translator's output: checkers' Go
+// transliterated by hand onto the facade (engine/go/), bugs included. The
+// FnRefs are the exporter's: checkers.json names every function slot
+// (Functions, the move bodies, Traits, SetUp, End, the predicate's
+// constructor, ComponentLegal), and patchRefs checks each against
+// STAND_IN_REFS, failing with both names on a spelling mismatch and failing
+// if checkers.json leaves any slot empty.
 //
 // To regenerate the Go side:
 //
@@ -40,8 +38,9 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import {
-	type Comp, type GraphRef, ILLEGAL_ENUM_VALUE, componentAt, componentAtKey, containingStack, dynamic, enumEquals, enumKey, first, gameStack,
-	legalError, mayMoveToSlot, moveTo, moveToLastSlot, neighborsByKey, player, playerStack, rangeToValue, stackView, swapComponentsByKey, valueToRange,
+	type Comp, type GraphRef, ILLEGAL_ENUM_VALUE, componentAt, componentAtKey, componentInstance, containingStack, dynamic, enumEquals, enumKey, first,
+	gameStack, legalError, mayMoveToSlot, moveTo, moveToLastSlot, neighborsByKey, player, playerStack, rangeToValue, rangeValue, setEnumKey, stackView,
+	swapComponentsByKey, valueToRange,
 } from '../go/api.ts';
 import { sprintf } from '../go/str.ts';
 import { failT, passVerdict, unknownVerdict } from '../legal/types.ts';
@@ -49,7 +48,7 @@ import type { LegalVerdict } from '../legal/types.ts';
 import { loadEngineState } from '../state.ts';
 import type { StateJSON } from '../state.ts';
 import { type ConformanceDocument, FIELDS, firstDifference, passTable, runDocument } from '../testing/conformance.ts';
-import { compileGame, isGameSpecError } from './compile.ts';
+import { compileGame, emptyStateJSON, isGameSpecError } from './compile.ts';
 import { type Bodies, type GameData, gameFromData } from './data.ts';
 import { type Input, createGame, propose } from './engine.ts';
 import { parseInstant } from './time.ts';
@@ -64,13 +63,16 @@ const DEFINITION = path.join(root, 'conformance', 'definitions', 'checkers.json'
 /** Seed 0 (unseated), seed 1 (seated: Seat Player and Activate Inactive Player), seed 6 (one refusal). */
 const DOCUMENTS = [0, 1, 6].map(seed => path.join(here, 'testdata', 'checkers', 'seed-000' + seed + '.json.gz'));
 const VECTORS = path.join(here, '..', 'testdata', 'checkers.vectors.json.gz');
+/** testdata/gen/facadevec (moves.go): an enum.RangeVal move field of real Go checkers. */
+const MOVE_FIELD_VECTORS = path.join(here, '..', 'testdata', 'facade-moves.vectors.json');
 
 // ----- checkers, transliterated onto the facade (stand-in bodies) ---------
 //
 // examples/checkers, function by function. Comments name the Go. Go's
 // types: a *playerState is its index, a ComponentInstance a Comp, a move
-// field `m.X` is `m.fields.X` (a range-enum field holds the value's string,
-// "r_c", as the engine stores it).
+// field `m.X` is `m.fields.X`, and an enum.RangeVal move field is read and
+// written through the facade's `{ move: m }` Owner (it holds the value's
+// string, "r_c", as the engine and Go's move record store it).
 
 const BOARD_WIDTH = 8;
 const NUM_TOKENS = 12;
@@ -83,32 +85,14 @@ const SPACES = 'spaces';
 const GRAPH_DOWNWARD: GraphRef = { enum: SPACES, dimensions: [BOARD_WIDTH, BOARD_WIDTH], directions: ['DirectionDown', 'DirectionDiagonal'] };
 const GRAPH_UPWARD: GraphRef = { enum: SPACES, dimensions: [BOARD_WIDTH, BOARD_WIDTH], directions: ['DirectionUp', 'DirectionDiagonal'] };
 
-/**
- * Go: `m.F.Value()` on an enum.RangeVal move field. The facade has no Owner
- * for a move's fields (an engine gap for the facade: Owner covers game,
- * players and component values only), so this reads the stored string.
- */
-function fieldKey(state: RulesState, m: MoveInstance, field: string): number {
-	const e = state.game.enums.get(SPACES);
-	const key = e === null ? null : e.keyOf(m.fields[field]);
-	if (key === null) throw new Error('checkers: move field ' + field + ' holds ' + JSON.stringify(m.fields[field]) + ', not a spaces value');
-	return key;
-}
-
-/** Go: `m.F.SetValue(k)` on an enum.RangeVal move field (the error is discarded, as Go's caller does). */
-function setFieldKey(state: RulesState, m: MoveInstance, field: string, key: number): void {
-	const e = state.game.enums.get(SPACES);
-	if (e !== null && Object.prototype.hasOwnProperty.call(e.def.Values, String(key))) m.fields[field] = e.stringOf(key);
-}
-
 /** components.go spaceIsBlack */
 function spaceIsBlack(spaceIndex: number): boolean {
 	return spaceIndex % 2 === 0;
 }
 
-/** components.go (*token).Dynamic: the component's dynamic values in `state`. */
+/** components.go (*token).Dynamic: `t.ContainingComponent().ImmutableInstance(state).ImmutableDynamicValues()`. */
 function tokenDynamic(state: RulesState, t: Comp): Record<string, unknown> {
-	return dynamic(state, { deck: t.deck, index: t.index });
+	return dynamic(state, componentInstance(state, t.deck, t.index));
 }
 
 /** `t.Color.Value() == colorBlack` */
@@ -169,10 +153,8 @@ function legalCaptureSpaces(state: RulesState, t: Comp, componentIndex: number):
 /** components.go (*token).Legal (interfaces.LegalComponent), for Crown Token's moves.DefaultComponent. */
 function tokenLegal(state: RulesState, index: number, legalType: number | null): string | null {
 	void legalType;
-	// The facade has no way to name a component by deck index (Go's
-	// `t.ContainingComponent().ImmutableInstance(state)`); a handle with the
-	// right identity and state is built here.
-	const t: Comp = { stack: gameStack(state, 'Spaces'), slot: -1, deck: 'Tokens', index };
+	// The receiver: `t.ContainingComponent().ImmutableInstance(state)`.
+	const t = componentInstance(state, 'Tokens', index);
 	let targetRow = BOARD_WIDTH - 1;
 	if (isBlack(state, t)) targetRow = 0;
 	const [, slotIndex, err] = containingStack(state, t);
@@ -247,7 +229,8 @@ function placeTokenDefaults(state: RulesState, m: MoveInstance): void {
 	for (let i = startIndex; i !== endCondition; i += increment) {
 		if (!spaceIsBlack(i)) continue;
 		if (componentAt(spaces, i) === null) {
-			setFieldKey(state, m, 'TargetIndex', i);
+			// `m.TargetIndex.SetValue(enum.EnumKey(i))`, its error discarded.
+			setEnumKey(state, { move: m }, 'TargetIndex', i);
 			return;
 		}
 	}
@@ -256,29 +239,29 @@ function placeTokenDefaults(state: RulesState, m: MoveInstance): void {
 /** moves.go (*movePlaceToken).LegalCustom */
 function placeTokenLegalCustom(state: RulesState, m: MoveInstance): string | null {
 	const firstToken = first(gameStack(state, 'UnusedTokens'));
-	const err = mayMoveToSlot(firstToken, gameStack(state, 'Spaces'), fieldKey(state, m, 'TargetIndex'));
+	const err = mayMoveToSlot(firstToken, gameStack(state, 'Spaces'), enumKey(state, { move: m }, 'TargetIndex'));
 	if (err !== null) return err;
-	if (!spaceIsBlack(fieldKey(state, m, 'TargetIndex'))) return 'The proposed space is not black';
+	if (!spaceIsBlack(enumKey(state, { move: m }, 'TargetIndex'))) return 'The proposed space is not black';
 	return null;
 }
 
 /** moves.go (*movePlaceToken).Apply */
 function placeTokenApply(state: RulesState, m: MoveInstance): string | null {
-	return moveTo(first(gameStack(state, 'UnusedTokens')), gameStack(state, 'Spaces'), fieldKey(state, m, 'TargetIndex'));
+	return moveTo(first(gameStack(state, 'UnusedTokens')), gameStack(state, 'Spaces'), enumKey(state, { move: m }, 'TargetIndex'));
 }
 
 /** moves.go (*moveMoveToken).LegalCustom */
 function moveTokenLegalCustom(state: RulesState, m: MoveInstance): string | null | LegalVerdict {
 	const g = gameStack(state, 'Spaces');
-	const tokenIndex = fieldKey(state, m, 'TokenIndexToMove');
+	const tokenIndex = enumKey(state, { move: m }, 'TokenIndexToMove');
 	const c = componentAtKey(g, tokenIndex);
 	// `t := c.Values().(*token)` panics on a nil c.
 	if (c === null) throw new Error('runtime error: invalid memory address or nil pointer dereference');
 	for (const space of freeNextSpaces(state, c, tokenIndex) ?? []) {
-		if (fieldKey(state, m, 'SpaceIndex') === space) return null;
+		if (enumKey(state, { move: m }, 'SpaceIndex') === space) return null;
 	}
 	for (const space of legalCaptureSpaces(state, c, tokenIndex) ?? []) {
-		if (fieldKey(state, m, 'SpaceIndex') === space) return null;
+		if (enumKey(state, { move: m }, 'SpaceIndex') === space) return null;
 	}
 	return legalError('checkers.illegal_dest');
 }
@@ -289,12 +272,11 @@ function moveTokenApply(state: RulesState, m: MoveInstance): string | null {
 	// `state.CurrentPlayer().(*playerState)`
 	const p = state.currentPlayerIndex();
 	player(state, p);
-	const swapErr = swapComponentsByKey(g, fieldKey(state, m, 'TokenIndexToMove'), fieldKey(state, m, 'SpaceIndex'));
+	const swapErr = swapComponentsByKey(g, enumKey(state, { move: m }, 'TokenIndexToMove'), enumKey(state, { move: m }, 'SpaceIndex'));
 	if (swapErr !== null) return "Couldn't move token: " + swapErr;
-	// `m.TokenIndexToMove.RangeValue()`
-	const startIndexes = valueToRange(state, SPACES, fieldKey(state, m, 'TokenIndexToMove'));
+	const startIndexes = rangeValue(state, { move: m }, 'TokenIndexToMove');
 	if (startIndexes === null || startIndexes.length !== 2) return "Couldn't get indexes for token space";
-	const finishIndexes = valueToRange(state, SPACES, fieldKey(state, m, 'SpaceIndex'));
+	const finishIndexes = rangeValue(state, { move: m }, 'SpaceIndex');
 	if (finishIndexes === null || finishIndexes.length !== 2) return "Couldn't get indexes for finish space";
 	const middleIndexes = [finishIndexes[0] - startIndexes[0], finishIndexes[1] - startIndexes[1]];
 	const middleSpace = rangeToValue(state, SPACES, middleIndexes);
@@ -311,9 +293,9 @@ function moveTokenApply(state: RulesState, m: MoveInstance): string | null {
 	if (!tokenCaptured) {
 		player(state, p).FinishedTurn = true;
 	} else {
-		const t = componentAtKey(g, fieldKey(state, m, 'SpaceIndex'));
+		const t = componentAtKey(g, enumKey(state, { move: m }, 'SpaceIndex'));
 		if (t === null) throw new Error('runtime error: invalid memory address or nil pointer dereference');
-		if ((legalCaptureSpaces(state, t, fieldKey(state, m, 'SpaceIndex')) ?? []).length === 0) player(state, p).FinishedTurn = true;
+		if ((legalCaptureSpaces(state, t, enumKey(state, { move: m }, 'SpaceIndex')) ?? []).length === 0) player(state, p).FinishedTurn = true;
 	}
 	return null;
 }
@@ -502,8 +484,8 @@ function readGzipJSON<T>(file: string): T {
 test('checkers.json loads, compiles, and names functions only where the stand-in does', () => {
 	const { game, patched } = buildCheckers();
 	assert.equal(game.moves.length, 7);
-	// Which slots are still the stand-in's (all of them until the static half lands).
-	assert.ok(patched.length > 0 || loadDefinition().Functions.length > 0);
+	// The exporter fills every slot: nothing is patched in.
+	assert.deepEqual(patched, [], 'slots checkers.json leaves empty');
 	// A predicate the data registers with no body is a GameSpecError naming it.
 	const raw = loadDefinition();
 	const { data } = patchRefs(raw);
@@ -810,4 +792,76 @@ test('constructed positions from real Go: Move Token, Crown Token, Finish Turn, 
 	assert.ok(counts.legalMoves > 0, 'no legal Move Token in the vectors');
 	assert.ok(counts.appliedOk > 0, 'no Apply succeeded');
 	assert.ok(counts.captures > 0, 'no capture');
+});
+
+// ----- the facade's { move } Owner, against Go (testdata/gen/facadevec) ----
+
+interface MoveFieldRead {
+	Stored: unknown;
+	Value: number;
+	Range: number[] | null;
+}
+
+interface MoveFieldVectors {
+	Game: string;
+	Move: string;
+	Field: string;
+	Enum: string;
+	Initial: MoveFieldRead;
+	Sets: (MoveFieldRead & { Key: number; Error: string })[];
+	Records: (MoveFieldRead & { Blob: Record<string, unknown>; Error: string })[];
+}
+
+test('an enum.RangeVal move field through the facade: Value, SetValue, RangeValue and the stored record, as Go', () => {
+	const { game } = buildCheckers();
+	const vectors = JSON.parse(readFileSync(MOVE_FIELD_VECTORS, 'utf8')) as MoveFieldVectors;
+	assert.equal(vectors.Game, 'checkers');
+	const engine = loadEngineState(game.def, { gameId: '', secretSalt: '' }, 0, emptyStateJSON(game, 2), { skipConservation: true });
+	const state = newRulesState(game, engine, { name: 'checkers', id: '', secretSalt: '', numPlayers: 2, variant: null, agents: ['', ''], seating: false }, [], { pendingSeat: null });
+	const read = (m: MoveInstance): MoveFieldRead => ({ Stored: m.fields[vectors.Field], Value: enumKey(state, { move: m }, vectors.Field), Range: rangeValue(state, { move: m }, vectors.Field) });
+	const move = state.newMove(vectors.Move);
+	assert.ok(move);
+	assert.deepEqual(read(move), vectors.Initial, 'a new move');
+	for (const set of vectors.Sets) {
+		const err = setEnumKey(state, { move }, vectors.Field, set.Key);
+		assert.equal(err ?? '', set.Error, 'SetValue(' + set.Key + ')');
+		assert.deepEqual(read(move), { Stored: set.Stored, Value: set.Value, Range: set.Range }, 'after SetValue(' + set.Key + ')');
+	}
+	for (const record of vectors.Records) {
+		assert.equal(record.Error, '');
+		// A move record's blob is the move's fields, as the engine holds them.
+		const fresh = state.newMove(vectors.Move);
+		assert.ok(fresh);
+		Object.assign(fresh.fields, record.Blob);
+		assert.deepEqual(read(fresh), { Stored: record.Stored, Value: record.Value, Range: record.Range }, 'record ' + JSON.stringify(record.Blob));
+	}
+	// Equals across owners: a move field and the enum it is drawn from.
+	const other = state.newMove(vectors.Move);
+	assert.ok(other);
+	assert.equal(setEnumKey(state, { move: other }, vectors.Field, vectors.Sets[vectors.Sets.length - 1].Key), null);
+	assert.equal(enumEquals(state, { move }, vectors.Field, { move: other }, vectors.Field), true);
+	// A field that is not an enum is refused, not read as one.
+	assert.throws(() => enumKey(state, { move }, 'NoSuchField'), /is not an enum property/);
+});
+
+test('componentInstance: the handle a component method has for its own component', () => {
+	const { game } = buildCheckers();
+	const vectors = readGzipJSON<Vectors>(VECTORS);
+	const state = stateOf(game, vectors, vectors.positions[0]);
+	const spaces = gameStack(state, 'Spaces');
+	let checked = 0;
+	for (let slot = 0; slot < stackView(spaces).len(); slot++) {
+		const c = componentAt(spaces, slot);
+		if (c === null) continue;
+		const handle = componentInstance(state, c.deck, c.index);
+		assert.deepEqual({ deck: handle.deck, index: handle.index, slot: handle.slot, at: handle.stack.at }, { deck: c.deck, index: c.index, slot, at: spaces.at });
+		const [stack, at, err] = containingStack(state, handle);
+		assert.equal(err, null);
+		assert.equal(at, slot);
+		assert.deepEqual(stack?.at, spaces.at);
+		checked++;
+	}
+	assert.ok(checked > 0);
+	assert.throws(() => componentInstance(state, 'NoSuchDeck', 0), /no deck NoSuchDeck/);
+	assert.throws(() => componentInstance(state, 'Tokens', 24), /has no component 24/);
 });
