@@ -1,19 +1,30 @@
 /**
- * A table of Memory as a sealed state machine.
+ * A table of Memory as a sealed state machine, with one view that each
+ * principal is shown their own instance of.
  *
  * - `SealedTable` is the whole table: seats, layout, face-up slots, captures,
- *   turn, version, timers and move history. It is confidential to this
+ *   turn, version, timers and the move history. It is confidential to this
  *   module's policy and to nothing else, so no person reads it, the table's
  *   owner included.
  * - `move` is its only writer. Sitting down and dealing are moves. The
  *   proposer is whoever the runtime says is acting, never a field of the
  *   event.
- * - `seatView` is the only function whose output the policy releases. As
- *   designed, only when everything confidential it read was written by
- *   `move`; today that last condition is not checked (see "The interim
- *   seam" below).
+ * - `viewFor` is the only function whose output the policy releases. It
+ *   reads the table and asks the runtime who it is computed for, and returns
+ *   what that principal may see: the board as the engine sanitizes it, with
+ *   the moves that are legal for their seat, or a watcher's view if they
+ *   hold no seat. The runtime computes it once for each principal who is
+ *   looking, and the one rule below releases each instance to the principal
+ *   it was computed for.
  *
- * This module is the policy's identity: the rule names `move` and `seatView`
+ * Nothing here is per seat. Who holds a seat is a fact inside the sealed
+ * table, and the release follows it.
+ *
+ * The release needs labs' `viewerBoundRelease` experimental option
+ * (`EXPERIMENTAL_VIEWER_BOUND_RELEASE=true`); the shape follows labs'
+ * `patterns/examples/cfc-exchange-rules/card-table.tsx`.
+ *
+ * This module is the policy's identity: the rule names `move` and `viewFor`
  * by this module and their export names, and an edit here or to anything it
  * imports is a different policy. The UI lives in `main.tsx` so that changing
  * it does not strand a table in flight.
@@ -34,57 +45,28 @@ import {
   exchangeRules,
   type PolicyOf,
   THIS_POLICY,
+  v,
 } from "commonfabric/cfc";
 
-import { stepTable, type TableState, viewOf } from "../toolkit/table.ts";
+import {
+  stepTable,
+  tableOf,
+  type TableState,
+  viewForPrincipal,
+} from "../toolkit/table.ts";
 import type { Proposal, TableView } from "../toolkit/view.ts";
 import { memoryGame } from "./game.ts";
 
 //
-// The policy, and the interim seam
+// The policy
 //
-// Everything about how the view is labeled and released today is between
-// this heading and the next. It is the one place this game is weaker than
-// its design, and the one place to change as the runtime catches up.
-//
-// The release is in two steps. This module's rule turns the policy's clause
-// into "the table's space" for what `seatView` computed; the runtime's own
-// display rule then admits a reader of that space. A rule that asked for the
-// reader's role itself would be evaluated over a whole read at once, and
-// would refuse the one read of the whole view a `cf-iframe` guest makes
-// (FINDINGS.md F3). `cfcPattern` has no constructor for a space, so the atom
-// is written out.
-//
-// AS DESIGNED, the guard also carries an input witness: the view is released
-// only when every confidential location `seatView` read was written by
-// `move`.
-//
-//   inputWitness: {
-//     type: "https://commonfabric.org/cfc/atom/TransformedBy",
-//     identity: { kind: "verified", moduleIdentity: THIS_POLICY.moduleIdentity,
-//                 symbol: "move" },
-//   },
-//
-// TODO(cfc): restore `inputWitness` when a record its writer reads and then
-// sets keeps the writer's stamp (FINDINGS.md F2; gap A of the labs spike).
-// `move` reads the table and sets it, and a destination the transaction read
-// is not stamped, so with the witness nothing of this table is ever
-// released. The alternative today is to store the table as one JSON string,
-// which this pattern declines to do.
-//
-// The witness also needs a served handler's writes to name the handler,
-// which labs main does not do (FINDINGS.md F1). That has a fix on a labs
-// branch, and this pattern assumes it; without the witness the rule below
-// does not depend on it.
-//
-// AS SHIPPED, without the witness, the policy releases `seatView`'s view of
-// whatever is in the cell, not only of what `move` wrote. `WriteAuthorizedBy`
-// still refuses a write to the table by any other code, so this matters
-// where that check does not reach: a modified client with write access to
-// the space, and a second instance of this module pointed at this table's
-// cell.
-//
-export const releaseSeatView = exchangeRule({
+
+// The one release. What `viewFor` computed is released to the principal it
+// was computed for, when every confidential location it read was written by
+// `move`. The rule names no person and no seat: the principal comes from the
+// stamp the runtime put on the value, and which seat is theirs is `viewFor`'s
+// to decide from the table.
+export const releaseOwnView = exchangeRule({
   appliesTo: THIS_POLICY,
   pre: {
     integrity: [{
@@ -92,19 +74,28 @@ export const releaseSeatView = exchangeRule({
       identity: {
         kind: "verified",
         moduleIdentity: THIS_POLICY.moduleIdentity,
-        symbol: "seatView",
+        symbol: "viewFor",
       },
+      inputWitness: {
+        type: "https://commonfabric.org/cfc/atom/TransformedBy",
+        identity: {
+          kind: "verified",
+          moduleIdentity: THIS_POLICY.moduleIdentity,
+          symbol: "move",
+        },
+      },
+      viewer: v("viewer"),
     }],
   },
   post: {
     addAlternatives: [{
-      type: "https://commonfabric.org/cfc/atom/Space",
-      id: THIS_POLICY.subject,
+      type: "https://commonfabric.org/cfc/atom/User",
+      subject: v("viewer"),
     }],
   },
 });
 
-export const tableRules = exchangeRules([releaseSeatView]);
+export const tableRules = exchangeRules([releaseOwnView]);
 
 /** A value only this module's policy may release. */
 export type Sealed<T> = Confidential<T, readonly [PolicyOf<typeof tableRules>]>;
@@ -116,30 +107,24 @@ export type Sealed<T> = Confidential<T, readonly [PolicyOf<typeof tableRules>]>;
 /** Everything the table knows. */
 export type MemoryTable = TableState;
 
-/** The stored table: sealed, and written only by `move`. */
-export type SealedTable = WriteAuthorizedBy<Sealed<MemoryTable>, typeof move>;
+/**
+ * The stored table: sealed, and written only by `move`. It is `null` until
+ * the first accepted proposal.
+ *
+ * TODO(cfc): the table starts as `null` and not as the table before anyone
+ * sat down. The runtime names `move` as the writer of the whole record only
+ * when every value a write left in place is one `move` wrote before, and a
+ * default is nobody's: a record default whose `history: []` the first move
+ * left as it found it would keep every view sealed (labs
+ * `docs/specs/cfc-transformed-by-input-witnesses.md`, "What the endorsed
+ * writer's stamp covers"). Nothing of `null` outlives the first move.
+ */
+export type SealedTable = WriteAuthorizedBy<
+  Sealed<MemoryTable | null>,
+  typeof move
+>;
 
-/** The table before anyone sat down, as the cell's default. */
-export const EMPTY_TABLE: MemoryTable = {
-  phase: "seating",
-  seats: [],
-  record: {
-    name: "",
-    id: "",
-    secretSalt: "",
-    numPlayers: 0,
-    variant: {},
-    agents: [],
-    seating: false,
-  },
-  epoch: 0,
-  revision: 0,
-  version: -1,
-  recent: {},
-  history: [],
-};
-
-/** What `move` is bound to. */
+/** What `move` is bound to: the table, and nothing else. */
 export interface MoveBinding {
   table: Writable<SealedTable>;
 }
@@ -149,13 +134,14 @@ export interface MoveBinding {
  * does not throw, so a refusal tells its sender only that the table's
  * revision did not move.
  *
- * It writes the sealed table and nothing else: one transaction carries one
- * flow label, so anything public about the table is a field of the view.
+ * Everything it works from but the proposer and the clock is the table
+ * itself, so binding it anywhere else runs the same rules over the same
+ * table for the same proposer.
  */
 export const move = handler<Proposal, MoveBinding>((proposal, { table }) => {
   const proposer = currentPrincipal();
   if (proposer === undefined) return;
-  const result = stepTable(memoryGame(), table.get(), proposal, {
+  const result = stepTable(memoryGame(), tableOf(table.get()), proposal, {
     proposer,
     now: Date.now(),
     entropy: Math.random,
@@ -167,31 +153,25 @@ export const move = handler<Proposal, MoveBinding>((proposal, { table }) => {
 // The released projection
 //
 
-/** What a reader of the table's space may see. */
-export type MemoryTableView = TableView;
+/** What `viewFor` reads: the table, and nothing a caller can choose. */
+export interface Viewed {
+  table: MemoryTable | null | undefined;
+}
 
 /**
- * The table's one released function. It is a module-scope `lift` because
- * `TransformedBy` names a function by its module and its export name.
- *
- * Before the first accepted proposal it returns nothing. The table then
- * holds its default, which `move` did not write, so under the rule as
- * designed a view of it would carry no input witness, and a field the first
- * move left unchanged would keep that unwitnessed stamp.
+ * The table's one released function: what the principal it is computed for
+ * may see. It is a module-scope `lift` because `TransformedBy` names a
+ * function by its module and its export name.
  */
-export const seatView = lift((
-  table: MemoryTable | undefined,
-): MemoryTableView | undefined =>
-  table !== undefined && table.revision > 0
-    ? viewOf(memoryGame(), table)
-    : undefined
+export const viewFor = lift(({ table }: Viewed): TableView =>
+  viewForPrincipal(memoryGame(), table, currentPrincipal())
 );
 
 /**
- * The secret salt. Defined beside `seatView` and named by no rule, so what
- * it computes stays sealed. It exists for the tests.
+ * The game's secret salt, from which the layout derives. Defined beside `viewFor` and named by no rule, so
+ * what it computes stays sealed. It exists for the tests.
  */
-export const peek = lift((table: MemoryTable | undefined): string =>
+export const peek = lift(({ table }: Viewed): string =>
   table?.record?.secretSalt ?? ""
 );
 
@@ -200,23 +180,27 @@ export const peek = lift((table: MemoryTable | undefined): string =>
 //
 
 export interface MemoryTableInput {
-  /** The sealed table, which starts as the table before anyone sat down. */
-  table: Writable<Default<SealedTable, typeof EMPTY_TABLE>>;
+  /** The sealed table, which starts as nothing. */
+  table: Writable<Default<SealedTable, null>>;
 }
 
 export interface MemoryTableOutput {
-  /** What the policy releases; `undefined` until the first proposal. */
-  view: MemoryTableView | undefined;
+  /** What the principal looking may see of the table. */
+  view: TableView;
+  /** The game's secret salt, which nobody is shown. */
+  peek: string;
   /** Propose something as whoever sends it. */
   move: Stream<Proposal>;
 }
 
 /**
  * The table with no screen: its sealed state, its writer and its released
- * view. The table holds its own state. A table lent its state by the pattern
- * around it would lose the release's input witness.
+ * view. The table holds its own state: a view of a table reached through a
+ * link in another pattern's argument carries no input witness, and is shown
+ * to nobody.
  */
 export default pattern<MemoryTableInput, MemoryTableOutput>(({ table }) => ({
-  view: seatView(table),
+  view: viewFor({ table }),
+  peek: peek({ table }),
   move: move({ table }),
 }));

@@ -12,9 +12,6 @@ import { blackjack } from "../../../server/static/src/engine/games/blackjack.ts"
 import { infoOf } from "../toolkit/table.ts";
 import type { TableInfo } from "../toolkit/view.ts";
 
-/** The most seats a table of blackjack has. */
-export const MAX_SEATS = 7;
-
 /**
  * The compiled game. A function, not a constant: a pattern module may hold
  * only functions and plain data at module scope.
@@ -36,6 +33,5 @@ const SEAT_COLORS = [
 
 /** The public facts a renderer needs once: the deck and message texts. */
 export function blackjackInfo(): TableInfo {
-  // Each seat sees its own hole card, so each has a view of its own.
-  return infoOf(blackjackGame(), SEAT_COLORS, MAX_SEATS);
+  return infoOf(blackjackGame(), SEAT_COLORS);
 }

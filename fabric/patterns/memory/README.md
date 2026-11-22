@@ -13,10 +13,10 @@ the work"). What the runtime would and would not do is in
 
 | File | What |
 |---|---|
-| [`table.tsx`](table.tsx) | The sealed table: the policy, the stored state, the one writer `move`, the one released lift `seatView`. **The interim seam is here** |
+| [`table.tsx`](table.tsx) | The sealed table: the policy, the stored state, the one writer `move`, the one released lift `viewFor` |
 | [`game.ts`](game.ts) | The engine's Memory (`server/static/src/engine/games/memory.ts`), compiled; the public facts. No rules are written in this directory |
-| [`main.tsx`](main.tsx) | The piece: the `cf-iframe`, and `identify` |
-| [`../toolkit/table.ts`](../toolkit/table.ts) | Seats and the engine's three stored values; `stepTable`, `viewOf`, `seatViewOf` |
+| [`main.tsx`](main.tsx) | The piece: the `cf-iframe` |
+| [`../toolkit/table.ts`](../toolkit/table.ts) | Seats and the engine's three stored values; `stepTable`, `viewForPrincipal` |
 | [`../toolkit/view.ts`](../toolkit/view.ts), [`json.ts`](../toolkit/json.ts) | The wire types shared with the guest; JSON as a type a cell can hold |
 | [`../toolkit/parity.ts`](../toolkit/parity.ts) | Replays a recorded Go game through a table and compares every version |
 | [`../guest/`](../guest) | The built guest (`guest.js`, `guest.html`); not checked in |
@@ -37,26 +37,31 @@ the work"). What the runtime would and would not do is in
 - **One writer.** `move` takes a `Proposal`: `sit`, `leave`, `start`, `play`,
   `tick` or `restart`. The proposer is `currentPrincipal()`. A refused
   proposal writes nothing.
-- **One release.** `seatView` returns a `TableView`: who is seated, and each
-  version the table still holds as the boardgame client's state bundle
-  (stacks with `Indexes`, `IDs` and `IDsLastSeen`, the move that produced the
-  version, timers, outcome, and legality for each seat).
+- **One release.** `viewFor` asks the runtime who it is computed for and
+  returns that principal's `TableView`: which seat is theirs, each seat's
+  name, and each version the last input produced as the boardgame client's
+  state bundle (stacks with `Indexes`, `IDs` and `IDsLastSeen`, the move that
+  produced the version, timers, outcome), with what the viewer may do at the
+  head. The runtime keeps one instance for each principal who looks, and the
+  rule releases each to the principal it was computed for, when everything
+  confidential it read was written by `move`.
 - **Timers.** A mismatch starts a four-second timer: a deadline in the
   engine's stored state. A guest whose own clock runs out sends `tick`, and
   the engine hides the cards only if the table's clock has passed it.
 
-**What is weaker than designed.** `table.tsx`, under "The policy, and the
-interim seam", ships a release rule without the input witness: the view is
-released over whatever is in the table's cell, not only over what `move`
-wrote. The runtime keeps no witness for a record its writer reads and then
-sets (`FINDINGS.md` F2), and the alternative, one JSON string, is not taken.
-Separately, anyone who can read the space can read the sealed record today,
-because labs delivers a space's documents to every reader (specs#95).
+**What is not held.** The rule decides what a runtime shows. Whether the
+memory server hands the sealed record itself to a reader of the space is a
+separate matter (specs#95), and a space's owner may release a clause by
+intent; `fabric/status/viewer-bound-port.md` says what was observed. One
+`TODO(cfc)` remains in `table.tsx`: the table starts as `null`, because a
+record default is nobody's and would keep every view sealed.
 
-**Which labs.** Branch `fix/served-handler-write-identity` (draft PR
-commonfabric/labs#10111): labs main with the fix for served handlers
-(`FINDINGS.md` F1). The release as designed needs it. The rule as shipped has
-no witness and so does not itself need it; it was not rerun on labs main.
+**Which labs.** The viewer-bound release, on a local labs branch behind
+`EXPERIMENTAL_VIEWER_BOUND_RELEASE=true`
+(`fabric/status/viewer-bound-port.md` names the commit). It also carries
+the fixes for served handlers (`FINDINGS.md` F1) and for a record its writer
+reads and sets (F2). Set the variable for every `cf` command below and for
+the servers.
 
 ## Tests, with no browser
 
@@ -71,11 +76,11 @@ node fabric/patterns/tools/recording-fixture.mjs memory/scenario-mismatch fabric
 ```
 
 ```bash
-CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/memory/parity.test.tsx --root "$PWD"
+EXPERIMENTAL_VIEWER_BOUND_RELEASE=true CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/memory/parity.test.tsx --root "$PWD"
 ```
 
 ```bash
-CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/memory/multi-user.test.tsx --root "$PWD"
+EXPERIMENTAL_VIEWER_BOUND_RELEASE=true CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/memory/multi-user.test.tsx --root "$PWD"
 ```
 
 - **Parity** (24 Node tests): all six recorded Go games of Memory, 172
@@ -85,10 +90,11 @@ CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/memory/mult
   lift under the pattern sandbox.
 - **The table** : seating, every refusal in Go's words, card ids across a
   reveal, the timer against a moved clock, a whole game.
-- **Multi-user** takes about three minutes and ends with `202 passed, 0
-  failed`: a full two-player game through `move`, no view showing a hidden
-  card's face, wrong-player, forged-proposer, unseated and illegal moves
-  refused, and the two players' views agreeing.
+- **Multi-user** takes about a minute and ends with `202 passed, 0 failed`:
+  a full two-player game through `move`, each participant reading their own
+  instance of the view, no view showing a hidden card's face, wrong-player,
+  forged-proposer, unseated and illegal moves refused, and the two players'
+  views agreeing.
 
 ## Running it
 
@@ -111,13 +117,13 @@ cd fabric/guest && npm ci && tools/vendor-fabric-client.sh "$LABS" && npm run bu
 servers on the default ports, use an offset:
 
 ```bash
-(cd "$LABS" && ./scripts/start-local-dev.sh --port-offset=340)
+(cd "$LABS" && EXPERIMENTAL_VIEWER_BOUND_RELEASE=true ./scripts/start-local-dev.sh --port-offset=340)
 ```
 
 **3. Mint a key, create a space, deploy.**
 
 ```bash
-export CF_LABS_ROOT="$LABS" CF_API_URL=http://localhost:8340
+export CF_LABS_ROOT="$LABS" CF_API_URL=http://localhost:8340 EXPERIMENTAL_VIEWER_BOUND_RELEASE=true
 ```
 
 ```bash
@@ -170,20 +176,16 @@ the console names the browser's DID. Grant it and reload:
 
 ## What was run
 
-On 2026-11-21 against labs `4815052651` (`fix/served-handler-write-identity`),
-with the script, on the engine: a complete game between two identities, 16
-reveals, three mismatches hidden by the timer, five pairs captured, the same
-winner shown to both, up to ten animations running on each move. A move took
-a median of 3.7 s to reach a guest; `FINDINGS.md` says why that is slower
-than the hand-written rules were.
+On 2026-11-21 against labs `70f5c390ec` (the viewer-bound branch), with the
+script: two complete games between two fresh identities on the ten-card
+board, 16 and 18 reveals, seven mismatches hidden by the timer (4.0 to
+5.2 s after the second card showed), the same winner shown to both, 282 and
+326 animations in each guest and no watchdog firing. A reveal reached its
+mover's guest in a median 1.4 s and 1.5 s (0.9 to 2.4 s). On the same
+servers the pattern as it was before took 2.2 s and 2.4 s.
+`fabric/status/viewer-bound-port.md` has every step.
 
-Rerun on the same day and labs commit after the guest was rebuilt on the
-client packages and the lobby was made data-driven: two more whole games
-between two fresh identities, on the ten-card board. In a space of its own,
-16 reveals, a median of **3.0 s** from proposal to the mover's guest (2.2 to
-5.3 s); in a space that also held two blackjack tables, 14 reveals and a
-median of 4.3 s (3.0 to 8.3 s). The screenshots below are from the first of
-those.
+The screenshots are from the first of those games.
 
 | Screenshot | Shows |
 |---|---|

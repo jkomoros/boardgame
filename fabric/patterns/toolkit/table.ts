@@ -1,7 +1,8 @@
 /**
- * A table: seats, a game's record, its state at its most recent versions and
- * its move history, with the one function that advances it (`stepTable`) and
- * the ones that say what a viewer may see (`viewOf`, `seatViewOf`).
+ * A table: seats, a game's record, its state after each move of the last
+ * input, and its move history, with the one function that advances it
+ * (`stepTable`) and the one that says what a principal may see
+ * (`viewForPrincipal`).
  *
  * The game itself is the TypeScript engine's
  * (`server/static/src/engine/rules`): a table holds exactly what that engine
@@ -10,10 +11,10 @@
  * and sanitization all come from there.
  *
  * Nothing here knows about Common Fabric. A game's pattern stores a
- * `TableState` in a sealed cell, calls `stepTable` from its one handler and a
- * view function from its released lift. Everything is plain data and pure
- * functions: no clock, no randomness and no identity but what the caller
- * passes in.
+ * `TableState` in a sealed cell, calls `stepTable` from its one handler and
+ * `viewForPrincipal` from its one released lift. Everything is plain data
+ * and pure functions: no clock, no randomness and no identity but what the
+ * caller passes in.
  */
 import {
   type CompiledGame,
@@ -34,7 +35,6 @@ import { type Json, type JsonObject, toJson, toJsonObject } from "./json.ts";
 import type {
   MoveLegality,
   Proposal,
-  SeatView,
   SetupOption,
   TableInfo,
   TableView,
@@ -45,20 +45,6 @@ import type {
 
 /** The viewer who holds no seat. */
 export const OBSERVER_SEAT = -1;
-
-/**
- * How many inputs' worth of versions a table holds. An input is one
- * proposal, tick or deal; it produces one version and then one for each
- * fix-up move, however many. A view shows every held version.
- *
- * One, because the runtime's cost for a move grows with the size of what is
- * stored and released, and a Go-faithful state is large (Memory's is 19 KB
- * a version). With one input held, a guest that receives every value of the
- * view animates every step; one that misses a value jumps to the newer
- * state without animating what it missed. With two held it would not jump,
- * and in Memory a move took 5.9 s to arrive where it now takes 3.7 s.
- */
-export const INPUTS_HELD = 1;
 
 /** The game record the engine was created with; `id` is empty before the deal. */
 export interface StoredRecord {
@@ -72,23 +58,17 @@ export interface StoredRecord {
   seating: boolean;
 }
 
-/** One version the table still holds. */
-export interface Recorded {
-  version: number;
-  /** The engine's storage record of the state, unsanitized. */
-  state: JsonObject;
-  /** True for the last version an input produced. */
-  settled: boolean;
-  finished: boolean;
-  winners: number[];
-  /** The table's clock when the version was produced, in milliseconds. */
-  at: number;
+/** A seat and who holds it. */
+export interface Seat {
+  /** The DID of whoever holds the seat. */
+  principal: string;
+  label: string;
 }
 
 /** Everything a table knows. No person reads this. */
 export interface TableState {
   phase: "seating" | "playing" | "finished";
-  seats: SeatView[];
+  seats: Seat[];
   record: StoredRecord;
   /** Changes with every deal; a guest keys what it has shown by it. */
   epoch: number;
@@ -97,17 +77,33 @@ export interface TableState {
   /** The head game version, or -1 before the deal. */
   version: number;
   /**
-   * The versions still held, by version (`"v12"`): those of the last
-   * `INPUTS_HELD` inputs, and the one before them, since a version's move is
-   * judged against the state before it.
-   *
-   * A record, not a list, so that a version keeps its place while it is
-   * held: a store that compares what it is given with what it has then
-   * writes only the versions that are new.
+   * The engine's storage record of the state after each move of the last
+   * input, in order: the move a proposal, a tick or the deal made, then each
+   * fix-up move the engine applied after it. The last is the head, which
+   * the next input is applied to; the others are what an animator plays on
+   * the way there. Unsanitized.
    */
-  recent: Record<string, Recorded>;
+  states: JsonObject[];
+  /**
+   * The state the last input was applied to, which its first move is
+   * sanitized against; `null` after a deal, which starts from nothing.
+   */
+  before: JsonObject | null;
+  /** The table's clock when the last input was applied, in milliseconds. */
+  at: number;
   /** The engine's move record of every version from 1, in order. */
   history: JsonObject[];
+}
+
+/** One version a table holds: one of `states`, with its place among them. */
+export interface Held {
+  version: number;
+  /** The engine's storage record of the state, unsanitized. */
+  state: JsonObject;
+  /** The state before this version's move; absent for the deal's first. */
+  before: JsonObject | undefined;
+  /** True for the head; false for a version a fix-up replaced at once. */
+  settled: boolean;
 }
 
 /** What a step needs that only the runtime can supply. */
@@ -118,8 +114,6 @@ export interface StepContext {
   now: number;
   /** A source of fresh randomness, drawn from only when dealing. */
   entropy: () => number;
-  /** How many inputs' versions to hold; `INPUTS_HELD` unless a test wants more. */
-  inputsHeld?: number;
 }
 
 export interface TableStep {
@@ -150,17 +144,36 @@ export function emptyTable(): TableState {
     epoch: 0,
     revision: 0,
     version: -1,
-    recent: {},
+    states: [],
+    before: null,
+    at: 0,
     history: [],
   };
 }
 
+/**
+ * A plain copy of a stored table, with nothing shared with what was read;
+ * the table before anyone sat down when nothing is stored yet.
+ *
+ * A handler steps the copy and sets the result, so every value it stores is
+ * one it supplied, and none is a reference to what it found in place.
+ */
+export function tableOf(stored: TableState | null | undefined): TableState {
+  if (stored === null || stored === undefined) return emptyTable();
+  const copy: unknown = toJson(stored);
+  return copy as TableState;
+}
+
 /** The versions a table holds, ascending. The last one is the head. */
-export function held(table: TableState): Recorded[] {
-  const recent = table.recent ?? {};
-  return Object.keys(recent).map((key) => recent[key]).sort((a, b) =>
-    a.version - b.version
-  );
+export function held(table: TableState): Held[] {
+  const states = Array.isArray(table.states) ? table.states : [];
+  const first = table.version - (states.length - 1);
+  return states.map((state, index) => ({
+    version: first + index,
+    state,
+    before: index > 0 ? states[index - 1] : table.before ?? undefined,
+    settled: index === states.length - 1,
+  }));
 }
 
 function refused(table: TableState, error: string): TableStep {
@@ -231,45 +244,27 @@ function engineHistory(history: readonly JsonObject[]): MoveRecord[] {
   return value as MoveRecord[];
 }
 
-/** The versions a step produced, added to the table. */
+/**
+ * The table after an input: the versions it produced replace the last
+ * input's, and the head they were applied to becomes `before`.
+ */
 function withVersions(
   table: TableState,
   result: StepResult,
   now: number,
-  inputsHeld: number,
 ): Partial<TableState> {
-  const all = held(table);
   const history = table.history.slice();
-  result.versions.forEach((produced, index) => {
+  for (const produced of result.versions) {
     if (produced.move !== null) history.push(toJsonObject(produced.move));
-    all.push({
-      version: produced.version,
-      state: toJsonObject(produced.state),
-      settled: index === result.versions.length - 1,
-      finished: produced.finished,
-      winners: produced.winners.slice(),
-      at: now,
-    });
-  });
-  // Keep back to the settled version that precedes the last `inputsHeld`
-  // inputs: each input ends in exactly one settled version.
-  let first = 0;
-  let settledSeen = 0;
-  for (let i = all.length - 1; i >= 0; i--) {
-    if (!all[i].settled) continue;
-    settledSeen += 1;
-    if (settledSeen > inputsHeld) {
-      first = i;
-      break;
-    }
   }
-  const recent: Record<string, Recorded> = {};
-  for (const kept of all.slice(first)) recent[`v${kept.version}`] = kept;
-  const head = all[all.length - 1];
+  const head = result.versions[result.versions.length - 1];
+  const previous = table.states[table.states.length - 1];
   return {
     phase: head.finished ? "finished" : "playing",
     version: head.version,
-    recent,
+    states: result.versions.map((produced) => toJsonObject(produced.state)),
+    before: previous ?? null,
+    at: now,
     history,
   };
 }
@@ -278,8 +273,9 @@ function withVersions(
  * Deals: creates the game with the engine. `id` and `secretSalt` are the
  * game's identity; everything random about it derives from them.
  *
- * `stepTable` calls this with a freshly drawn identity. A test that replays
- * a recording calls it with the recorded one.
+ * `stepTable` calls this with a freshly drawn identity and keeps only the
+ * head (`headOnly`). A test that replays a recording calls it with the
+ * recorded one, and compares every version the deal went through.
  */
 export function dealTable(
   game: CompiledGame,
@@ -290,7 +286,6 @@ export function dealTable(
     variant: Record<string, string> | null;
     seating: boolean;
     now: number;
-    inputsHeld?: number;
   },
 ): TableStep {
   const created = createGame(game, {
@@ -310,12 +305,33 @@ export function dealTable(
     // ids, so a guest never mixes the two.
     epoch: parseInt(identity.id.slice(0, 8), 16) || 1,
     ...withVersions(
-      { ...table, recent: {}, history: [] },
+      { ...table, states: [], before: null, history: [] },
       created,
       options.now,
-      options.inputsHeld ?? INPUTS_HELD,
     ),
   });
+}
+
+/**
+ * A step with only its head held: the versions before it are dropped, and
+ * the one just before it becomes `before`.
+ *
+ * For a deal. A deal starts a new epoch, and a guest shows the newest
+ * version of an epoch it has not shown before without playing the ones that
+ * led to it (`fabric/guest/PROTOCOL.md`, "How the guest plays a window"), so
+ * the versions a deal goes through, a card at a time, are nobody's to see.
+ */
+export function headOnly(step: TableStep): TableStep {
+  const states = step.table.states;
+  if (step.error !== "" || states.length < 2) return step;
+  return {
+    error: "",
+    table: {
+      ...step.table,
+      states: [states[states.length - 1]],
+      before: states[states.length - 2],
+    },
+  };
 }
 
 /**
@@ -327,22 +343,20 @@ export function advanceTable(
   table: TableState,
   input: Input,
   now: number,
-  inputsHeld: number = INPUTS_HELD,
 ): TableStep {
-  const all = held(table);
-  const head = all[all.length - 1];
+  const head = table.states[table.states.length - 1];
   if (head === undefined) return refused(table, "no game is being played");
   const result = propose(game, {
     record: engineRecord(table.record),
     history: engineHistory(table.history),
-    state: engineState(head.state),
+    state: engineState(head),
   }, input, { now });
   if (result.versions.length === 0) {
     return refused(table, result.error ?? "the input changed nothing");
   }
   // The engine returns versions and an error together only at the fix-up
   // cap, where Go has already committed them.
-  return accepted(table, withVersions(table, result, now, inputsHeld));
+  return accepted(table, withVersions(table, result, now));
 }
 
 /** The engine's schema for a move's input fields, as far as this needs it. */
@@ -409,7 +423,6 @@ export function stepTable(
     return refused(table, "no one is acting");
   }
   const seat = table.seats.findIndex((held) => held.principal === proposer);
-  const inputsHeld = context.inputsHeld ?? INPUTS_HELD;
   switch (proposal?.kind) {
     case "sit": {
       if (table.phase !== "seating") {
@@ -448,13 +461,12 @@ export function stepTable(
       const id = randomHex(context.entropy, 16);
       const secretSalt = randomHex(context.entropy, 32);
       // Every seat here is a person already, so the engine seats nobody.
-      return dealTable(game, table, { id, secretSalt }, {
+      return headOnly(dealTable(game, table, { id, secretSalt }, {
         numPlayers: table.seats.length,
         variant: proposal.options ?? null,
         seating: false,
         now: context.now,
-        inputsHeld,
-      });
+      }));
     }
     case "restart": {
       if (table.phase !== "finished") {
@@ -465,7 +477,8 @@ export function stepTable(
         phase: "seating",
         record: noRecord(),
         version: -1,
-        recent: {},
+        states: [],
+        before: null,
         history: [],
       });
     }
@@ -483,7 +496,7 @@ export function stepTable(
         name,
         input: boundInput(game, name, proposal.arguments ?? {}),
         proposer: seat,
-      }, context.now, inputsHeld);
+      }, context.now);
     }
     case "tick": {
       if (table.phase !== "playing") {
@@ -499,7 +512,6 @@ export function stepTable(
         table,
         { kind: "timer", id: proposal.timerId },
         context.now,
-        inputsHeld,
       );
     }
     default:
@@ -510,24 +522,6 @@ export function stepTable(
 //
 // What a viewer may see
 //
-
-/** A held version and, when it is held too, the one before it. */
-interface Shown {
-  at: Recorded;
-  before: Recorded | undefined;
-}
-
-/** The versions a view shows: every one whose predecessor is still held. */
-function shown(table: TableState): Shown[] {
-  const recent = held(table);
-  const out: Shown[] = [];
-  recent.forEach((at, index) => {
-    const before = recent[index - 1];
-    if (before !== undefined) out.push({ at, before });
-    else if (at.version === 0) out.push({ at, before: undefined });
-  });
-  return out;
-}
 
 /**
  * The engine's whole output for one viewer at one held version: the game
@@ -540,32 +534,19 @@ function shown(table: TableState): Shown[] {
 export function viewerOutputAt(
   game: CompiledGame,
   table: TableState,
-  at: Recorded,
-  before: Recorded | undefined,
+  at: Held,
   viewer: number,
 ): ViewerOutput {
   return viewerOutput(game, {
     record: engineRecord(table.record),
     history: engineHistory(table.history.slice(0, at.version)),
     state: engineState(at.state),
-    previousState: before === undefined ? undefined : engineState(before.state),
+    previousState: at.before === undefined ? undefined : engineState(at.before),
     settled: at.settled,
     // A lift has no clock. A timer's time left is as of when the version was
     // produced, which is what a guest counts down from.
-    now: at.at,
+    now: table.at,
   }, viewer);
-}
-
-/** Every held version's engine output for one viewer, ascending. */
-export function viewerOutputs(
-  game: CompiledGame,
-  table: TableState,
-  viewer: number,
-): { version: number; output: ViewerOutput }[] {
-  return shown(table).map(({ at, before }) => ({
-    version: at.version,
-    output: viewerOutputAt(game, table, at, before, viewer),
-  }));
 }
 
 /** Moves a player may propose that take no argument from them. */
@@ -614,7 +595,7 @@ function viewerPart(game: CompiledGame, output: ViewerOutput): ViewerPart {
 
 /** One version in the guest's shape, with the state `stateOf` saw. */
 function entryOf(
-  at: Recorded,
+  at: Held,
   stateOf: ViewerOutput,
   viewers: Record<string, ViewerPart>,
 ): ViewEntry {
@@ -649,6 +630,7 @@ function entryOf(
 function frame(
   game: CompiledGame,
   table: TableState,
+  viewer: number,
 ): Omit<TableView, "entries"> {
   const seats = Array.isArray(table.seats) ? table.seats : [];
   return {
@@ -657,63 +639,76 @@ function frame(
     epoch: table.epoch,
     revision: table.revision,
     version: table.version,
-    seats: seats.map((seat) => ({
-      principal: seat.principal,
-      label: seat.label,
-    })),
+    viewer,
+    // A seat's name, and not who holds it: a view tells its viewer which
+    // seat is theirs, and nobody needs anyone's identity.
+    seats: seats.map((seat) => ({ label: seat.label })),
     minPlayers: game.spec.minNumPlayers,
     maxPlayers: game.spec.maxNumPlayers,
   };
 }
 
 /**
- * One view for everyone at the table: who is seated, and every version the
- * table still holds, sanitized as an observer sees it, with each seat's
- * legality and choices beside it.
+ * One seat's view: who is seated, and each version the last input produced,
+ * sanitized as the engine sanitizes it for `viewer`. `viewer` is a seat, or
+ * `OBSERVER_SEAT` for whoever only watches.
  *
- * For a game whose seats all see the same state, such as Memory. A game
- * with hands must not use it: an observer's state is what is shown.
+ * Every entry has the state and the move that made it, which is what an
+ * animator plays. Only the head has what the viewer may do there: nobody
+ * acts on a version a fix-up replaced at once.
  *
  * It is total, and every object and array in the result is new (`toJson`):
  * a part of the table returned as it is would reach the store as a
- * reference to the sealed table and withhold the whole view.
- */
-export function viewOf(game: CompiledGame, table: TableState): TableView {
-  const seats = Array.isArray(table.seats) ? table.seats : [];
-  const entries = shown(table).map(({ at, before }) => {
-    const observer = viewerOutputAt(game, table, at, before, OBSERVER_SEAT);
-    const viewers: Record<string, ViewerPart> = {
-      [String(OBSERVER_SEAT)]: viewerPart(game, observer),
-    };
-    for (let seat = 0; seat < seats.length; seat++) {
-      viewers[String(seat)] = viewerPart(
-        game,
-        viewerOutputAt(game, table, at, before, seat),
-      );
-    }
-    return entryOf(at, observer, viewers);
-  });
-  return { ...frame(game, table), entries };
-}
-
-/**
- * One viewer's own view: the same shape as `viewOf`, with every version
- * sanitized for `viewer` and only that viewer's legality in it. `viewer` is
- * a seat, or `OBSERVER_SEAT`.
- *
- * For a game with per-seat secrets, such as blackjack: each seat's view is
- * a separate value, to be released to that seat's audience alone.
+ * reference to the sealed table.
  */
 export function seatViewOf(
   game: CompiledGame,
   table: TableState,
   viewer: number,
 ): TableView {
-  const entries = shown(table).map(({ at, before }) => {
-    const output = viewerOutputAt(game, table, at, before, viewer);
-    return entryOf(at, output, { [String(viewer)]: viewerPart(game, output) });
+  const entries = held(table).map((at) => {
+    const output = viewerOutputAt(game, table, at, viewer);
+    return entryOf(
+      at,
+      output,
+      at.settled ? { [String(viewer)]: viewerPart(game, output) } : {},
+    );
   });
-  return { ...frame(game, table), entries };
+  return { ...frame(game, table, viewer), entries };
+}
+
+/** The seat `principal` holds at `table`, or `OBSERVER_SEAT`. */
+export function seatOf(
+  table: TableState,
+  principal: string | undefined,
+): number {
+  if (typeof principal !== "string" || principal === "") return OBSERVER_SEAT;
+  const seats = Array.isArray(table.seats) ? table.seats : [];
+  const seat = seats.findIndex((held) => held.principal === principal);
+  return seat < 0 ? OBSERVER_SEAT : seat;
+}
+
+/**
+ * What `principal` may see of a stored table: their own seat's view if they
+ * hold a seat, and a watcher's if they hold none or are nobody. Which seat
+ * is theirs is a fact of the table, so sitting down and leaving change what
+ * a principal sees with no label changing anywhere.
+ *
+ * This is the whole read side of a table. A game's pattern calls it from its
+ * one released lift, with the principal the runtime says the lift is
+ * computed for.
+ */
+export function viewForPrincipal(
+  game: CompiledGame,
+  stored: TableState | null | undefined,
+  principal: string | undefined,
+): TableView {
+  // One plain copy, read once. A lift is handed the stored table through
+  // the runtime's own view of the cell, and the engine reads a state many
+  // times over: in labs' harness a view computed from the copy took about
+  // 80 ms where one computed from what the lift was handed took about 110.
+  const table = tableOf(stored);
+  return seatViewOf(game, table, seatOf(table, principal));
 }
 
 /** A game's variants, as what a lobby offers before the deal. */
@@ -742,14 +737,9 @@ function setupOptionsOf(game: CompiledGame): SetupOption[] {
 
 /**
  * The public facts a renderer and a lobby need once, from the game's
- * definition. `seatViews` is how many seats the pattern hands a view of
- * their own; 0 for a game whose seats all see the same.
+ * definition.
  */
-export function infoOf(
-  game: CompiledGame,
-  seatColors: string[],
-  seatViews = 0,
-): TableInfo {
+export function infoOf(game: CompiledGame, seatColors: string[]): TableInfo {
   const decks: JsonObject = {};
   for (const deckName of Object.keys(game.spec.decks)) {
     decks[deckName] = game.spec.decks[deckName].components.map((
@@ -765,7 +755,6 @@ export function infoOf(
     gameName: game.spec.name,
     displayName: gameDisplayName(game.spec),
     setupOptions: setupOptionsOf(game),
-    seatViews,
     chest: {
       Decks: decks,
       Enums: enums,

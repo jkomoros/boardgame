@@ -2,23 +2,31 @@
  * Three players and a watcher at one table of blackjack, each in their own
  * runtime under their own principal.
  *
- * Alice, Bob and Carol take seats 0, 1 and 2. Dave never sits. Each player
- * reads their own seat's view and plays from it: hit below fifteen, stand
- * otherwise, counting their own hole card, which only their view shows.
+ * Alice, Bob and Carol take seats 0, 1 and 2. Dave never sits. The table has
+ * one view, computed once for each principal who looks, so each participant
+ * here reads their own instance of it and plays from it: hit below fifteen,
+ * stand otherwise, counting their own hole card, which only their own
+ * instance shows.
  *
  * What is checked:
  *
- * - No viewer's view holds another seat's hidden card. At every step each
- *   participant checks every view the table has (the watcher's and each
- *   seat's): in a view computed for one viewer, every other seat's hole
- *   card is the hidden card, and the draw stack shows no face. And whenever
- *   a player's own view shows their hole card, that card appears nowhere in
- *   the same version of any other view.
- * - A player's own view does show their own hole card.
+ * - A participant's view holds nobody else's hidden card. At every step each
+ *   checks their own instance at every version it holds: every other seat's
+ *   hole card is the hidden card, and the draw stack shows no face.
+ * - A player's own view does show their own hole card, and a watcher's shows
+ *   nobody's.
  * - Proposals the table must refuse change nothing: a move out of turn, a
  *   move whose payload names another player as its proposer, a move by
  *   someone with no seat, and an engine-owned move proposed by a player.
  * - The game plays out to a winner.
+ *
+ * A participant has no way to read another's instance, which is why nothing
+ * here compares two views. That a hole card one seat is shown appears in no
+ * other seat's view of the same version is checked under Node
+ * (`parity.test.ts`), and what each principal is shown at a display boundary
+ * in a browser (`tools/play-three-users.mjs`).
+ *
+ * Run with `EXPERIMENTAL_VIEWER_BOUND_RELEASE=true`.
  *
  * Pattern under test: ./table.tsx
  */
@@ -83,8 +91,9 @@ function head(view: TableView | undefined): Entry | undefined {
 }
 
 /**
- * Whether `view`, computed for `viewer`, shows no other seat's hole card and
- * no card of the draw stack, at any version it holds.
+ * Whether `view`, computed for the seat `viewer` (-1 for a watcher), shows no
+ * other seat's hole card and no card of the draw stack, at any version it
+ * holds.
  */
 function keepsSecrets(view: TableView | undefined, viewer: number): boolean {
   if (view === undefined) return false;
@@ -107,54 +116,6 @@ function showsOwnHoleCard(view: TableView | undefined, seat: number): boolean {
   return view.entries.every((entry) =>
     shown(entry).Players[seat].HiddenHand.Indexes.every((index) => index >= 0)
   );
-}
-
-/**
- * How many times a hole card `mine` shows its own seat appears in `theirs`
- * at the same version. `theirs` is another viewer's view.
- */
-function leaks(
-  mine: TableView | undefined,
-  theirs: TableView | undefined,
-  seat: number,
-): number {
-  let found = 0;
-  for (const entry of mine?.entries ?? []) {
-    const other = theirs?.entries.find((one) => one.version === entry.version);
-    if (other === undefined) continue;
-    for (const card of shown(entry).Players[seat].HiddenHand.Indexes) {
-      if (card < 0) continue;
-      const player = shown(other).Players[seat];
-      if (
-        player.HiddenHand.Indexes.includes(card) ||
-        player.Hand.Indexes.includes(card)
-      ) found += 1;
-    }
-  }
-  return found;
-}
-
-/** Every view the table has, with the viewer each was computed for. */
-function views(table: BlackjackTableOutput): [TableView | undefined, number][] {
-  return [
-    [table.observer, -1],
-    [table.seat0, 0],
-    [table.seat1, 1],
-    [table.seat2, 2],
-  ];
-}
-
-/** Whether no view of the table shows a hole card that is not its viewer's. */
-function nobodySeesAnothersHoleCard(table: BlackjackTableOutput): boolean {
-  const all = views(table);
-  if (!all.every(([view, viewer]) => keepsSecrets(view, viewer))) return false;
-  for (const [mine, seat] of all) {
-    if (seat < 0) continue;
-    for (const [theirs, viewer] of all) {
-      if (viewer !== seat && leaks(mine, theirs, seat) > 0) return false;
-    }
-  }
-  return true;
 }
 
 /** What the player in `seat` does at the head of their own view, if anything. */
@@ -212,12 +173,13 @@ const finished = (view: TableView | undefined) => {
 
 export const alice = pattern<{ setup: Setup }>(({ setup }) => {
   const table = setup.table;
+  const SEAT = 0;
   const noteRevision = new Writable(-1);
   const sit = action(() => table.move.send({ kind: "sit", label: "Alice" }));
   const deal = action(() =>
     table.move.send({ kind: "start", options: { maxrounds: "1" } })
   );
-  const note = action(() => noteRevision.set(table.seat0?.revision ?? -1));
+  const note = action(() => noteRevision.set(table.view?.revision ?? -1));
   const propose_engine_move = action(() =>
     table.move.send({
       kind: "play",
@@ -226,23 +188,23 @@ export const alice = pattern<{ setup: Setup }>(({ setup }) => {
     })
   );
   const step = action(() => {
-    const proposal = nextProposal(table.seat0, 0);
+    const proposal = nextProposal(table.view, 0);
     if (proposal !== undefined) table.move.send(proposal);
   });
 
   const three_seats = assert(() =>
-    table.observer?.seats.length === PLAYERS &&
-    table.observer?.seats[2]?.label === "Carol"
+    table.view?.seats.length === PLAYERS &&
+    table.view?.seats[2]?.label === "Carol"
   );
   const dealt = assert(() =>
-    table.seat0?.phase === "playing" &&
-    (head(table.seat0)?.version ?? 0) > 5 &&
-    head(table.seat0)?.currentPlayerIndex === 0
+    table.view?.phase === "playing" &&
+    (head(table.view)?.version ?? 0) > 5 &&
+    head(table.view)?.currentPlayerIndex === 0
   );
-  const unmoved = assert(() => table.seat0?.revision === noteRevision.get());
-  const secret = assert(() => nobodySeesAnothersHoleCard(table));
-  const own = assert(() => showsOwnHoleCard(table.seat0, 0));
-  const over = assert(() => finished(table.seat0));
+  const unmoved = assert(() => table.view?.revision === noteRevision.get());
+  const secret = assert(() => keepsSecrets(table.view, SEAT));
+  const own = assert(() => showsOwnHoleCard(table.view, 0));
+  const over = assert(() => finished(table.view));
 
   return {
     [TESTS]: [
@@ -275,9 +237,10 @@ export const alice = pattern<{ setup: Setup }>(({ setup }) => {
 
 export const bob = pattern<{ setup: Setup }>(({ setup }) => {
   const table = setup.table;
+  const SEAT = 1;
   const noteRevision = new Writable(-1);
   const sit = action(() => table.move.send({ kind: "sit", label: "Bob" }));
-  const note = action(() => noteRevision.set(table.seat1?.revision ?? -1));
+  const note = action(() => noteRevision.set(table.view?.revision ?? -1));
   const hit_out_of_turn = action(() =>
     table.move.send({ kind: "play", name: "Current Player Hit", arguments: {} })
   );
@@ -288,24 +251,25 @@ export const bob = pattern<{ setup: Setup }>(({ setup }) => {
       kind: "play" as const,
       name: "Current Player Hit",
       arguments: {},
-      proposer: table.observer?.seats[0]?.principal,
-      acting: table.observer?.seats[0]?.principal,
+      proposer: "did:key:somebody-else",
+      acting: "did:key:somebody-else",
+      viewer: 0,
       seat: 0,
     };
     table.move.send(forged as Proposal);
   });
   const step = action(() => {
-    const proposal = nextProposal(table.seat1, 1);
+    const proposal = nextProposal(table.view, 1);
     if (proposal !== undefined) table.move.send(proposal);
   });
 
   const unmoved = assert(() =>
-    table.seat1?.phase === "playing" &&
-    table.seat1?.revision === noteRevision.get()
+    table.view?.phase === "playing" &&
+    table.view?.revision === noteRevision.get()
   );
-  const secret = assert(() => nobodySeesAnothersHoleCard(table));
-  const own = assert(() => showsOwnHoleCard(table.seat1, 1));
-  const over = assert(() => finished(table.seat1));
+  const secret = assert(() => keepsSecrets(table.view, SEAT));
+  const own = assert(() => showsOwnHoleCard(table.view, 1));
+  const over = assert(() => finished(table.view));
 
   return {
     [TESTS]: [
@@ -333,14 +297,15 @@ export const bob = pattern<{ setup: Setup }>(({ setup }) => {
 
 export const carol = pattern<{ setup: Setup }>(({ setup }) => {
   const table = setup.table;
+  const SEAT = 2;
   const sit = action(() => table.move.send({ kind: "sit", label: "Carol" }));
   const step = action(() => {
-    const proposal = nextProposal(table.seat2, 2);
+    const proposal = nextProposal(table.view, 2);
     if (proposal !== undefined) table.move.send(proposal);
   });
-  const secret = assert(() => nobodySeesAnothersHoleCard(table));
-  const own = assert(() => showsOwnHoleCard(table.seat2, 2));
-  const over = assert(() => finished(table.seat2));
+  const secret = assert(() => keepsSecrets(table.view, SEAT));
+  const own = assert(() => showsOwnHoleCard(table.view, 2));
+  const over = assert(() => finished(table.view));
 
   return {
     [TESTS]: [
@@ -364,19 +329,19 @@ export const carol = pattern<{ setup: Setup }>(({ setup }) => {
 export const dave = pattern<{ setup: Setup }>(({ setup }) => {
   const table = setup.table;
   const noteRevision = new Writable(-1);
-  const note = action(() => noteRevision.set(table.observer?.revision ?? -1));
+  const note = action(() => noteRevision.set(table.view?.revision ?? -1));
   const sit_late = action(() => table.move.send({ kind: "sit" }));
   const hit_unseated = action(() =>
     table.move.send({ kind: "play", name: "Current Player Hit", arguments: {} })
   );
   const unmoved = assert(() =>
-    table.observer?.phase === "playing" &&
-    table.observer?.seats.length === PLAYERS &&
-    table.observer?.revision === noteRevision.get()
+    table.view?.phase === "playing" &&
+    table.view?.seats.length === PLAYERS &&
+    table.view?.revision === noteRevision.get()
   );
   // A watcher's view shows nobody's hole card.
-  const secret = assert(() => keepsSecrets(table.observer, -1));
-  const over = assert(() => finished(table.observer));
+  const secret = assert(() => keepsSecrets(table.view, -1));
+  const over = assert(() => finished(table.view));
 
   return {
     [TESTS]: [

@@ -21,6 +21,7 @@ import {
   dealTable,
   emptyTable,
   held,
+  OBSERVER_SEAT,
   stepTable,
   type TableState,
   type TableStep,
@@ -183,8 +184,6 @@ export function replayRecording(
 
   const now = parseInstant(recording.engine.clock);
   if (now === null) return fail(`unreadable clock ${recording.engine.clock}`);
-  // Hold every version, so each is compared in turn.
-  const inputsHeld = recording.versions.length + 1;
 
   let table = emptyTable();
   for (let seat = 0; seat < recording.game.numPlayers; seat++) {
@@ -195,11 +194,15 @@ export function replayRecording(
   }
 
   let compared = -1;
-  /** Compares every version the table holds that has not been compared. */
+  /**
+   * Compares every version the table holds. It holds the versions its last
+   * input produced, so comparing after every input compares each once.
+   */
   const compareNew = (): void => {
-    const all = held(table);
-    all.forEach((at, index) => {
-      if (at.version <= compared) return;
+    held(table).forEach((at) => {
+      if (at.version !== compared + 1) {
+        result.problems.push(`v${at.version} follows v${compared}`);
+      }
       compared = at.version;
       const want = recording.versions[at.version];
       const where = `v${at.version}`;
@@ -229,18 +232,18 @@ export function replayRecording(
           arguments: want.move.arguments,
         },
       );
+      const watched = viewerOutputAt(game, table, at, OBSERVER_SEAT).game;
       check(`${where} status`, {
         settled: at.settled,
-        finished: at.finished,
-        winners: at.finished ? at.winners : [],
+        finished: watched.Finished,
+        winners: watched.Winners,
       }, {
         settled: want.settled,
         finished: want.finished,
         winners: winnersOrEmpty(want.winners),
       });
-      const before = all[index - 1];
       for (const recorded of want.views) {
-        const output = viewerOutputAt(game, table, at, before, recorded.viewer);
+        const output = viewerOutputAt(game, table, at, recorded.viewer);
         const who = `${where} viewer ${recorded.viewer}`;
         result.viewerVersions += 1;
         check(`${who} game`, output.game, recordedGame(recorded.game));
@@ -263,7 +266,6 @@ export function replayRecording(
     variant: recording.game.variant,
     seating: recording.game.seating,
     now,
-    inputsHeld,
   });
   if (dealt.error !== "") return fail(`the deal was refused: ${dealt.error}`);
   table = stored(dealt.table);
@@ -295,7 +297,6 @@ export function replayRecording(
         proposer: replayPrincipal(move.proposer),
         now,
         entropy: () => 0,
-        inputsHeld,
       });
     } else if (move.trigger === "propose") {
       // The admin's proposal: no seat makes one, so it goes to the engine.
@@ -304,12 +305,12 @@ export function replayRecording(
         name: move.name,
         input: {},
         proposer: move.proposer,
-      }, now, inputsHeld);
+      }, now);
     } else if (move.trigger === "seat") {
       step = advanceTable(game, table, {
         kind: "seat",
         player: Number(move.arguments["TargetPlayerIndex"]),
-      }, now, inputsHeld);
+      }, now);
     } else if (move.trigger === "timer") {
       // The recording's clock never advances, so its timers are forced.
       step = advanceTable(
@@ -317,7 +318,6 @@ export function replayRecording(
         table,
         { kind: "timer", force: true },
         now,
-        inputsHeld,
       );
     } else {
       return fail(

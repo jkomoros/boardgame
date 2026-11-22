@@ -1,5 +1,25 @@
 # Memory on Common Fabric: findings
 
+> **Read this first.** These findings were written against the pattern as it
+> was before it moved to labs' viewer-bound release, and the labs commits
+> named below. The pattern has changed since: `seatView` is now `viewFor`,
+> its rule releases to the principal the view was computed for and carries
+> the input witness, and the table starts as `null`.
+> [`../../status/viewer-bound-port.md`](../../status/viewer-bound-port.md)
+> has what ran on the newer labs branch. Against that branch:
+>
+> - **F1** (served handlers unattributed) and **F2** (a record its writer
+>   reads and sets keeps no witness) are fixed there. The seam they left in
+>   `table.tsx` is gone.
+> - **F3** no longer applies: the rule adds `User(viewer)`, not a role or a
+>   space.
+> - **F5** is narrower: the first move still cannot be preceded by a
+>   released view, but the table no longer returns nothing before it.
+> - **F4**, **F6** and **F7** were not rerun.
+> - The latency figures here were measured on the older labs commit. The
+>   same pattern ran about five times faster on the newer one, before any
+>   change to it.
+
 What building `fabric/patterns/memory` showed about the Common Fabric runtime,
 on Deno 2.9.8 and local dev servers (`start-local-dev.sh --port-offset=340`)
 with server execution at its default, on. Two labs commits were used:

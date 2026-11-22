@@ -61,10 +61,10 @@ export interface Outcome {
   winners: number[];
 }
 
-/** One state version, as the table's readers may see it. */
 /**
- * `S` is the state's type for a consumer that wants a narrower one than JSON;
- * the guest's bridge names it.
+ * One state version, as the view's viewer may see it. `S` is the state's
+ * type for a consumer that wants a narrower one than JSON; the guest's
+ * bridge names it.
  */
 export interface ViewEntry<S = JsonObject> {
   version: number;
@@ -77,19 +77,23 @@ export interface ViewEntry<S = JsonObject> {
   outcome: Outcome;
   /** False for a version a fix-up move replaced at once. */
   settled: boolean;
-  /** Keyed by seat as a string; `"-1"` is the observer. */
+  /**
+   * The viewer's own part, under their seat as a string; `"-1"` is whoever
+   * only watches. A view is computed for one viewer and holds no other's.
+   * Empty for a version that is not settled.
+   */
   viewers: Record<string, ViewerPart>;
 }
 
+/** A seat as a view names it: by the name its occupant chose, not by who they are. */
 export interface SeatView {
-  /** The DID of whoever holds the seat. */
-  principal: string;
   label: string;
 }
 
 /**
- * Everything a table releases to its readers: who is seated, and a window of
- * the most recent versions with the move that produced each.
+ * What a table releases to one principal: who is seated, and the versions
+ * the last input produced with the move that made each, as that principal
+ * may see them.
  */
 export interface TableView<S = JsonObject> {
   gameName: string;
@@ -100,10 +104,18 @@ export interface TableView<S = JsonObject> {
   revision: number;
   /** The head game version, or -1 before the deal. */
   version: number;
+  /**
+   * The seat of the principal this view was computed for, or -1 when they
+   * hold none. Every entry is sanitized for this seat.
+   */
+  viewer: number;
   seats: SeatView[];
   minPlayers: number;
   maxPlayers: number;
-  /** Ascending by version; empty before the deal. */
+  /**
+   * The versions the last input produced, ascending: the move a proposal
+   * made and each fix-up after it. Empty before the deal.
+   */
   entries: ViewEntry<S>[];
 }
 
@@ -133,13 +145,6 @@ export interface TableInfo<V = Json> {
   /** What `start` may be given, in the game's own order. Empty for none. */
   setupOptions: SetupOption[];
   /**
-   * How many seats have a view of their own. 0 when every seat sees the same
-   * and the one `view` serves everyone. When positive, the pattern hands the
-   * guest `seat0` to `seat<seatViews - 1>` beside `view`, each a `TableView`
-   * computed for that seat alone (`fabric/guest/PROTOCOL.md`).
-   */
-  seatViews: number;
-  /**
    * Decks, enums, constants and message templates, as Go marshals them. A
    * deck is a list of `{ Index, Values }`, with `Values` of type `V`.
    */
@@ -160,6 +165,14 @@ export interface Proposal {
    * `start` deals. `play` proposes a move of the game. `tick` asks the table
    * to check a timer's deadline against its own clock. `restart` clears a
    * finished table for a new deal.
+   *
+   * TODO(cfc): `tick` exists because nothing wakes a pattern at a time. A
+   * guest that was shown a timer sends it when its own clock runs out, and
+   * the table fires the timer only if its own clock agrees. With a wake at
+   * an instant a pattern's state names (labs
+   * `docs/plans/scheduled-work-in-the-server.md` proposes one on an
+   * interval of minutes, which is too coarse), the table would fire its own
+   * timers and no client would be involved.
    */
   kind: "sit" | "leave" | "start" | "play" | "tick" | "restart";
   /** `sit`: the name to show for the seat. */
