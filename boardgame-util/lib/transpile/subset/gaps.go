@@ -27,12 +27,15 @@ package subset
 // moves.WithRequireExplicitStart, which DefaultRoundSetup's
 // moves.WithManualStart sets; ShuffleDiscardIntoDraw with
 // moves.WithDrawDiscardPairField; DrawToPlayer whose stacks Go infers at boot
-// from a DrawDiscardPair or a single stack), a behavior ported only in part
-// (PlayerColor's OwnsToken, Token, TokenFromDeck and TokenSpaceIndex; a call
-// to one is refused anyway, as unknown-call, since the API table does not
-// list them), and the phase hooks interfaces.BeforeLeavePhaser and
-// BeforeEnterPhaser, which StartPhase does not call. None of the seven
-// example games uses one.
+// from a DrawDiscardPair or a single stack; MoveComponentToSlot without
+// moves.WithSlotField, whose slot field Go discovers at boot as the move's
+// only int property while stockMove requires SlotField in the configuration:
+// memory's Reveal Card and tictactoe's Place Token, the only case an example
+// game hits), a behavior ported only in part (PlayerColor's OwnsToken, Token,
+// TokenFromDeck and TokenSpaceIndex; a call to one is refused anyway, as
+// unknown-call, since the API table does not list them), and the phase hooks
+// interfaces.BeforeLeavePhaser and BeforeEnterPhaser, which StartPhase does
+// not call.
 var EngineGaps = map[string]string{
 	// Stock move types the inventory does not port, or ports but the stock
 	// registry cannot build.
