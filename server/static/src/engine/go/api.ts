@@ -39,6 +39,7 @@ import { EMPTY_SLOT, GENERIC_COMPONENT } from '../ids.ts';
 import type { PropDef } from '../definition.ts';
 import { callStockApply } from '../rules/data.ts';
 import type { BoundEnum } from '../rules/enums.ts';
+import { findMove } from '../rules/state.ts';
 import type { RulesState } from '../rules/state.ts';
 import type { MoveInstance } from '../rules/types.ts';
 import { isStack, isStackError } from '../stack.ts';
@@ -83,7 +84,12 @@ export interface DynamicRef {
  * component's dynamic values, or a component's static values. The component
  * may be null (Go's nil), which panics on use as Go's does.
  */
-export type Owner = 'game' | number | { readonly dynamicOf: Comp | DynamicRef | null } | { readonly valuesOf: Comp | null };
+export type Owner =
+	| 'game'
+	| number
+	| { readonly dynamicOf: Comp | DynamicRef | null }
+	| { readonly valuesOf: Comp | DynamicRef | null }
+	| { readonly fieldsOf: MoveInstance };
 
 /**
  * A grid graph over a range enum (enum/graph: MustNewEnumGridConnectedness),
@@ -182,6 +188,17 @@ export function player(state: RulesState, i: number): SubStateJSON {
 	return state.players[i];
 }
 
+/**
+ * Go: the `players` slice concreteStates builds (and `state.PlayerStates()`
+ * ranged over): every player, as its index, in order. Added for the
+ * translator (workstream 10).
+ */
+export function playerIndexes(state: RulesState): number[] {
+	const out: number[] = [];
+	for (let i = 0; i < state.numPlayers(); i++) out.push(i);
+	return out;
+}
+
 function requireStackProp(prop: PropDef | undefined, where: string): void {
 	if (!prop || (prop.Type !== 'stack' && prop.Type !== 'sizedStack' && prop.Type !== 'mergedStack')) {
 		throw new Error('go/api: ' + where + ' is not a stack property');
@@ -264,7 +281,7 @@ export function componentAtKey(s: StackRef, key: number): Comp | null {
  * A generic component of a deck with no generic values has nil values in
  * Go, and the type assertion panics; that throws here too, with its own text.
  */
-export function values(state: RulesState, c: Comp | null): Readonly<Record<string, unknown>> {
+export function values(state: RulesState, c: Comp | DynamicRef | null): Readonly<Record<string, unknown>> {
 	if (c === null) nilDeref();
 	if (c.index === GENERIC_COMPONENT) {
 		const generic = state.game.spec.decks[c.deck]?.generic ?? state.game.def.Decks[c.deck]?.GenericValues;
@@ -322,16 +339,74 @@ export function dynamic(state: RulesState, c: Comp | DynamicRef | null): SubStat
 }
 
 /**
+ * Go: `c.Values().(*T)` as a value Go code holds: the handle a translated
+ * values struct is (its fields are then read with `values(state, h)`),
+ * after the checks Go's call and type assertion make: Go's nil-dereference
+ * panic for a nil c, and values()'s throw for a generic component with no
+ * values. Added for the translator (workstream 10).
+ */
+export function valuesOf(state: RulesState, c: Comp | DynamicRef | null): DynamicRef {
+	if (c === null) nilDeref();
+	values(state, c);
+	return c;
+}
+
+/**
+ * Go: `c.DynamicValues().(*T)` as a value Go code holds: the handle a
+ * translated dynamic values struct is (`dynamic(state, h)` reads and writes
+ * it), after dynamic()'s checks. Added for the translator (workstream 10).
+ */
+export function dynamicOf(state: RulesState, c: Comp | DynamicRef | null): DynamicRef {
+	if (c === null) nilDeref();
+	dynamic(state, c);
+	return c;
+}
+
+/**
+ * Go: `c.DynamicValues().(*dice.DynamicValue).Roll(state.Rand())`: one roll
+ * of the die c from the state's generator, as components/dice does it (and
+ * lib/dice.ts `rollWith`, which the facade may not import): one draw of
+ * Intn(len(Faces)) becomes SelectedFace, Value becomes that face, RollCount
+ * goes up by one; a die whose static values have no Faces does not roll.
+ * Go's nil-dereference panic for a nil c. Added for the translator
+ * (workstream 10).
+ */
+export function diceRoll(state: RulesState, c: Comp | DynamicRef | null): void {
+	if (c === null) nilDeref();
+	const d = dynamic(state, c);
+	const faces = values(state, c).Faces;
+	if (!Array.isArray(faces)) return;
+	const face = state.rand().intn(faces.length);
+	d.SelectedFace = face;
+	d.Value = faces[face];
+	d.RollCount = (d.RollCount as number) + 1;
+}
+
+/**
  * Go: `c.ContainingImmutableStack()`: where the component is now, as Go's
  * three results (stack, slot, error). The stack is null when err is not.
- * The answer is from the state the component was read from.
+ * The answer is from the state the component was read from. A DynamicRef
+ * (Go's `c.ContainingComponent().ImmutableInstance(state)` in a values
+ * method, added for the translator) is located in `state`.
  */
-export function containingStack(state: RulesState, c: Comp | null): [StackRef | null, number, string | null] {
-	void state;
+export function containingStack(state: RulesState, c: Comp | DynamicRef | null): [StackRef | null, number, string | null] {
 	if (c === null) nilDeref();
-	const found = locate(c);
+	const owner = 'stack' in c ? c.stack.state : state;
+	const found = owner.engine.locateComponent(c.deck, c.index);
 	if (typeof found === 'string') return [null, 0, found];
-	return [refOf(c.stack.state, found.stack), found.slotIndex, null];
+	return [refOf(owner, found.stack), found.slotIndex, null];
+}
+
+/**
+ * Go: `c.Values() == nil`: a generic component of a deck with no generic
+ * values (Go's Values() is then nil; values() throws for it). Go's
+ * nil-dereference panic for a nil c. Added for the translator (workstream 10).
+ */
+export function valuesAreNil(state: RulesState, c: Comp | DynamicRef | null): boolean {
+	if (c === null) nilDeref();
+	if (c.index !== GENERIC_COMPONENT) return false;
+	const generic = state.game.spec.decks[c.deck]?.generic ?? state.game.def.Decks[c.deck]?.GenericValues;
+	return generic === undefined || generic === null;
 }
 
 // ----- moving components --------------------------------------------------
@@ -555,8 +630,12 @@ function isDynamicOwner(owner: Owner): owner is { readonly dynamicOf: Comp | Dyn
 	return typeof owner === 'object' && 'dynamicOf' in owner;
 }
 
-function isValuesOwner(owner: Owner): owner is { readonly valuesOf: Comp | null } {
+function isValuesOwner(owner: Owner): owner is { readonly valuesOf: Comp | DynamicRef | null } {
 	return typeof owner === 'object' && 'valuesOf' in owner;
+}
+
+function isFieldsOwner(owner: Owner): owner is { readonly fieldsOf: MoveInstance } {
+	return typeof owner === 'object' && 'fieldsOf' in owner;
 }
 
 /** The JSON object an owner's properties live in. */
@@ -564,6 +643,7 @@ function ownerNode(state: RulesState, owner: Owner): Readonly<Record<string, unk
 	if (owner === 'game') return state.g;
 	if (typeof owner === 'number') return player(state, owner);
 	if (isDynamicOwner(owner)) return dynamic(state, owner.dynamicOf);
+	if (isFieldsOwner(owner)) return owner.fieldsOf.fields;
 	return values(state, owner.valuesOf);
 }
 
@@ -578,6 +658,7 @@ function enumOf(state: RulesState, owner: Owner, prop: string): BoundEnum {
 	if (owner === 'game') name = def.Game.Props[prop]?.Enum;
 	else if (typeof owner === 'number') name = def.Player.Props[prop]?.Enum;
 	else if (isDynamicOwner(owner)) name = def.DynamicComponentValues[owner.dynamicOf!.deck]?.Props[prop]?.Enum;
+	else if (isFieldsOwner(owner)) name = findMove(state.game, owner.fieldsOf.name)?.fields[prop]?.enum;
 	else {
 		const deck = owner.valuesOf!.deck;
 		name = state.game.components[deck]?.[prop]?.Enum ?? def.Decks[deck]?.ComponentProps?.[prop]?.Enum;

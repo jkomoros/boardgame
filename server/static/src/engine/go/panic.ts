@@ -37,6 +37,17 @@ export function nilDeref(): never {
 	throw new Error(NIL_DEREF_TEXT);
 }
 
+/**
+ * Go: using an interface or pointer value that may be nil where Go would
+ * dereference it (a nil Stack's method, a nil Move passed to a timer, a nil
+ * error's Error()). x itself, or Go's nil-dereference panic. Added for the
+ * translator (workstream 10).
+ */
+export function nonNil<T>(x: T | null): T {
+	if (x === null) nilDeref();
+	return x;
+}
+
 /** Go: the panic of `a / 0` or `a % 0`. Throws DIVIDE_BY_ZERO_TEXT. */
 export function divideByZero(): never {
 	throw new Error(DIVIDE_BY_ZERO_TEXT);
