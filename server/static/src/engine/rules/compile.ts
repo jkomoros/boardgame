@@ -5,8 +5,11 @@
 
 import { GROUP_ALL, parseSanitizeTag } from '../definition.ts';
 import type { DeckDef, EnumDef, GameDefinition, PolicyName, PropDef, SubStateDef } from '../definition.ts';
+import type { LegalContext, LegalMove, LegalState } from '../legal/access.ts';
 import { defaultLegalRegistry } from '../legal/catalog.ts';
+import { resolveLegalPath } from '../legal/path.ts';
 import { type LegalCustom, buildLegalPlan, contributedPreconditions } from '../legal/plan.ts';
+import { type LegalPredicateConstructor, newLegalPredicate } from '../legal/predicate.ts';
 import { mergeLegalTemplates } from '../legal/templates.ts';
 import type { LegalSpec } from '../legal/types.ts';
 import { loadEngineState } from '../state.ts';
@@ -19,7 +22,9 @@ import { sha256Hex } from './sha256.ts';
 import { type ChoiceSchemaItem, type CompiledGame, type CompiledMove, type InputField, rulesOf, newRulesState } from './state.ts';
 import type { RulesState } from './state.ts';
 import { syncTimerRecords } from './timers.ts';
-import type { GameRecord, GameSpec, InputCodec, MoveFieldSpec, MoveSpec, SubStateSpec, VariantKeySpec } from './types.ts';
+import type {
+	GamePredicateConstructor, GameRecord, GameSpec, InputCodec, MoveFieldSpec, MoveInstance, MoveSpec, PredicateContext, SubStateSpec, VariantKeySpec,
+} from './types.ts';
 
 export interface GameSpecError extends Error {
 	readonly name: 'GameSpecError';
@@ -391,6 +396,58 @@ export function newVariant(spec: GameSpec, given: Readonly<Record<string, string
 	return Object.keys(result).length === 0 ? null : result;
 }
 
+// ----- game-registered predicates ----------------------------------------
+
+/**
+ * The PredicateContext a game predicate's evaluate gets, over the plan's
+ * LegalContext: the RulesState and MoveInstance the context was bound from
+ * (rules/state.ts legalContext tags both), and Go's ResolvePath.
+ */
+function predicateContext(ctx: LegalContext): PredicateContext {
+	const state = (ctx.state as (LegalState & { rules?: RulesState }) | null)?.rules;
+	if (state === undefined) throw new Error('game predicate: the legal context was not built from an engine state');
+	const move = (ctx.move as (LegalMove & { instance?: MoveInstance }) | null)?.instance ?? null;
+	return {
+		state,
+		move,
+		proposer: ctx.proposer,
+		resolvePath(path) {
+			const resolved = resolveLegalPath(path, ctx);
+			return resolved.ok ? [resolved.value.value, resolved.value.type, null] : [null, 'TypeIllegal', resolved.error];
+		},
+	};
+}
+
+/**
+ * Go: one entry of ConfigurePredicateConstructors, as a registry
+ * constructor. The game's constructor gets the spec; what it returns is the
+ * predicate, with Go's zero values for the metadata it leaves out, and its
+ * evaluate run over predicateContext. A constructor error (thrown or
+ * returned) is thrown, and resolveLegalSpecs wraps it in Go's text.
+ */
+export function gamePredicateConstructor(name: string, construct: GamePredicateConstructor): LegalPredicateConstructor {
+	return {
+		name,
+		construct(spec) {
+			const built = construct({ name: spec.name, args: spec.args ? [...spec.args] : [], message: spec.message ?? '' });
+			if (typeof built === 'string') throw new Error(built);
+			const evaluate = built.evaluate;
+			return newLegalPredicate({
+				name: built.name,
+				args: built.args ? [...built.args] : [],
+				reads: [...built.reads],
+				cost: built.cost ?? 0,
+				requiredReadTypes: built.requiredReadTypes,
+				allowedReadTypes: built.allowedReadTypes,
+				usesProposer: built.usesProposer === true,
+				emittedTemplates: built.emittedTemplates ? [...built.emittedTemplates] : [],
+				emittedBindings: built.emittedBindings ?? null,
+				evaluate: ctx => evaluate(predicateContext(ctx)),
+			});
+		},
+	};
+}
+
 // ----- the game -----------------------------------------------------------
 
 function subStateDef(spec: SubStateSpec): SubStateDef {
@@ -431,7 +488,7 @@ export function compileGame(spec: GameSpec): CompiledGame {
 	const enums = newEnumRegistry(chestEnums, componentEnums);
 	const phaseEnum = enums.get(chestEnums.phase ? 'phase' : 'Phase');
 	const templates = mergeLegalTemplates(spec.legalTemplates);
-	const registry = defaultLegalRegistry();
+	const registry = defaultLegalRegistry(...(spec.predicates ?? []).map(item => gamePredicateConstructor(item.name, item.construct)));
 
 	const names: Record<string, boolean> = {};
 	const noProgressionMoves: Record<string, boolean> = {};

@@ -102,6 +102,11 @@ type GameData struct {
 	LegalTemplates map[string]string
 	// Predicates are the custom legal predicate constructors.
 	Predicates []PredicateData
+	// ComponentLegal is deck name to the Legal method
+	// (interfaces.LegalComponent) of that deck's component values type,
+	// which moves.DefaultComponent calls; role RoleComponent. Omitted when
+	// no deck's values have one. The static half fills it.
+	ComponentLegal map[string]FnRef `json:",omitempty"`
 	// Moves are in registration order.
 	Moves []MoveData
 	SetUp SetUpData
