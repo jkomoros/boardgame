@@ -70,7 +70,9 @@ export interface DeckDef {
 	Components?: readonly unknown[];
 	/**
 	 * What Deck.SetGenericValues set: the values a generic (sanitized)
-	 * component shows. Absent or null: none. Not yet used by the core.
+	 * component shows. Absent or null: none. compileGame writes it from
+	 * DeckSpec.generic, only when set; the rules layer reads it through
+	 * `state.component(deck, GENERIC_COMPONENT)`. The core does not use it.
 	 */
 	GenericValues?: Readonly<Record<string, unknown>> | null;
 	/**

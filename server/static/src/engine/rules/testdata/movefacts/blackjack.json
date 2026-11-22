@@ -1,0 +1,1006 @@
+[
+	{
+		"Name": "Shuffle Discard Into Draw",
+		"HelpText": "When the draw deck is empty, shuffles the discard deck into draw deck.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Seat Player",
+		"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Activate Inactive Player - Gathering",
+		"HelpText": "Activates any players who are not currently active.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Wait For Enough Players - Gathering",
+		"HelpText": "Waits until at least target count players are active and seated before applying itself",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Inactivate Empty Seat - Gathering",
+		"HelpText": "Marks any empty seats as being inactive, so other game logic will skip them",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Begin Game",
+		"HelpText": "Enters phase Initial Deal",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Start Round Cleanup",
+		"HelpText": "When all players have finished, transitions to round cleanup.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "inPhase",
+					"args": [
+						"2"
+					]
+				},
+				{
+					"name": "allActivePlayers",
+					"sub": [
+						{
+							"name": "any",
+							"sub": [
+								{
+									"name": "playerBool",
+									"args": [
+										"Eliminated"
+									]
+								},
+								{
+									"name": "playerBool",
+									"args": [
+										"Stood"
+									]
+								}
+							]
+						}
+					],
+					"message": "cleanup.players_unfinished"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Current Player Hit",
+		"HelpText": "The current player hits, drawing a card.",
+		"IsFixUp": false,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "inPhase",
+					"args": [
+						"2"
+					]
+				},
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "mayMoveFirstTo",
+					"args": [
+						"game.DrawStack",
+						"player.VisibleHand"
+					]
+				},
+				{
+					"name": "playerBool",
+					"args": [
+						"Eliminated",
+						"false"
+					],
+					"message": "hit.already_busted"
+				},
+				{
+					"name": "stackNotEmpty",
+					"args": [
+						"game.DrawStack"
+					],
+					"message": "hit.no_cards_left"
+				}
+			],
+			"HasCustom": true
+		}
+	},
+	{
+		"Name": "Current Player Stand",
+		"HelpText": "If the current player no longer wants to draw cards, they can stand.",
+		"IsFixUp": false,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "inPhase",
+					"args": [
+						"2"
+					]
+				},
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "playerBool",
+					"args": [
+						"Eliminated",
+						"false"
+					],
+					"message": "stand.already_busted"
+				},
+				{
+					"name": "playerBool",
+					"args": [
+						"Stood",
+						"false"
+					],
+					"message": "stand.already_stood"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Reveal Hidden Card",
+		"HelpText": "Reveals the hidden card in the user's hand",
+		"IsFixUp": true,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "inPhase",
+					"args": [
+						"2"
+					]
+				},
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "stackNotEmpty",
+					"args": [
+						"player.HiddenHand"
+					],
+					"message": "reveal.no_hidden_card"
+				}
+			],
+			"HasCustom": true
+		}
+	},
+	{
+		"Name": "Finish Turn",
+		"HelpText": "When the current player has either busted or decided to stand, we advance to next player.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Force Finish Turn",
+		"HelpText": "Admin-only: end the current player's turn even if TurnDone() would refuse. Used by host SkipTurn in Table+Hand mode.",
+		"IsFixUp": false,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Activate Inactive Player",
+		"HelpText": "Activates any players who are not currently active.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			1
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "serial",
+					"Children": [
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Activate Inactive Player"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						},
+						{
+							"Kind": "move",
+							"Name": "Wait For Enough Players"
+						},
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Inactivate Empty Seat"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						}
+					]
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Hidden Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Visible Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Phase Normal Play"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Wait For Enough Players",
+		"HelpText": "Waits until at least target count players are active and seated before applying itself",
+		"IsFixUp": true,
+		"LegalPhases": [
+			1
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "serial",
+					"Children": [
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Activate Inactive Player"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						},
+						{
+							"Kind": "move",
+							"Name": "Wait For Enough Players"
+						},
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Inactivate Empty Seat"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						}
+					]
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Hidden Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Visible Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Phase Normal Play"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Inactivate Empty Seat",
+		"HelpText": "Marks any empty seats as being inactive, so other game logic will skip them",
+		"IsFixUp": true,
+		"LegalPhases": [
+			1
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "serial",
+					"Children": [
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Activate Inactive Player"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						},
+						{
+							"Kind": "move",
+							"Name": "Wait For Enough Players"
+						},
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Inactivate Empty Seat"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						}
+					]
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Hidden Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Visible Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Phase Normal Play"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Deal Initial Hidden Card",
+		"HelpText": "Deals a hidden card to each player",
+		"IsFixUp": true,
+		"LegalPhases": [
+			1
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "serial",
+					"Children": [
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Activate Inactive Player"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						},
+						{
+							"Kind": "move",
+							"Name": "Wait For Enough Players"
+						},
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Inactivate Empty Seat"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						}
+					]
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Hidden Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Visible Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Phase Normal Play"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Deal Initial Visible Card",
+		"HelpText": "Deals a visible card to each player",
+		"IsFixUp": true,
+		"LegalPhases": [
+			1
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "serial",
+					"Children": [
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Activate Inactive Player"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						},
+						{
+							"Kind": "move",
+							"Name": "Wait For Enough Players"
+						},
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Inactivate Empty Seat"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						}
+					]
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Hidden Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Visible Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Phase Normal Play"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Start Phase Normal Play",
+		"HelpText": "Enters phase Normal Play",
+		"IsFixUp": true,
+		"LegalPhases": [
+			1
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "serial",
+					"Children": [
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Activate Inactive Player"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						},
+						{
+							"Kind": "move",
+							"Name": "Wait For Enough Players"
+						},
+						{
+							"Kind": "repeat",
+							"Child": {
+								"Kind": "move",
+								"Name": "Inactivate Empty Seat"
+							},
+							"Count": {
+								"Kind": "between",
+								"Min": 0,
+								"Max": 1
+							}
+						}
+					]
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Hidden Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Deal Initial Visible Card"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Phase Normal Play"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Accumulate Scores",
+		"HelpText": "Adds each player's hand value to their total score.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			3
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "move",
+					"Name": "Accumulate Scores"
+				},
+				{
+					"Kind": "move",
+					"Name": "Collect Cards"
+				},
+				{
+					"Kind": "move",
+					"Name": "Reset Player For New Round"
+				},
+				{
+					"Kind": "move",
+					"Name": "Increment Rounds Completed"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Next Round"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Collect Cards",
+		"HelpText": "Collects all cards from players back to the discard pile.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			3
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "move",
+					"Name": "Accumulate Scores"
+				},
+				{
+					"Kind": "move",
+					"Name": "Collect Cards"
+				},
+				{
+					"Kind": "move",
+					"Name": "Reset Player For New Round"
+				},
+				{
+					"Kind": "move",
+					"Name": "Increment Rounds Completed"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Next Round"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Reset Player For New Round",
+		"HelpText": "Resets player flags for the next round.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			3
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "move",
+					"Name": "Accumulate Scores"
+				},
+				{
+					"Kind": "move",
+					"Name": "Collect Cards"
+				},
+				{
+					"Kind": "move",
+					"Name": "Reset Player For New Round"
+				},
+				{
+					"Kind": "move",
+					"Name": "Increment Rounds Completed"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Next Round"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Increment Rounds Completed",
+		"HelpText": "Increments the round counter.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			3
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "move",
+					"Name": "Accumulate Scores"
+				},
+				{
+					"Kind": "move",
+					"Name": "Collect Cards"
+				},
+				{
+					"Kind": "move",
+					"Name": "Reset Player For New Round"
+				},
+				{
+					"Kind": "move",
+					"Name": "Increment Rounds Completed"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Next Round"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Start Next Round",
+		"HelpText": "Enters phase Initial Deal",
+		"IsFixUp": true,
+		"LegalPhases": [
+			3
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "move",
+					"Name": "Accumulate Scores"
+				},
+				{
+					"Kind": "move",
+					"Name": "Collect Cards"
+				},
+				{
+					"Kind": "move",
+					"Name": "Reset Player For New Round"
+				},
+				{
+					"Kind": "move",
+					"Name": "Increment Rounds Completed"
+				},
+				{
+					"Kind": "move",
+					"Name": "Start Next Round"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	}
+]

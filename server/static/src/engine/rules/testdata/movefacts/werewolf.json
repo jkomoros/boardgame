@@ -1,0 +1,309 @@
+[
+	{
+		"Name": "Seat Player",
+		"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Activate Inactive Player - Gathering",
+		"HelpText": "Activates any players who are not currently active.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Wait For Enough Players - Gathering",
+		"HelpText": "Waits until at least target count players are active and seated before applying itself",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Inactivate Empty Seat - Gathering",
+		"HelpText": "Marks any empty seats as being inactive, so other game logic will skip them",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Begin Game",
+		"HelpText": "Starts the day phase and assigns roles among seated players.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			0
+		],
+		"Progression": {
+			"Kind": "serial",
+			"Children": [
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Activate Inactive Player - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Wait For Enough Players - Gathering"
+				},
+				{
+					"Kind": "repeat",
+					"Child": {
+						"Kind": "move",
+						"Name": "Inactivate Empty Seat - Gathering"
+					},
+					"Count": {
+						"Kind": "between",
+						"Min": 0,
+						"Max": 1
+					}
+				},
+				{
+					"Kind": "move",
+					"Name": "Begin Game"
+				}
+			]
+		},
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Cast Vote",
+		"HelpText": "Vote for a player to eliminate.",
+		"IsFixUp": false,
+		"LegalPhases": [
+			1
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Resolve Votes",
+		"HelpText": "Tallies votes, eliminates the chosen player, and transitions to the next phase.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			1
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Resolve Day Votes on Timeout",
+		"HelpText": "Resolves the daytime deadline using votes cast so far.",
+		"IsFixUp": false,
+		"LegalPhases": [
+			1
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Cast Night Vote",
+		"HelpText": "Werewolves choose a target to eliminate.",
+		"IsFixUp": false,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Resolve Night Votes",
+		"HelpText": "Tallies werewolf votes, eliminates the target, and transitions to day.",
+		"IsFixUp": true,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Resolve Night Votes on Timeout",
+		"HelpText": "Resolves the nighttime deadline using votes cast so far.",
+		"IsFixUp": false,
+		"LegalPhases": [
+			2
+		],
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	}
+]

@@ -1,0 +1,122 @@
+[
+	{
+		"Name": "Seat Player",
+		"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Activate Inactive Player",
+		"HelpText": "Activates any players who are not currently active.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Roll Dice",
+		"HelpText": "Rolls the dice for the current player",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "playerBool",
+					"args": [
+						"DieCounted"
+					],
+					"message": "pig.roll_not_counted"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Done Turn",
+		"HelpText": "Played when a player is done with their turn and wants to keep their score.",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "playerBool",
+					"args": [
+						"DieCounted"
+					],
+					"message": "pig.done_roll_not_counted"
+				},
+				{
+					"name": "playerBool",
+					"args": [
+						"Done",
+						"false"
+					],
+					"message": "pig.already_done"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Count Die",
+		"HelpText": "After a die has been rolled, tabulating its impact",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "playerBool",
+					"args": [
+						"DieCounted",
+						"false"
+					],
+					"message": "pig.roll_already_counted"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Finish Turn",
+		"HelpText": "Advance to the next player when the current player has busted or said they are done.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	}
+]
