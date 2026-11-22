@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -14,8 +17,9 @@ import (
 type fuzzCmd struct {
 	baseSubCommand
 
-	FuzzRun    fuzzRun
-	FuzzCorpus fuzzCorpus
+	FuzzRun      fuzzRun
+	FuzzCorpus   fuzzCorpus
+	FuzzCoverage fuzzCoverage
 }
 
 func (c *fuzzCmd) Run(p writ.Path, positional []string) {
@@ -38,6 +42,7 @@ func (c *fuzzCmd) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&c.FuzzRun,
 		&c.FuzzCorpus,
+		&c.FuzzCoverage,
 	}
 }
 
@@ -265,4 +270,108 @@ func (c *fuzzCorpus) Run(p writ.Path, positional []string) {
 	}
 	fmt.Print(index.Text())
 	fmt.Printf("Wrote %d documents and %s to %s\n", len(configs), fuzz.CorpusIndexFile, filepath.Join(root, filepath.FromSlash(fuzz.CorpusDir)))
+}
+
+type fuzzCoverage struct {
+	baseSubCommand
+
+	Game    string
+	Dir     string
+	Blocks  bool
+	Profile string
+	Work    string
+	JSON    bool
+	Root    string
+}
+
+func (c *fuzzCoverage) Name() string {
+	return "coverage"
+}
+
+func (c *fuzzCoverage) Description() string {
+	return "Reports what a fuzz corpus covers: moves, predicate verdicts, hidden properties and, optionally, Go blocks"
+}
+
+func (c *fuzzCoverage) HelpText() string {
+	return c.Name() + ` reads the documents of --game (default: every game found) under --dir (default: the checked-in conformance/fuzz) and reports, per game: for each move type the times it was applied, proposed and refused; for each precondition of each declared plan the pass, fail and unknown verdicts recorded; and for each property some viewer is not shown, how often a viewer other than its owner was sent it sanitized while it held a non-zero value. Then the gaps: moves never applied or never refused, predicates missing a verdict, hidden properties never sanitized while non-zero.
+
+With --blocks it also measures Go block coverage of each game's package over the checked-in corpus: it builds this command with go build -cover (instrumenting itself and examples/...), runs fuzz corpus --check with GOCOVERDIR set, converts the counters with go tool covdata textfmt, and lists the hand-written functions with an unreached block. Run it as ./scripts/go-local run ./boardgame-util fuzz coverage --blocks so the build shares the cache. --work DIR keeps the binary, counters and profile (default: a temporary directory, removed afterwards). --profile FILE uses an existing text profile instead of building one.`
+}
+
+func (c *fuzzCoverage) WritOptions() []*writ.Option {
+	return []*writ.Option{
+		{Names: []string{"game"}, Description: "The game to report (default: every game in the directory).", Decoder: writ.NewOptionDecoder(&c.Game), Placeholder: "GAME"},
+		{Names: []string{"dir"}, Description: "The documents' directory, holding <game>/seed-NNNN.json.gz (default: the checked-in conformance/fuzz).", Decoder: writ.NewOptionDecoder(&c.Dir), Placeholder: "DIR"},
+		{Names: []string{"blocks"}, Description: "Also measure Go block coverage of each game's package over the checked-in corpus.", Decoder: writ.NewFlagDecoder(&c.Blocks), Flag: true},
+		{Names: []string{"profile"}, Description: "A text coverage profile to read Go blocks from, instead of building one.", Decoder: writ.NewOptionDecoder(&c.Profile), Placeholder: "FILE"},
+		{Names: []string{"work"}, Description: "Where --blocks keeps the instrumented binary, counters and profile.", Decoder: writ.NewOptionDecoder(&c.Work), Placeholder: "DIR"},
+		{Names: []string{"json"}, Description: "Print the reports as JSON.", Decoder: writ.NewFlagDecoder(&c.JSON), Flag: true},
+		{Names: []string{"root"}, Description: "The boardgame repository root. Defaults to the one containing the working directory.", Decoder: writ.NewOptionDecoder(&c.Root), Placeholder: "DIR"},
+	}
+}
+
+func (c *fuzzCoverage) Run(p writ.Path, positional []string) {
+	if len(positional) > 0 {
+		exitHelp(p.Last(), errors.New(c.Name()+" doesn't take any positional parameters"))
+	}
+	root := c.Root
+	if root == "" {
+		found, err := boardgameRepoRoot()
+		if err != nil {
+			c.Base().errAndQuit(err.Error())
+		}
+		root = found
+	}
+	dir := c.Dir
+	if dir == "" {
+		dir = filepath.Join(root, filepath.FromSlash(fuzz.CorpusDir))
+	}
+	docs, err := fuzz.LoadDocuments(dir, c.Game)
+	if err != nil {
+		c.Base().errAndQuit(err.Error())
+	}
+	profile := c.Profile
+	if c.Blocks && profile == "" {
+		work := c.Work
+		if work == "" {
+			if work, err = os.MkdirTemp("", "boardgame-fuzz-coverage-"); err != nil {
+				c.Base().errAndQuit(err.Error())
+			}
+			defer os.RemoveAll(work)
+		} else if err := os.MkdirAll(work, 0755); err != nil {
+			c.Base().errAndQuit(err.Error())
+		}
+		if profile, err = fuzz.BuildBlockProfile(root, work, "", commandStderr); err != nil {
+			c.Base().errAndQuit("Couldn't measure block coverage: " + err.Error())
+		}
+	}
+	games := make([]string, 0, len(docs))
+	for game := range docs {
+		games = append(games, game)
+	}
+	sort.Strings(games)
+	var reports []fuzz.Report
+	for _, game := range games {
+		report, err := fuzz.Coverage(docs[game])
+		if err != nil {
+			c.Base().errAndQuit(err.Error())
+		}
+		if profile != "" {
+			if report.Blocks, err = fuzz.ReadBlockCoverage(profile, root, game); err != nil {
+				c.Base().errAndQuit(err.Error())
+			}
+		}
+		reports = append(reports, report)
+	}
+	if c.JSON {
+		blob, err := json.MarshalIndent(reports, "", "  ")
+		if err != nil {
+			c.Base().errAndQuit(err.Error())
+		}
+		fmt.Fprintln(commandStdout, string(blob))
+		return
+	}
+	for _, report := range reports {
+		fmt.Fprintln(commandStdout, report.Text())
+	}
 }
