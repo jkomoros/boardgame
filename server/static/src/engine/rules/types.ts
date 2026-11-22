@@ -60,6 +60,14 @@ export interface DeckSpec {
 	 * honored by compileGame.
 	 */
 	generic?: Readonly<Record<string, unknown>> | null;
+	/**
+	 * interfaces.LegalComponent: the components' Legal(state, legalType)
+	 * method, for moves.DefaultComponent. `index` is the deck index;
+	 * `legalType` is the configured legal type's key, or null where Go
+	 * passes nil. Null when legal, else the reason. Absent: the components
+	 * do not implement it.
+	 */
+	componentLegal?: (state: RulesState, index: number, legalType: number | null) => string | null;
 }
 
 export interface SubStateSpec {
@@ -111,6 +119,11 @@ export interface PlayerTraits {
 	 * other players. Viewers get a computed RoleValue where they may see it.
 	 */
 	role?: boolean;
+	/**
+	 * behaviors.PlayerColor: enum property Color (enum "color"). Viewers get
+	 * the computed ColorValue where they may see it, and AvailableColors.
+	 */
+	color?: boolean;
 	/** A GameScore() method (behaviors.ScoreBehavior reads property Score). */
 	gameScore?: (state: RulesState, player: number) => number;
 	turn?: TurnHooks;

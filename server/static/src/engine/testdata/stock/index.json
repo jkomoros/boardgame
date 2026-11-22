@@ -1,0 +1,37 @@
+[
+ {
+  "covers": "every deal, collect and move-components move; ShuffleStack; StartPhase; DefaultComponent with and without a legal type; FinishTurn; Done; PlayerColor and ComponentColor; the game's end",
+  "file": "stockgame-full.json.gz",
+  "game": "stockgame",
+  "name": "stockgame: a full two-player game",
+  "versions": 71
+ },
+ {
+  "covers": "the deal and collect moves with three players and an uneven deck; DefaultComponent refusing an odd slot",
+  "file": "stockgame-three.json.gz",
+  "game": "stockgame",
+  "name": "stockgame: three players, a few placements",
+  "versions": 51
+ },
+ {
+  "covers": "SeatPlayer, InactivateEmptySeat, ActivateFilledSeat, CloseAllSeats, ActivateEmptySeat, CloseEmptySeat",
+  "file": "seatgame-seated.json.gz",
+  "game": "seatgame",
+  "name": "seatgame: two of four seats filled",
+  "versions": 17
+ },
+ {
+  "covers": "CloseAllSeats refused below its target count, then accepted",
+  "file": "seatgame-slow.json.gz",
+  "game": "seatgame",
+  "name": "seatgame: one seat, then a second",
+  "versions": 14
+ },
+ {
+  "covers": "the seat moves in a game that never seats players",
+  "file": "seatgame-unseated.json.gz",
+  "game": "seatgame",
+  "name": "seatgame: no seating",
+  "versions": 1
+ }
+]

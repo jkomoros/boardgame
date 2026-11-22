@@ -479,10 +479,21 @@ export function shuffleDiscardIntoDraw(options: { name?: string; helpText?: stri
 	};
 }
 
-/** What a reusable move contributes to a MoveSpec: spread it in, and call `apply` from your own apply. */
+/**
+ * What a reusable move contributes to a MoveSpec: spread it in, and call
+ * `apply` from your own apply. `legal` is the stock Legal (its checks are
+ * all in the plan, so it is `base()`), for a game move that overrides Legal
+ * and calls the embedded one.
+ */
 export type MoveParts = Pick<MoveSpec, 'base' | 'planEnabled' | 'contributes' | 'sourceProperty' | 'destinationProperty'> & {
 	apply: (state: RulesState, move: MoveInstance) => void;
+	legal: (state: RulesState, move: MoveInstance, proposer: number, base: () => LegalResult) => LegalResult;
 };
+
+/** The stock Legal of a move whose own checks are only the base ones (moves.Default.Legal). */
+export function baseLegal(_state: RulesState, _move: MoveInstance, _proposer: number, base: () => LegalResult): LegalResult {
+	return base();
+}
 
 /**
  * moves.DrawToPlayer: the current player draws the top component of a game
@@ -494,6 +505,7 @@ export function drawToPlayer(options: { gameStack: string; playerStack: string }
 		base: 'currentPlayer',
 		planEnabled: true,
 		contributes: base => [...base, mayMoveFirstTo('game.' + options.gameStack, 'player.' + options.playerStack)],
+		legal: baseLegal,
 		apply(state) {
 			const source = state.gameStack(options.gameStack);
 			const current = state.currentPlayerIndex();
@@ -559,12 +571,656 @@ export function moveComponentToSlot(options: { source: string; destination: stri
 			}
 			return [...specs, mayMoveFirstToSlot(legalPath(source), legalPath(destination), slot)];
 		},
+		legal: baseLegal,
 		apply(state, move) {
 			const from = resolveStack(state, move, source);
 			const to = resolveStack(state, move, destination);
 			const index = options.sourceSlotField ? (move.fields[options.sourceSlotField] as number) : from.firstComponentIndex();
 			if (index < 0 || from.componentAt(index) === null) throw new Error('there was no component to move');
 			from.moveComponent(index, to, move.fields[options.slotField] as number);
+		},
+	};
+}
+
+// ===== workstream 9: every stock move as parts, and the rest of moves/ ====
+
+/**
+ * A stock move's callable parts: the spec to spread, and its Apply, Legal
+ * and DefaultsForState as functions a game move that overrides one of them
+ * calls where its Go calls the embedded stock method. `legal` is always
+ * present (`base()` for a stock move whose Legal is moves.Default's).
+ * Structurally the same as stockRegistry.ts's StockParts.
+ */
+export interface StockMoveParts {
+	spec: MoveSpec;
+	apply: (state: RulesState, move: MoveInstance) => void;
+	legal: (state: RulesState, move: MoveInstance, proposer: number, base: () => LegalResult) => LegalResult;
+	defaults?: (state: RulesState, move: MoveInstance) => void;
+}
+
+/** The parts of a stock move built by one of the helpers here. */
+export function stockParts(spec: MoveSpec): StockMoveParts {
+	const parts: StockMoveParts = { spec, apply: spec.apply, legal: spec.legal ?? baseLegal };
+	if (spec.defaults) parts.defaults = spec.defaults;
+	return parts;
+}
+
+// ----- behaviors not ported before ---------------------------------------
+
+/**
+ * behaviors.PlayerColor: an enum property Color (enum "color") on the player
+ * state. Set the player trait `color`; viewers then get the framework's
+ * computed ColorValue and AvailableColors.
+ */
+export const playerColorProps: Readonly<Record<string, PropDef>> = { Color: { Type: 'enum', Enum: 'color' } };
+
+/** behaviors.ComponentColor: the Color value (enum "color") of a deck's components, for DeckSpec.props. */
+export const componentColorProps: Readonly<Record<string, { Type: 'enum'; Enum: string }>> = { Color: { Type: 'enum', Enum: 'color' } };
+
+// ----- the base moves -------------------------------------------------------
+
+interface NamedOptions {
+	name: string;
+	helpText?: string;
+}
+
+/** moves.Default as a whole move: legal by the base checks alone. The game supplies apply. */
+export function defaultMove(options: NamedOptions & { apply: MoveSpec['apply'] }): MoveSpec {
+	return { name: options.name, helpText: options.helpText ?? 'A default move that does nothing on its own', fixUp: false, legal: baseLegal, apply: options.apply };
+}
+
+/** moves.FixUp: a fix-up legal by the base checks alone. */
+export function fixUp(options: NamedOptions & { apply: MoveSpec['apply'] }): MoveSpec {
+	return {
+		name: options.name,
+		helpText: options.helpText ?? 'A move that is applied automatically to fix up the state after a player makes a move.',
+		fixUp: true,
+		legal: baseLegal,
+		apply: options.apply,
+	};
+}
+
+/** moves.FixUpMulti: a fix-up that may apply several times in a row in a progression. */
+export function fixUpMulti(options: NamedOptions & { apply: MoveSpec['apply'] }): MoveSpec {
+	return { ...fixUp(options), allowMultipleInProgression: true };
+}
+
+/** moves.CurrentPlayer: only the current player may propose it (TargetPlayerIndex, contributed check). */
+export function currentPlayerMove(options: NamedOptions & { apply: MoveSpec['apply'] }): MoveSpec {
+	return { name: options.name, helpText: options.helpText ?? 'A move by the current player.', fixUp: false, base: 'currentPlayer', legal: baseLegal, apply: options.apply };
+}
+
+/** moves.Done: a player's move that does nothing, legal by the base checks alone. */
+export function done(options: { name?: string; helpText?: string } = {}): MoveSpec {
+	return {
+		name: options.name ?? 'Done',
+		helpText: options.helpText ?? 'The player has signaled that they are done applying moves in this group and are ready to move on.',
+		fixUp: false,
+		legal: baseLegal,
+		apply: () => undefined,
+	};
+}
+
+// ----- stack paths, for the moves configured with one ---------------------
+
+/**
+ * The stack a configured path names ("X" or "game.X", "player.X" for the
+ * current player's, "players[move.F].X"), or null where Go's
+ * resolveConfiguredStack returns nil.
+ */
+function configuredStack(state: RulesState, move: MoveInstance, spec: string): Stack | null {
+	const path = parseStackPath(spec);
+	if (path.kind === 'game') return state.gameStack(path.prop);
+	const player = path.kind === 'player' ? state.currentPlayerIndex() : (move.fields[path.moveField] as number);
+	if (player < 0 || player >= state.numPlayers()) return null;
+	return state.playerStack(player, path.prop);
+}
+
+/** The name Go's stackName gives a configured stack in a fallback move name: the property, unqualified. */
+function stackLabel(spec: string): string {
+	return parseStackPath(spec).prop;
+}
+
+function errorText(thrown: unknown): string {
+	return thrown instanceof Error ? thrown.message : String(thrown);
+}
+
+// ----- DefaultComponent ---------------------------------------------------
+
+/**
+ * moves.DefaultComponent: a fix-up that finds, in `sourceStack`, the first
+ * component whose Legal (interfaces.LegalComponent; here the deck's
+ * `componentLegal`) passes, and records its slot in ComponentIndex. The game
+ * supplies apply (Go: "You must provide your own Apply()"); checkers crowns
+ * a token with it.
+ *
+ * `legalType` is the configured LegalType; with `legalTypeEnum` too, a
+ * component's Legal receives it as that enum's value, otherwise null (Go:
+ * nil), as legalTypeValImpl does.
+ */
+export function defaultComponent(options: {
+	sourceStack: string;
+	name?: string;
+	helpText?: string;
+	legalType?: number;
+	legalTypeEnum?: string;
+	apply?: MoveSpec['apply'];
+}): MoveSpec {
+	const legalType = options.legalType ?? 0;
+	const legalTypeValue = legalType !== 0 && options.legalTypeEnum !== undefined ? legalType : null;
+	const componentLegal = (state: RulesState, deck: string, index: number): LegalResult | undefined => {
+		const fn = state.game.spec.decks[deck]?.componentLegal;
+		return fn ? fn(state, index, legalTypeValue) : undefined;
+	};
+	const label = stackLabel(options.sourceStack);
+	return {
+		name: options.name ?? 'Default Component For ' + label + ' LegalType ' + legalType,
+		helpText: options.helpText ?? 'Searches ' + label + ' for a component that returns nil for Legal() with LegalType ' + legalType,
+		fixUp: true,
+		allowMultipleInProgression: true,
+		fields: { ComponentIndex: { type: 'int' } },
+		defaults(state, move) {
+			const stack = configuredStack(state, move, options.sourceStack);
+			if (stack === null) return;
+			for (let i = 0; i < stack.len(); i++) {
+				const index = stack.componentAt(i);
+				if (index === null || index < 0) continue;
+				const deck = stack.deckName;
+				if (state.game.spec.decks[deck]?.components[index] === null) continue;
+				const verdict = componentLegal(state, deck, index);
+				if (verdict === undefined || verdict !== null) continue;
+				move.fields.ComponentIndex = i;
+				return;
+			}
+		},
+		legal(state, move, _proposer, base) {
+			const err = base();
+			if (err !== null) return err;
+			const stack = configuredStack(state, move, options.sourceStack);
+			if (stack === null) return 'SourceStack returned nil stack';
+			const slot = move.fields.ComponentIndex as number;
+			const index = slot >= 0 && slot < stack.len() ? stack.componentAt(slot) : null;
+			if (index === null || index < 0) return "ComponentIndex didn't specify a valid component";
+			const deck = stack.deckName;
+			if (state.game.spec.decks[deck]?.components[index] === null) return "Specified component's values were nil";
+			const verdict = componentLegal(state, deck, index);
+			if (verdict === undefined) return "Specified Component didn't satisfy LegalComponent";
+			return verdict;
+		},
+		apply:
+			options.apply ??
+			(() => {
+				throw new Error('moves.DefaultComponent: the game must supply Apply');
+			}),
+	};
+}
+
+// ----- seats ----------------------------------------------------------------
+
+function firstPlayer(state: RulesState, test: (player: number) => boolean): number {
+	for (let i = 0; i < state.numPlayers(); i++) if (test(i)) return i;
+	return -1;
+}
+
+function seatFilled(state: RulesState, player: number): boolean {
+	return state.players[player].SeatFilled === true;
+}
+
+function seatClosed(state: RulesState, player: number): boolean {
+	return state.players[player].SeatClosed === true;
+}
+
+function requireSeat(state: RulesState): string | null {
+	return state.game.spec.player.traits?.seat ? null : "Player state didn't implement interfaces.Seater";
+}
+
+/** moves.CloseEmptySeat: a fix-up that closes one seat that is neither filled nor closed; repeats. */
+export function closeEmptySeat(options: { nameSuffix?: string; helpText?: string } = {}): MoveSpec {
+	const legalTarget = (state: RulesState, move: MoveInstance): LegalResult => {
+		if (targetOutOfRange(state, move)) return 'Invalid TargetPlayerIndex';
+		const seat = requireSeat(state);
+		if (seat !== null) return seat;
+		if (seatFilled(state, targetOf(move))) return 'The selected player seat is already filled, not empty. There must not be any seats left to apply to';
+		if (seatClosed(state, targetOf(move))) return 'The selected player seat is already closed. There must not be any seats left to apply to';
+		return null;
+	};
+	return {
+		name: suffixed('Close Empty Seat', options.nameSuffix),
+		helpText: options.helpText ?? 'Marks any empty seats as being not open for more people to be seated.',
+		fixUp: true,
+		allowMultipleInProgression: true,
+		fields: { TargetPlayerIndex: { type: 'playerIndex' } },
+		defaults(state, move) {
+			if (requireSeat(state) !== null) return;
+			const target = firstPlayer(state, i => !seatFilled(state, i) && !seatClosed(state, i));
+			if (target >= 0) move.fields.TargetPlayerIndex = target;
+		},
+		legal: (state, move, _proposer, base) => base() ?? legalTarget(state, move),
+		apply(state, move) {
+			const err = legalTarget(state, move);
+			if (err !== null) throw new Error(err);
+			state.players[targetOf(move)].SeatClosed = true;
+		},
+	};
+}
+
+/** Go's activationTarget (moves/inactive_player.go), for the two seat-filtered activation moves. */
+function activateSeat(options: { nameSuffix?: string; helpText?: string }, filled: boolean): MoveSpec {
+	const wrongSeat = filled
+		? 'The selected player seat is empty; only filled seats should be activated by this move'
+		: 'The selected player seat is filled; only empty seats should be activated by this move';
+	const alreadyActive = filled
+		? 'Player is already active. There must not be any filled inactive seats left to apply to'
+		: 'Player is already active. There must not be any empty inactive seats left to apply to';
+	const matches = (state: RulesState, player: number): boolean => state.game.spec.player.traits?.seat === true && seatFilled(state, player) === filled;
+	const legalTarget = (state: RulesState, move: MoveInstance): LegalResult => {
+		if (targetOutOfRange(state, move)) return 'Invalid TargetPlayerIndex';
+		const seat = requireSeat(state);
+		if (seat !== null) return seat;
+		if (!matches(state, targetOf(move))) return wrongSeat;
+		if (!state.playerIsInactive(targetOf(move))) return alreadyActive;
+		return null;
+	};
+	return {
+		name: suffixed(filled ? 'Activate Filled Seat' : 'Activate Empty Seat', options.nameSuffix),
+		helpText:
+			options.helpText ??
+			(filled
+				? 'Activates any player who has been seated but not yet included in play, without reopening empty seats'
+				: 'Re-activates any empty seats that were previously marked inactive'),
+		fixUp: true,
+		allowMultipleInProgression: true,
+		fields: { TargetPlayerIndex: { type: 'playerIndex' } },
+		defaults(state, move) {
+			const target = firstPlayer(state, i => matches(state, i) && state.playerIsInactive(i));
+			if (target >= 0) move.fields.TargetPlayerIndex = target;
+		},
+		legal: (state, move, _proposer, base) => base() ?? legalTarget(state, move),
+		apply(state, move) {
+			const err = legalTarget(state, move);
+			if (err !== null) throw new Error(err);
+			if (!state.game.spec.player.traits?.inactive) throw new Error("Player state didn't implement interfaces.PlayerInactiver");
+			state.players[targetOf(move)].PlayerInactive = false;
+		},
+	};
+}
+
+/** moves.ActivateEmptySeat: a fix-up that re-activates one empty, inactive seat; repeats. */
+export function activateEmptySeat(options: { nameSuffix?: string; helpText?: string } = {}): MoveSpec {
+	return activateSeat(options, false);
+}
+
+/** moves.ActivateFilledSeat: a fix-up that activates one seated, inactive player; repeats. */
+export function activateFilledSeat(options: { nameSuffix?: string; helpText?: string } = {}): MoveSpec {
+	return activateSeat(options, true);
+}
+
+/**
+ * moves.CloseAllSeats: a player's move (a gathering start move) that closes
+ * every open seat once at least `targetCount` (default the game's minimum)
+ * players are seated and active. `requireAdmin` is moves.WithRequireAdmin;
+ * the game-administrator behavior is not ported, so with it set only the
+ * admin index (-2) or a game without that behavior passes, as in Go.
+ */
+export function closeAllSeats(options: { name?: string; helpText?: string; targetCount?: number; requireAdmin?: boolean } = {}): MoveSpec {
+	return {
+		name: options.name ?? 'Close All Seats',
+		helpText: options.helpText ?? 'Closes all unfilled seats so no more players can join and the game can begin',
+		fixUp: false,
+		gatheringStart: true,
+		legal(state, _move, proposer, base) {
+			const err = base();
+			if (err !== null) return err;
+			const seated = state.game.spec.player.traits?.seat === true;
+			if (!seated || firstPlayer(state, i => !seatFilled(state, i) && !seatClosed(state, i)) < 0) return 'No unfilled, unclosed seats to close';
+			const target = options.targetCount ?? state.game.spec.minNumPlayers;
+			const count = state.numSeatedActivePlayers();
+			if (count < target) return 'Only ' + count + ' players are seated, but at least ' + target + ' are required';
+			if (options.requireAdmin === true && proposer !== ADMIN_PLAYER_INDEX && proposer < 0) return 'only the game administrator can make this move';
+			const ready = state.game.spec.readyToStart ? state.game.spec.readyToStart(state) : null;
+			if (ready !== null) return 'not ready to start: ' + ready;
+			return null;
+		},
+		apply(state) {
+			if (state.game.spec.player.traits?.seat !== true) return;
+			for (let i = 0; i < state.numPlayers(); i++) {
+				if (!seatFilled(state, i) && !seatClosed(state, i)) state.players[i].SeatClosed = true;
+			}
+		},
+	};
+}
+
+// ----- ShuffleStack -------------------------------------------------------
+
+/** moves.ShuffleStack: a fix-up that shuffles the configured source stack. */
+export function shuffleStack(options: { source: string; name?: string; helpText?: string }): MoveSpec {
+	return {
+		name: options.name ?? 'Shuffle ' + stackLabel(options.source),
+		helpText: options.helpText ?? 'Shuffles ' + stackLabel(options.source),
+		fixUp: true,
+		legal: baseLegal,
+		apply(state, move) {
+			const stack = configuredStack(state, move, options.source);
+			if (stack === null) throw new Error('PrimaryStack returned a nil stack');
+			stack.shuffle();
+		},
+	};
+}
+
+// ----- round robins -------------------------------------------------------
+
+/**
+ * What a moves.RoundRobin's embedding move supplies (interfaces
+ * ConditionMetter, RoundRobinActioner and the unexported
+ * playerConditionMet and roundRobinStarterPlayer).
+ */
+export interface RoundRobinHooks {
+	/** ConditionMet(state) == nil: the round robin is over. */
+	conditionMet(state: RulesState): boolean;
+	/** PlayerConditionMet(player): skip this player. Default: never (RoundRobin's). */
+	playerConditionMet?(state: RulesState, player: number): boolean;
+	/** RoundRobinStarterPlayer. Default: the current player, made valid. */
+	starter?(state: RulesState): number;
+	/** RoundRobinAction(player). Throw to fail. */
+	action(state: RulesState, move: MoveInstance, player: number): void;
+}
+
+/** RoundRobin.ConditionMet's default: every player's condition is met. */
+export function roundRobinAllPlayersMet(state: RulesState, playerConditionMet: (state: RulesState, player: number) => boolean): boolean {
+	for (let i = 0; i < state.numPlayers(); i++) if (!playerConditionMet(state, i)) return false;
+	return true;
+}
+
+/** RoundRobin.nextPlayerIndex. */
+function roundRobinNext(state: RulesState, hooks: RoundRobinHooks): { player: number; roundSkip: boolean } {
+	const condition = hooks.playerConditionMet ?? (() => false);
+	const starter = hooks.starter ?? ((s: RulesState) => s.ensureValid(s.currentPlayerIndex()));
+	let current = state.g.RRHasStarted === true ? state.ensureValid(state.g.RRLastPlayer as number) : state.previous(state.ensureValid(starter(state)));
+	let counter = 0;
+	let roundSkip = false;
+	const n = state.numPlayers();
+	while (counter <= n) {
+		current = state.next(current);
+		if (current === state.ensureValid(state.g.RRStarterPlayer as number)) roundSkip = true;
+		if (current < 0 || current >= n) throw new Error('runtime error: index out of range [' + current + ']');
+		if (!condition(state, current)) break;
+		counter++;
+	}
+	if (counter > n) return { player: current, roundSkip: true };
+	return { player: current, roundSkip };
+}
+
+/**
+ * moves.RoundRobin's Legal and Apply over the RoundRobin game properties
+ * (roundRobinProps). `afterLegal` is what an embedding move's Legal adds
+ * once RoundRobin.Legal passed (DealCountComponents: may the next
+ * component move).
+ */
+export function roundRobinParts(
+	hooks: RoundRobinHooks,
+	afterLegal?: (state: RulesState, move: MoveInstance, next: number) => LegalResult,
+): Pick<MoveSpec, 'legal' | 'apply'> & { legal: NonNullable<MoveSpec['legal']> } {
+	const starter = hooks.starter ?? ((s: RulesState) => s.ensureValid(s.currentPlayerIndex()));
+	return {
+		legal(state, move, _proposer, base) {
+			let err = base();
+			if (err !== null) return err;
+			if (state.g.RRHasStarted !== true) {
+				if (move.name === previousMoveName(state)) return "can't start this round robin move because the last move was also part of this round robin";
+			} else {
+				err = base();
+				if (err !== null) return err;
+				if (hooks.conditionMet(state)) return 'the condition was met, so the move is no longer legal';
+			}
+			if (!afterLegal) return null;
+			return afterLegal(state, move, roundRobinNext(state, hooks).player);
+		},
+		apply(state, move) {
+			if (state.g.RRHasStarted !== true) {
+				const first = starter(state);
+				state.g.RRLastPlayer = state.previous(first);
+				state.g.RRStarterPlayer = first;
+				state.g.RRRoundCount = 0;
+				state.g.RRHasStarted = true;
+			}
+			if (hooks.conditionMet(state)) {
+				state.g.RRHasStarted = false;
+				return;
+			}
+			const { player } = roundRobinNext(state, hooks);
+			try {
+				hooks.action(state, move, player);
+			} catch (thrown) {
+				throw new Error('RoundRobinAction returned error: ' + errorText(thrown));
+			}
+			state.g.RRLastPlayer = player;
+			if (roundRobinNext(state, hooks).roundSkip) state.g.RRRoundCount = (state.g.RRRoundCount as number) + 1;
+			if (hooks.conditionMet(state)) state.g.RRHasStarted = false;
+		},
+	};
+}
+
+/** The eight moves built on DealCountComponents (moves/deal_components.go, collect_components.go). */
+export type DealKind =
+	| 'DealCountComponents'
+	| 'DealComponentsUntilPlayerCountReached'
+	| 'DealComponentsUntilGameCountLeft'
+	| 'DealAllComponents'
+	| 'CollectCountComponents'
+	| 'CollectComponentsUntilPlayerCountLeft'
+	| 'CollectComponentsUntilGameCountReached'
+	| 'CollectAllComponents';
+
+/**
+ * Any of the deal and collect moves: a round-robin fix-up that moves one
+ * component per application between a game stack and each player's stack.
+ * Deal moves go game to player, collect moves player to game. When it stops:
+ *
+ * | kind | a player is skipped when | the round robin ends when |
+ * |---|---|---|
+ * | DealCountComponents, CollectCountComponents | never | `targetCount` rounds are done |
+ * | DealComponentsUntilPlayerCountReached | the player has `targetCount` | every player is skipped |
+ * | CollectComponentsUntilPlayerCountLeft, CollectAllComponents (0) | the player has at most `targetCount` | every player is skipped |
+ * | DealComponentsUntilGameCountLeft, DealAllComponents (0) | never | the game stack has at most `targetCount` |
+ * | CollectComponentsUntilGameCountReached | never | the game stack has at least `targetCount` |
+ *
+ * dealCountComponents above is the same move, kept as the hand ports use it.
+ */
+export function dealComponents(options: { kind: DealKind; gameStack: string; playerStack: string; targetCount?: number; name?: string; helpText?: string }): MoveSpec {
+	const kind = options.kind;
+	const collect = kind.startsWith('Collect');
+	const target = kind === 'DealAllComponents' || kind === 'CollectAllComponents' ? 0 : (options.targetCount ?? 1);
+	const playerCount = (state: RulesState, player: number): number => state.playerStack(player, options.playerStack).numComponents();
+	const gameCount = (state: RulesState): number => state.gameStack(options.gameStack).numComponents();
+	let playerConditionMet: (state: RulesState, player: number) => boolean = () => false;
+	if (kind === 'DealComponentsUntilPlayerCountReached') playerConditionMet = (state, player) => playerCount(state, player) >= target;
+	if (kind === 'CollectComponentsUntilPlayerCountLeft' || kind === 'CollectAllComponents') playerConditionMet = (state, player) => playerCount(state, player) <= target;
+	const allMet = (state: RulesState): boolean => roundRobinAllPlayersMet(state, playerConditionMet);
+	let conditionMet: (state: RulesState) => boolean;
+	switch (kind) {
+		case 'DealCountComponents':
+		case 'CollectCountComponents':
+			// RoundRobinNumRounds.ConditionMet, NumRounds being TargetCount.
+			conditionMet = state => (state.g.RRRoundCount as number) >= target || allMet(state);
+			break;
+		case 'DealComponentsUntilGameCountLeft':
+		case 'DealAllComponents':
+			conditionMet = state => gameCount(state) <= target || allMet(state);
+			break;
+		case 'CollectComponentsUntilGameCountReached':
+			conditionMet = state => gameCount(state) >= target || allMet(state);
+			break;
+		default:
+			conditionMet = allMet;
+	}
+	const ends = (state: RulesState, player: number): { source: Stack; destination: Stack } => {
+		const game = state.gameStack(options.gameStack);
+		const mine = state.playerStack(player, options.playerStack);
+		return collect ? { source: mine, destination: game } : { source: game, destination: mine };
+	};
+	const rr = roundRobinParts(
+		{
+			conditionMet,
+			playerConditionMet,
+			action(state, _move, player) {
+				const { source, destination } = ends(state, player);
+				source.moveCountTo(destination, 1);
+			},
+		},
+		(state, _move, next) => {
+			const { source, destination } = ends(state, next);
+			return source.mayMoveCountTo(destination, 1);
+		},
+	);
+	return {
+		name: options.name ?? dealFallbackName(kind, options.gameStack, options.playerStack, target),
+		helpText: options.helpText ?? dealFallbackHelpText(kind, options.gameStack, options.playerStack, target),
+		fixUp: true,
+		allowMultipleInProgression: true,
+		...rr,
+	};
+}
+
+/** The FallbackName Go derives for each deal and collect move. */
+function dealFallbackName(kind: DealKind, game: string, player: string, count: number): string {
+	switch (kind) {
+		case 'DealCountComponents':
+			return 'Deal Components From ' + game + ' In GameState To ' + player + ' In PlayerState To Each Player ' + count + ' Times';
+		case 'DealComponentsUntilPlayerCountReached':
+			return 'Deal Components From ' + game + ' In GameState To ' + player + ' In Each PlayerState Until Each Player Has ' + count;
+		case 'DealComponentsUntilGameCountLeft':
+			return 'Deal Components From ' + game + ' In GameState To ' + player + ' In Each PlayerState Until Game Stack Has ' + count + ' Total';
+		case 'DealAllComponents':
+			// Go passes its two stack names in the wrong order here.
+			return 'Deal All Components From ' + player + ' In GameState To ' + game + ' In Each PlayerState';
+		case 'CollectCountComponents':
+			return 'Collect Components From ' + player + ' in each PlayerState To ' + game + ' in GameState ' + count + ' Times Per Player';
+		case 'CollectComponentsUntilPlayerCountLeft':
+			return 'Collect Components From ' + player + ' in each PlayerState To ' + game + ' In GameState Until Each Player Is Down To ' + count;
+		case 'CollectComponentsUntilGameCountReached':
+			return 'Collect Components From ' + player + ' in each PlayerState To ' + game + ' In GameState Until The Game Has ' + count + ' Total';
+		case 'CollectAllComponents':
+			return 'Collect All Components From ' + player + ' In Each PlayerState To ' + game + ' In GameState';
+	}
+}
+
+/** The FallbackHelpText Go derives for each deal and collect move. */
+function dealFallbackHelpText(kind: DealKind, game: string, player: string, count: number): string {
+	switch (kind) {
+		case 'DealCountComponents':
+			return 'Deals ' + count + ' components from ' + game + ' in GameState to ' + player + ' in each PlayerState';
+		case 'DealComponentsUntilPlayerCountReached':
+			return 'Deals components from ' + game + ' in GameState to ' + player + ' in each PlayerState until each player has ' + count;
+		case 'DealComponentsUntilGameCountLeft':
+			return 'Deals components from ' + game + ' in GameState to ' + player + ' in each PlayerState until the game stack has ' + count + ' left';
+		case 'DealAllComponents':
+			// The same swap as its name.
+			return 'Deals all components from ' + player + ' in GameState to ' + game + ' in each PlayerState';
+		case 'CollectCountComponents':
+			return 'Collects ' + count + ' components from ' + player + ' in each PlayerState to ' + game + ' in GameState';
+		case 'CollectComponentsUntilPlayerCountLeft':
+			return 'Collects components from ' + player + ' in each PlayerState to ' + game + ' in GameState until each player has ' + count + ' left';
+		case 'CollectComponentsUntilGameCountReached':
+			return 'Collects components from ' + player + ' in each PlayerState to ' + game + ' in GameState until the game has ' + count + ' total';
+		case 'CollectAllComponents':
+			return 'Collects all components from ' + player + ' in each PlayerState to ' + game + ' in GameState';
+	}
+}
+
+// ----- moving components between two stacks ------------------------------
+
+/** The four moves built on MoveCountComponents (moves/move_components.go). */
+export type MoveComponentsKind = 'MoveCountComponents' | 'MoveComponentsUntilCountReached' | 'MoveComponentsUntilCountLeft' | 'MoveAllComponents';
+
+/** countMovesApplied: how many of the latest records, in the current phase, are this move. */
+function countMovesApplied(state: RulesState, name: string): number {
+	const records = state.committed.history;
+	const phase = state.currentPhaseKey();
+	let count = 0;
+	for (let i = records.length - 1; i >= 0; i--) {
+		if (records[i].Phase !== phase || records[i].Name !== name) break;
+		count++;
+	}
+	return count;
+}
+
+/**
+ * Any of the move-components fix-ups: one component from `source` to
+ * `destination` per application, until
+ *
+ * | kind | count | done when |
+ * |---|---|---|
+ * | MoveCountComponents | moves of this name applied in a row in this phase | count == `targetCount` |
+ * | MoveComponentsUntilCountReached | the destination's components | count >= `targetCount` |
+ * | MoveComponentsUntilCountLeft, MoveAllComponents (0) | the source's components | count <= `targetCount` |
+ *
+ * Their Legal skips the generic stack-constraints check
+ * (legalWithoutStackConstraints), so the spec names no source or
+ * destination property and none is contributed.
+ */
+export function moveComponents(options: { kind: MoveComponentsKind; source: string; destination: string; targetCount?: number; name?: string; helpText?: string }): MoveSpec {
+	const kind = options.kind;
+	const target = kind === 'MoveAllComponents' ? 0 : (options.targetCount ?? 1);
+	const stacks = (state: RulesState, move: MoveInstance): { source: Stack | null; destination: Stack | null } => ({
+		source: configuredStack(state, move, options.source),
+		destination: configuredStack(state, move, options.destination),
+	});
+	const count = (state: RulesState, move: MoveInstance): number => {
+		const { source, destination } = stacks(state, move);
+		if (kind === 'MoveCountComponents') return countMovesApplied(state, move.name);
+		if (kind === 'MoveComponentsUntilCountReached') return destination === null ? 0 : destination.numComponents();
+		return source === null ? 0 : source.numComponents();
+	};
+	const conditionMet = (state: RulesState, move: MoveInstance): boolean => {
+		const c = count(state, move);
+		if (kind === 'MoveCountComponents') return c === target;
+		if (c < 0 || target < 0) return false;
+		return kind === 'MoveComponentsUntilCountReached' ? c >= target : c <= target;
+	};
+	const source = stackLabel(options.source);
+	const destination = stackLabel(options.destination);
+	let name: string;
+	let helpText: string;
+	switch (kind) {
+		case 'MoveCountComponents':
+			name = 'Move ' + target + ' Components From ' + source + ' To ' + destination;
+			helpText = 'Moves ' + target + ' components from ' + source + ' to ' + destination;
+			break;
+		case 'MoveComponentsUntilCountReached':
+			name = 'Move Components From ' + source + ' Until ' + destination + ' Has ' + target;
+			helpText = 'Moves components from ' + source + ' to ' + destination + ' until ' + destination + ' has ' + target;
+			break;
+		case 'MoveComponentsUntilCountLeft':
+			name = 'Move Components To ' + destination + ' Until ' + source + ' Has ' + target;
+			helpText = 'Moves components from ' + source + ' to ' + destination + ' until ' + source + ' has ' + target + ' left';
+			break;
+		case 'MoveAllComponents':
+			name = 'Move All Components From ' + source + ' To ' + destination;
+			helpText = 'Moves all components from ' + source + ' to ' + destination;
+			break;
+	}
+	return {
+		name: options.name ?? name,
+		helpText: options.helpText ?? helpText,
+		fixUp: true,
+		allowMultipleInProgression: true,
+		legal(state, move, _proposer, base) {
+			const err = base();
+			if (err !== null) return err;
+			if (conditionMet(state, move)) return 'the condition was met, so the move is no longer legal';
+			const ends = stacks(state, move);
+			if (ends.source === null) return 'Source was nil';
+			if (ends.destination === null) return 'Destination was nil';
+			const c = count(state, move);
+			if (c < 0) return 'Count returned a negative value';
+			if (target < 0) return 'TargetCount returned a negative value';
+			return ends.source.mayMoveCountTo(ends.destination, Math.abs(target - c));
+		},
+		apply(state, move) {
+			const ends = stacks(state, move);
+			if (ends.source === null) throw new Error('Source was nil');
+			if (ends.destination === null) throw new Error('Destination was nil');
+			ends.source.moveCountTo(ends.destination, 1);
 		},
 	};
 }

@@ -17,13 +17,16 @@
 #   sanitizevec  -> ../sanitize.vectors.json     per-viewer views of the vector game
 #   goldenvec    -> ../golden/*.golden.json      digests and views of golden histories
 #   rejectvec    -> ../rejections.vectors.json   proposals the Go engine refuses
+#   libvec       -> ../lib.vectors.json          range enums, grid graphs, dice, playing cards
+#   stockvec     -> ../stock/*                   stockgame and seatgame played on the Go engine
 #
 # vecgame/auto_reader.go is produced by `boardgame-util codegen` run inside
-# vecgame/; rerun that only if vecgame/main.go's state structs change.
+# vecgame/; rerun that only if vecgame/main.go's state structs change. The
+# same goes for stockgame/ and seatgame/.
 set -eu
 root=$(git rev-parse --show-toplevel)
 cd "$root"
-for gen in cooked randvec sortvec defs idsvec stackvec sanitizevec goldenvec rejectvec; do
+for gen in cooked randvec sortvec defs idsvec stackvec sanitizevec goldenvec rejectvec libvec stockvec; do
 	echo "== $gen" >&2
 	./scripts/go-local run "./server/static/src/engine/testdata/gen/$gen"
 done
