@@ -1,4 +1,5 @@
-// Command stackvec emits ../../stacks.vectors.json: scripted sequences of
+// Command stackvec emits ../../stacks.vectors.json (and, from constraints.go,
+// ../../constraints.vectors.json): scripted sequences of
 // stack operations run against real boardgame states, with the state blob
 // before, the stacks that changed after every operation, each error Go
 // returned, and the blob after. Run from the repository root:
@@ -352,4 +353,7 @@ func main() {
 	blob, err := json.Marshal(struct{ Scenarios []scenario }{scenarios})
 	check(err)
 	check(os.WriteFile("server/static/src/engine/testdata/stacks.vectors.json", append(blob, '\n'), 0644))
+
+	// After, and with its own generator, so stacks.vectors.json is unchanged.
+	constraintVectors()
 }

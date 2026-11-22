@@ -77,6 +77,7 @@ would have.
 | `ids.ts` | Component ids; the empty-slot and generic-component sentinels | `component.go` `ID`, `secretMoveCount` |
 | `definition.ts` | `GameDefinition`: decks, enums, property schema and sanitization policies; struct-tag parsing | `struct_inflater.go`, `sanitization.go` `policyFromString` |
 | `stack.ts` | `Stack` (growable and sized) and `MergedStackView` | `stack.go` |
+| `constraints.ts` | Stack constraints from struct tags (`max`, `unique`, `same`, `maxdistinct`): parsing `PropDef.Constraints` and checking them | `stack_constraint.go`, `struct_inflater.go` `unpackStackStructTag`, `constraints/` |
 | `state.ts` | `EngineState`: the state JSON plus identity, version, generator, stack handles, conservation | `state.go`, `stack_ownership.go`, `game_manager.go` `stateFromRecord` |
 | `sanitize.ts` | Policies, groups, visibility facets, `sanitizedForPlayer`, `viewFor` | `sanitization.go`, `state_visibility.go`, `base/game_delegate.go` |
 | `index.ts` | The public surface | |
@@ -570,15 +571,25 @@ Here they are methods on the stack that take the component's slot:
 | `c.MoveToFirstSlot/LastSlot/NextSlot(dest)` | `stack.moveComponentToFirstSlot/LastSlot/NextSlot(i, dest)` |
 | `c.SlideToFirstSlot/LastSlot()` | `stack.slideToFirstSlot/LastSlot(i)` |
 | `c.MayMoveTo(dest)` | `stack.mayMoveComponentTo(i, dest)` (error text or `null`) |
+| `c.MayMoveToSlot(dest, slot)` | `stack.mayMoveComponentToSlot(i, dest, slot)` |
 | `s.MoveAllTo(dest)`, `s.MoveCountTo(dest, n)` | `stack.moveAllTo(dest)`, `stack.moveCountTo(dest, n)` |
 | `s.MayMoveAllTo`, `s.MayMoveCountTo` | `stack.mayMoveAllTo`, `stack.mayMoveCountTo` |
 | `s.Shuffle()`, `s.PublicShuffle()` | `stack.shuffle()`, `stack.publicShuffle()` |
 | `s.SwapComponents(i, j)` | `stack.swapComponents(i, j)` |
+| `s.ComponentAtKey(k)`, `SwapComponentsByKey(i, j)`, `MaySwapComponentsByKey(i, j)` | `stack.componentAtKey(k)` (also on a merged view), `swapComponentsByKey`, `maySwapComponentsByKey` |
 | `s.SortComponents(less)` | `stack.sortComponents(less)` (`less` gets deck indexes) |
 | `s.ExpandSize/ContractSize/SetSize/SizeToFit` | `stack.expandSize/contractSize/setSize/sizeToFit` |
 
 A failed operation throws a `StackError` (test with `isStackError`) with Go's
 message and changes nothing.
+
+A stack property's `Constraints` (the constraint strings of its struct tag,
+`['same(Color)']`) are parsed when a state is built and checked wherever Go
+checks them: in `MayMoveTo`, so by every move into the stack and every
+`May...` form, never by swaps, slides, shuffles, sorts or set-up
+distribution. A transfer of several components into a constrained stack is
+simulated on a copy of the state, as Go does, so each check sees the earlier
+insertions. A malformed constraint makes loading fail with Go's boot error.
 
 A component is a `(deck name, deck index)` pair. `stack.componentAt(i)`
 returns the deck index, `GENERIC_COMPONENT` (-2) in a sanitized stack, or
