@@ -11,7 +11,7 @@ What was found is in [`FINDINGS.md`](FINDINGS.md). What ran is in
 | Path | What |
 |---|---|
 | [`elements.ts`](elements.ts) | JSX types for the `bg-*` elements, merged into `JSX.IntrinsicElements` by the pattern itself |
-| [`memory/main.tsx`](memory/main.tsx) | The pattern. Imports the table, `move` and `seatView` of `../patterns/memory`; adds only a view |
+| [`memory/main.tsx`](memory/main.tsx) | The pattern. Imports the table, `move` and `viewFor` of `../patterns/memory`; adds only a view |
 | [`memory/per-stack.tsx`](memory/per-stack.tsx), [`memory/probe-release.tsx`](memory/probe-release.tsx) | Experiments on what of the released view a pattern may reshape |
 | [`memory/state.ts`](memory/state.ts) | The two paths of Memory's released state those experiments read, as a type |
 | [`reconciler/main.tsx`](reconciler/main.tsx) | Experiment on what the reconciler does to elements, with nothing confidential |
@@ -24,11 +24,13 @@ What was found is in [`FINDINGS.md`](FINDINGS.md). What ran is in
 Node 24, Deno 2.9.8, and a labs checkout with the spike applied. All commands
 from the repository root.
 
-**1. Labs.** A worktree of labs at `fix/served-handler-write-identity`
-(`4815052651`) with the patch:
+**1. Labs.** A worktree of labs with the patch. The table needs labs'
+`viewerBoundRelease`, so the base is `70f5c390ec` (local branch
+`worktree-agent-a53d3b2fae9b79d6b`) and every command below runs with
+`EXPERIMENTAL_VIEWER_BOUND_RELEASE=true`:
 
 ```bash
-git -C /path/to/labs worktree add -b spike/boardgame-trusted-components /path/to/labs-spike fix/served-handler-write-identity
+git -C /path/to/labs worktree add -b spike/boardgame-trusted-components-viewer-bound /path/to/labs-spike 70f5c390ec
 ```
 
 ```bash
@@ -36,7 +38,7 @@ git -C /path/to/labs-spike am "$PWD/fabric/patterns-declarative/labs-spike/0001-
 ```
 
 ```bash
-export LABS=/path/to/labs-spike
+export LABS=/path/to/labs-spike EXPERIMENTAL_VIEWER_BOUND_RELEASE=true
 ```
 
 **2. Build the elements** into one file, `fabric/declarative/dist/bg-elements.js`:

@@ -116,7 +116,7 @@ export const INIT = () => {
       });
     }
   });
-  watch('bg-table', ['tableView', 'principal']);
+  watch('bg-table', ['tableView']);
   watch('bg-stack', ['stack', 'version']);
   // Where every card is, frame by frame, between `start()` and `stop()`:
   // the box the browser reports, which includes the animator's transform.

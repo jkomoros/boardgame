@@ -1,6 +1,7 @@
 /**
- * Turns the view a Common Fabric table releases (`fabric/patterns/toolkit/
- * view.ts`, `TableView`) into the frames `<bg-table>` installs. Pure; no DOM.
+ * Turns the view a Common Fabric table releases to one viewer (`fabric/
+ * patterns/toolkit/view.ts`, `TableView`) into the frames `<bg-table>`
+ * installs. Pure; no DOM.
  *
  * It lives on the element side, not in the pattern, for one reason: a pattern
  * that reshaped the released view would produce a value the table's policy
@@ -33,7 +34,14 @@ export interface TableViewJSON {
   readonly epoch?: number;
   readonly revision?: number;
   readonly version?: number;
-  readonly seats?: readonly { readonly principal: string; readonly label: string }[];
+  /**
+   * The seat of the principal this view was computed for, or -1 for someone
+   * watching. A view is computed for one viewer: every entry is sanitized
+   * for this seat and carries only this seat's part under `viewers`.
+   */
+  readonly viewer?: number;
+  /** Seats by the name each occupant chose. A view does not say who holds one. */
+  readonly seats?: readonly { readonly label: string }[];
   readonly minPlayers?: number;
   readonly maxPlayers?: number;
   readonly entries?: readonly TableViewEntry[];
@@ -45,10 +53,9 @@ export function isTableView(value: unknown): value is TableViewJSON {
     && Array.isArray((value as TableViewJSON).entries);
 }
 
-/** The seat a principal holds, or -1 for someone watching. */
-export function seatOf(view: TableViewJSON | null | undefined, principal: string): number {
-  if (!view?.seats || !principal) return -1;
-  return view.seats.findIndex(seat => seat.principal === principal);
+/** The seat the view was computed for, or -1 for someone watching. */
+export function seatOf(view: TableViewJSON | null | undefined): number {
+  return typeof view?.viewer === 'number' ? view.viewer : -1;
 }
 
 /** One entry as the frame a table installs, for the viewer in `seat`. */
