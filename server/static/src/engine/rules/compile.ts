@@ -60,7 +60,12 @@ function emptyStack(prop: PropDef): Record<string, unknown> {
 	return node;
 }
 
-function emptySubState(spec: SubStateSpec, enums: Readonly<Record<string, EnumDef>>, index: number): SubStateJSON {
+/** A deep copy of JSON data, so a state never aliases a spec's initial values. */
+function structuredCopy(value: Readonly<Record<string, unknown>>): Record<string, unknown> {
+	return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function emptySubState(spec: SubStateSpec,enums: Readonly<Record<string, EnumDef>>, index: number): SubStateJSON {
 	const node: SubStateJSON = {};
 	for (const name of Object.keys(spec.props)) {
 		const prop = spec.props[name];
@@ -104,6 +109,7 @@ function emptySubState(spec: SubStateSpec, enums: Readonly<Record<string, EnumDe
 		}
 	}
 	if (spec.initial) Object.assign(node, spec.initial(index));
+	else if (spec.initialValues && index < spec.initialValues.length) Object.assign(node, structuredCopy(spec.initialValues[index]));
 	return node;
 }
 
@@ -243,11 +249,13 @@ function compileMove(
 				}
 			: null;
 	const exampleMove = shared.example.newMove(spec.name);
+	// A plan Go assembled (GameData) is the plan, verbatim.
+	const verbatim = spec.plan;
 	const plan = buildLegalPlan({
 		moveName: spec.name,
-		contributed: declared && spec.contributes ? spec.contributes(base) : base,
-		authored: declared ? authored : [],
-		suppressions: declared ? (spec.suppress ?? []) : [],
+		contributed: verbatim !== undefined ? [...verbatim] : declared && spec.contributes ? spec.contributes(base) : base,
+		authored: verbatim === undefined && declared ? authored : [],
+		suppressions: verbatim === undefined && declared ? (spec.suppress ?? []) : [],
 		custom,
 		registry: shared.registry,
 		chest: bindLegalChest(shared.enums),
@@ -399,6 +407,10 @@ export function compileGame(spec: GameSpec): CompiledGame {
 	const components: Record<string, Readonly<Record<string, ValuePropDef>>> = {};
 	for (const deckName of Object.keys(spec.decks)) {
 		decks[deckName] = { Size: spec.decks[deckName].components.length, Components: spec.decks[deckName].components };
+		// Deck.SetGenericValues, only when set, so a deck without them has
+		// the definition Go's DefinitionFor emits.
+		const generic = spec.decks[deckName].generic;
+		if (generic !== undefined && generic !== null) decks[deckName] = { ...decks[deckName], GenericValues: generic };
 		if (spec.decks[deckName].props) components[deckName] = spec.decks[deckName].props as Readonly<Record<string, ValuePropDef>>;
 	}
 	const chestEnums = spec.enums ?? {};

@@ -1,0 +1,229 @@
+[
+	{
+		"Name": "Seat Player",
+		"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Move Card Between Short Stacks",
+		"HelpText": "Moves a card between two short stacks",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Move Card Between Draw And Discard Stacks",
+		"HelpText": "Moves a card between draw and discard stacks",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Flip Card Between Hidden and Revealed",
+		"HelpText": "Flips the card between hidden and revealed",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Move Fan Card",
+		"HelpText": "Moves a card from or to Fan and Fan Discard",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Visible Shuffle",
+		"HelpText": "Performs a visible shuffle",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "stackCount",
+					"args": [
+						"game.FanStack",
+						"\u003e",
+						"1"
+					],
+					"message": "debuganimations.fan_stack_too_small"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Shuffle",
+		"HelpText": "Performs a secret shuffle",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "stackCount",
+					"args": [
+						"game.FanStack",
+						"\u003e",
+						"1"
+					],
+					"message": "debuganimations.fan_stack_too_small"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Move Between Hidden",
+		"HelpText": "Moves between hidden and visible stacks",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Move Token",
+		"HelpText": "Moves tokens",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Move Token Sanitized",
+		"HelpText": "Moves tokens",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Start Move All Components To Hidden",
+		"HelpText": "Moves all components from visible to hidden",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "stackNotEmpty",
+					"args": [
+						"game.AllVisibleStack"
+					],
+					"message": "debuganimations.all_visible_stack_empty"
+				},
+				{
+					"name": "stackEmpty",
+					"args": [
+						"game.AllHiddenStack"
+					],
+					"message": "debuganimations.all_hidden_stack_occupied"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Start Move All Components To Visible",
+		"HelpText": "Moves all components from hidden to visible",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "stackNotEmpty",
+					"args": [
+						"game.AllHiddenStack"
+					],
+					"message": "debuganimations.all_hidden_stack_empty"
+				},
+				{
+					"name": "stackEmpty",
+					"args": [
+						"game.AllVisibleStack"
+					],
+					"message": "debuganimations.all_visible_stack_occupied"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Shuffle Hidden",
+		"HelpText": "Shuffles the fan discard pile and increments the shuffle count",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "stackNotEmpty",
+					"args": [
+						"game.FanDiscard"
+					],
+					"message": "debuganimations.fan_discard_empty"
+				}
+			],
+			"HasCustom": false
+		}
+	}
+]

@@ -1,0 +1,184 @@
+[
+	{
+		"Name": "Seat Player",
+		"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Activate Inactive Player",
+		"HelpText": "Activates any players who are not currently active.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Reveal Card",
+		"HelpText": "Reveals the card at the specified location",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "propAtLeast",
+					"args": [
+						"player.CardsLeftToReveal",
+						"1"
+					],
+					"message": "reveal.no_cards_left"
+				},
+				{
+					"name": "revealableCardAt",
+					"args": [
+						"game.HiddenCards",
+						"game.VisibleCards",
+						"move.CardIndex"
+					]
+				},
+				{
+					"name": "mayMoveToSlot",
+					"args": [
+						"game.HiddenCards",
+						"game.VisibleCards",
+						"move.CardIndex",
+						"move.CardIndex"
+					]
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Hide Cards",
+		"HelpText": "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "propCompare",
+					"args": [
+						"player.CardsLeftToReveal",
+						"\u003c=",
+						"0"
+					],
+					"message": "hide.cards_still_to_reveal"
+				},
+				{
+					"name": "stackNotEmpty",
+					"args": [
+						"game.VisibleCards"
+					],
+					"message": "hide.no_cards_to_hide"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Finish Turn",
+		"HelpText": "Advances to the next player when the current player's turn is done.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Capture Cards",
+		"HelpText": "If two cards are showing and they are the same type, capture them to the current player's hand.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "stackCount",
+					"args": [
+						"game.VisibleCards",
+						"==",
+						"2"
+					],
+					"message": "memory.two_cards_required"
+				},
+				{
+					"name": "componentPropsEqual",
+					"args": [
+						"game.VisibleCards",
+						"first-occupied",
+						"game.VisibleCards",
+						"occupied-ordinal:1",
+						"Type"
+					],
+					"message": "memory.cards_must_match"
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Start Hide Cards Timer",
+		"HelpText": "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "stackCount",
+					"args": [
+						"game.VisibleCards",
+						"==",
+						"2"
+					],
+					"message": "memory.two_cards_required"
+				},
+				{
+					"name": "componentPropsNotEqual",
+					"args": [
+						"game.VisibleCards",
+						"first-occupied",
+						"game.VisibleCards",
+						"occupied-ordinal:1",
+						"Type"
+					],
+					"message": "memory.cards_must_differ"
+				}
+			],
+			"HasCustom": true
+		}
+	}
+]

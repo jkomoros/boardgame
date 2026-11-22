@@ -7,6 +7,7 @@
 // A RulesState is what every function in a GameSpec is handed.
 
 import type { GameDefinition, PolicyName } from '../definition.ts';
+import { GENERIC_COMPONENT } from '../ids.ts';
 import type { LegalContext, LegalFramework, LegalMove, LegalState } from '../legal/access.ts';
 import { renderLegalVerdict } from '../legal/message.ts';
 import { type LegalPlan, type LegalPlanResult, evaluateLegalPlan } from '../legal/plan.ts';
@@ -209,7 +210,10 @@ export interface RulesState {
 	gameView(prop: string): StackView;
 	/** Any player stack property, including a merged one, read-only. */
 	playerView(player: number, prop: string): StackView;
-	/** A component's static values ({} for a component that has none). */
+	/**
+	 * A component's static values ({} for a component that has none). For
+	 * GENERIC_COMPONENT (-2), the deck's generic values ({} when none were set).
+	 */
 	component(deck: string, deckIndex: number): Readonly<Record<string, unknown>>;
 	/** A component's dynamic values. */
 	dynamic(deck: string, deckIndex: number): SubStateJSON;
@@ -331,9 +335,15 @@ export function newRulesState(game: CompiledGame, engine: EngineState, record: G
 		playerView(player: number, prop: string): StackView {
 			return this.engine.view({ Group: 'player', Player: player, Prop: prop });
 		},
-		/** A component's static values ({} for a component that has none). */
+		/**
+		 * A component's static values ({} for a component that has none). For
+		 * GENERIC_COMPONENT, the deck's generic values (Deck.SetGenericValues),
+		 * or {} when none were set.
+		 */
 		component(deck: string, deckIndex: number): Readonly<Record<string, unknown>> {
-			return this.game.spec.decks[deck].components[deckIndex] ?? {};
+			const spec = this.game.spec.decks[deck];
+			if (deckIndex === GENERIC_COMPONENT) return spec.generic ?? {};
+			return spec.components[deckIndex] ?? {};
 		},
 		/** A component's dynamic values. */
 		dynamic(deck: string, deckIndex: number): SubStateJSON {

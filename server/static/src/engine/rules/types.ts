@@ -56,8 +56,10 @@ export interface DeckSpec {
 	props?: Readonly<Record<string, ValuePropDef>>;
 	/**
 	 * Deck.SetGenericValues: the values a generic (sanitized) component
-	 * shows. Absent or null: none were set. Loaded from GameData; not yet
-	 * honored by compileGame.
+	 * shows. Absent or null: none were set. compileGame carries it into the
+	 * definition as DeckDef.GenericValues, and `state.component(deck,
+	 * GENERIC_COMPONENT)` returns it ({} when none were set; Go's Values()
+	 * is then nil).
 	 */
 	generic?: Readonly<Record<string, unknown>> | null;
 }
@@ -77,7 +79,7 @@ export interface SubStateSpec {
 	 * 0 .. maxNumPlayers-1. For a deck's dynamic component values, one per
 	 * deck index. An index past the end, or an entry with no key, means
 	 * every property starts at its zero value. When both are given, `initial`
-	 * wins. Not yet honored by compileGame.
+	 * wins and `initialValues` is ignored.
 	 */
 	initialValues?: readonly Readonly<Record<string, unknown>>[];
 }
@@ -248,11 +250,33 @@ export interface MoveSpec {
 	/**
 	 * The legal plan Go assembled ((*GameManager).LegalPlanSpecs, carried in
 	 * GameData's MoveData.Plan.Specs): base checks, contributions and
-	 * authored specs with suppressions applied. When present it is used
-	 * verbatim, and `contributes` and `suppress` are ignored. Not yet
-	 * honored by compileGame.
+	 * authored specs with suppressions applied. When present it is the
+	 * move's plan, verbatim: `preconditions`, `contributes` and `suppress`
+	 * are ignored, and so are the base checks compileGame would otherwise
+	 * derive from `legalPhases`, `progression`, the stack properties and
+	 * `base`. Whether the plan's ledger is published still follows
+	 * `planEnabled`/`legalCustom`/`preconditions`. The loader sets it only
+	 * for a move whose Plan.Declared is true (Go assembles no plan for the
+	 * others; their base checks run imperatively in Default.Legal).
 	 */
 	plan?: readonly LegalSpec[];
+
+	/**
+	 * The embedded stock move's callable parts, for a move built by the
+	 * loader (rules/data.ts) whose Go type embeds a stock move and
+	 * overrides one of its methods. The facade's `stockApply(state, m)`
+	 * (Go: `m.<Stock>.Apply(state)`) calls `stock.apply` through
+	 * `callStockApply` in rules/data.ts; `stock.legal` is what a Legal
+	 * body's `base` argument runs. The engine itself never reads it.
+	 */
+	stock?: MoveStockParts;
+}
+
+/** The callable parts of a stock move (rules/stockRegistry.ts StockParts, without its spec). */
+export interface MoveStockParts {
+	apply?: (state: RulesState, move: MoveInstance) => void;
+	legal?: (state: RulesState, move: MoveInstance, proposer: number, base: () => LegalResult) => LegalResult;
+	defaults?: (state: RulesState, move: MoveInstance) => void;
 }
 
 // ----- the game -----------------------------------------------------------

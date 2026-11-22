@@ -1,0 +1,66 @@
+[
+	{
+		"Name": "Seat Player",
+		"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Activate Inactive Player",
+		"HelpText": "Activates any players who are not currently active.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": true,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Place Token",
+		"HelpText": "Place a player's token in a specific space.",
+		"IsFixUp": false,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": true,
+			"Specs": [
+				{
+					"name": "proposerIsCurrentPlayer"
+				},
+				{
+					"name": "mayMoveFirstToSlot",
+					"args": [
+						"players[move.TargetPlayerIndex].UnusedTokens",
+						"game.Slots",
+						"move.Slot"
+					]
+				}
+			],
+			"HasCustom": false
+		}
+	},
+	{
+		"Name": "Finish Turn",
+		"HelpText": "Advances to the next player when the current player's turn is done.",
+		"IsFixUp": true,
+		"LegalPhases": null,
+		"Progression": null,
+		"AllowMultipleInProgression": false,
+		"Plan": {
+			"Declared": false,
+			"Specs": [],
+			"HasCustom": false
+		}
+	}
+]
