@@ -75,14 +75,19 @@ interface Shown {
 const shownState = (entry: TableView["entries"][number]): Shown =>
   entry.state as unknown as Shown;
 
-/** A recording replayed to its end with every version still held. */
-function replayed(recording: Recording): TableState {
+/**
+ * Deals a recording's game and plays it out by proposal alone, handing
+ * `each` the table after the deal and after every accepted proposal: every
+ * version the game goes through is held by exactly one of them.
+ */
+function playedOut(
+  recording: Recording,
+  each: (table: TableState) => void = () => {},
+): TableState {
   let table = emptyTable();
   for (let seat = 0; seat < recording.game.numPlayers; seat++) {
     table.seats.push({ principal: `p${seat}`, label: `P${seat}` });
   }
-  // Hold every version, however many inputs the game takes.
-  const inputsHeld = 1_000_000;
   table = dealTable(GAME, table, {
     id: recording.game.id,
     secretSalt: recording.game.secretSalt,
@@ -91,30 +96,29 @@ function replayed(recording: Recording): TableState {
     variant: recording.game.variant,
     seating: false,
     now: 0,
-    inputsHeld,
   }).table;
-  // Play it out by proposal alone: every player stands when it is their turn.
+  each(table);
+  // Whoever has the turn hits one time in three, and otherwise stands.
   for (let guard = 0; guard < 400 && table.phase === "playing"; guard++) {
     const head = seatViewOf(GAME, table, OBSERVER_SEAT).entries.at(-1)!;
-    const step = stepTable(GAME, table, {
-      kind: "play",
-      name: guard % 3 === 0 ? "Current Player Hit" : "Current Player Stand",
-    }, {
+    const context = {
       proposer: `p${head.currentPlayerIndex}`,
       now: 0,
       entropy: () => 0,
-      inputsHeld,
-    });
+    };
+    const step = stepTable(GAME, table, {
+      kind: "play",
+      name: guard % 3 === 0 ? "Current Player Hit" : "Current Player Stand",
+    }, context);
     const next = step.error === ""
       ? step.table
-      : stepTable(GAME, table, { kind: "play", name: "Current Player Stand" }, {
-        proposer: `p${head.currentPlayerIndex}`,
-        now: 0,
-        entropy: () => 0,
-        inputsHeld,
-      }).table;
+      : stepTable(GAME, table, {
+        kind: "play",
+        name: "Current Player Stand",
+      }, context).table;
     if (next === table) break;
     table = next;
+    each(table);
   }
   return table;
 }
@@ -123,43 +127,52 @@ test("no seat's view holds another seat's hidden card, at any version", () => {
   let hiddenCardsSeen = 0;
   let viewsChecked = 0;
   for (const recording of recordings.filter((one) => !one.game.seating).slice(0, 4)) {
-    const table = replayed(recording);
-    const versions = held(table);
-    assert.ok(versions.length > 20, `${recording.name}: ${versions.length} versions`);
     const players = recording.game.numPlayers;
-    for (let viewer = OBSERVER_SEAT; viewer < players; viewer++) {
-      const view = seatViewOf(GAME, table, viewer);
-      assert.equal(view.entries.length, versions.length);
-      assert.deepEqual(Object.keys(view.entries[0].viewers), [String(viewer)]);
-      view.entries.forEach((entry, at) => {
-        viewsChecked += 1;
-        const shown = shownState(entry);
-        const secret = versions[at].state as unknown as Shown;
-        const where = `${recording.name} v${entry.version} viewer ${viewer}`;
-        // The draw and discard stacks show nobody a face.
-        assert.ok(shown.Game.DrawStack.Indexes.every((index) => index < 0), where);
-        assert.ok(shown.Game.DiscardStack.Indexes.every((index) => index < 0), where);
-        for (let seat = 0; seat < players; seat++) {
-          const hidden = secret.Players[seat].HiddenHand.Indexes;
-          const theirs = shown.Players[seat].HiddenHand.Indexes;
-          assert.equal(theirs.length, hidden.length, where);
-          if (seat === viewer) {
-            // A player sees their own hole card.
-            assert.deepEqual(theirs, hidden, where);
-            continue;
+    let versionsPlayed = 0;
+    playedOut(recording, (table) => {
+      const versions = held(table);
+      versionsPlayed += versions.length;
+      for (let viewer = OBSERVER_SEAT; viewer < players; viewer++) {
+        const view = seatViewOf(GAME, table, viewer);
+        assert.equal(view.entries.length, versions.length);
+        // Only the head says what the viewer may do, and only the viewer's.
+        view.entries.forEach((entry, at) => {
+          assert.deepEqual(
+            Object.keys(entry.viewers),
+            at === versions.length - 1 ? [String(viewer)] : [],
+          );
+        });
+        view.entries.forEach((entry, at) => {
+          viewsChecked += 1;
+          const shown = shownState(entry);
+          const secret = versions[at].state as unknown as Shown;
+          const where = `${recording.name} v${entry.version} viewer ${viewer}`;
+          // The draw and discard stacks show nobody a face.
+          assert.ok(shown.Game.DrawStack.Indexes.every((index) => index < 0), where);
+          assert.ok(shown.Game.DiscardStack.Indexes.every((index) => index < 0), where);
+          for (let seat = 0; seat < players; seat++) {
+            const hidden = secret.Players[seat].HiddenHand.Indexes;
+            const theirs = shown.Players[seat].HiddenHand.Indexes;
+            assert.equal(theirs.length, hidden.length, where);
+            if (seat === viewer) {
+              // A player sees their own hole card.
+              assert.deepEqual(theirs, hidden, where);
+              continue;
+            }
+            for (const card of hidden) {
+              hiddenCardsSeen += 1;
+              assert.ok(theirs.every((index) => index < 0), `${where}: seat ${seat}'s hole card`);
+              // Nor anywhere else in what this viewer is sent.
+              assert.ok(
+                !shown.Players[seat].Hand.Indexes.includes(card),
+                `${where}: seat ${seat}'s merged hand shows the hole card`,
+              );
+            }
           }
-          for (const card of hidden) {
-            hiddenCardsSeen += 1;
-            assert.ok(theirs.every((index) => index < 0), `${where}: seat ${seat}'s hole card`);
-            // Nor anywhere else in what this viewer is sent.
-            assert.ok(
-              !shown.Players[seat].Hand.Indexes.includes(card),
-              `${where}: seat ${seat}'s merged hand shows the hole card`,
-            );
-          }
-        }
-      });
-    }
+        });
+      }
+    });
+    assert.ok(versionsPlayed > 20, `${recording.name}: ${versionsPlayed} versions`);
   }
   assert.ok(hiddenCardsSeen > 500, `only ${hiddenCardsSeen} hidden cards checked`);
   assert.ok(viewsChecked > 300, `only ${viewsChecked} views checked`);
@@ -167,23 +180,24 @@ test("no seat's view holds another seat's hidden card, at any version", () => {
 
 test("a seat's own view differs from the observer's exactly while it holds a hole card", () => {
   const recording = recordings.find((one) => !one.game.seating)!;
-  const table = replayed(recording);
-  const observer = seatViewOf(GAME, table, OBSERVER_SEAT);
-  const mine = seatViewOf(GAME, table, 0);
   let differed = 0;
-  mine.entries.forEach((entry, at) => {
-    const holds = shownState(entry).Players[0].HiddenHand.Indexes.some((index) => index >= 0);
-    const same = JSON.stringify(shownState(entry).Players[0]) ===
-      JSON.stringify(shownState(observer.entries[at]).Players[0]);
-    assert.equal(same, !holds, `v${entry.version}`);
-    if (holds) differed += 1;
+  playedOut(recording, (table) => {
+    const observer = seatViewOf(GAME, table, OBSERVER_SEAT);
+    const mine = seatViewOf(GAME, table, 0);
+    mine.entries.forEach((entry, at) => {
+      const holds = shownState(entry).Players[0].HiddenHand.Indexes.some((index) => index >= 0);
+      const same = JSON.stringify(shownState(entry).Players[0]) ===
+        JSON.stringify(shownState(observer.entries[at]).Players[0]);
+      assert.equal(same, !holds, `v${entry.version}`);
+      if (holds) differed += 1;
+    });
   });
   assert.ok(differed > 0);
 });
 
 test("a principal is shown their own seat's view, and anyone else a watcher's", () => {
   const recording = recordings.find((one) => !one.game.seating)!;
-  const table = replayed(recording);
+  const table = playedOut(recording);
   for (let seat = 0; seat < recording.game.numPlayers; seat++) {
     assert.deepEqual(
       viewForPrincipal(GAME, table, `p${seat}`),

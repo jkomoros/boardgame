@@ -375,7 +375,7 @@ test("a match is captured and the turn passes", () => {
   assert.equal(harness.shown.Players[1].CardsLeftToReveal, 2);
 });
 
-test("a whole game: bounded window, full history, a winner, a new deal", () => {
+test("a whole game: one input held, full history, a winner, a new deal", () => {
   const harness = Harness.dealt(7);
   const names = ["alice", "bob"];
   let guard = 0;

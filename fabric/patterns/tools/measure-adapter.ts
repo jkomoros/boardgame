@@ -4,7 +4,6 @@
  */
 import type { CompiledGame } from "../../../server/static/src/engine/rules/index.ts";
 import {
-  held,
   OBSERVER_SEAT,
   seatViewOf,
   tableOf,
@@ -50,6 +49,5 @@ export function seatSees(
 
 /** The unsanitized head state, which only a measuring script may look at. */
 export function secretHead(table: TableState): unknown {
-  const all = held(table);
-  return all[all.length - 1]?.state;
+  return table.states[table.states.length - 1];
 }

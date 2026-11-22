@@ -80,6 +80,7 @@ export interface ViewEntry<S = JsonObject> {
   /**
    * The viewer's own part, under their seat as a string; `"-1"` is whoever
    * only watches. A view is computed for one viewer and holds no other's.
+   * Empty for a version that is not settled.
    */
   viewers: Record<string, ViewerPart>;
 }
@@ -91,9 +92,9 @@ export interface SeatView {
 }
 
 /**
- * What a table releases to one principal: who is seated, and a window of
- * the most recent versions with the move that produced each, as that
- * principal may see them.
+ * What a table releases to one principal: who is seated, and the versions
+ * the last input produced with the move that made each, as that principal
+ * may see them.
  */
 export interface TableView<S = JsonObject> {
   gameName: string;
@@ -107,7 +108,10 @@ export interface TableView<S = JsonObject> {
   seats: SeatView[];
   minPlayers: number;
   maxPlayers: number;
-  /** Ascending by version; empty before the deal. */
+  /**
+   * The versions the last input produced, ascending: the move a proposal
+   * made and each fix-up after it. Empty before the deal.
+   */
   entries: ViewEntry<S>[];
 }
 
