@@ -324,7 +324,14 @@ for (const name of Object.keys(HAND_PORTS)) {
 			t.skip('conformance/definitions/' + name + '.json is absent: the Go exporter has not written it yet');
 			return;
 		}
-		proveLoader(t, readJSON<GameData>(file), name);
+		const data = readJSON<GameData>(file);
+		if (data.Functions.length === 0 && data.SetUp.Distribute === '') {
+			// The exporter's static half fills every function reference. A
+			// definition written without it cannot be loaded; say so, loudly.
+			t.skip('conformance/definitions/' + name + '.json holds run-time parts only (no function references): the static half has not been joined yet');
+			return;
+		}
+		proveLoader(t, data, name);
 	});
 }
 
