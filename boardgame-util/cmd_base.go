@@ -34,6 +34,7 @@ type boardgameUtil struct {
 	Conformance     conformanceCmd
 	Gamedef         gamedefCmd
 	Fuzz            fuzzCmd
+	Transpile       transpileCmd
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -123,6 +124,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Conformance,
 		&b.Gamedef,
 		&b.Fuzz,
+		&b.Transpile,
 	}
 }
 
