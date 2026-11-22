@@ -14,6 +14,8 @@ import { indexesOf, newStack, newMergedStackView, isMergedStackView } from './st
 import type { MergedStackView, Stack } from './stack.ts';
 import type { StackJSON, StackView } from './stack.ts';
 import type { GameDefinition, PropDef, SubStateDef } from './definition.ts';
+import { parseStackConstraints } from './constraints.ts';
+import type { StackConstraint } from './constraints.ts';
 
 export interface BoardJSON {
 	Spaces: StackJSON[];
@@ -170,7 +172,7 @@ export interface EngineState {
 	rand(): GoRand;
 	// ----- sub-states -----------------------------------------------------
 	index(): void;
-	register(node: StackJSON, kind: 'growable' | 'sized', path: string, inBoard: boolean): void;
+	register(node: StackJSON, kind: 'growable' | 'sized', path: string, inBoard: boolean, constraints?: readonly StackConstraint[]): void;
 	subState(ref: SubStateRef): SubStateEntry;
 	/** The JSON object of one sub-state. Scalars are read and written here. */
 	subStateNode(ref: SubStateRef): SubStateJSON;
@@ -319,14 +321,19 @@ export function newEngineState(def: GameDefinition, identity: GameIdentity, vers
 				for (const propName of sortedKeys(sub.def.Props)) {
 					const prop = sub.def.Props[propName];
 					const path = sub.path + '.' + propName;
+					if (prop.Type !== 'stack' && prop.Type !== 'sizedStack' && prop.Type !== 'board') continue;
+					// Go attaches a property's struct-tag constraints to its stack,
+					// or to every space of its board, when it inflates the state.
+					const constraints = parseStackConstraints(propName, prop, this.def);
+					if (typeof constraints === 'string') throw stateError(constraints);
 					if (prop.Type === 'stack' || prop.Type === 'sizedStack') {
-						this.register(normalizeStack(sub.node[propName], path, prop), prop.Type === 'sizedStack' ? 'sized' : 'growable', path, false);
-					} else if (prop.Type === 'board') {
+						this.register(normalizeStack(sub.node[propName], path, prop), prop.Type === 'sizedStack' ? 'sized' : 'growable', path, false, constraints);
+					} else {
 						const board = sub.node[propName] as BoardJSON | undefined;
 						if (!board || !Array.isArray(board.Spaces)) throw stateError(path + ' is nil');
 						for (let i = 0; i < board.Spaces.length; i++) {
 							const spacePath = path + '[' + i + ']';
-							this.register(normalizeStack(board.Spaces[i], spacePath, prop), 'growable', spacePath, true);
+							this.register(normalizeStack(board.Spaces[i], spacePath, prop), 'growable', spacePath, true, constraints);
 						}
 					}
 				}
@@ -334,11 +341,11 @@ export function newEngineState(def: GameDefinition, identity: GameIdentity, vers
 			// buildComponentIndex and conservation both walk owners by path.
 			this.stackList.sort((a, b) => compareGoStrings(a.path, b.path));
 		},
-		register(node: StackJSON, kind: 'growable' | 'sized', path: string, inBoard: boolean): void {
+		register(node: StackJSON, kind: 'growable' | 'sized', path: string, inBoard: boolean, constraints: readonly StackConstraint[] = []): void {
 			if (kind === 'sized' && indexesOf(node).length !== (node.Size ?? 0)) {
 				throw stateError("Couldn't unmarshal sized stack: lenght of indexes didn't agree with size");
 			}
-			const stack = newStack(this, node, kind, path, inBoard);
+			const stack = newStack(this, node, kind, path, inBoard, constraints);
 			this.stacksByPath[path] = stack;
 			this.stackList.push(stack);
 		},

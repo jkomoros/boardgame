@@ -11,6 +11,8 @@
 
 import { EMPTY_SLOT, GENERIC_COMPONENT } from './ids.ts';
 import { goSort } from './gosort.ts';
+import { checkConstraints } from './constraints.ts';
+import type { StackConstraint } from './constraints.ts';
 import type { EngineState } from './state.ts';
 
 /** stackJSONObj in stack.go. Size and MaxSize are omitted when zero. */
@@ -83,6 +85,12 @@ export interface StackView {
 	slotsRemaining(): number;
 	/** Deck index at a slot, or null where Go's ComponentAt returns nil. */
 	componentAt(index: number): number | null;
+	/**
+	 * ComponentAtKey / ImmutableComponentAtKey: componentAt(int(key)), for a
+	 * stack whose slots are indexed by an enum (checkers' Spaces by the
+	 * `spaces` range enum).
+	 */
+	componentAtKey(key: number): number | null;
 	/** The JSON Go's MarshalJSON produces. */
 	toJSON(): StackJSON;
 }
@@ -112,6 +120,12 @@ export interface Stack extends StackView {
 	readonly path: string;
 	/** True for a board space, which cannot be resized. */
 	readonly inBoard: boolean;
+	/**
+	 * The constraints from the property's struct tag (PropDef.Constraints),
+	 * parsed, in order. Checked by mayMoveToError, as Go checks them in
+	 * MayMoveTo. Empty for an unconstrained stack.
+	 */
+	readonly constraints: readonly StackConstraint[];
 	readonly deckName: string;
 	/** The live Indexes array; a throwaway empty one while Go's would be nil. */
 	readonly ix: number[];
@@ -130,6 +144,8 @@ export interface Stack extends StackView {
 	 * A sanitized stack yields GENERIC_COMPONENT.
 	 */
 	componentAt(index: number): number | null;
+	/** ComponentAtKey: componentAt(int(key)). */
+	componentAtKey(key: number): number | null;
 	firstComponentIndex(): number;
 	lastComponentIndex(): number;
 	/** The first slot a component could be moved into, or -1. */
@@ -168,6 +184,12 @@ export interface Stack extends StackView {
 	 * otherwise Go's error text.
 	 */
 	mayMoveComponentTo(componentIndex: number, dest: Stack): string | null;
+	/**
+	 * componentInstance.MayMoveToSlot for the component at componentIndex:
+	 * mayMoveComponentTo, then whether slotIndex is a slot it could go to.
+	 * Null when allowed, otherwise Go's error text.
+	 */
+	mayMoveComponentToSlot(componentIndex: number, dest: Stack, slotIndex: number): string | null;
 	/** moveComonentImpl's checks, without the mutation. */
 	moveComponentError(componentIndex: number, dest: Stack, slotIndex: number): string | null;
 	// ----- moves ----------------------------------------------------------
@@ -200,6 +222,13 @@ export interface Stack extends StackView {
 	slideToLastSlot(componentIndex: number): void;
 	moveComponentToExtreme(componentIndex: number, isStart: boolean): void;
 	transferError(dest: Stack, count: number, historicalCapacityError: string): string | null;
+	/**
+	 * validateComponentTransferPlan's copy-and-simulate path: performs the
+	 * count moves on a copy of the whole state, so each constraint check sees
+	 * the components inserted before it. Used when more than one component
+	 * moves into a constrained destination.
+	 */
+	simulatedTransferError(dest: Stack, count: number): string | null;
 	commitTransfer(dest: Stack, count: number): void;
 	/** MayMoveAllTo: null when MoveAllTo would succeed, else Go's error. */
 	mayMoveAllTo(dest: Stack): string | null;
@@ -222,6 +251,10 @@ export interface Stack extends StackView {
 	maySwapComponents(i: number, j: number): string | null;
 	/** Stack.SwapComponents: swaps two slots; either may be empty. */
 	swapComponents(i: number, j: number): void;
+	/** MaySwapComponentsByKey: maySwapComponents(int(i), int(j)). */
+	maySwapComponentsByKey(i: number, j: number): string | null;
+	/** SwapComponentsByKey: swapComponents(int(i), int(j)). Not constrained, as in Go. */
+	swapComponentsByKey(i: number, j: number): void;
 	/**
 	 * Stack.SortComponents. `less` receives deck indexes (EMPTY_SLOT for an
 	 * empty slot in a sized stack). Like Go this is sort.Sort, which is not
@@ -237,7 +270,14 @@ export interface Stack extends StackView {
 }
 
 /** Creates a `Stack`. */
-export function newStack(state: EngineState, node: StackJSON, kind: StackKind, path: string, inBoard: boolean): Stack {
+export function newStack(
+	state: EngineState,
+	node: StackJSON,
+	kind: StackKind,
+	path: string,
+	inBoard: boolean,
+	constraints: readonly StackConstraint[] = [],
+): Stack {
 	const self: Stack = {
 		merged: false,
 		state,
@@ -245,6 +285,7 @@ export function newStack(state: EngineState, node: StackJSON, kind: StackKind, p
 		kind,
 		path,
 		inBoard,
+		constraints,
 		get deckName(): string {
 			return this.node.Deck;
 		},
@@ -304,6 +345,10 @@ export function newStack(state: EngineState, node: StackJSON, kind: StackKind, p
 			if (deckIndex >= 0) return deckIndex;
 			if (deckIndex === EMPTY_SLOT) return null;
 			return GENERIC_COMPONENT;
+		},
+		/** ComponentAtKey: componentAt(int(key)). */
+		componentAtKey(key: number): number | null {
+			return this.componentAt(key);
 		},
 		firstComponentIndex(): number {
 			if (this.kind === 'growable') return 0;
@@ -432,7 +477,7 @@ export function newStack(state: EngineState, node: StackJSON, kind: StackKind, p
 			if (sourceAttachment !== null) return 'source stack is not attached: ' + sourceAttachment;
 			if (dest.node.Deck !== source.node.Deck) return 'source and destination use different decks';
 			if (dest.slotsRemaining() < 1) return 'destination stack has no slots remaining';
-			return null;
+			return checkConstraints(dest, [deckIndex]);
 		},
 		/**
 		 * MayMoveTo for the component at componentIndex: the slot-independent
@@ -443,6 +488,23 @@ export function newStack(state: EngineState, node: StackJSON, kind: StackKind, p
 			const deckIndex = this.componentAt(componentIndex);
 			if (deckIndex === null) return 'no component at index ' + componentIndex;
 			return this.mayMoveToError(deckIndex, dest);
+		},
+		/**
+		 * componentInstance.MayMoveToSlot for the component at componentIndex:
+		 * mayMoveComponentTo, then whether slotIndex is a slot it could go to.
+		 * Null when allowed, otherwise Go's error text.
+		 */
+		mayMoveComponentToSlot(componentIndex: number, dest: Stack, slotIndex: number): string | null {
+			const err = this.mayMoveComponentTo(componentIndex, dest);
+			if (err !== null) return err;
+			if (slotIndex < 0) return 'slot index must be non-negative';
+			if (dest.isSized()) {
+				if (slotIndex >= dest.len()) return 'slot index ' + slotIndex + ' is out of range (stack length ' + dest.len() + ')';
+				if (dest.componentAt(slotIndex) !== null) return 'slot ' + slotIndex + ' is already occupied';
+			} else if (slotIndex > dest.len()) {
+				return 'slot index ' + slotIndex + ' is out of range (stack length ' + dest.len() + ')';
+			}
+			return null;
 		},
 		/** moveComonentImpl's checks, without the mutation. */
 		moveComponentError(componentIndex: number, dest: Stack, slotIndex: number): string | null {
@@ -563,6 +625,11 @@ export function newStack(state: EngineState, node: StackJSON, kind: StackKind, p
 					' remaining; cannot move ' + count + ' ' + (count === 1 ? 'component' : 'components')
 				);
 			}
+			// validateComponentTransferPlan: with more than one component and a
+			// constrained destination, Go simulates the whole transfer on a
+			// copy, so a constraint sees the earlier insertions.
+			if (count === 0) return null;
+			if (count > 1 && dest.constraints.length > 0) return this.simulatedTransferError(dest, count);
 			// validateLiveComponentTransferPlan: each component that will move
 			// must pass MayMoveTo against the state as it is now.
 			let validated = 0;
@@ -572,6 +639,20 @@ export function newStack(state: EngineState, node: StackJSON, kind: StackKind, p
 				const may = this.mayMoveToError(deckIndex, dest);
 				if (may !== null) return may;
 				validated++;
+			}
+			return null;
+		},
+		simulatedTransferError(dest: Stack, count: number): string | null {
+			// origState.copy(false), then findCorrespondingStack by owner path.
+			const copied = this.state.copy();
+			const from = copied.stacksByPath[this.path];
+			const to = copied.stacksByPath[dest.path];
+			for (let remaining = count; remaining > 0; remaining--) {
+				const componentIndex = from.firstComponentIndex();
+				const slotIndex = to.nextSlot();
+				const err = from.moveComponentError(componentIndex, to, slotIndex);
+				if (err !== null) return err;
+				from.moveComponentImpl(componentIndex, to, slotIndex);
 			}
 			return null;
 		},
@@ -652,6 +733,14 @@ export function newStack(state: EngineState, node: StackJSON, kind: StackKind, p
 			this.state.componentAdded(this.node.Deck, this.componentAt(i), this, i);
 			this.state.componentAdded(this.node.Deck, this.componentAt(j), this, j);
 			this.syncIds();
+		},
+		/** MaySwapComponentsByKey: maySwapComponents(int(i), int(j)). */
+		maySwapComponentsByKey(i: number, j: number): string | null {
+			return this.maySwapComponents(i, j);
+		},
+		/** SwapComponentsByKey: swapComponents(int(i), int(j)). Not constrained, as in Go. */
+		swapComponentsByKey(i: number, j: number): void {
+			this.swapComponents(i, j);
 		},
 		/**
 		 * Stack.SortComponents. `less` receives deck indexes (EMPTY_SLOT for an
@@ -779,6 +868,8 @@ export interface MergedStackView extends StackView {
 	isSized(): boolean;
 	len(): number;
 	componentAt(index: number): number | null;
+	/** ImmutableComponentAtKey: componentAt(int(key)). */
+	componentAtKey(key: number): number | null;
 	indexes(): number[];
 	numComponents(): number;
 	ids(): string[];
@@ -830,6 +921,10 @@ export function newMergedStackView(parts: readonly StackView[], overlap: boolean
 				index -= part.len();
 			}
 			return null;
+		},
+		/** ImmutableComponentAtKey: componentAt(int(key)). */
+		componentAtKey(key: number): number | null {
+			return this.componentAt(key);
 		},
 		indexes(): number[] {
 			const length = this.len();

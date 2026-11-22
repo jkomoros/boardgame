@@ -25,7 +25,7 @@ function code(text: string): string {
 
 test('the engine sources are the expected set', () => {
 	assert.deepEqual(sources.sort(), [
-		'definition.ts', 'fnv.ts', 'gosort.ts', 'ids.ts', 'index.ts', 'rand-cooked.ts', 'rand.ts', 'sanitize.ts', 'sha1.ts', 'stack.ts', 'state.ts', 'u64.ts',
+		'constraints.ts', 'definition.ts', 'fnv.ts', 'gosort.ts', 'ids.ts', 'index.ts', 'rand-cooked.ts', 'rand.ts', 'sanitize.ts', 'sha1.ts', 'stack.ts', 'state.ts', 'u64.ts',
 	]);
 });
 

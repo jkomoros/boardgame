@@ -14,12 +14,14 @@
 #   defs         -> ../defs/*.def.json           GameDefinitions from live managers
 #   idsvec       -> ../ids.vectors.json          crypto/sha1 and component ids
 #   stackvec     -> ../stacks.vectors.json       stack operations, step by step
+#                -> ../constraints.vectors.json  stack constraints and by-key access
 #   sanitizevec  -> ../sanitize.vectors.json     per-viewer views of the vector game
 #   goldenvec    -> ../golden/*.golden.json      digests and views of golden histories
 #   rejectvec    -> ../rejections.vectors.json   proposals the Go engine refuses
 #
 # vecgame/auto_reader.go is produced by `boardgame-util codegen` run inside
 # vecgame/; rerun that only if vecgame/main.go's state structs change.
+# The same holds for stackvec/cgame/auto_reader.go and stackvec/cgame/main.go.
 set -eu
 root=$(git rev-parse --show-toplevel)
 cd "$root"
