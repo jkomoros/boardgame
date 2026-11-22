@@ -5,66 +5,69 @@ on the TypeScript engine's port of `examples/blackjack`. It is the first
 table whose seats see different things: each player sees their own hole card
 and nobody else's.
 
-It plays in a browser: three identities and a watcher have played whole
-games through the deployed piece, each handed its own hole card and nobody
-else's (see "In a browser"). What that does and does not prove about secrecy
-is under "What is not held today": an unmodified guest asks only for its own
-seat's view, and nothing yet stops a modified one from asking for another's.
+It plays in a browser: three identities and a watcher who owns the table's
+space have played whole games through the deployed piece, each handed their
+own hole card and nobody else's (see "In a browser").
 
 | File | What |
 |---|---|
-| [`table.tsx`](table.tsx) | The sealed table: the policy, the stored state, the one writer `move`, the one released lift `seatView`. **The two interim seams are here** |
+| [`table.tsx`](table.tsx) | The sealed table: the policy, the stored state, the one writer `move`, the one released lift `viewFor` |
 | [`game.ts`](game.ts) | The engine's blackjack, compiled; the public facts |
-| [`main.tsx`](main.tsx) | The piece: the `cf-iframe`, and `identify` |
+| [`main.tsx`](main.tsx) | The piece: the `cf-iframe` |
 | [`parity.test.ts`](parity.test.ts) | Every recorded Go game of blackjack, replayed through the table; no view holds another seat's hole card |
 | [`parity.test.tsx`](parity.test.tsx) | The opening of one recording, replayed inside a lift in the pattern sandbox |
 | [`multi-user.test.tsx`](multi-user.test.tsx) | Three players and a watcher, each in their own runtime |
+| [`attacks/display-fit.test.ts`](attacks/display-fit.test.ts) | What each principal is shown at the display boundary, and what the table's owner gets by going around the table. Runs inside a labs checkout |
+| [`tools/play-three-users.mjs`](tools/play-three-users.mjs) | Plays a game in four browsers as four identities |
 
 ## How it differs from Memory
 
-- **One view a seat.** `seatView({ table, seat })` is the engine's
-  sanitization for that seat (`seatViewOf` in `../toolkit/table.ts`). The
-  pattern asks for the watcher's view and for each of seven seats, as
-  separate values, so that each can be released to a different audience.
-- **Everything else is the same**: one space, one sealed record, one `move`
-  handler, the same `Proposal`s (`sit`, `leave`, `start`, `play`, `restart`;
-  blackjack has no timers), and the same toolkit.
+It does not, in shape. Both tables are one sealed record, one `move`
+handler and one released lift, `viewFor`, which asks the runtime who it is
+computed for and returns the engine's view for that principal's seat
+(`viewForPrincipal` in `../toolkit/table.ts`). The two `table.tsx` files
+differ in the game they name. What differs is the engine's answer: at
+Memory every seat is shown the same board, and at blackjack a seat is shown
+its own hole card. Blackjack has no timers, so it never sends `tick`.
 
-## What is not held today
+## Who is shown what
 
-`table.tsx`, under "The policy, and the interim seams", says both in full.
+The release needs labs' viewer-bound release, which is on a local labs
+branch behind `EXPERIMENTAL_VIEWER_BOUND_RELEASE` and is not ruled
+(`fabric/status/viewer-bound-port.md` says which commit, and what ran).
 
-| Seam | Designed | Shipped | Not held |
-|---|---|---|---|
-| The input witness | A view is released only over a table `move` wrote | No witness | The release is of whatever is in the cell. Same as Memory (its FINDINGS F2) |
-| The seat's audience | Seat i's view is released to seat i's occupant list (`fabric/RESEARCH.md`, "Dealing to a player"; specs#59) | Every seat's view is released to the table's space, like the watcher's | **Every reader of the space can read every seat's view, hole cards included.** A guest shows a seat only its own because it asks only for its own. That holds against an unmodified client and nothing else |
+The rule in `table.tsx` releases what `viewFor` computed to the principal it
+was computed for, when everything confidential it read was written by
+`move`. Nothing is per seat: no key, no list, no copy of a view.
 
-The designed release for a seat is written out in `table.tsx`. A labs spike
-ran it on a port of the list-release draft (labs#8608): a sealed key a seat
-carrying `ifc.members`, occupant lists written by a second handler, players
-listing themselves, one rule adding the key's `Members`. Who a seat's view
-is kept from, in each version:
-
-| Kept from | Shipped | Designed, on the port |
+| A seat's hole card is kept from | Before | Now |
 |---|---|---|
 | An unmodified client | yes | yes |
-| A modified client at the table | **no** | yes |
-| A watcher with access to the space | **no** | yes |
-| The table's owner | **no** | **no** |
+| Another player, or a watcher, at the runtime's display boundary | **no** | yes |
+| The table's owner, at the display boundary | **no** | yes |
+| The owner binding `move` from another module, or running the module again over the live table | **no** | yes |
+| Other code writing the table | yes | yes |
+| A client that reads the space's documents without the runtime's display boundary | **no** | **not shown either way; see below** |
 
-The owner's row is the spike's finding: the owner can bind the seat list's
-writer from another module to a live seat's list and read that hand. It
-needs a ruling that binds a declared writer to the run that owns the
-document. This pattern does not try to block it.
+"Before" is the shape this replaced: a view a seat, each released to the
+whole space.
 
-And, as for Memory, anyone who can read the space can read the sealed table
-itself, because labs delivers a space's documents to every reader
-(specs#95).
+Two things this does not hold, neither of them the pattern's to fix:
+
+- **Delivery.** The rule decides what a runtime shows. Whether the memory
+  server hands the sealed table itself to a reader of the space is a
+  separate matter (specs#95). `fabric/status/viewer-bound-port.md` says
+  what was observed on this labs branch.
+- **A client is trusted for its own user.** With server execution off, each
+  client computes its own instance from a replica of the sealed table.
+
+One `TODO(cfc)` remains in `table.tsx`: the table starts as `null`, because
+a record default is nobody's and would keep every view sealed.
 
 ## Tests
 
-Node 24 and a labs checkout on branch `fix/served-handler-write-identity`
-(Deno 2.9.8). From the repository root:
+Node 24 and a labs checkout that has the viewer-bound release (Deno 2.9.8).
+From the repository root:
 
 ```bash
 node --test fabric/patterns/blackjack/parity.test.ts
@@ -75,14 +78,28 @@ node fabric/patterns/tools/recording-fixture.mjs blackjack/golden-714104226cb9a3
 ```
 
 ```bash
-CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/blackjack/parity.test.tsx --root "$PWD"
+EXPERIMENTAL_VIEWER_BOUND_RELEASE=true CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/blackjack/parity.test.tsx --root "$PWD"
 ```
 
 ```bash
-CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/blackjack/multi-user.test.tsx --root "$PWD"
+EXPERIMENTAL_VIEWER_BOUND_RELEASE=true CF_LABS_ROOT=/path/to/labs /path/to/labs/bin/cf test fabric/patterns/blackjack/multi-user.test.tsx --root "$PWD"
 ```
 
-The last takes about four minutes and ends with `92 passed, 0 failed`.
+The last ends with `92 passed, 0 failed`. `EXPERIMENTAL_SERVER_EXECUTION`
+set to `true` or `false` chooses whether a serving runtime runs the table.
+
+The display-boundary test uses labs' own harness, so it is copied into a
+labs checkout to run:
+
+```bash
+cp fabric/patterns/blackjack/attacks/display-fit.test.ts /path/to/labs/runtime/html/test/boardgame-blackjack-display-fit.test.ts
+```
+
+```bash
+(cd /path/to/labs/runtime/html && BOARDGAME_ROOT="$OLDPWD" deno test -A test/boardgame-blackjack-display-fit.test.ts)
+```
+
+`SERVED=1` runs it with a serving runtime.
 
 - **Parity.** All seven recordings (419 versions, 3,118 viewer outputs):
   state, move record, and every viewer's game object, sanitized move,
@@ -91,8 +108,15 @@ The last takes about four minutes and ends with `92 passed, 0 failed`.
 - **Secrecy.** In every view of every version, for every viewer: each other
   seat's hole card is the hidden card, the draw stack shows no face, and a
   hole card a player's own view shows appears nowhere in anyone else's view
-  of the same version. Checked under Node over whole games and in `cf test`
-  at every step by every participant.
+  of the same version. Checked under Node over whole games. In `cf test`
+  each participant checks their own instance at every step; a participant
+  cannot read another's.
+- **The display boundary and the owner.** Each player is shown their own
+  hole card; nobody is shown another principal's view, the table or its
+  salt; an owner who binds `move` from another module makes only their own
+  proposals and is shown no hole card; a second run of the module over the
+  live table is shown to nobody; another module's handler cannot write the
+  table.
 - **Refusals.** A move out of turn, a forged proposer, a move by someone
   with no seat, and an engine-owned move proposed by a player.
 
@@ -103,11 +127,9 @@ Agreed between this pattern and `fabric/guest`, and written up in
 
 1. **The bundle holds blackjack's renderer**, chosen by the view's
    `gameName`.
-2. **The bridge reads one view a seat.** The pattern hands over `view` (the
-   watcher's) and `seat0` to `seat6`, and says so with `info.seatViews: 7`
-   (`TableInfo`, `../toolkit/view.ts`). The bridge reads `view` for the
-   seats, finds the viewer's seat from `me`, and then reads that one seat's
-   cell and no other. Memory says `seatViews: 0` and is drawn from `view`.
+2. **The bridge reads one view**, which the runtime computed for whoever is
+   looking. The view's `viewer` says which seat is theirs. The guest asks
+   for nothing per seat and never learns anyone's principal.
 3. **The lobby is built from `info`**: its title is `info.displayName` and
    it offers `info.setupOptions`, which are the engine's variants. Blackjack's
    one option is `maxrounds`, 1 to 10.
@@ -118,15 +140,17 @@ Agreed between this pattern and `fabric/guest`, and written up in
 
 ## In a browser
 
-With labs' local servers running and the guest built (Memory's README,
-"Running it", steps 1 to 3, deploying `fabric/patterns/blackjack/main.tsx`):
+With labs' local servers running with `EXPERIMENTAL_VIEWER_BOUND_RELEASE=true`
+and the guest built (Memory's README, "Running it", steps 1 to 3, deploying
+`fabric/patterns/blackjack/main.tsx`):
 
 ```bash
 ROUNDS=2 node fabric/patterns/blackjack/tools/play-three-users.mjs "$CF_API_URL/$CF_SPACE/blackjack"
 ```
 
-It registers four fresh identities in four browser contexts (Alice, Bob and
-Carol sit; Dave watches), deals, and plays to the end, hitting below 15 and
+It registers four fresh identities in four browser contexts. Alice, Bob and
+Carol are granted `WRITE` and sit; Dave is granted `OWNER` of the table's
+space and only watches. It deals and plays to the end, hitting below 15 and
 standing otherwise. Before every move, and after the deal, it reads from
 each unmodified client both the state its renderer host was handed and the
 cards on screen, and checks that every hole card still hidden is given to,
@@ -134,14 +158,19 @@ and shown face up to, its own seat, is given to nobody else, is shown face
 down to everybody else, and appears nowhere else in what anybody else was
 given. It exits non-zero if any check fails.
 
-On 2026-11-21 against labs `4815052651`
-(`fix/served-handler-write-identity`): two whole games. The second, two
-rounds: nine moves (three hits, six stands), the same winner on all four
-screens, 145 of 145 checks, more than a thousand animations in each guest
-and no watchdog firing. Screenshots are in `screenshots/`.
+On 2026-11-21 against labs `70f5c390ec` (the viewer-bound branch): three
+whole games on the final code, two rounds each, 10, 9 and 8 moves. The same
+result on all four screens, 424 of 424 checks, 745 to 1,002 animations in
+each guest and no watchdog firing. Screenshots are in `screenshots/`, from
+the first: `02-dealt-dave` is the owner's screen with two hole cards face
+down, and `02-dealt-bob` is Bob's, with his own face up.
 
-**It is slow.** A proposal took a median of 18.6 s to come back to the
-mover's guest (12.5 to 48.4 s), and the deal took 27 s to reach everyone.
-Each input rewrites eight views (the watcher's and seven seats'), each
-holding every version of the last input; the deal alone is eleven versions.
-Memory, with one view, takes about 3 s a move on the same servers.
+**How long it takes.** The deal reached every screen in 1.2 s. A move
+reached its mover's screen in a median 2.6 s (1.1 to 12.1 s over 27 moves),
+and the time follows how many versions the move produces: about two seconds
+for one, 2.6 s for three, and 9.6 s for the sixteen of a round's end, which
+finishes one round and deals the next a card at a time. A table that held
+only the newest version of each input would make every move 1.2 to 2.1 s
+and move those cards together; that is measured and not shipped.
+`fabric/status/viewer-bound-port.md` has the numbers for every step and
+where the time goes.

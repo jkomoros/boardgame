@@ -1,5 +1,11 @@
 # Status: the engine in a pattern, Memory on it, blackjack
 
+> **Superseded in part.** Both patterns have since moved to labs'
+> viewer-bound release: one view per viewer, the input witness restored, and
+> no per-seat views. [`viewer-bound-port.md`](viewer-bound-port.md) has what
+> changed and what was measured. The latency figures, the `TODO(cfc)` table
+> and "Blackjack's seat release" below describe the pattern as it was.
+
 Branch `claude/fabric-b-memory-pattern-70154b`, 2026-11-21, on top of
 `fabric-factoring` at `b3c609ce`. Nothing pushed, no PR, `master` untouched,
 no Go changed, nothing installed. Files touched are under
