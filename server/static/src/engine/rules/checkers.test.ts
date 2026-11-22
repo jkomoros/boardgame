@@ -363,7 +363,7 @@ const STAND_IN_REFS = {
 	resetForTurnStart: 'checkers.(*playerState).ResetForTurnStart',
 	resetForTurnEnd: 'checkers.(*playerState).ResetForTurnEnd',
 	component: 'checkers.(*token).Legal',
-	predicate: 'checkers.(*gameDelegate).ConfigurePredicateConstructors.func1',
+	predicate: 'checkers.(*gameDelegate).ConfigurePredicateConstructors',
 	placeTokenDefaults: 'checkers.(*movePlaceToken).DefaultsForState',
 	placeTokenLegalCustom: 'checkers.(*movePlaceToken).LegalCustom',
 	placeTokenApply: 'checkers.(*movePlaceToken).Apply',
