@@ -277,5 +277,6 @@ test('variantValue, legalError, player and stockApply', () => {
 	assert.equal(player(state, 2), state.players[2]);
 	const index = V.Panics.find((c: { Kind: string; Args: number[] }) => c.Kind === 'index' && c.Args[0] === 5 && c.Args[1] === 3).Text;
 	assert.equal(thrown(() => player(state, 5)), index);
-	assert.match(thrown(() => stockApply(state, { name: 'x', fields: {} })), /^engine-gap: stockApply needs /);
+	// stockApply is the loader's callStockApply; rules/data.test.ts proves it on a loaded game.
+	assert.equal(typeof stockApply, 'function');
 });

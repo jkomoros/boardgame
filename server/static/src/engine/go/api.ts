@@ -37,6 +37,7 @@ import type { LegalBindingValue, LegalVerdict } from '../legal/types.ts';
 import { failT } from '../legal/types.ts';
 import { EMPTY_SLOT, GENERIC_COMPONENT } from '../ids.ts';
 import type { PropDef } from '../definition.ts';
+import { callStockApply } from '../rules/data.ts';
 import type { BoundEnum } from '../rules/enums.ts';
 import type { RulesState } from '../rules/state.ts';
 import type { MoveInstance } from '../rules/types.ts';
@@ -712,12 +713,7 @@ export function neighborsByKey(graph: GraphRef, key: number): number[] | null {
  * stock move's apply, which the loader resolves from MoveData.Stock.
  */
 export function stockApply(state: RulesState, m: MoveInstance): string | null {
-	void state;
-	void m;
-	throw new Error(
-		'engine-gap: stockApply needs the loader (rules/data.ts gameFromData with rules/stockRegistry.ts stockMove) to resolve ' +
-			"MoveData.Stock into the move's StockParts and make its apply reachable from a MoveInstance",
-	);
+	return callStockApply(state, m);
 }
 
 /** Go: `legal.Errorf(key, bindings)`: a failing verdict with that template and bindings. */
