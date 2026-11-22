@@ -1,0 +1,324 @@
+{
+	"SchemaVersion": 1,
+	"Source": {
+		"Package": "github.com/jkomoros/boardgame/examples/tictactoe",
+		"Exporter": "gamedef@1"
+	},
+	"Name": "tictactoe",
+	"DisplayName": "Tic Tac Toe",
+	"Description": "A classic game where players place X's and O's and try to get three in a row",
+	"MinNumPlayers": 2,
+	"MaxNumPlayers": 2,
+	"DefaultNumPlayers": 2,
+	"Definition": {
+		"Name": "tictactoe",
+		"Decks": {
+			"tokens": {
+				"Size": 10,
+				"Components": [
+					{
+						"Value": "X"
+					},
+					{
+						"Value": "X"
+					},
+					{
+						"Value": "X"
+					},
+					{
+						"Value": "X"
+					},
+					{
+						"Value": "X"
+					},
+					{
+						"Value": "O"
+					},
+					{
+						"Value": "O"
+					},
+					{
+						"Value": "O"
+					},
+					{
+						"Value": "O"
+					},
+					{
+						"Value": "O"
+					}
+				],
+				"ComponentProps": {
+					"Value": {
+						"Type": "string"
+					}
+				}
+			}
+		},
+		"Enums": {
+			"phase": {
+				"Values": {
+					"0": "Before First Move",
+					"1": "After First Move"
+				},
+				"DefaultValue": 0
+			}
+		},
+		"GroupEnum": "",
+		"Game": {
+			"Props": {
+				"CurrentPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"Phase": {
+					"Type": "enum",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Enum": "phase"
+				},
+				"Slots": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "tokens",
+					"Size": 9
+				}
+			}
+		},
+		"Player": {
+			"Props": {
+				"PlayerInactive": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatClosed": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatFilled": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"TokenValue": {
+					"Type": "string",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"TokensToPlaceThisTurn": {
+					"Type": "int",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"UnusedTokens": {
+					"Type": "stack",
+					"Sanitize": {
+						"other": "visible"
+					},
+					"Deck": "tokens",
+					"Constraints": [
+						"same(Value)"
+					]
+				}
+			}
+		},
+		"DynamicComponentValues": {}
+	},
+	"Constants": {
+		"TOTAL_DIM": 9
+	},
+	"ComponentEnums": {},
+	"PhaseEnum": "phase",
+	"GroupEnum": "",
+	"Initial": {
+		"Game": {},
+		"Players": [
+			{
+				"TokenValue": "X",
+				"TokensToPlaceThisTurn": 1
+			},
+			{
+				"TokenValue": "O",
+				"TokensToPlaceThisTurn": 1
+			}
+		],
+		"Dynamic": {}
+	},
+	"Traits": {
+		"Game": {},
+		"Player": {
+			"Seat": true,
+			"Inactive": true
+		}
+	},
+	"Variants": {},
+	"Computed": [],
+	"LegalTemplates": {
+		"legal.no_component_to_move": "there aren't any remaining tokens for the current player to place"
+	},
+	"Predicates": [],
+	"Moves": [
+		{
+			"Name": "Seat Player",
+			"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+			"IsFixUp": true,
+			"GoType": "moves.SeatPlayer",
+			"Stock": {
+				"Type": "SeatPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"SeatsPlayer": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Activate Inactive Player",
+			"HelpText": "Activates any players who are not currently active.",
+			"IsFixUp": true,
+			"GoType": "moves.ActivateInactivePlayer",
+			"Stock": {
+				"Type": "ActivateInactivePlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Place Token",
+			"HelpText": "Place a player's token in a specific space.",
+			"IsFixUp": false,
+			"GoType": "tictactoe.movePlaceToken",
+			"Stock": {
+				"Type": "MoveComponentToSlot",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame.MoveNameSanitization": {
+						"err": "",
+						"hiddenAnimationKey": "Hidden Action",
+						"policy": "self:visible"
+					},
+					"github.com/jkomoros/boardgame/moves.DestinationProperty": "game.Slots",
+					"github.com/jkomoros/boardgame/moves.HelpText": "Place a player's token in a specific space.",
+					"github.com/jkomoros/boardgame/moves.SourceProperty": "players[move.TargetPlayerIndex].UnusedTokens"
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {
+				"Slot": {
+					"Type": "int",
+					"Sanitize": "self:visible",
+					"Input": "required",
+					"Codec": "integer"
+				}
+			},
+			"NameSanitization": "self:visible",
+			"HiddenAnimationKey": "Hidden Action",
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "mayMoveFirstToSlot",
+						"args": [
+							"players[move.TargetPlayerIndex].UnusedTokens",
+							"game.Slots",
+							"move.Slot"
+						]
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Finish Turn",
+			"HelpText": "Advances to the next player when the current player's turn is done.",
+			"IsFixUp": true,
+			"GoType": "moves.FinishTurn",
+			"Stock": {
+				"Type": "FinishTurn",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		}
+	],
+	"SetUp": {
+		"Distribute": ""
+	},
+	"End": {},
+	"Agents": [
+		{
+			"Name": "ai",
+			"DisplayName": "Robby The Robot"
+		}
+	],
+	"Functions": []
+}
