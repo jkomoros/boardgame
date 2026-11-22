@@ -146,6 +146,8 @@ function headerOf(game: CompiledGame, record: GameRecord): Record<string, unknow
 		enums[e.name] = e.def.Parents
 			? { DefaultValue: e.def.DefaultValue, Parents: e.def.Parents, Values: e.def.Values }
 			: { DefaultValue: e.def.DefaultValue, Values: e.def.Values };
+		// A range enum's chest JSON carries its dimensions (enum.RangeEnum).
+		if (e.def.Range) (enums[e.name] as Record<string, unknown>).Dimensions = e.def.Range;
 	}
 	const computedTypes: Record<string, number> = { int: 1, bool: 2, string: 3, playerIndex: 4, intSlice: 6, boolSlice: 7, stringSlice: 8, playerIndexSlice: 9 };
 	const computed = (spec.computed ?? [])

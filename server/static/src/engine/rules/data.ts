@@ -51,9 +51,34 @@
 // | playerOrder | Traits.Game.PlayerOrder | `(state: RulesState) => readonly number[] \| null` |
 // | counter | CounterData { Kind: 'custom', Count } | `(currentCount: number, length: number) => string \| null` (Go's ValidCounter) |
 // | helper | FunctionEntry only | Never resolved by the loader: bodies call helpers directly, with whatever signature their translation has (`state` first) |
-// | predicate | Predicates[i].Construct | Not supported in v1: a non-empty Predicates is a GameSpecError |
+// | predicate | Predicates[i].Construct | `(spec: PredicateSpec) => GamePredicate \| string`, THROWS (rules/types.ts; details below) |
+// | component | ComponentLegal[deck] | `(state: RulesState, index: number, legalType: number \| null) => string \| null` (Go's `(*T).Legal(state, legalType)` on the deck's component values) |
 //
 // Details that the table cannot carry:
+//
+// - predicate: Go's ConfigurePredicateConstructors entry's Constructor.
+//   `spec` is `{ name, args, message }` (Go's legal.Spec; args [] for nil,
+//   message '' for none). It returns Go's *legal.Predicate as
+//   `{ name, args?, reads, requiredReadTypes?, allowedReadTypes?, cost?,
+//   usesProposer?, emittedTemplates?, emittedBindings?, evaluate }`, or
+//   Go's constructor error (thrown, or returned as a string). `evaluate`
+//   is `(ctx: PredicateContext) => LegalVerdict`, and the context is all it
+//   may read: `ctx.state` (the RulesState, for the facade's readers),
+//   `ctx.move` (the MoveInstance, or null where Go's ctx.Move is nil),
+//   `ctx.proposer`, and `ctx.resolvePath(path)`, Go's `ctx.ResolvePath`
+//   as the tuple `[value, PropertyType, err]` (an enum value is
+//   `{ enum: { name }, value: key, string }` or null). It returns Go's
+//   verdict shape: passVerdict(), failT(template, bindings?) or
+//   unknownVerdict(reason) from legal/types.ts. It must not write. A
+//   throw is Go's panic: the verdict is unknown with Go's
+//   `predicate "<name>" panicked: <text>` reason. The constructor runs
+//   once per plan spec naming it, at compile time; Go's `chest` and
+//   `resolve` arguments are not passed.
+// - component: interfaces.LegalComponent's `Legal(state, legalType)` on
+//   the values type of the deck named by the key (moves.DefaultComponent
+//   calls it). `index` is the component's deck index; `legalType` is the
+//   configured legal type's key, or null where Go passes nil. Null when
+//   legal, else Go's error text. This slot is GameData.ComponentLegal.
 //
 // - legal: `base` is the embedded stock move's Legal (Go's
 //   `m.<Stock>.Legal(state, proposer)`), which for moves.Default and the
@@ -104,7 +129,7 @@ import { type StockParts, stockMove } from './stockRegistry.ts';
 import { findMove } from './state.ts';
 import type { RulesState } from './state.ts';
 import type {
-	ChoiceSpec, ComputedSpec, ComputedType, DeckSpec, GameSpec, InputCodec, InputDisposition, LegalResult, MoveFieldSpec, MoveInstance, MoveSpec,
+	ChoiceSpec, ComputedSpec, ComputedType, DeckSpec, GamePredicateConstructor, GameSpec, InputCodec, InputDisposition, LegalResult, MoveFieldSpec, MoveInstance, MoveSpec,
 	MoveStockParts, SubStateSpec, VariantKeySpec,
 } from './types.ts';
 
@@ -145,6 +170,12 @@ export interface GameData {
 	Computed: readonly ComputedData[];
 	LegalTemplates: Readonly<Record<string, string>>;
 	Predicates: readonly PredicateData[];
+	/**
+	 * Deck name to its component values type's Legal method
+	 * (interfaces.LegalComponent), for the decks whose values have one.
+	 * Absent when none do. Role 'component'.
+	 */
+	ComponentLegal?: Readonly<Record<string, FnRef>>;
 	/** In registration order. */
 	Moves: readonly MoveData[];
 	SetUp: SetUpData;
@@ -610,9 +641,6 @@ function decksFromData(def: GameDefinition): Record<string, DeckSpec> {
  */
 export function gameFromData(data: GameData, bodies: Bodies): GameSpec {
 	if (data.SchemaVersion !== 1) throw gameSpecError('gameFromData: unsupported SchemaVersion ' + String(data.SchemaVersion));
-	if (data.Predicates.length > 0) {
-		throw gameSpecError('gameFromData: custom legal predicate constructors are not supported (' + data.Predicates.map(p => p.Construct).join(', ') + ')');
-	}
 	if (data.PhaseEnum !== '' && data.PhaseEnum !== 'phase' && data.PhaseEnum !== 'Phase') {
 		throw gameSpecError('gameFromData: the phase enum must be named "phase", not ' + JSON.stringify(data.PhaseEnum));
 	}
@@ -638,6 +666,7 @@ export function gameFromData(data: GameData, bodies: Bodies): GameSpec {
 	if (playerTraitData.Inactive) playerTraits.inactive = true;
 	if (playerTraitData.Elimination) playerTraits.elimination = true;
 	if (playerTraitData.Role) playerTraits.role = true;
+	if (playerTraitData.Color) playerTraits.color = true;
 	if (playerTraitData.GameScore !== undefined) {
 		playerTraits.gameScore = playerTraitData.GameScore === 'score' ? scoreGameScore : resolve<(state: RulesState, player: number) => number>(playerTraitData.GameScore, 'gameScore');
 	}
@@ -697,13 +726,26 @@ export function gameFromData(data: GameData, bodies: Bodies): GameSpec {
 		};
 	}
 
+	// ----- component Legal methods and game predicates
+	const decks = decksFromData(def);
+	const componentLegal = data.ComponentLegal ?? {};
+	for (const deck of Object.keys(componentLegal)) {
+		if (decks[deck] === undefined) throw gameSpecError('gameFromData: ComponentLegal names deck ' + deck + ', which the game does not configure');
+		decks[deck] = { ...decks[deck], componentLegal: resolve<NonNullable<DeckSpec['componentLegal']>>(componentLegal[deck], 'component') };
+	}
+	const predicates = data.Predicates.map(item => {
+		if (item.Name === '') throw gameSpecError('gameFromData: a predicate constructor has no name');
+		const construct = resolve<GamePredicateConstructor>(item.Construct, 'predicate');
+		return { name: item.Name, construct };
+	});
+
 	const spec: GameSpec = {
 		name: data.Name,
 		displayName: data.DisplayName,
 		minNumPlayers: data.MinNumPlayers,
 		maxNumPlayers: data.MaxNumPlayers,
 		defaultNumPlayers: data.DefaultNumPlayers,
-		decks: decksFromData(def),
+		decks,
 		enums: def.Enums,
 		componentEnums: data.ComponentEnums,
 		constants: data.Constants,
@@ -717,6 +759,7 @@ export function gameFromData(data: GameData, bodies: Bodies): GameSpec {
 	};
 	const variants = variantsFromData(data.Variants);
 	if (variants !== undefined) spec.variants = variants;
+	if (predicates.length > 0) spec.predicates = predicates;
 	if (end.conditionMet || end.playerScore || end.check || end.lowScoreWins) spec.end = end;
 	if (data.CurrentPlayerIndex !== undefined) spec.currentPlayerIndex = resolve<(state: RulesState) => number>(data.CurrentPlayerIndex, 'currentPlayerIndex');
 	return spec;

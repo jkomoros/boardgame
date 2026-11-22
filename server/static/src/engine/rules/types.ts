@@ -6,7 +6,7 @@
 // See ../README.md for the walk-through, with memory as the worked example.
 
 import type { EnumDef, PolicyName, PropDef } from '../definition.ts';
-import type { LegalSpec, LegalVerdict } from '../legal/types.ts';
+import type { LegalCost, LegalRead, LegalSpec, LegalVerdict, PropertyType } from '../legal/types.ts';
 import type { Stack } from '../stack.ts';
 import type { ValuePropDef } from './binding.ts';
 import type { ProgressionGroup } from './progression.ts';
@@ -292,6 +292,80 @@ export interface MoveStockParts {
 	defaults?: (state: RulesState, move: MoveInstance) => void;
 }
 
+// ----- game-registered legal predicates -----------------------------------
+
+/**
+ * Go: the legal.Spec a game's predicate constructor receives. `args` is the
+ * spec's Args ([] where Go's is nil); `message` is its Message, '' when the
+ * spec does not override the template key.
+ */
+export interface PredicateSpec {
+	readonly name: string;
+	readonly args: readonly string[];
+	readonly message: string;
+}
+
+/**
+ * Go: legal.Context, as a game-registered predicate's Evaluate sees it: all
+ * it may read. Nothing else is reachable, and Evaluate must not write.
+ */
+export interface PredicateContext {
+	/** Go: ctx.State (a read-only view; the facade's readers take it). */
+	readonly state: RulesState;
+	/** Go: ctx.Move. Null where Go's is nil (an evaluation with no move). */
+	readonly move: MoveInstance | null;
+	/** Go: ctx.ProposerPlayerIndex. */
+	readonly proposer: number;
+	/**
+	 * Go: `ctx.ResolvePath(legal.PropPath(path))`: the property a legal path
+	 * names, its PropertyType (Go's String() form, 'TypeEnum', 'TypeInt',
+	 * ...), and Go's error text (then the value is null and the type
+	 * 'TypeIllegal'). The value is, by type: a number for TypeInt and
+	 * TypePlayerIndex, a boolean, a string, `{ enum: { name }, value: key,
+	 * string }` or null for TypeEnum (Go's enum.ImmutableVal, nil), and a
+	 * legal-layer stack or board handle for TypeStack/TypeBoard.
+	 */
+	resolvePath(path: string): [value: unknown, type: PropertyType, err: string | null];
+}
+
+/**
+ * Go: *legal.Predicate, what a constructor returns. Only `name`, `reads` and
+ * `evaluate` are required; everything else is Go's zero value when absent.
+ * `reads` must cover every path `evaluate` resolves (Go's honor system); a
+ * read of `move.*` makes the ledger entry provisional.
+ */
+export interface GamePredicate {
+	name: string;
+	/** Go: Args. Absent or empty where Go leaves them nil. */
+	args?: readonly string[];
+	reads: readonly LegalRead[];
+	requiredReadTypes?: Readonly<Record<string, PropertyType>>;
+	allowedReadTypes?: Readonly<Record<string, readonly PropertyType[]>>;
+	/** Go: Cost (metadata only). Default 0, LegalCostTrivial. */
+	cost?: LegalCost;
+	/** Go: UsesProposer. */
+	usesProposer?: boolean;
+	/** Go: EmittedTemplates: every template key evaluate may emit. */
+	emittedTemplates?: readonly string[];
+	/** Go: EmittedBindings. Absent is Go's nil (no metadata). */
+	emittedBindings?: Readonly<Record<string, readonly string[]>>;
+	/**
+	 * Go: Evaluate. Returns Go's verdict shape (legal/types.ts passVerdict,
+	 * failT, unknownVerdict). A throw is Go's panic: the plan turns it into
+	 * an unknown verdict, `predicate "<name>" panicked: <message>`.
+	 */
+	evaluate: (ctx: PredicateContext) => LegalVerdict;
+}
+
+/**
+ * Go: legal.PredicateConstructor.Constructor, for a game's own predicate
+ * (ConfigurePredicateConstructors). Returns the predicate, or Go's error:
+ * a throw or a returned string, which plan assembly reports as Go does
+ * (`boardgame: legal spec "<name>": constructor failed: <text>`). Go's
+ * chest and resolve arguments are not passed; no game uses them.
+ */
+export type GamePredicateConstructor = (spec: PredicateSpec) => GamePredicate | string;
+
 // ----- the game -----------------------------------------------------------
 
 export interface GameSpec {
@@ -318,6 +392,13 @@ export interface GameSpec {
 	computed?: readonly ComputedSpec[];
 	/** ConfigureLegalTemplates: message template key to text. */
 	legalTemplates?: Readonly<Record<string, string>>;
+	/**
+	 * ConfigurePredicateConstructors (legal.ConstructorConfigurer): the
+	 * game's own predicates, overlaid by name on the built-in catalog (a
+	 * name matching a built-in overrides it, as in Go). A plan spec naming
+	 * one is built by its constructor once, at compile time.
+	 */
+	predicates?: readonly { name: string; construct: GamePredicateConstructor }[];
 
 	/** In registration order; fix-ups are tried in this order. */
 	moves: readonly MoveSpec[];
