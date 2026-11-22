@@ -516,7 +516,11 @@ function moveFromData(move: MoveData, moves: Readonly<Record<string, MoveData>>,
 		const parts = stockPartsFor(move, bodies);
 		const stockSpec: Partial<MoveSpec> = parts.spec ?? {};
 		const stock: MoveStockParts = {};
-		const stockApply = parts.apply ?? stockSpec.apply;
+		// Only an explicit part is the stock Apply. A base type (Default,
+		// CurrentPlayer, FixUp, ...) has none in Go, and the registry drops
+		// it; its spec may still carry a placeholder, which must not stand in
+		// for the game's missing Apply.
+		const stockApply = parts.apply;
 		const stockLegal = parts.legal ?? stockSpec.legal;
 		const stockDefaults = parts.defaults ?? stockSpec.defaults;
 		if (stockApply) stock.apply = stockApply;
