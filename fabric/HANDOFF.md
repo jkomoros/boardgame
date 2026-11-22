@@ -19,8 +19,8 @@ the head commit.
 | `cf-iframe` guest | `fabric/guest`, [status/guest-harness.md](status/guest-harness.md) | One file, about 0.6 MB of the 4 MiB limit. Depends only on the two packages. Draws Memory and blackjack with the unmodified game renderers |
 | TypeScript engine | `server/static/src/engine`, [status/engine-core.md](status/engine-core.md), [engine-legal.md](status/engine-legal.md), [engine-rules.md](status/engine-rules.md) | Core, legal framework, rules layer, six ported games. Matches Go on all 22 conformance documents at every version for every viewer. Written without classes so a pattern can load it |
 | Go conformance exporter | `boardgame-util/lib/conformance`, `conformance/`, [status/conformance-export.md](status/conformance-export.md) | 22 documents with a staleness check. The only Go added; no existing Go behavior changed |
-| Memory on Fabric | `fabric/patterns/memory`, [status/fabric-memory.md](status/fabric-memory.md), [status/engine-fabric.md](status/engine-fabric.md) | Sealed table, one `move` handler, per-viewer view from the engine. Two browser identities played whole games with server execution on |
-| Blackjack on Fabric | `fabric/patterns/blackjack`, [status/engine-fabric.md](status/engine-fabric.md), [status/integration.md](status/integration.md) | Per-seat views from the engine's sanitization; parity with Go on seven recordings. Three browser identities and a watcher played two whole games, each shown its own hole card and nobody else's in an unmodified client. A move takes a median 18.6 s |
+| Memory on Fabric | `fabric/patterns/memory`, [status/viewer-bound-port.md](status/viewer-bound-port.md) | Sealed record, one `move` handler, one `viewFor` lift released to the principal it was computed for. Two browser identities played whole games with server execution on. A move takes a median 1.5 s |
+| Blackjack on Fabric | `fabric/patterns/blackjack`, [status/viewer-bound-port.md](status/viewer-bound-port.md) | The same pattern as Memory over a different game; parity with Go on seven recordings. Three browser identities and the table's owner as a watcher played whole games; the owner is shown no hole card. Deal 1.2 s, a move a median 2.6 s, a round's end 9.6 s. Needs the labs branch with `viewerBoundRelease` on |
 | Board in pattern JSX, no iframe | `fabric/patterns-declarative`, [status/declarative-pattern.md](status/declarative-pattern.md) | Two identities played Memory through a pattern whose JSX is boardgame elements, on a local labs spike branch |
 | Go 1.27 | commit `3a00e697` | `golang.org/x/tools` raised so the tree builds and tests under Go 1.27.4 |
 
@@ -77,9 +77,13 @@ as instructed. These are the properties a reader should not assume.
    not a run. This needs a ruling; no pattern can close it.
 5. **No modified client was tried** against any of this.
 
-Items 2, 3 and 4 are what the viewer-bound release answers; see the next
-section. They still describe the patterns on this branch until the port in
-`status/viewer-bound-port.md` is merged.
+Items 2, 3 and 4 no longer describe this branch: the patterns were ported to
+the viewer-bound release ([status/viewer-bound-port.md](status/viewer-bound-port.md))
+and those three are closed at the runtime's display boundary. Item 1 stands,
+and it is now the whole of what is not held: a key with only `READ` printed
+the game's secret salt with `cf cell get`. The port also found that a space's
+owner has a documented command, `cf cell release-by-intent`, that lists this
+module's policy clause as one it would release. That was listed and not run.
 
 ## Viewer-bound release
 
@@ -110,25 +114,57 @@ in the pattern. A labs agent built that on `worktree-agent-a53d3b2fae9b79d6b`.
   default to `null`; a modified client is trusted for its own user's view
   when server execution is off.
 
+### The port, measured
+
+From [status/viewer-bound-port.md](status/viewer-bound-port.md), by the
+pattern session; the orchestrator read the report and the merged code and
+reran none of it.
+
+- **The 18.6 s move was the runtime, and a labs fix removed it.** The
+  unchanged pattern takes a median 2.6 s a move and 5.5 s to deal on the
+  labs branch. A bisect puts the change on `2033f78fae`, the fix that stamps
+  a computation's result whole. Why it is faster is inferred from the commit
+  message.
+- **The port alone was slower** (move 3.6 s, deal 8.3 s): each viewer's view
+  is computed after the commit, about 0.7 s behind it.
+- **Final:** deal 1.2 s, move 2.6 s median, round's end 9.6 s; Memory 1.5 s
+  a move (2.2 s before). The gains came from storing the last input's
+  states as a list the store can diff, keeping only the head of a deal, and
+  reading the table once in the lift.
+- **What is left follows the versions held:** about 0.6 s for each version a
+  move produces. Holding only the head makes every blackjack move 1.2 to
+  2.1 s and loses a card at a time; measured, not shipped (decision 4).
+- **Tests on the final code:** pattern Node tests 39 of 39; both multi-user
+  suites (92 and 202) with server execution off and on; both sandbox parity
+  tests; guest 28 of 28; a display-boundary attack test in labs' harness
+  (4 tests, 13 steps); three browser games of blackjack with an owner
+  watching (424 of 424 secrecy checks) and two of Memory.
+- **Broken by it, being fixed:** `fabric/patterns-declarative` and
+  `fabric/declarative/src/table-view.ts` read the old per-seat shape.
+
 ## Userland machinery the runtime should own
 
-The orchestrator's reading of why blackjack is slow, made before the port and
-not from a profile: the patterns rebuild, in stored documents, things the
-runtime already has or should have. Each row is something a pattern author
-should not write. The port measures what removing each one buys.
+Each row is something a pattern author should not have to write. "State"
+says what the port found; the full table with the runtime feature each row
+waits on is in `status/viewer-bound-port.md`, "What is still in userland".
 
 | What the pattern does today | What the runtime should offer | State |
 |---|---|---|
-| Stores one view per seat, recomputed on every move whoever is looking | A computation per viewer, released to that viewer | Built on the labs branch above |
+| Stores one view per seat, recomputed on every move whoever is looking | A computation per viewer, released to that viewer | Built in labs; patterns ported |
 | Computes each viewer's redacted copy itself and releases the copy whole | Labels on fields of one record, filtered at delivery; needs a join finer than one per transaction (gap F) | Not built |
-| Keeps a window of past versions in every view so the client can animate the last move | A reader asks a cell for its previous value, or for the change | Not built |
-| Keeps the move history inside the sealed state | The transaction log, readable under the same labels | Not built |
-| A `tick` proposal a client sends on a timer | A timer or scheduled event in the trusted runtime | Not built |
-| An `identify` handler so a guest learns who it is | `currentPrincipal()` | Built on the labs branch above, for lifts |
-| State held as one string to keep its witness | A record keeps its writer's witness | Fixed on the labs branch above |
+| Keeps every version of the last input in every view so the client can animate it | A log a reader consumes in order, released per viewer, each entry written once | Not built. This is the largest remaining cost |
+| Keeps the move history inside the sealed state | Nothing: our engine reads the whole history. An engine API that takes a version and a tail would shrink it | Left; 5% of the table |
+| Reads the view again after `send()` to learn a proposal was refused | A handler's reply to its sender | Not built |
+| Copies the table before stepping it, so the stored value holds no reference | A `set` of a value read from the same cell stored as a value | Not built |
+| A `tick` proposal a client sends on a timer | A wake at an instant the state names. The labs plan for scheduled work is in minutes, too coarse for a four-second timer | Not built; one `TODO(cfc)` |
+| An `identify` handler so a guest learns who it is | `currentPrincipal()` | Built in labs; `identify` removed |
+| State held as one string to keep its witness | A record keeps its writer's witness | Fixed in labs; state is a record |
 
-Unattributed: Memory with hand-written rules still took about 1.8 s a move,
-so some floor is the runtime's own.
+What a pattern cannot remove, measured in labs' harness with no browser:
+about half a second of label preparation and commit for a handler that
+rewrites a 50 KB record, a view computation per viewer that is mostly the
+cost of reading that record, and a second per-viewer round when a serving
+runtime computes the views.
 
 ## Decisions for you
 
@@ -147,13 +183,12 @@ Ordered by how much later work they shape.
    `.map` over the view is withheld by policy, so the JSX can only pass the
    view whole to one element. Blessing more lifts in the table would let
    pattern authors write seats and labels in JSX.
-4. **Speed.** A blackjack move takes a median 18.6 s and a deal 27 s: every
-   input rewrites eight views, each holding every version of the last input,
-   and all seven seat views are computed whoever is seated. Memory takes about
-   3 s against 1.8 s with hand-written rules, because Go's Memory carries the
-   110 unused cards in every version. The runtime's cost follows stored size.
-   Options are in `status/engine-fabric.md`; blackjack's shape is the first
-   thing to change, and it was not changed here.
+4. **A card at a time, or speed.** A round's end at blackjack is sixteen
+   versions and takes 9.6 s; the median move takes 2.6 s. Holding only the
+   newest version makes those 1.5 s and 1.6 s, and cards that the Go client
+   moves one at a time then move together. It is a four-line change, written
+   out in `status/viewer-bound-port.md`, and not shipped. The other way out
+   is the runtime's log (see the userland table).
 5. **Classes are gone from the engine,** and `private` with them, because the
    pattern sandbox refuses classes at module scope by design. Members could
    become closure variables if the visibility matters.
@@ -211,7 +246,7 @@ A question to ask them, drafted and not sent:
   registration on import (S6); game clients and generator templates moved to
   package specifiers; token art inside a package (S5); the host's required
   custom properties written down. Table in `status/client-packages.md`.
-- **Stream B:** blackjack's designed seat release once list release lands;
+- **Stream B:** the declarative pattern onto the per-viewer view;
   the remaining four games as patterns (they load and compile in a pattern
   and are otherwise untried there); latency.
 - **Stream C:** what the corpus cannot yet check is listed in
