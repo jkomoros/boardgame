@@ -144,12 +144,28 @@ reran none of it.
   viewer-bound release"): two two-identity Memory games played, 34 of 34
   element tests, on a new local labs branch
   `spike/boardgame-trusted-components-viewer-bound` (`87788f82c8`).
-- **A derived value is still withheld from its own viewer.** A `computed`, a
-  module-scope `lift` and a `.map` over the released view each showed
-  "Content hidden by policy" to the viewer the view was released to. The
-  draft proposal says the opposite ("a viewer's own derivations of their
-  view stay theirs", citing §5.3). One of the two is wrong, and it should be
-  settled before the proposal is filed.
+- **A derived value was withheld from its own viewer; one of three causes is
+  fixed.** Traced by a labs agent; its brief for other agents is copied to
+  [labs-spikes/DERIVED-RELEASE-FINDING.md](labs-spikes/DERIVED-RELEASE-FINDING.md),
+  and the updated proposal beside it.
+  1. *Fixed, general, also on `origin/main`:* the flow join applied no
+     exchange when a computation read a released value, against §5.3 ("A
+     runtime MUST evaluate exchange wherever a label is consumed"). Labs
+     commit `4afac41b30`, classed conforming; it cherry-picks onto
+     `origin/main` with no conflict. A reproduction on unmodified main fails
+     3 of 6 and passes 6 of 6 with it.
+  2. *Open, needs a ruling:* a derived node first computed while its input
+     was sealed keeps a sealed existence label for good (§8.12.8 requires
+     it). A table is `null` before setup, so anyone who opened it before the
+     first move is still refused their own derivations.
+  3. *Open, needs a ruling or design:* a `.map` over a list in the view is
+     refused to everyone, because the build-time join of the inputs' schema
+     labels is stored on the map's shared container as a declared policy.
+
+  So seats and labels in pattern JSX over a per-viewer view are not yet
+  possible. Nothing ran in a browser after the fix; the orchestrator reran
+  only the new unit test (15 steps, passed). The labs branch head is now
+  `87a2ce371e`.
 
 ## Userland machinery the runtime should own
 
