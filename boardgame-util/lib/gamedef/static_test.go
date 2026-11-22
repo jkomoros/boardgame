@@ -285,3 +285,23 @@ func TestSourceHashIgnoresLayout(t *testing.T) {
 		t.Errorf("hash %s, other body %s", a, c)
 	}
 }
+
+// TestStaticComponentLegal: the static half keys a component values type's
+// declared Legal by the type's GoType spelling, which Export joins by the
+// reflected type of each deck's values.
+func TestStaticComponentLegal(t *testing.T) {
+	info, err := Static("github.com/jkomoros/boardgame/examples/checkers")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]FnRef{"checkers.token": "checkers.(*token).Legal"}; !reflect.DeepEqual(info.ComponentLegal, want) {
+		t.Errorf("ComponentLegal: got %v, want %v", info.ComponentLegal, want)
+	}
+	memory, err := Static("github.com/jkomoros/boardgame/examples/memory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(memory.ComponentLegal) != 0 {
+		t.Errorf("memory ComponentLegal: %v", memory.ComponentLegal)
+	}
+}

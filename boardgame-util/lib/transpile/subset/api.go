@@ -136,7 +136,7 @@ var Table = []Entry{
 	{Go: []string{"(boardgame.Component).Deck"}, Facade: "c.deck", Kind: KindChain, Source: "added: only as c.Deck().Name(); a Comp handle carries its deck"},
 	{Go: []string{"(*boardgame.Deck).Name"}, Facade: "deck name", Kind: KindCall, Source: "added: the deck field of the Comp handle"},
 	{Go: []string{"(boardgame.ComponentValues).ContainingComponent", "(*base.ComponentValues).ContainingComponent"}, Facade: "component of values", Kind: KindChain, Source: "added: a component method's receiver is the component's handle; only as ContainingComponent().ImmutableInstance(state) or Instance(state)"},
-	{Go: []string{"(boardgame.Component).ImmutableInstance", "(boardgame.Component).Instance"}, Facade: "component handle", Kind: KindCall, Source: "added: the handle itself, located with containingStack"},
+	{Go: []string{"(boardgame.Component).ImmutableInstance", "(boardgame.Component).Instance"}, Facade: "componentInstance", Kind: KindCall, Source: "added: the handle itself, componentInstance(state, deck, index), located where the component is now"},
 
 	// Timers.
 	{Go: []string{"(boardgame.ImmutableTimer).Active"}, Facade: "timer.active", Kind: KindCall, Source: proposal},

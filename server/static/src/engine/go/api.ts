@@ -39,6 +39,7 @@ import { EMPTY_SLOT, GENERIC_COMPONENT } from '../ids.ts';
 import type { PropDef } from '../definition.ts';
 import { callStockApply } from '../rules/data.ts';
 import type { BoundEnum } from '../rules/enums.ts';
+import { findMove } from '../rules/state.ts';
 import type { RulesState } from '../rules/state.ts';
 import type { MoveInstance } from '../rules/types.ts';
 import { isStack, isStackError } from '../stack.ts';
@@ -80,10 +81,18 @@ export interface DynamicRef {
 
 /**
  * Who holds an enum property: the game sub-state, a player (by index), a
- * component's dynamic values, or a component's static values. The component
- * may be null (Go's nil), which panics on use as Go's does.
+ * component's dynamic values, a component's static values, or a move's own
+ * fields (Go: `m.F` where F is an enum.Val or enum.RangeVal field of the
+ * move). The component may be null (Go's nil), which panics on use as Go's
+ * does. A move field holds the value's string, as the engine's
+ * `MoveInstance.fields` and Go's move record both store it.
  */
-export type Owner = 'game' | number | { readonly dynamicOf: Comp | DynamicRef | null } | { readonly valuesOf: Comp | null };
+export type Owner =
+	| 'game'
+	| number
+	| { readonly dynamicOf: Comp | DynamicRef | null }
+	| { readonly valuesOf: Comp | null }
+	| { readonly move: MoveInstance };
 
 /**
  * A grid graph over a range enum (enum/graph: MustNewEnumGridConnectedness),
@@ -334,6 +343,38 @@ export function containingStack(state: RulesState, c: Comp | null): [StackRef | 
 	return [refOf(c.stack.state, found.stack), found.slotIndex, null];
 }
 
+/**
+ * Go: `v.ContainingComponent().ImmutableInstance(state)` (or `Instance`),
+ * the handle a method of a component values type has for its own
+ * component, whose receiver the translator passes as the deck name and
+ * index (a component `Legal` body's `index`). Go always returns an
+ * instance; so does this. `stack` and `slot` are where the component is
+ * now; for a component the state cannot locate (a generic one, or one
+ * whose index went stale after ContractSize) `slot` is -1 and `stack` is
+ * any stack of `state`, used only for its state, and every operation on the
+ * handle then fails with Go's text, as Go's does. Throws for a deck the
+ * game lacks or an index outside it, which Go cannot express.
+ */
+export function componentInstance(state: RulesState, deck: string, index: number): Comp {
+	const size = state.engine.def.Decks[deck]?.Size;
+	if (size === undefined) throw new Error('go/api: componentInstance: no deck ' + deck);
+	if (index !== GENERIC_COMPONENT && (!Number.isInteger(index) || index < 0 || index >= size)) {
+		throw new Error('go/api: componentInstance: deck ' + deck + ' has no component ' + index);
+	}
+	const found = index === GENERIC_COMPONENT ? 'generic' : state.engine.locateComponent(deck, index);
+	if (typeof found !== 'string') return { stack: refOf(state, found.stack), slot: found.slotIndex, deck, index };
+	return { stack: anyStack(state), slot: -1, deck, index };
+}
+
+/** Some stack of the state: a component handle's carrier of its state when the component has no location. */
+function anyStack(state: RulesState): StackRef {
+	const def = state.engine.def;
+	const isStackProp = (prop: PropDef): boolean => prop.Type === 'stack' || prop.Type === 'sizedStack' || prop.Type === 'mergedStack';
+	for (const name of Object.keys(def.Game.Props)) if (isStackProp(def.Game.Props[name])) return gameStack(state, name);
+	for (const name of Object.keys(def.Player.Props)) if (isStackProp(def.Player.Props[name]) && state.numPlayers() > 0) return playerStack(state, 0, name);
+	throw new Error('go/api: componentInstance: the game has no stack');
+}
+
 // ----- moving components --------------------------------------------------
 
 /** Go: `c.MoveTo(dest, slot)`. Null on success, else Go's error text; nothing changes on failure. */
@@ -559,11 +600,16 @@ function isValuesOwner(owner: Owner): owner is { readonly valuesOf: Comp | null 
 	return typeof owner === 'object' && 'valuesOf' in owner;
 }
 
+function isMoveOwner(owner: Owner): owner is { readonly move: MoveInstance } {
+	return typeof owner === 'object' && 'move' in owner;
+}
+
 /** The JSON object an owner's properties live in. */
 function ownerNode(state: RulesState, owner: Owner): Readonly<Record<string, unknown>> {
 	if (owner === 'game') return state.g;
 	if (typeof owner === 'number') return player(state, owner);
 	if (isDynamicOwner(owner)) return dynamic(state, owner.dynamicOf);
+	if (isMoveOwner(owner)) return owner.move.fields;
 	return values(state, owner.valuesOf);
 }
 
@@ -578,7 +624,10 @@ function enumOf(state: RulesState, owner: Owner, prop: string): BoundEnum {
 	if (owner === 'game') name = def.Game.Props[prop]?.Enum;
 	else if (typeof owner === 'number') name = def.Player.Props[prop]?.Enum;
 	else if (isDynamicOwner(owner)) name = def.DynamicComponentValues[owner.dynamicOf!.deck]?.Props[prop]?.Enum;
-	else {
+	else if (isMoveOwner(owner)) {
+		const field = findMove(state.game, owner.move.name)?.fields[prop];
+		name = field?.type === 'enum' ? field.enum : undefined;
+	} else {
 		const deck = owner.valuesOf!.deck;
 		name = state.game.components[deck]?.[prop]?.Enum ?? def.Decks[deck]?.ComponentProps?.[prop]?.Enum;
 	}
@@ -609,7 +658,7 @@ export function setEnumKey(state: RulesState, owner: Owner, prop: string, key: n
 	const e = enumOf(state, owner, prop);
 	storedEnum(state, owner, prop);
 	if (!Object.prototype.hasOwnProperty.call(e.def.Values, String(key))) return 'That value is not valid for this enum';
-	(ownerNode(state, owner) as SubStateJSON)[prop] = e.stringOf(key);
+	(ownerNode(state, owner) as Record<string, unknown>)[prop] = e.stringOf(key);
 	return null;
 }
 

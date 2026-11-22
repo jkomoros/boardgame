@@ -55,6 +55,13 @@ type StaticInfo struct {
 	CurrentPlayerIndex FnRef
 	// Functions is every function reaching engine output, sorted by Func.
 	Functions []FunctionEntry
+	// ComponentLegal is a component values type ("checkers.token", the
+	// same spelling as MoveStatic.GoType) to the Legal method the game
+	// declares on it (interfaces.LegalComponent, role RoleComponent). Which
+	// deck holds which values type is known only at run time, so Export
+	// joins this by each deck's components' reflected values type into
+	// GameData.ComponentLegal.
+	ComponentLegal map[string]FnRef
 }
 
 // MoveStatic is one move type, as its source declares it.
@@ -317,6 +324,8 @@ func (a *analysis) run() (*StaticReport, error) {
 		Predicates:  make(map[string]FnRef),
 		Counters:    make(map[string]FnRef),
 		Functions:   []FunctionEntry{},
+		// ComponentLegal is filled by roots.
+		ComponentLegal: make(map[string]FnRef),
 	}
 	report := &StaticReport{StaticInfo: info, Dir: a.dir, Buckets: make(map[FnRef]string)}
 
@@ -947,7 +956,9 @@ func (a *analysis) roots(info *StaticInfo) rootSet {
 		case a.isComponentValues(named):
 			for _, fn := range a.declaredMethods(named) {
 				if fn.Name() == "Legal" {
-					setRole(fn, RoleComponent)
+					if ref := setRole(fn, RoleComponent); ref != "" {
+						info.ComponentLegal[named.Obj().Pkg().Name()+"."+named.Obj().Name()] = ref
+					}
 				} else if hookNames[fn.Name()] {
 					setRole(fn, RoleHook)
 				}

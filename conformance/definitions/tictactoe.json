@@ -255,6 +255,7 @@
 					},
 					"github.com/jkomoros/boardgame/moves.DestinationProperty": "game.Slots",
 					"github.com/jkomoros/boardgame/moves.HelpText": "Place a player's token in a specific space.",
+					"github.com/jkomoros/boardgame/moves.ResolvedSlotField": "Slot",
 					"github.com/jkomoros/boardgame/moves.SourceProperty": "players[move.TargetPlayerIndex].UnusedTokens"
 				}
 			},

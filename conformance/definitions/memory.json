@@ -842,6 +842,7 @@
 							"name": "mayMoveToSlot"
 						}
 					],
+					"github.com/jkomoros/boardgame/moves.ResolvedSlotField": "CardIndex",
 					"github.com/jkomoros/boardgame/moves.SourceProperty": "game.HiddenCards",
 					"github.com/jkomoros/boardgame/moves.SourceSlotField": "CardIndex",
 					"github.com/jkomoros/boardgame/moves.SuppressedPreconditions": [

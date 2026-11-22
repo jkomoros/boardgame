@@ -288,11 +288,15 @@ function runCorpus(game: CompiledGame, name: string): { documents: number; versi
 }
 
 /** The whole proof for one GameData: compiles like the hand port and passes the corpus, in both hook modes. */
-function proveLoader(t: { diagnostic(message: string): void }, data: GameData, name: string): void {
+function proveLoader(t: { diagnostic(message: string): void }, data: GameData, name: string, noStandIns = false): void {
 	const hand = HAND_PORTS[name]();
 	const handGame = compileGame(hand);
 	for (const wholeMoves of [false, true]) {
 		const adapter = handPortBodies(data, hand, wholeMoves);
+		// An exported definition carries everything stockMove needs, Go's
+		// boot-time inferences included (gamedef addResolvedConfig): no move may
+		// fall back to the hand port's stock parts.
+		if (noStandIns) assert.deepEqual(adapter.standIns, [], name + ': moves the stock registry cannot build from the exported configuration');
 		const loaded = compileGame(gameFromData(data, adapter.bodies));
 		assert.equal(firstDifference(compiledSummary(loaded), compiledSummary(handGame)), null, name + ': the loaded game compiles as the hand port does');
 		const run = runCorpus(loaded, name);
@@ -358,7 +362,7 @@ for (const name of Object.keys(HAND_PORTS)) {
 			t.skip('conformance/definitions/' + name + '.json holds run-time parts only (no function references): the static half has not been joined yet');
 			return;
 		}
-		proveLoader(t, data, name);
+		proveLoader(t, data, name, true);
 	});
 }
 
