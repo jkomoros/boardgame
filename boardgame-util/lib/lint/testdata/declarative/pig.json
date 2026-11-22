@@ -1,0 +1,314 @@
+{
+  "package": "github.com/jkomoros/boardgame/examples/pig",
+  "name": "pig",
+  "baseline": {
+    "moveConfigs": 6,
+    "dataOnly": 3,
+    "withGameCode": 3,
+    "declaredPreconditionSpecs": 4,
+    "functions": 10,
+    "inSubset": 10,
+    "outside": 0,
+    "needEngineFeature": 0,
+    "notPorted": 1
+  },
+  "shares": {
+    "dataOnly": "3/6",
+    "declaredLegality": "6/6",
+    "inSubset": "10/10"
+  },
+  "buckets": {
+    "engineGap": 0,
+    "outside": 0,
+    "subset": 10
+  },
+  "moves": [
+    {
+      "type": "moves.SeatPlayer",
+      "stock": "SeatPlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 132
+    },
+    {
+      "type": "moves.ActivateInactivePlayer",
+      "stock": "ActivateInactivePlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 141
+    },
+    {
+      "type": "pig.moveRollDice",
+      "stock": "CurrentPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply"
+      ],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 144
+    },
+    {
+      "type": "pig.moveDoneTurn",
+      "stock": "CurrentPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply"
+      ],
+      "preconditionSpecs": 2,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 155
+    },
+    {
+      "type": "pig.moveCountDie",
+      "stock": "CurrentPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply"
+      ],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 166
+    },
+    {
+      "type": "moves.FinishTurn",
+      "stock": "FinishTurn",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 178
+    }
+  ],
+  "imperativeLegal": [],
+  "functions": [
+    {
+      "func": "pig.(*gameDelegate).DistributeComponentToStarterStack",
+      "role": "distribute",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 59,
+      "sourceHash": "sha256:3699b10a6c4f1ecd754b0996f68f0fabf50c90dc942c29dbd6f362196c348a97",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*gameDelegate).FinishSetUp",
+      "role": "setUpFinish",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 64,
+      "sourceHash": "sha256:eaaa6142ec38ff23e4b64a585a1ed2159b3a122a9dd501436dc815d4f098815f",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*gameDelegate).GameEndConditionMet",
+      "role": "conditionMet",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 78,
+      "sourceHash": "sha256:440856002ca378f3bd1d9110fded8314c6671bc6849a3e32a73594ef7b599133",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*moveCountDie).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 132,
+      "sourceHash": "sha256:b13ee12e4912c303863e23298bd50c0097a2b66058f6704b8f6abd6d81b1bf8b",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*moveDoneTurn).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 95,
+      "sourceHash": "sha256:0ea200ddec0c52ae96f7c01d13a8def39a006d34cb87b8cad4917f1d7a2b82bc",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*moveRollDice).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 57,
+      "sourceHash": "sha256:27975b948ff9ec437f7b2056ca95a583dafc017c2b43dcea2d5994ea91fefd7f",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*playerState).ResetForTurn",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 55,
+      "sourceHash": "sha256:e1294c7d789a1702d9e6fa275665f4f6abf492412ce8b3cea0ac4419b80f2f43",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*playerState).ResetForTurnEnd",
+      "role": "resetForTurnEnd",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 67,
+      "sourceHash": "sha256:0f7484e302b65494cd0754d0aa3aca5132170277b40b0e6b08290b01a9795ca0",
+      "calls": [
+        "pig.(*playerState).ResetForTurn"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*playerState).ResetForTurnStart",
+      "role": "resetForTurnStart",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 62,
+      "sourceHash": "sha256:728a16bde652f5a33b0f8503b8d97f616291a308b2e1f9d406c45d10da5c9025",
+      "calls": [
+        "pig.(*playerState).ResetForTurn"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "pig.(*playerState).TurnDone",
+      "role": "turnDone",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 43,
+      "sourceHash": "sha256:c79a4a5e2fb20877cfa4ca3b77e1a994454630614cbcd53908bc89803f62a41c",
+      "calls": [],
+      "refusals": []
+    }
+  ],
+  "warnings": [],
+  "notPorted": [
+    {
+      "func": "pig.(*gameDelegate).Diagram",
+      "why": "Diagram",
+      "file": "main.go",
+      "line": 90
+    }
+  ],
+  "notCounted": [
+    {
+      "func": "pig.(*gameDelegate).ConfigureDecks",
+      "why": "ConfigureDecks",
+      "file": "main.go",
+      "line": 202
+    },
+    {
+      "func": "pig.(*gameDelegate).ConfigureLegalTemplates",
+      "why": "ConfigureLegalTemplates",
+      "file": "main.go",
+      "line": 193
+    },
+    {
+      "func": "pig.(*gameDelegate).ConfigureMoves",
+      "why": "ConfigureMoves",
+      "file": "main.go",
+      "line": 127
+    },
+    {
+      "func": "pig.(*gameDelegate).DefaultNumPlayers",
+      "why": "DefaultNumPlayers",
+      "file": "main.go",
+      "line": 55
+    },
+    {
+      "func": "pig.(*gameDelegate).Description",
+      "why": "Description",
+      "file": "main.go",
+      "line": 43
+    },
+    {
+      "func": "pig.(*gameDelegate).DynamicComponentValuesConstructor",
+      "why": "DynamicComponentValuesConstructor",
+      "file": "main.go",
+      "line": 118
+    },
+    {
+      "func": "pig.(*gameDelegate).GameStateConstructor",
+      "why": "GameStateConstructor",
+      "file": "main.go",
+      "line": 108
+    },
+    {
+      "func": "pig.(*gameDelegate).MaxNumPlayers",
+      "why": "MaxNumPlayers",
+      "file": "main.go",
+      "line": 51
+    },
+    {
+      "func": "pig.(*gameDelegate).MinNumPlayers",
+      "why": "MinNumPlayers",
+      "file": "main.go",
+      "line": 47
+    },
+    {
+      "func": "pig.(*gameDelegate).Name",
+      "why": "Name",
+      "file": "main.go",
+      "line": 29
+    },
+    {
+      "func": "pig.(*gameDelegate).PlayerStateConstructor",
+      "why": "PlayerStateConstructor",
+      "file": "main.go",
+      "line": 114
+    },
+    {
+      "func": "pig.NewDelegate",
+      "why": "NewDelegate",
+      "file": "main.go",
+      "line": 214
+    }
+  ],
+  "erased": [
+    {
+      "func": "pig.concreteStates",
+      "why": "erased",
+      "file": "state.go",
+      "line": 31
+    }
+  ],
+  "unreached": []
+}

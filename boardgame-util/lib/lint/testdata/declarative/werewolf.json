@@ -1,0 +1,508 @@
+{
+  "package": "github.com/jkomoros/boardgame/examples/werewolf",
+  "name": "werewolf",
+  "baseline": {
+    "moveConfigs": 11,
+    "dataOnly": 4,
+    "withGameCode": 7,
+    "declaredPreconditionSpecs": 0,
+    "functions": 16,
+    "inSubset": 16,
+    "outside": 0,
+    "needEngineFeature": 0,
+    "notPorted": 1
+  },
+  "shares": {
+    "dataOnly": "4/11",
+    "declaredLegality": "5/11",
+    "inSubset": "16/16"
+  },
+  "buckets": {
+    "engineGap": 0,
+    "outside": 0,
+    "subset": 16
+  },
+  "moves": [
+    {
+      "type": "moves.SeatPlayer",
+      "stock": "SeatPlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 232
+    },
+    {
+      "type": "moves.ActivateInactivePlayer",
+      "moveNameSuffix": "Gathering",
+      "stock": "ActivateInactivePlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 239
+    },
+    {
+      "type": "moves.WaitForEnoughPlayers",
+      "moveNameSuffix": "Gathering",
+      "stock": "WaitForEnoughPlayers",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 244
+    },
+    {
+      "type": "moves.InactivateEmptySeat",
+      "moveNameSuffix": "Gathering",
+      "stock": "InactivateEmptySeat",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 249
+    },
+    {
+      "type": "werewolf.moveBeginGame",
+      "moveName": "Begin Game",
+      "stock": "StartPhase",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 254
+    },
+    {
+      "type": "werewolf.moveCastVote",
+      "stock": "AnyPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 267
+    },
+    {
+      "type": "werewolf.moveResolveVotes",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 272
+    },
+    {
+      "type": "werewolf.moveResolveVotesOnTimeout",
+      "moveName": "Resolve Day Votes on Timeout",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 276
+    },
+    {
+      "type": "werewolf.moveCastVote",
+      "moveName": "Cast Night Vote",
+      "stock": "AnyPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 284
+    },
+    {
+      "type": "werewolf.moveResolveVotes",
+      "moveName": "Resolve Night Votes",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 291
+    },
+    {
+      "type": "werewolf.moveResolveVotesOnTimeout",
+      "moveName": "Resolve Night Votes on Timeout",
+      "stock": "FixUp",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "Legal"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": true,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 296
+    }
+  ],
+  "imperativeLegal": [
+    {
+      "type": "werewolf.moveCastVote",
+      "legal": "werewolf.(*moveCastVote).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "werewolf.moveResolveVotes",
+      "legal": "werewolf.(*moveResolveVotes).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "werewolf.moveResolveVotesOnTimeout",
+      "move": "Resolve Day Votes on Timeout",
+      "legal": "werewolf.(*moveResolveVotesOnTimeout).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "werewolf.moveCastVote",
+      "move": "Cast Night Vote",
+      "legal": "werewolf.(*moveCastVote).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "werewolf.moveResolveVotes",
+      "move": "Resolve Night Votes",
+      "legal": "werewolf.(*moveResolveVotes).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    },
+    {
+      "type": "werewolf.moveResolveVotesOnTimeout",
+      "move": "Resolve Night Votes on Timeout",
+      "legal": "werewolf.(*moveResolveVotesOnTimeout).Legal",
+      "note": "legality is an imperative Legal override: its checks are invisible to viewers and to the declared plan"
+    }
+  ],
+  "functions": [
+    {
+      "func": "werewolf.(*gameDelegate).BeginSetUp",
+      "role": "setUpBegin",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 86,
+      "sourceHash": "sha256:0d6e0aa3473f6d0614ecf844b69d1446c39bce3d9b7d819af03ae92d269a37d1",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*gameDelegate).CheckGameFinished",
+      "role": "checkGameFinished",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 114,
+      "sourceHash": "sha256:76cfa5fc332996b06c1acf76fe069358b6e7227f3747f5cf5313db0fd4d2e277",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*gameDelegate).CurrentPlayerIndex",
+      "role": "currentPlayerIndex",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 75,
+      "sourceHash": "sha256:234da085f1d5e67dc4daf312c9e6d4fe04e01d83f637fdb1870e9e33bcf89446",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.populateFellowWolves",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 101,
+      "sourceHash": "sha256:0cb570da460253ff4fea0fae60563276032db91aea66f8051f9e76dc53fdef34",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.timedVotingEnabled",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 98,
+      "sourceHash": "sha256:f011851a1137ad57c43f14f4fb8b229c70adfcfff2b72406a4c3d5eca62c0611",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.startVoteTimer",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 84,
+      "sourceHash": "sha256:1f5fc5cd433812a303244d48db63fe65a129e172f93656f4cba61f206eb6473e",
+      "calls": [
+        "werewolf.timedVotingEnabled"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*moveBeginGame).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 42,
+      "sourceHash": "sha256:661a3a027a6b7ae77cc9276498a22eb936fe47be7573da318a129485c22534ec",
+      "calls": [
+        "werewolf.populateFellowWolves",
+        "werewolf.startVoteTimer"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*moveCastVote).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 224,
+      "sourceHash": "sha256:11ac9c7c246ceee02817d736536dc88b6149b03f4cd9174d34ac26493841149f",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.voteForPhase",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 119,
+      "sourceHash": "sha256:745e367b8ad296d8a8d50966b540fcba6aa9940a1f3a7f2bc9e95288faf97664",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*moveCastVote).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 175,
+      "sourceHash": "sha256:62712ffa21be4fb3b5e0f8c0c40746096bc302c08116af32564eeeca22787ef8",
+      "calls": [
+        "werewolf.voteForPhase"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.resolveVotes",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 350,
+      "sourceHash": "sha256:502ed3288a1ee43596a42c64f9c9a94e113ae1f821c18b31827f847b24632305",
+      "calls": [
+        "werewolf.voteForPhase"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.finishVoteResolution",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 338,
+      "sourceHash": "sha256:8134b3690356a367d86a094a06ba88533f800f52aafbf5738eb44d386092f963",
+      "calls": [
+        "werewolf.(*gameDelegate).CheckGameFinished",
+        "werewolf.resolveVotes",
+        "werewolf.startVoteTimer"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*moveResolveVotes).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 308,
+      "sourceHash": "sha256:12638a690bb74745932386ebb9a79d73fdc22f80d4f45ff23ac8d3efb072a2ac",
+      "calls": [
+        "werewolf.finishVoteResolution"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*moveResolveVotes).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 277,
+      "sourceHash": "sha256:0814a7ff5a85cd960ab0775c529f6cecf45f8188493abfd93687a92b7aeb06d9",
+      "calls": [
+        "werewolf.voteForPhase"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*moveResolveVotesOnTimeout).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 334,
+      "sourceHash": "sha256:8fd3210bfb3d0caececcc8d2cdce8d8ab9d7c21b3059199c68850f6d60de9051",
+      "calls": [
+        "werewolf.finishVoteResolution"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "werewolf.(*moveResolveVotesOnTimeout).Legal",
+      "role": "legal",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 320,
+      "sourceHash": "sha256:f9327dabdbd25cefd4f94df808d48637f161cbbb465570f4b9d8c6174bcc0874",
+      "calls": [
+        "werewolf.timedVotingEnabled"
+      ],
+      "refusals": []
+    }
+  ],
+  "warnings": [],
+  "notPorted": [
+    {
+      "func": "werewolf.(*gameDelegate).Diagram",
+      "why": "Diagram",
+      "file": "main.go",
+      "line": 160
+    }
+  ],
+  "notCounted": [
+    {
+      "func": "werewolf.(*gameDelegate).ConfigureDecks",
+      "why": "ConfigureDecks",
+      "file": "main.go",
+      "line": 306
+    },
+    {
+      "func": "werewolf.(*gameDelegate).ConfigureMoves",
+      "why": "ConfigureMoves",
+      "file": "main.go",
+      "line": 227
+    },
+    {
+      "func": "werewolf.(*gameDelegate).DefaultNumPlayers",
+      "why": "DefaultNumPlayers",
+      "file": "main.go",
+      "line": 49
+    },
+    {
+      "func": "werewolf.(*gameDelegate).Description",
+      "why": "Description",
+      "file": "main.go",
+      "line": 37
+    },
+    {
+      "func": "werewolf.(*gameDelegate).GameStateConstructor",
+      "why": "GameStateConstructor",
+      "file": "main.go",
+      "line": 216
+    },
+    {
+      "func": "werewolf.(*gameDelegate).MaxNumPlayers",
+      "why": "MaxNumPlayers",
+      "file": "main.go",
+      "line": 45
+    },
+    {
+      "func": "werewolf.(*gameDelegate).MinNumPlayers",
+      "why": "MinNumPlayers",
+      "file": "main.go",
+      "line": 41
+    },
+    {
+      "func": "werewolf.(*gameDelegate).Name",
+      "why": "Name",
+      "file": "main.go",
+      "line": 28
+    },
+    {
+      "func": "werewolf.(*gameDelegate).PlayerStateConstructor",
+      "why": "PlayerStateConstructor",
+      "file": "main.go",
+      "line": 220
+    },
+    {
+      "func": "werewolf.(*gameDelegate).Variants",
+      "why": "Variants",
+      "file": "main.go",
+      "line": 59
+    },
+    {
+      "func": "werewolf.NewDelegate",
+      "why": "NewDelegate",
+      "file": "main.go",
+      "line": 312
+    }
+  ],
+  "erased": [
+    {
+      "func": "werewolf.concreteStates",
+      "why": "erased",
+      "file": "state.go",
+      "line": 22
+    }
+  ],
+  "unreached": []
+}

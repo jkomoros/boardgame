@@ -1,0 +1,343 @@
+{
+  "package": "github.com/jkomoros/boardgame/examples/tictactoe",
+  "name": "tictactoe",
+  "baseline": {
+    "moveConfigs": 4,
+    "dataOnly": 3,
+    "withGameCode": 1,
+    "declaredPreconditionSpecs": 0,
+    "functions": 11,
+    "inSubset": 11,
+    "outside": 0,
+    "needEngineFeature": 0,
+    "notPorted": 5
+  },
+  "shares": {
+    "dataOnly": "3/4",
+    "declaredLegality": "4/4",
+    "inSubset": "11/11"
+  },
+  "buckets": {
+    "engineGap": 0,
+    "outside": 0,
+    "subset": 11
+  },
+  "moves": [
+    {
+      "type": "moves.SeatPlayer",
+      "stock": "SeatPlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 141
+    },
+    {
+      "type": "moves.ActivateInactivePlayer",
+      "stock": "ActivateInactivePlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 152
+    },
+    {
+      "type": "tictactoe.movePlaceToken",
+      "stock": "MoveComponentToSlot",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "DefaultsForState"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 155
+    },
+    {
+      "type": "moves.FinishTurn",
+      "stock": "FinishTurn",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 170
+    }
+  ],
+  "imperativeLegal": [],
+  "functions": [
+    {
+      "func": "tictactoe.(*gameState).tokenValueAtIndex",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 37,
+      "sourceHash": "sha256:72bfae00b781d14a21e36b21c0359a4155d9dabbda308e7abff5fbf56b686e3e",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.checkRunWon",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 305,
+      "sourceHash": "sha256:61447350086aabfba9efe905d4d1ac662576a769245bfd530460ee6c1c4f2944",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.rowColToIndex",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 45,
+      "sourceHash": "sha256:376046d8820af9154f655f84ac4047260359faf47f04fa92c6965a5215bbc14f",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.checkGameFinished",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 228,
+      "sourceHash": "sha256:22542813fc97d744b7076eb7f1c992735d9874006d33d724328aa0c420619089",
+      "calls": [
+        "tictactoe.checkRunWon",
+        "tictactoe.rowColToIndex"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).CheckGameFinished",
+      "role": "checkGameFinished",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 96,
+      "sourceHash": "sha256:bcdcc52a7e79ab22466841e3109fb6e426d4d5c00f4193b550f282350b001d4c",
+      "calls": [
+        "tictactoe.(*gameState).tokenValueAtIndex",
+        "tictactoe.checkGameFinished"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).DistributeComponentToStarterStack",
+      "role": "distribute",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 28,
+      "sourceHash": "sha256:c1893a5aabc59b26ac2bb704ecf92b810160dcb18fea34bea9b02c69f62d6a4e",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.(*movePlaceToken).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 57,
+      "sourceHash": "sha256:a52517dba74312d5bba66921f1c9af595bb09fc0b989f706fdf7e4a71ef54f3e",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.(*movePlaceToken).DefaultsForState",
+      "role": "defaults",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 23,
+      "sourceHash": "sha256:aa459abe95c954b16f512204c7c604d0f45ee9f4ea6433768bae0820d487a2c6",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.(*playerState).ResetForTurnEnd",
+      "role": "resetForTurnEnd",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 65,
+      "sourceHash": "sha256:8c7e867dbd3f6817aa0fc616f33af19867dfe8ed843c56953df326f2fc9d45e5",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.(*playerState).ResetForTurnStart",
+      "role": "resetForTurnStart",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 60,
+      "sourceHash": "sha256:a1e26cf675b0c0040109bb7bdb64491248c4b72f7e059c1c1245092e18b496b2",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "tictactoe.(*playerState).TurnDone",
+      "role": "turnDone",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 69,
+      "sourceHash": "sha256:943e38ef48f2dabe691ebcbaa264a95be45f87ec76f38713561f4c7c572f1383",
+      "calls": [],
+      "refusals": []
+    }
+  ],
+  "warnings": [],
+  "notPorted": [
+    {
+      "func": "tictactoe.(*Agent).DisplayName",
+      "why": "agent",
+      "file": "agent.go",
+      "line": 16
+    },
+    {
+      "func": "tictactoe.(*Agent).Name",
+      "why": "agent",
+      "file": "agent.go",
+      "line": 11
+    },
+    {
+      "func": "tictactoe.(*Agent).ProposeMove",
+      "why": "agent",
+      "file": "agent.go",
+      "line": 26
+    },
+    {
+      "func": "tictactoe.(*Agent).SetUpForGame",
+      "why": "agent",
+      "file": "agent.go",
+      "line": 21
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).Diagram",
+      "why": "Diagram",
+      "file": "main.go",
+      "line": 194
+    }
+  ],
+  "notCounted": [
+    {
+      "func": "tictactoe.(*gameDelegate).ConfigureAgents",
+      "why": "ConfigureAgents",
+      "file": "main.go",
+      "line": 130
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).ConfigureConstants",
+      "why": "ConfigureConstants",
+      "file": "main.go",
+      "line": 188
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).ConfigureDecks",
+      "why": "ConfigureDecks",
+      "file": "main.go",
+      "line": 326
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).ConfigureLegalTemplates",
+      "why": "ConfigureLegalTemplates",
+      "file": "main.go",
+      "line": 182
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).ConfigureMoves",
+      "why": "ConfigureMoves",
+      "file": "main.go",
+      "line": 136
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).DefaultNumPlayers",
+      "why": "DefaultNumPlayers",
+      "file": "main.go",
+      "line": 74
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).Description",
+      "why": "Description",
+      "file": "main.go",
+      "line": 62
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).DisplayName",
+      "why": "DisplayName",
+      "file": "main.go",
+      "line": 58
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).GameStateConstructor",
+      "why": "GameStateConstructor",
+      "file": "main.go",
+      "line": 78
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).MaxNumPlayers",
+      "why": "MaxNumPlayers",
+      "file": "main.go",
+      "line": 70
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).MinNumPlayers",
+      "why": "MinNumPlayers",
+      "file": "main.go",
+      "line": 66
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).Name",
+      "why": "Name",
+      "file": "main.go",
+      "line": 44
+    },
+    {
+      "func": "tictactoe.(*gameDelegate).PlayerStateConstructor",
+      "why": "PlayerStateConstructor",
+      "file": "main.go",
+      "line": 82
+    },
+    {
+      "func": "tictactoe.NewDelegate",
+      "why": "NewDelegate",
+      "file": "main.go",
+      "line": 351
+    }
+  ],
+  "erased": [
+    {
+      "func": "tictactoe.concreteStates",
+      "why": "erased",
+      "file": "state.go",
+      "line": 11
+    }
+  ],
+  "unreached": [
+    {
+      "func": "tictactoe.(*gameState).tokenValue",
+      "why": "unreached",
+      "file": "state.go",
+      "line": 33
+    }
+  ]
+}

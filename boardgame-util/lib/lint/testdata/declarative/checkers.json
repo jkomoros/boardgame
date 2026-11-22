@@ -1,0 +1,702 @@
+{
+  "package": "github.com/jkomoros/boardgame/examples/checkers",
+  "name": "checkers",
+  "baseline": {
+    "moveConfigs": 7,
+    "dataOnly": 4,
+    "withGameCode": 3,
+    "declaredPreconditionSpecs": 5,
+    "functions": 20,
+    "inSubset": 19,
+    "outside": 1,
+    "needEngineFeature": 8,
+    "notPorted": 0
+  },
+  "shares": {
+    "dataOnly": "4/7",
+    "declaredLegality": "7/7",
+    "inSubset": "19/20"
+  },
+  "buckets": {
+    "engineGap": 8,
+    "outside": 1,
+    "subset": 11
+  },
+  "moves": [
+    {
+      "type": "moves.SeatPlayer",
+      "stock": "SeatPlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 66
+    },
+    {
+      "type": "moves.ActivateInactivePlayer",
+      "stock": "ActivateInactivePlayer",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 79
+    },
+    {
+      "type": "checkers.movePlaceToken",
+      "stock": "FixUpMulti",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "DefaultsForState",
+        "LegalCustom"
+      ],
+      "preconditionSpecs": 1,
+      "imperativeLegal": false,
+      "legalCustom": true,
+      "file": "main.go",
+      "line": 84
+    },
+    {
+      "type": "moves.StartPhase",
+      "stock": "StartPhase",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 102
+    },
+    {
+      "type": "checkers.moveCrownToken",
+      "stock": "DefaultComponent",
+      "stockPorted": false,
+      "data": false,
+      "methods": [
+        "Apply"
+      ],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 108
+    },
+    {
+      "type": "moves.FinishTurn",
+      "stock": "FinishTurn",
+      "stockPorted": true,
+      "data": true,
+      "methods": [],
+      "preconditionSpecs": 0,
+      "imperativeLegal": false,
+      "legalCustom": false,
+      "file": "main.go",
+      "line": 113
+    },
+    {
+      "type": "checkers.moveMoveToken",
+      "stock": "CurrentPlayer",
+      "stockPorted": true,
+      "data": false,
+      "methods": [
+        "Apply",
+        "LegalCustom"
+      ],
+      "preconditionSpecs": 4,
+      "imperativeLegal": false,
+      "legalCustom": true,
+      "file": "main.go",
+      "line": 116
+    }
+  ],
+  "imperativeLegal": [],
+  "functions": [
+    {
+      "func": "checkers.spaceIsBlack",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "components.go",
+      "line": 52,
+      "sourceHash": "sha256:e17d97695845c0c6a8be211492704a48fbc24d49c58c88335ff08eb8136c79ae",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*gameDelegate).ConfigurePredicateConstructors",
+      "role": "predicate",
+      "bucket": "outside",
+      "verdict": "refused",
+      "file": "main.go",
+      "line": 146,
+      "sourceHash": "sha256:399a2423a08a16b314ef1c3ad2b721c5cd52e11c690486d2d8620ff1e3239c4a",
+      "calls": [
+        "checkers.spaceIsBlack"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*gameDelegate).ConfigurePredicateConstructors",
+          "Reason": "predicate-constructor",
+          "Detail": "checkers.spaceIsBlack",
+          "File": "main.go",
+          "Line": 146,
+          "Column": 1
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*gameDelegate).DistributeComponentToStarterStack",
+      "role": "distribute",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 242,
+      "sourceHash": "sha256:664281a72a0f7d1d634fe77c234558b522f1a3f8c322d7105ab3a4baefa06a71",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*gameDelegate).GameEndConditionMet",
+      "role": "conditionMet",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 250,
+      "sourceHash": "sha256:dd8c01d42b01bd88b68ec1229146e4f04a5f4d7e2770d1ec00d0d0042d2e19f6",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*playerState).GameScore",
+      "role": "gameScore",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 62,
+      "sourceHash": "sha256:ced14854cd7620ece3a7f813c2a6f0c24a0d0e0c3472bd0d3097e514d10de3fd",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*gameDelegate).PlayerScore",
+      "role": "playerScore",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 261,
+      "sourceHash": "sha256:89dc7692dd453d43123257e4c8c29328fe78978c48c51cdf2502e1dfd960cfca",
+      "calls": [
+        "checkers.(*playerState).GameScore"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*moveCrownToken).Apply",
+      "role": "apply",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "moves.go",
+      "line": 302,
+      "sourceHash": "sha256:e20b4a0096735bfe3d5a90891b6e2882f06a11807e5ec9e5fbdb98d3d5c485a2",
+      "calls": [],
+      "refusals": [
+        {
+          "Func": "checkers.(*moveCrownToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "moves.DefaultComponent",
+          "File": "moves.go",
+          "Line": 305,
+          "Column": 30
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*token).Dynamic",
+      "role": "helper",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "components.go",
+      "line": 75,
+      "sourceHash": "sha256:3a36a2eb04d41bfd56b2dc478f79d51e8835af7e30a3278ce3bc77e6a1fdd2a9",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*token).AllNextSpaces",
+      "role": "helper",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "components.go",
+      "line": 128,
+      "sourceHash": "sha256:b7c1f3ee178a4c3e92a0584b8e0eefc3f2c736c312c830cbeda005d73f54f8a9",
+      "calls": [
+        "checkers.(*token).Dynamic"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*token).AllNextSpaces",
+          "Reason": "engine-gap",
+          "Detail": "behaviors.ComponentColor",
+          "File": "components.go",
+          "Line": 133,
+          "Column": 7
+        },
+        {
+          "Func": "checkers.(*token).AllNextSpaces",
+          "Reason": "engine-gap",
+          "Detail": "neighborsByKey",
+          "File": "components.go",
+          "Line": 151,
+          "Column": 22
+        },
+        {
+          "Func": "checkers.(*token).AllNextSpaces",
+          "Reason": "engine-gap",
+          "Detail": "neighborsByKey",
+          "File": "components.go",
+          "Line": 156,
+          "Column": 23
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*token).LegalCaptureSpaces",
+      "role": "helper",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "components.go",
+      "line": 165,
+      "sourceHash": "sha256:e61c11e253c4ef280d7429d7f50827a89be34149a3fe14d6eb111858b6411a64",
+      "calls": [
+        "checkers.(*token).AllNextSpaces"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*token).LegalCaptureSpaces",
+          "Reason": "callee-refused",
+          "Detail": "checkers.(*token).AllNextSpaces",
+          "File": "components.go",
+          "Line": 169,
+          "Column": 18
+        },
+        {
+          "Func": "checkers.(*token).LegalCaptureSpaces",
+          "Reason": "engine-gap",
+          "Detail": "behaviors.ComponentColor",
+          "File": "components.go",
+          "Line": 182,
+          "Column": 8
+        },
+        {
+          "Func": "checkers.(*token).LegalCaptureSpaces",
+          "Reason": "engine-gap",
+          "Detail": "behaviors.ComponentColor",
+          "File": "components.go",
+          "Line": 182,
+          "Column": 23
+        },
+        {
+          "Func": "checkers.(*token).LegalCaptureSpaces",
+          "Reason": "engine-gap",
+          "Detail": "valueToRange",
+          "File": "components.go",
+          "Line": 189,
+          "Column": 19
+        },
+        {
+          "Func": "checkers.(*token).LegalCaptureSpaces",
+          "Reason": "engine-gap",
+          "Detail": "valueToRange",
+          "File": "components.go",
+          "Line": 190,
+          "Column": 17
+        },
+        {
+          "Func": "checkers.(*token).LegalCaptureSpaces",
+          "Reason": "engine-gap",
+          "Detail": "rangeToValue",
+          "File": "components.go",
+          "Line": 202,
+          "Column": 17
+        },
+        {
+          "Func": "checkers.(*token).LegalCaptureSpaces",
+          "Reason": "engine-gap",
+          "Detail": "componentAtKey",
+          "File": "components.go",
+          "Line": 209,
+          "Column": 6
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*moveMoveToken).Apply",
+      "role": "apply",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "moves.go",
+      "line": 231,
+      "sourceHash": "sha256:a0c844830eaa71dbacc4ece6eb7d3d2be36e5529704f586ac11a432cc3408607",
+      "calls": [
+        "checkers.(*token).LegalCaptureSpaces"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "swapComponentsByKey",
+          "File": "moves.go",
+          "Line": 237,
+          "Column": 12
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "rangeValue",
+          "File": "moves.go",
+          "Line": 241,
+          "Column": 18
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "rangeValue",
+          "File": "moves.go",
+          "Line": 247,
+          "Column": 19
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "rangeToValue",
+          "File": "moves.go",
+          "Line": 258,
+          "Column": 17
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "componentAtKey",
+          "File": "moves.go",
+          "Line": 264,
+          "Column": 7
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "behaviors.ComponentColor",
+          "File": "moves.go",
+          "Line": 272,
+          "Column": 19
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "behaviors.PlayerColor",
+          "File": "moves.go",
+          "Line": 272,
+          "Column": 34
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "componentAtKey",
+          "File": "moves.go",
+          "Line": 274,
+          "Column": 14
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "engine-gap",
+          "Detail": "componentAtKey",
+          "File": "moves.go",
+          "Line": 287,
+          "Column": 8
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).Apply",
+          "Reason": "callee-refused",
+          "Detail": "checkers.(*token).LegalCaptureSpaces",
+          "File": "moves.go",
+          "Line": 288,
+          "Column": 12
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*token).FreeNextSpaces",
+      "role": "helper",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "components.go",
+      "line": 112,
+      "sourceHash": "sha256:0d0fc230d40a7f2a2e7bec2f1480f556aeeda313c14c8c8598c4481a16985c4b",
+      "calls": [
+        "checkers.(*token).AllNextSpaces"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*token).FreeNextSpaces",
+          "Reason": "callee-refused",
+          "Detail": "checkers.(*token).AllNextSpaces",
+          "File": "components.go",
+          "Line": 117,
+          "Column": 26
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*moveMoveToken).LegalCustom",
+      "role": "legalCustom",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "moves.go",
+      "line": 207,
+      "sourceHash": "sha256:6093d5ac7185fa30cca80ac14a9904f94e5e53325d1e4f4cc5ea2c0a1891b53e",
+      "calls": [
+        "checkers.(*token).FreeNextSpaces",
+        "checkers.(*token).LegalCaptureSpaces"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*moveMoveToken).LegalCustom",
+          "Reason": "engine-gap",
+          "Detail": "componentAtKey",
+          "File": "moves.go",
+          "Line": 211,
+          "Column": 7
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).LegalCustom",
+          "Reason": "callee-refused",
+          "Detail": "checkers.(*token).FreeNextSpaces",
+          "File": "moves.go",
+          "Line": 216,
+          "Column": 26
+        },
+        {
+          "Func": "checkers.(*moveMoveToken).LegalCustom",
+          "Reason": "callee-refused",
+          "Detail": "checkers.(*token).LegalCaptureSpaces",
+          "File": "moves.go",
+          "Line": 222,
+          "Column": 26
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*movePlaceToken).Apply",
+      "role": "apply",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 133,
+      "sourceHash": "sha256:f14780948fb1b2e88fadf37f1bbf78c8ca55b94d82142f92b8d820bbfba1904a",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*movePlaceToken).DefaultsForState",
+      "role": "defaults",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "moves.go",
+      "line": 18,
+      "sourceHash": "sha256:c59ee86161e73e22d6a36914f458c00dea3db020d4c0fbccee4a39df8f0104c4",
+      "calls": [
+        "checkers.spaceIsBlack"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*movePlaceToken).DefaultsForState",
+          "Reason": "engine-gap",
+          "Detail": "behaviors.ComponentColor",
+          "File": "moves.go",
+          "Line": 33,
+          "Column": 19
+        }
+      ]
+    },
+    {
+      "func": "checkers.(*movePlaceToken).LegalCustom",
+      "role": "legalCustom",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "moves.go",
+      "line": 116,
+      "sourceHash": "sha256:858c492f1a3b32af7fc9f4e64f75f1f2f6fc9f53fd0cae051cefab4b17fa9ca6",
+      "calls": [
+        "checkers.spaceIsBlack"
+      ],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*playerState).ResetForTurnEnd",
+      "role": "resetForTurnEnd",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 55,
+      "sourceHash": "sha256:ab37723e634051f31f8e911735849664c78fa689599fce72e1cf9de9379eaa98",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*playerState).ResetForTurnStart",
+      "role": "resetForTurnStart",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 50,
+      "sourceHash": "sha256:2ea03fedde582fb74349d69ef37895349e41a74358190066ba6b04c35ad3ae61",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*playerState).TurnDone",
+      "role": "turnDone",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "state.go",
+      "line": 43,
+      "sourceHash": "sha256:eccefada55d0ddf0f969f983bbe83e1ab426aebc7d0a01f91b8010ae49484fbb",
+      "calls": [],
+      "refusals": []
+    },
+    {
+      "func": "checkers.(*token).Legal",
+      "role": "component",
+      "bucket": "engineGap",
+      "verdict": "refused",
+      "file": "components.go",
+      "line": 79,
+      "sourceHash": "sha256:2bdadcf71325ea9b36c9a7f7b3ab93b05ab3177e09213bb8fe2d4ba054b2d030",
+      "calls": [
+        "checkers.(*token).Dynamic"
+      ],
+      "refusals": [
+        {
+          "Func": "checkers.(*token).Legal",
+          "Reason": "engine-gap",
+          "Detail": "behaviors.ComponentColor",
+          "File": "components.go",
+          "Line": 83,
+          "Column": 7
+        },
+        {
+          "Func": "checkers.(*token).Legal",
+          "Reason": "engine-gap",
+          "Detail": "valueToRange",
+          "File": "components.go",
+          "Line": 94,
+          "Column": 13
+        }
+      ]
+    }
+  ],
+  "warnings": [],
+  "notPorted": [],
+  "notCounted": [
+    {
+      "func": "checkers.(*gameDelegate).ConfigureConstants",
+      "why": "ConfigureConstants",
+      "file": "main.go",
+      "line": 221
+    },
+    {
+      "func": "checkers.(*gameDelegate).ConfigureDecks",
+      "why": "ConfigureDecks",
+      "file": "main.go",
+      "line": 265
+    },
+    {
+      "func": "checkers.(*gameDelegate).ConfigureLegalTemplates",
+      "why": "ConfigureLegalTemplates",
+      "file": "main.go",
+      "line": 211
+    },
+    {
+      "func": "checkers.(*gameDelegate).ConfigureMoves",
+      "why": "ConfigureMoves",
+      "file": "main.go",
+      "line": 60
+    },
+    {
+      "func": "checkers.(*gameDelegate).DefaultNumPlayers",
+      "why": "DefaultNumPlayers",
+      "file": "main.go",
+      "line": 56
+    },
+    {
+      "func": "checkers.(*gameDelegate).Description",
+      "why": "Description",
+      "file": "main.go",
+      "line": 44
+    },
+    {
+      "func": "checkers.(*gameDelegate).DynamicComponentValuesConstructor",
+      "why": "DynamicComponentValuesConstructor",
+      "file": "main.go",
+      "line": 235
+    },
+    {
+      "func": "checkers.(*gameDelegate).GameStateConstructor",
+      "why": "GameStateConstructor",
+      "file": "main.go",
+      "line": 227
+    },
+    {
+      "func": "checkers.(*gameDelegate).MaxNumPlayers",
+      "why": "MaxNumPlayers",
+      "file": "main.go",
+      "line": 52
+    },
+    {
+      "func": "checkers.(*gameDelegate).MinNumPlayers",
+      "why": "MinNumPlayers",
+      "file": "main.go",
+      "line": 48
+    },
+    {
+      "func": "checkers.(*gameDelegate).Name",
+      "why": "Name",
+      "file": "main.go",
+      "line": 30
+    },
+    {
+      "func": "checkers.(*gameDelegate).PlayerStateConstructor",
+      "why": "PlayerStateConstructor",
+      "file": "main.go",
+      "line": 231
+    },
+    {
+      "func": "checkers.NewDelegate",
+      "why": "NewDelegate",
+      "file": "main.go",
+      "line": 273
+    },
+    {
+      "func": "checkers.newTokenDeck",
+      "why": "helper of a function the exporter evaluates",
+      "file": "components.go",
+      "line": 56
+    }
+  ],
+  "erased": [
+    {
+      "func": "checkers.concreteStates",
+      "why": "erased",
+      "file": "state.go",
+      "line": 31
+    }
+  ],
+  "unreached": []
+}
