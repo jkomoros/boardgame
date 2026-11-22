@@ -20,14 +20,16 @@
 #   rejectvec    -> ../rejections.vectors.json   proposals the Go engine refuses
 #   facadevec    -> ../facade.vectors.json,      the Go-shaped facade (engine/go/):
 #                   ../facade-stacks.vectors.json  language answers and stack calls
+#   libvec       -> ../lib.vectors.json          range enums, grid graphs, dice, playing cards
+#   stockvec     -> ../stock/*                   stockgame and seatgame played on the Go engine
 #
 # vecgame/auto_reader.go is produced by `boardgame-util codegen` run inside
 # vecgame/; rerun that only if vecgame/main.go's state structs change.
-# The same holds for stackvec/cgame/auto_reader.go and stackvec/cgame/main.go.
+# The same holds for stackvec/cgame/, stockgame/ and seatgame/.
 set -eu
 root=$(git rev-parse --show-toplevel)
 cd "$root"
-for gen in cooked randvec sortvec defs idsvec stackvec sanitizevec goldenvec rejectvec facadevec; do
+for gen in cooked randvec sortvec defs idsvec stackvec sanitizevec goldenvec rejectvec facadevec libvec stockvec; do
 	echo "== $gen" >&2
 	./scripts/go-local run "./server/static/src/engine/testdata/gen/$gen"
 done

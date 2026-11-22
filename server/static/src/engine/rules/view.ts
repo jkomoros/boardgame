@@ -145,6 +145,18 @@ export function computedProperties(state: RulesState): { Global: Record<string, 
 		const roles = state.game.enums.get('role');
 		if (roles !== null) global.AvailableRoles = roles.keys().map(key => ({ Key: key, Name: roles.stringOf(key) }));
 	}
+	// behaviors.PlayerColor: colorEnumValuesForClient, with a CSS color for each behaviors.Color* key.
+	const hasColor = spec.player.traits?.color === true;
+	if (hasColor) {
+		const colors = state.game.enums.get('color');
+		if (colors !== null) {
+			global.AvailableColors = colors.keys().map(key => {
+				const entry: Record<string, unknown> = { Key: key, Name: colors.stringOf(key) };
+				if (key >= 0 && key < CSS_COLOR_FOR_KEY.length) entry.CSSColor = CSS_COLOR_FOR_KEY[key];
+				return entry;
+			});
+		}
+	}
 	const players: Record<string, unknown>[] = [];
 	const gameScore = spec.player.traits?.gameScore;
 	// PropertyFacetAvailable: on a sanitized state, whether the viewer may trust the property's value.
@@ -155,6 +167,7 @@ export function computedProperties(state: RulesState): { Global: Record<string, 
 		const values: Record<string, unknown> = { Color: cssColorForPlayer(state, i), MayBeActive: state.playerMayBeActive(i) };
 		if (gameScore) values.GameScore = gameScore(state, i);
 		if (hasRole && valueVisible(i, 'Role')) values.RoleValue = state.players[i].Role;
+		if (hasColor && valueVisible(i, 'Color')) values.ColorValue = state.players[i].Color;
 		players.push(values);
 	}
 	for (const computed of spec.computed ?? []) {
