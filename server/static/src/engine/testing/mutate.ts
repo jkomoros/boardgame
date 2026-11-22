@@ -134,8 +134,9 @@ export const HISTORICAL_MUTATIONS: readonly SourceMutation[] = [
 		description: "Round-robin's starting point off by one",
 		failedOn: 'the deal order',
 		file: 'rules/stock.ts',
-		find: 'state.g.RRLastPlayer = state.previous(first);',
-		replace: 'state.g.RRLastPlayer = first;',
+		// The deal's own round robin (apply(state)), not roundRobinParts (apply(state, move)).
+		find: 'apply(state) {\n\t\t\tif (state.g.RRHasStarted !== true) {\n\t\t\t\tconst first = starter(state);\n\t\t\t\tstate.g.RRLastPlayer = state.previous(first);',
+		replace: 'apply(state) {\n\t\t\tif (state.g.RRHasStarted !== true) {\n\t\t\t\tconst first = starter(state);\n\t\t\t\tstate.g.RRLastPlayer = first;',
 	},
 	{
 		id: 'seated-player-active',
