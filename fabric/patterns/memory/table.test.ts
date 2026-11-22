@@ -17,7 +17,7 @@ import {
   held,
   stepTable,
   type TableState,
-  viewOf,
+  viewForPrincipal,
 } from "../toolkit/table.ts";
 import type { Proposal, TableView } from "../toolkit/view.ts";
 import { memoryGame } from "./game.ts";
@@ -71,8 +71,23 @@ class Harness {
     return result.error;
   }
 
+  /** What `who` is shown: their seat's view, or a watcher's. */
+  viewAs(who: string | undefined): TableView {
+    return viewForPrincipal(GAME, this.table, who);
+  }
+
+  /**
+   * A watcher's view, with every seated person's own legality and choices
+   * beside the watcher's. No one is shown this: each sees their own part.
+   */
   get view(): TableView {
-    return viewOf(GAME, this.table);
+    const view = this.viewAs(undefined);
+    for (const seat of this.table.seats) {
+      this.viewAs(seat.principal).entries.forEach((entry, at) => {
+        Object.assign(view.entries[at].viewers, entry.viewers);
+      });
+    }
+    return view;
   }
 
   get head() {
@@ -418,4 +433,27 @@ test("a whole game: bounded window, full history, a winner, a new deal", () => {
   assert.equal(harness.propose("bob", { kind: "start" }), "");
   assert.notEqual(harness.view.epoch, epoch);
   assert.equal(harness.view.version, 0);
+});
+
+test("a principal is shown their own seat's view, and anyone else a watcher's", () => {
+  // Nothing stored yet: the table before anyone sat down, for everyone.
+  const before = viewForPrincipal(GAME, null, "alice");
+  assert.equal(before.phase, "seating");
+  assert.deepEqual(before.seats, []);
+  assert.equal(before.revision, 0);
+  assert.deepEqual(viewForPrincipal(GAME, undefined, undefined), before);
+
+  const harness = Harness.dealt();
+  const keys = (who: string | undefined) =>
+    Object.keys(harness.viewAs(who).entries.at(-1)!.viewers);
+  assert.deepEqual(keys("alice"), ["0"]);
+  assert.deepEqual(keys("bob"), ["1"]);
+  assert.deepEqual(keys("carol"), ["-1"]);
+  assert.deepEqual(keys(undefined), ["-1"]);
+  assert.deepEqual(keys(""), ["-1"]);
+  // A view holds its own viewer's legality and nobody else's.
+  const alice = harness.viewAs("alice").entries.at(-1)!;
+  assert.equal(alice.viewers["0"].moveLegality["Reveal Card"].legalForPlayer, true);
+  const bob = harness.viewAs("bob").entries.at(-1)!;
+  assert.equal(bob.viewers["1"].moveLegality["Reveal Card"].legalForPlayer, false);
 });

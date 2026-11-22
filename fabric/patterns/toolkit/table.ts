@@ -1,7 +1,7 @@
 /**
  * A table: seats, a game's record, its state at its most recent versions and
  * its move history, with the one function that advances it (`stepTable`) and
- * the ones that say what a viewer may see (`viewOf`, `seatViewOf`).
+ * the one that says what a principal may see (`viewForPrincipal`).
  *
  * The game itself is the TypeScript engine's
  * (`server/static/src/engine/rules`): a table holds exactly what that engine
@@ -10,8 +10,8 @@
  * and sanitization all come from there.
  *
  * Nothing here knows about Common Fabric. A game's pattern stores a
- * `TableState` in a sealed cell, calls `stepTable` from its one handler and a
- * view function from its released lift. Everything is plain data and pure
+ * `TableState` in a sealed cell, calls `stepTable` from its one handler and
+ * `viewForPrincipal` from its one released lift. Everything is plain data and pure
  * functions: no clock, no randomness and no identity but what the caller
  * passes in.
  */
@@ -153,6 +153,19 @@ export function emptyTable(): TableState {
     recent: {},
     history: [],
   };
+}
+
+/**
+ * A plain copy of a stored table, with nothing shared with what was read;
+ * the table before anyone sat down when nothing is stored yet.
+ *
+ * A handler steps the copy and sets the result, so every value it stores is
+ * one it supplied, and none is a reference to what it found in place.
+ */
+export function tableOf(stored: TableState | null | undefined): TableState {
+  if (stored === null || stored === undefined) return emptyTable();
+  const copy: unknown = toJson(stored);
+  return copy as TableState;
 }
 
 /** The versions a table holds, ascending. The last one is the head. */
@@ -667,42 +680,14 @@ function frame(
 }
 
 /**
- * One view for everyone at the table: who is seated, and every version the
- * table still holds, sanitized as an observer sees it, with each seat's
- * legality and choices beside it.
- *
- * For a game whose seats all see the same state, such as Memory. A game
- * with hands must not use it: an observer's state is what is shown.
+ * One seat's view: who is seated, and every version the table still holds,
+ * each sanitized as the engine sanitizes it for `viewer` and carrying that
+ * viewer's legality and choices and nobody else's. `viewer` is a seat, or
+ * `OBSERVER_SEAT` for whoever only watches.
  *
  * It is total, and every object and array in the result is new (`toJson`):
  * a part of the table returned as it is would reach the store as a
- * reference to the sealed table and withhold the whole view.
- */
-export function viewOf(game: CompiledGame, table: TableState): TableView {
-  const seats = Array.isArray(table.seats) ? table.seats : [];
-  const entries = shown(table).map(({ at, before }) => {
-    const observer = viewerOutputAt(game, table, at, before, OBSERVER_SEAT);
-    const viewers: Record<string, ViewerPart> = {
-      [String(OBSERVER_SEAT)]: viewerPart(game, observer),
-    };
-    for (let seat = 0; seat < seats.length; seat++) {
-      viewers[String(seat)] = viewerPart(
-        game,
-        viewerOutputAt(game, table, at, before, seat),
-      );
-    }
-    return entryOf(at, observer, viewers);
-  });
-  return { ...frame(game, table), entries };
-}
-
-/**
- * One viewer's own view: the same shape as `viewOf`, with every version
- * sanitized for `viewer` and only that viewer's legality in it. `viewer` is
- * a seat, or `OBSERVER_SEAT`.
- *
- * For a game with per-seat secrets, such as blackjack: each seat's view is
- * a separate value, to be released to that seat's audience alone.
+ * reference to the sealed table.
  */
 export function seatViewOf(
   game: CompiledGame,
@@ -714,6 +699,36 @@ export function seatViewOf(
     return entryOf(at, output, { [String(viewer)]: viewerPart(game, output) });
   });
   return { ...frame(game, table), entries };
+}
+
+/** The seat `principal` holds at `table`, or `OBSERVER_SEAT`. */
+export function seatOf(
+  table: TableState,
+  principal: string | undefined,
+): number {
+  if (typeof principal !== "string" || principal === "") return OBSERVER_SEAT;
+  const seats = Array.isArray(table.seats) ? table.seats : [];
+  const seat = seats.findIndex((held) => held.principal === principal);
+  return seat < 0 ? OBSERVER_SEAT : seat;
+}
+
+/**
+ * What `principal` may see of a stored table: their own seat's view if they
+ * hold a seat, and a watcher's if they hold none or are nobody. Which seat
+ * is theirs is a fact of the table, so sitting down and leaving change what
+ * a principal sees with no label changing anywhere.
+ *
+ * This is the whole read side of a table. A game's pattern calls it from its
+ * one released lift, with the principal the runtime says the lift is
+ * computed for.
+ */
+export function viewForPrincipal(
+  game: CompiledGame,
+  stored: TableState | null | undefined,
+  principal: string | undefined,
+): TableView {
+  const table = stored ?? emptyTable();
+  return seatViewOf(game, table, seatOf(table, principal));
 }
 
 /** A game's variants, as what a lobby offers before the deal. */
@@ -742,14 +757,9 @@ function setupOptionsOf(game: CompiledGame): SetupOption[] {
 
 /**
  * The public facts a renderer and a lobby need once, from the game's
- * definition. `seatViews` is how many seats the pattern hands a view of
- * their own; 0 for a game whose seats all see the same.
+ * definition.
  */
-export function infoOf(
-  game: CompiledGame,
-  seatColors: string[],
-  seatViews = 0,
-): TableInfo {
+export function infoOf(game: CompiledGame, seatColors: string[]): TableInfo {
   const decks: JsonObject = {};
   for (const deckName of Object.keys(game.spec.decks)) {
     decks[deckName] = game.spec.decks[deckName].components.map((
@@ -765,7 +775,6 @@ export function infoOf(
     gameName: game.spec.name,
     displayName: gameDisplayName(game.spec),
     setupOptions: setupOptionsOf(game),
-    seatViews,
     chest: {
       Decks: decks,
       Enums: enums,

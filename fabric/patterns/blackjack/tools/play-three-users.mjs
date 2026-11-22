@@ -1,19 +1,21 @@
 // Plays a whole game of blackjack in a browser as three different people and
-// one watcher, against a piece already deployed to a local Common Fabric
-// toolshed, and checks at every decision that each of them was handed their
-// own hole card and nobody else's.
+// one watcher who owns the table's space, against a piece already deployed
+// to a local Common Fabric toolshed, and checks at every decision that each
+// of them was handed their own hole card and nobody else's.
 //
 //   node tools/play-three-users.mjs <piece url> [screenshot dir]
 //
 // Each person is a separate browser context with its own storage, and so its
 // own identity: the script registers a fresh passphrase identity in each, as
-// a person would on the login screen, and grants it WRITE on the table's
-// space with `cf acl set`, run as the key that created the space. The guest
-// in each context is the unmodified one.
+// a person would on the login screen, and grants it access to the table's
+// space with `cf acl set`, run as the key that created the space: WRITE for
+// the three players, and OWNER for the watcher, who never sits. The guest in
+// each context is the unmodified one.
 //
 // Environment: as for ../../memory/tools/play-two-users.mjs
 //   CF_LABS_ROOT, CF_IDENTITY, CF_SPACE, CF_API_URL, HEADED=1, PLAYWRIGHT
 //   ROUNDS        how many rounds to play (default 1)
+//   WATCHER       the watcher's access to the space (default OWNER)
 //
 // "Handed" is checked in two places in each unmodified client: the state the
 // guest's renderer host was given (so, what crossed into the frame for that
@@ -45,8 +47,8 @@ mkdirSync(shots, { recursive: true });
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 
-function grant(did) {
-  execFileSync(resolve(process.env.CF_LABS_ROOT, 'bin/cf'), ['acl', 'set', did, 'WRITE'], {
+function grant(did, access) {
+  execFileSync(resolve(process.env.CF_LABS_ROOT, 'bin/cf'), ['acl', 'set', did, access], {
     env: process.env,
     stdio: ['ignore', 'ignore', 'inherit'],
   });
@@ -82,7 +84,7 @@ async function guestFrame(page) {
   throw new Error('the guest never loaded');
 }
 
-async function person(browser, name) {
+async function person(browser, name, access = 'WRITE') {
   const context = await browser.newContext({ viewport: { width: 1000, height: 900 } });
   const page = await context.newPage();
   const problems = [];
@@ -91,7 +93,7 @@ async function person(browser, name) {
   });
   page.on('pageerror', error => problems.push(String(error).slice(0, 400)));
   const did = await register(page);
-  grant(did);
+  grant(did, access);
   await page.reload();
   const frame = await guestFrame(page);
   return { name, page, frame, did, problems };
@@ -168,7 +170,7 @@ const shot = (who, label) => who.page.screenshot({ path: resolve(shots, `${label
 const browser = await chromium.launch({ headless: !process.env.HEADED });
 const players = [];
 for (const name of ['Alice', 'Bob', 'Carol']) players.push(await person(browser, name));
-const watcher = await person(browser, 'Dave');
+const watcher = await person(browser, 'Dave', process.env.WATCHER ?? 'OWNER');
 const everyone = [...players, watcher];
 console.log(JSON.stringify(Object.fromEntries(everyone.map(who => [who.name, who.did]))));
 
@@ -244,7 +246,6 @@ try {
     await waitFor(async () => (await handsOf(who))?.given.every(hand => hand.length === 2), `${who.name} to see the deal`, 180_000);
   }
   console.log(JSON.stringify({ dealToEveryoneMs: Date.now() - dealt }));
-  // A seated player is first shown what a watcher is, then its own view.
   for (const [seat, who] of players.entries()) {
     await waitFor(async () => (await statusOf(who)).viewer === String(seat), `${who.name}'s own view`, 120_000);
   }
@@ -278,7 +279,11 @@ try {
     const own = Date.now() - start;
     await waitFor(async () => (await Promise.all(everyone.map(async who => (await statusOf(who)).version !== before))).every(Boolean),
       'everyone to see the move', 120_000);
-    latencies.push({ move: ++moves, by: mover.name, action, handValue: value, ownMs: own, everyoneMs: Date.now() - start });
+    const everyone_ = Date.now() - start;
+    // How many versions the proposal produced: the move and its fix-ups.
+    for (const who of everyone) await settled(who);
+    const versions = Number((await statusOf(mover)).version) - Number(before);
+    latencies.push({ move: ++moves, by: mover.name, action, handValue: value, versions, ownMs: own, everyoneMs: everyone_ });
     console.log(JSON.stringify(latencies[latencies.length - 1]));
     if (moves === 1) {
       await sleep(400);

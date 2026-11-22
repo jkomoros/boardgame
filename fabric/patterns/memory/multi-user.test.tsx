@@ -21,6 +21,11 @@
  * card that player will turn, and afterwards checks that it was the one
  * turned. They agree only while their views do.
  *
+ * The table has one view, computed once for each principal who looks, so
+ * each participant here reads their own instance of it.
+ *
+ * Run with `EXPERIMENTAL_VIEWER_BOUND_RELEASE=true`.
+ *
  * Pattern under test: ./table.tsx
  */
 import {
@@ -33,11 +38,11 @@ import {
   Writable,
 } from "commonfabric";
 
-import type { Proposal } from "../toolkit/view.ts";
-import MemoryTablePattern, {
-  type MemoryTableOutput,
-  type MemoryTableView,
-} from "./table.tsx";
+import type { Proposal, TableView } from "../toolkit/view.ts";
+import MemoryTablePattern, { type MemoryTableOutput } from "./table.tsx";
+
+/** A participant's own instance of the table's view. */
+type MemoryTableView = TableView;
 
 /** `small` deals ten cards, five pairs. */
 const PAIRS = 5;
@@ -132,11 +137,19 @@ function nextProposal(
   const entry = head(view);
   if (entry === undefined || view.phase !== "playing") return undefined;
   if (entry.currentPlayerIndex !== seat) return undefined;
-  const part = entry.viewers[String(seat)];
-  if (part?.moveLegality["Hide Cards"]?.legalForPlayer) {
+  // A view holds its own viewer's legality and nobody else's. Whether a move
+  // is legal for whoever has the turn is the same fact in every view: it is
+  // `legalForPlayer` in the mover's own, and `legalForAnyone` in another's.
+  const mine = entry.viewers[String(seat)];
+  const part = mine ?? Object.values(entry.viewers)[0];
+  const legal = (name: string) =>
+    mine !== undefined
+      ? part?.moveLegality[name]?.legalForPlayer
+      : part?.moveLegality[name]?.legalForAnyone;
+  if (legal("Hide Cards")) {
     return { kind: "play", name: "Hide Cards", arguments: {} };
   }
-  if (!part?.moveLegality["Reveal Card"]?.legalForPlayer) return undefined;
+  if (!legal("Reveal Card")) return undefined;
   const game = shown(entry).Game;
   const hidden: number[] = [];
   game.HiddenCards.Indexes.forEach((index, slot) => {

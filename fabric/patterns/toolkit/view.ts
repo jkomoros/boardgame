@@ -61,10 +61,10 @@ export interface Outcome {
   winners: number[];
 }
 
-/** One state version, as the table's readers may see it. */
 /**
- * `S` is the state's type for a consumer that wants a narrower one than JSON;
- * the guest's bridge names it.
+ * One state version, as the view's viewer may see it. `S` is the state's
+ * type for a consumer that wants a narrower one than JSON; the guest's
+ * bridge names it.
  */
 export interface ViewEntry<S = JsonObject> {
   version: number;
@@ -77,7 +77,10 @@ export interface ViewEntry<S = JsonObject> {
   outcome: Outcome;
   /** False for a version a fix-up move replaced at once. */
   settled: boolean;
-  /** Keyed by seat as a string; `"-1"` is the observer. */
+  /**
+   * The viewer's own part, under their seat as a string; `"-1"` is whoever
+   * only watches. A view is computed for one viewer and holds no other's.
+   */
   viewers: Record<string, ViewerPart>;
 }
 
@@ -88,8 +91,9 @@ export interface SeatView {
 }
 
 /**
- * Everything a table releases to its readers: who is seated, and a window of
- * the most recent versions with the move that produced each.
+ * What a table releases to one principal: who is seated, and a window of
+ * the most recent versions with the move that produced each, as that
+ * principal may see them.
  */
 export interface TableView<S = JsonObject> {
   gameName: string;
@@ -132,13 +136,6 @@ export interface TableInfo<V = Json> {
   displayName: string;
   /** What `start` may be given, in the game's own order. Empty for none. */
   setupOptions: SetupOption[];
-  /**
-   * How many seats have a view of their own. 0 when every seat sees the same
-   * and the one `view` serves everyone. When positive, the pattern hands the
-   * guest `seat0` to `seat<seatViews - 1>` beside `view`, each a `TableView`
-   * computed for that seat alone (`fabric/guest/PROTOCOL.md`).
-   */
-  seatViews: number;
   /**
    * Decks, enums, constants and message templates, as Go marshals them. A
    * deck is a list of `{ Index, Values }`, with `Values` of type `V`.

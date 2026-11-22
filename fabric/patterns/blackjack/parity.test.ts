@@ -24,16 +24,17 @@ import {
   seatViewOf,
   stepTable,
   type TableState,
+  viewForPrincipal,
 } from "../toolkit/table.ts";
 import type { TableView } from "../toolkit/view.ts";
-import { blackjackGame, blackjackInfo, MAX_SEATS } from "./game.ts";
+import { blackjackGame, blackjackInfo } from "./game.ts";
 
 const GAME = blackjackGame();
 const recordings = recordingsOf("blackjack");
 
 test("the corpus has blackjack recordings", () => {
   assert.ok(recordings.length >= 7, `found ${recordings.length}`);
-  assert.equal(GAME.spec.maxNumPlayers, MAX_SEATS);
+  assert.equal(GAME.spec.maxNumPlayers, 7);
 });
 
 for (const recording of recordings) {
@@ -178,6 +179,25 @@ test("a seat's own view differs from the observer's exactly while it holds a hol
     if (holds) differed += 1;
   });
   assert.ok(differed > 0);
+});
+
+test("a principal is shown their own seat's view, and anyone else a watcher's", () => {
+  const recording = recordings.find((one) => !one.game.seating)!;
+  const table = replayed(recording);
+  for (let seat = 0; seat < recording.game.numPlayers; seat++) {
+    assert.deepEqual(
+      viewForPrincipal(GAME, table, `p${seat}`),
+      seatViewOf(GAME, table, seat),
+    );
+  }
+  const watcher = seatViewOf(GAME, table, OBSERVER_SEAT);
+  // Somebody with no seat, nobody at all, and a name that is not a seat's.
+  assert.deepEqual(viewForPrincipal(GAME, table, "p99"), watcher);
+  assert.deepEqual(viewForPrincipal(GAME, table, undefined), watcher);
+  assert.deepEqual(viewForPrincipal(GAME, table, ""), watcher);
+  assert.deepEqual(viewForPrincipal(GAME, table, "0"), watcher);
+  // Nothing stored yet.
+  assert.equal(viewForPrincipal(GAME, null, "p0").phase, "seating");
 });
 
 test("the public facts are the recorded chest", () => {

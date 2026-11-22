@@ -4,18 +4,16 @@
  * A pattern hands the guest these named resources (see
  * `fabric/patterns/memory/main.tsx` and `fabric/patterns/blackjack/main.tsx`):
  *
- *   view      cell, read-only   what whoever only watches may see (`TableView`)
- *   seat<N>   cell, read-only   seat N's own view, for N below `info.seatViews`
+ *   view      cell, read-only   what the viewer may see (`TableView`)
  *   info      cell, read-only   the game's public facts (`TableInfo`)
  *   me        cell, read-only   the viewer's own principal
  *   move      stream            a `Proposal` to the table's one writer
  *   identify  stream            asks the pattern to fill in `me`
  *
- * A game whose seats all see the same (Memory) hands over `view` alone and
- * says `seatViews: 0`. A game with hidden hands (blackjack) also hands over
- * one view a seat. The bridge reads `view` for who is seated, finds the
- * viewer's seat from `me`, and then reads that one seat's cell and no other:
- * it never asks for a seat that is not the viewer's.
+ * There is one `view`, and the runtime computes it for whoever is looking:
+ * a seated player's holds what their seat may see, a watcher's what a
+ * watcher may. The bridge reads nothing else of the table. It finds the
+ * viewer's seat from `me` and the seats the view names.
  *
  * This module turns those into the message protocol of `PROTOCOL.md`, which
  * the renderer host (`GuestHost`) already speaks: the latest value of the
@@ -200,12 +198,6 @@ export function startFabricBridge(
   let lastStamp = '';
   /** The setup options the lobby's selects were last built from. */
   let optionsKey = '';
-  /** The viewer's own seat's cell, when the game has one a seat. */
-  let ownSeat = OBSERVER;
-  let ownCell: ReturnType<typeof fabric.cell<View>> | undefined;
-  let stopOwn: (() => void) | undefined;
-  let ownRefusal: CellReadRefusal | undefined;
-
   const host = makeHost(message => onHostMessage(message));
 
   function toHost(body: MessageBody<HostToGuestMessage>): void {
@@ -218,33 +210,6 @@ export function startFabricBridge(
     return view.seats.findIndex(seat => seat.principal === me);
   }
 
-  /**
-   * Reads the one seat's view that is the viewer's, and stops reading any
-   * other. `seat` is `OBSERVER` for a watcher and for a game with one view.
-   */
-  function readOwnSeat(seat: number): void {
-    if (seat === ownSeat) return;
-    stopOwn?.();
-    ownSeat = seat;
-    ownCell = undefined;
-    stopOwn = undefined;
-    ownRefusal = undefined;
-    if (seat === OBSERVER) return;
-    const cell = fabric.cell<View>(`seat${seat}`);
-    ownCell = cell;
-    stopOwn = cell.sink(() => { ownRefusal = undefined; sync(); }, {
-      onRefused: cause => { ownRefusal = cause; sync(); },
-    });
-    void cell.pull().then(() => sync(), cause => {
-      problem.textContent = describe(cause);
-    });
-  }
-
-  /** The cell the board is being drawn from right now. */
-  function sourceCell(): ReturnType<typeof fabric.cell<View>> {
-    return ownCell !== undefined && ownCell.get() !== undefined ? ownCell : viewCell;
-  }
-
   // ----- pattern to host ---------------------------------------------------
 
   function sync(): void {
@@ -253,21 +218,12 @@ export function startFabricBridge(
       who.textContent = 'Loading…';
       return;
     }
-    // `watch` is what everyone may see: it says who is seated, and so which
-    // seat is the viewer's.
-    const watch = viewCell.get();
+    // The view was computed for this viewer, so the seat `me` names in it
+    // is the seat its entries were sanitized for.
+    const view = viewCell.get();
     const info = infoCell.get();
-    const seat = seatOf(watch);
-    const seatViews = info?.seatViews ?? 0;
-    readOwnSeat(seat !== OBSERVER && seat < seatViews ? seat : OBSERVER);
-    // The seat's own view, once it has arrived for this deal. Until then a
-    // seated player is shown what a watcher is, as a watcher: nothing is ever
-    // drawn for a viewer it was not computed for.
-    const own = ownCell?.get();
-    const ownReady = own !== undefined && watch !== undefined && own.epoch === watch.epoch &&
-      own.phase !== 'seating';
-    const view = ownReady ? own : watch;
-    const viewer = seatViews > 0 && !ownReady ? OBSERVER : seat;
+    const seat = seatOf(view);
+    const viewer = seat;
     again.hidden = true;
     const stamp = `${viewer}:${view?.revision}:${view?.epoch}:${view?.version}`;
     if (view && stamp !== lastStamp) {
@@ -328,11 +284,6 @@ export function startFabricBridge(
       again.hidden = seat === OBSERVER;
     } else if (head) {
       note.textContent = head.currentPlayerIndex === seat ? 'Your turn.' : `${turn}'s turn.`;
-    }
-    if (seat !== OBSERVER && viewer === OBSERVER) {
-      note.textContent = ownRefusal
-        ? `Your own view was withheld by ${ownRefusal.refusedBy ?? 'the runtime'}; you are shown what a watcher is.`
-        : 'Waiting for your own view…';
     }
   }
 
@@ -413,7 +364,7 @@ export function startFabricBridge(
   again.addEventListener('click', () => void act({ kind: 'restart' }));
 
   async function onProposal(message: Extract<GuestToHostMessage, { type: 'propose-move' }>): Promise<void> {
-    const epoch = sourceCell().get()?.epoch;
+    const epoch = viewCell.get()?.epoch;
     const sent = await propose({
       kind: 'play',
       name: message.name,
@@ -422,7 +373,7 @@ export function startFabricBridge(
     // A refused proposal writes nothing and says nothing, so the only sign
     // of one is that the table did not move on. A newer state settles the
     // proposal by itself; this is for the case where none comes.
-    const view = sent ? await sourceCell().pull().catch(() => undefined) : undefined;
+    const view = sent ? await viewCell.pull().catch(() => undefined) : undefined;
     const advanced = view !== undefined &&
       (view.epoch !== epoch || view.version > message.snapshotVersion);
     if (!advanced) {
@@ -485,11 +436,10 @@ export function startFabricBridge(
     } catch (cause) {
       problem.textContent = describe(cause);
     }
-    hydrated = true;
-    sync();
     // The one event not sent from a gesture: it asks the pattern to write
     // this viewer's own principal where only they read it, so the guest can
     // tell which seat is theirs. It changes nothing once that is written.
+    // Nothing is drawn before it: a view is never drawn as another viewer's.
     const me = meCell.get();
     if (typeof me !== 'string' || me === '') {
       try {
@@ -499,12 +449,12 @@ export function startFabricBridge(
         // A viewer who may not send events is an observer.
         console.warn('[boardgame guest] identify refused:', describe(cause));
       }
-      sync();
     }
+    hydrated = true;
+    sync();
   })();
 
   globalThis.addEventListener('pagehide', () => {
-    stopOwn?.();
     stops.forEach(stop => stop());
     fabric.disconnect();
   }, { once: true });

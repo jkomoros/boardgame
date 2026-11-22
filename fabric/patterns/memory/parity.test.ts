@@ -16,7 +16,6 @@ import { test } from "node:test";
 
 import { replayRecording } from "../toolkit/parity.ts";
 import { asACellStoresIt, recordingsOf } from "../toolkit/recordings.ts";
-import { viewOf } from "../toolkit/table.ts";
 import { memoryGame, memoryInfo } from "./game.ts";
 
 const recordings = recordingsOf("memory");
@@ -47,8 +46,8 @@ for (const recording of recordings) {
 }
 
 test("every seat of Memory is shown the observer's state", () => {
-  // `viewOf` gives every reader the observer's state. That is right only
-  // while no seat sees more, which the recordings confirm for Memory.
+  // Memory has no hands: a seat's view differs from a watcher's only in
+  // what the seat may do. The recordings confirm it.
   for (const recording of recordings) {
     for (const version of recording.versions) {
       const observer = version.views.find((view) => view.viewer === -1);
@@ -79,5 +78,4 @@ test("the public facts are the recorded chest", () => {
     info.moveInputSchemaFingerprint,
     recorded.engine.moveInputSchemaFingerprint,
   );
-  assert.equal(typeof viewOf, "function");
 });
