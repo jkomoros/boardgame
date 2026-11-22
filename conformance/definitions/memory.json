@@ -1,0 +1,1143 @@
+{
+	"SchemaVersion": 1,
+	"Source": {
+		"Package": "github.com/jkomoros/boardgame/examples/memory",
+		"Exporter": "gamedef@1"
+	},
+	"Name": "memory",
+	"DisplayName": "Memory",
+	"Description": "Players flip over two cards at a time and keep any matches they find",
+	"MinNumPlayers": 2,
+	"MaxNumPlayers": 6,
+	"DefaultNumPlayers": 2,
+	"Definition": {
+		"Name": "memory",
+		"Decks": {
+			"cards": {
+				"Size": 120,
+				"Components": [
+					{
+						"Type": "🚴",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🚴",
+						"CardSet": "general"
+					},
+					{
+						"Type": "✋",
+						"CardSet": "general"
+					},
+					{
+						"Type": "✋",
+						"CardSet": "general"
+					},
+					{
+						"Type": "💘",
+						"CardSet": "general"
+					},
+					{
+						"Type": "💘",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎓",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎓",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🌍",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🌍",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🏖",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🏖",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🏛",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🏛",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⛺",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⛺",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🚑",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🚑",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🚕",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🚕",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⚓",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⚓",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🕰",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🕰",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🌈",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🌈",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🔥",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🔥",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⛄",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⛄",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎄",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎄",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎁",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎁",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🏆",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🏆",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⚽",
+						"CardSet": "general"
+					},
+					{
+						"Type": "⚽",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎳",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🎳",
+						"CardSet": "general"
+					},
+					{
+						"Type": "🍒",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍒",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍔",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍔",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍭",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍭",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍇",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍇",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍉",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍉",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍊",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍊",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍌",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍌",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍍",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍍",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍓",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍓",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🌽",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🌽",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🥕",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🥕",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍗",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍗",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍕",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍕",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍩",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍩",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍦",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍦",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍺",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🍺",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🌮",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🌮",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🌭",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🌭",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🧀",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🧀",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🥐",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🥐",
+						"CardSet": "foods"
+					},
+					{
+						"Type": "🐕",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐕",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐄",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐄",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐘",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐘",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐍",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐍",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦀",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦀",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🏇",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🏇",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦍",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦍",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐈",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐈",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐖",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐖",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐫",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐫",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐁",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐁",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐿",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐿",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦇",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦇",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐓",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐓",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦅",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦅",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦉",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦉",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐋",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐋",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦑",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🦑",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐝",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐝",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐡",
+						"CardSet": "animals"
+					},
+					{
+						"Type": "🐡",
+						"CardSet": "animals"
+					}
+				],
+				"GenericValues": {
+					"Type": "\u003chidden\u003e",
+					"CardSet": ""
+				},
+				"ComponentProps": {
+					"CardSet": {
+						"Type": "string"
+					},
+					"Type": {
+						"Type": "string"
+					}
+				}
+			}
+		},
+		"Enums": {},
+		"GroupEnum": "",
+		"Game": {
+			"Props": {
+				"CardSet": {
+					"Type": "string",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"Cards": {
+					"Type": "mergedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards",
+					"Overlap": true,
+					"Stacks": [
+						"VisibleCards",
+						"HiddenCards"
+					]
+				},
+				"CurrentPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"HiddenCards": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "order"
+					},
+					"Deck": "cards",
+					"Size": 40
+				},
+				"HideCardsTimer": {
+					"Type": "timer",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"NumCards": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"UnusedCards": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards"
+				},
+				"VisibleCards": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards",
+					"Size": 40
+				}
+			}
+		},
+		"Player": {
+			"Props": {
+				"CardsLeftToReveal": {
+					"Type": "int",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"PlayerInactive": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatClosed": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatFilled": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"WonCards": {
+					"Type": "stack",
+					"Sanitize": {
+						"other": "visible"
+					},
+					"Deck": "cards"
+				}
+			}
+		},
+		"DynamicComponentValues": {}
+	},
+	"Constants": null,
+	"ComponentEnums": {},
+	"PhaseEnum": "",
+	"GroupEnum": "",
+	"Initial": {
+		"Game": {},
+		"Players": [
+			{},
+			{},
+			{},
+			{},
+			{},
+			{}
+		],
+		"Dynamic": {}
+	},
+	"Traits": {
+		"Game": {},
+		"Player": {
+			"Seat": true,
+			"Inactive": true
+		}
+	},
+	"Variants": {
+		"cardset": {
+			"Default": "all",
+			"Description": "Which theme of cards to use",
+			"DisplayName": "Card Set",
+			"Name": "cardset",
+			"Values": {
+				"all": {
+					"Description": "All cards mixed together",
+					"DisplayName": "All Cards",
+					"Name": "all"
+				},
+				"animals": {
+					"Description": "Animal cards",
+					"DisplayName": "Animals",
+					"Name": "animals"
+				},
+				"foods": {
+					"Description": "Food cards",
+					"DisplayName": "Foods",
+					"Name": "foods"
+				},
+				"general": {
+					"Description": "Random cards with no particular theme",
+					"DisplayName": "General",
+					"Name": "general"
+				}
+			}
+		},
+		"numcards": {
+			"Default": "medium",
+			"Description": "How many cards to use? Larger numbers are more difficult.",
+			"DisplayName": "Number of Cards",
+			"Name": "numcards",
+			"Values": {
+				"large": {
+					"Description": "A challenging game",
+					"DisplayName": "Large",
+					"Name": "large"
+				},
+				"medium": {
+					"Description": "A default difficulty game",
+					"DisplayName": "Medium",
+					"Name": "medium"
+				},
+				"small": {
+					"Description": "An easy game",
+					"DisplayName": "Small",
+					"Name": "small"
+				}
+			}
+		}
+	},
+	"Computed": [
+		{
+			"Name": "CurrentPlayerHasCardsToReveal",
+			"Scope": "global",
+			"Type": "bool",
+			"Compute": ""
+		}
+	],
+	"LegalTemplates": {
+		"hide.cards_still_to_reveal": "You still have to reveal more cards before your turn is over",
+		"hide.no_cards_to_hide": "no cards left to hide",
+		"memory.cards_must_differ": "The two revealed cards are of the same type",
+		"memory.cards_must_match": "The two revealed cards are not of the same type",
+		"memory.two_cards_required": "there aren't two cards showing",
+		"reveal.no_cards_left": "You have no cards left to reveal this turn"
+	},
+	"Predicates": [],
+	"Moves": [
+		{
+			"Name": "Seat Player",
+			"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+			"IsFixUp": true,
+			"GoType": "moves.SeatPlayer",
+			"Stock": {
+				"Type": "SeatPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"SeatsPlayer": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Activate Inactive Player",
+			"HelpText": "Activates any players who are not currently active.",
+			"IsFixUp": true,
+			"GoType": "moves.ActivateInactivePlayer",
+			"Stock": {
+				"Type": "ActivateInactivePlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Reveal Card",
+			"HelpText": "Reveals the card at the specified location",
+			"IsFixUp": false,
+			"GoType": "memory.moveRevealCard",
+			"Stock": {
+				"Type": "MoveComponentToSlot",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveChoiceProjection": {
+						"Disclosure": "actor-exact",
+						"ExcludedValues": null,
+						"FieldName": "CardIndex",
+						"Source": "",
+						"StackSource": {
+							"property": "HiddenCards",
+							"scope": "game"
+						}
+					},
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.DestinationProperty": "game.VisibleCards",
+					"github.com/jkomoros/boardgame/moves.HelpText": "Reveals the card at the specified location",
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.MoveChoiceProjections": [
+						{
+							"err": "",
+							"projection": {
+								"Disclosure": "actor-exact",
+								"ExcludedValues": null,
+								"FieldName": "CardIndex",
+								"Source": "",
+								"StackSource": {
+									"Property": "HiddenCards",
+									"Scope": "game"
+								}
+							}
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"player.CardsLeftToReveal",
+								"1"
+							],
+							"message": "reveal.no_cards_left",
+							"name": "propAtLeast"
+						},
+						{
+							"args": [
+								"game.HiddenCards",
+								"game.VisibleCards",
+								"move.CardIndex"
+							],
+							"name": "revealableCardAt"
+						},
+						{
+							"args": [
+								"game.HiddenCards",
+								"game.VisibleCards",
+								"move.CardIndex",
+								"move.CardIndex"
+							],
+							"name": "mayMoveToSlot"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.SourceProperty": "game.HiddenCards",
+					"github.com/jkomoros/boardgame/moves.SourceSlotField": "CardIndex",
+					"github.com/jkomoros/boardgame/moves.SuppressedPreconditions": [
+						"mayMoveToSlot"
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {
+				"CardIndex": {
+					"Type": "int",
+					"Input": "required",
+					"Codec": "integer"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "propAtLeast",
+						"args": [
+							"player.CardsLeftToReveal",
+							"1"
+						],
+						"message": "reveal.no_cards_left"
+					},
+					{
+						"name": "revealableCardAt",
+						"args": [
+							"game.HiddenCards",
+							"game.VisibleCards",
+							"move.CardIndex"
+						]
+					},
+					{
+						"name": "mayMoveToSlot",
+						"args": [
+							"game.HiddenCards",
+							"game.VisibleCards",
+							"move.CardIndex",
+							"move.CardIndex"
+						]
+					}
+				],
+				"HasCustom": false
+			},
+			"Choices": {
+				"disclosure": "actor-exact",
+				"fieldName": "CardIndex",
+				"moveName": "Reveal Card",
+				"source": "stack-slots",
+				"stackSource": {
+					"property": "HiddenCards",
+					"scope": "game"
+				}
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Hide Cards",
+			"HelpText": "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
+			"IsFixUp": false,
+			"GoType": "memory.moveHideCards",
+			"Stock": {
+				"Type": "CurrentPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"player.CardsLeftToReveal",
+								"<=",
+								"0"
+							],
+							"message": "hide.cards_still_to_reveal",
+							"name": "propCompare"
+						},
+						{
+							"args": [
+								"game.VisibleCards"
+							],
+							"message": "hide.no_cards_to_hide",
+							"name": "stackNotEmpty"
+						}
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "propCompare",
+						"args": [
+							"player.CardsLeftToReveal",
+							"<=",
+							"0"
+						],
+						"message": "hide.cards_still_to_reveal"
+					},
+					{
+						"name": "stackNotEmpty",
+						"args": [
+							"game.VisibleCards"
+						],
+						"message": "hide.no_cards_to_hide"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Finish Turn",
+			"HelpText": "Advances to the next player when the current player's turn is done.",
+			"IsFixUp": true,
+			"GoType": "moves.FinishTurn",
+			"Stock": {
+				"Type": "FinishTurn",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Capture Cards",
+			"HelpText": "If two cards are showing and they are the same type, capture them to the current player's hand.",
+			"IsFixUp": true,
+			"GoType": "memory.moveCaptureCards",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "If two cards are showing and they are the same type, capture them to the current player's hand.",
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"game.VisibleCards",
+								"==",
+								"2"
+							],
+							"message": "memory.two_cards_required",
+							"name": "stackCount"
+						},
+						{
+							"args": [
+								"game.VisibleCards",
+								"first-occupied",
+								"game.VisibleCards",
+								"occupied-ordinal:1",
+								"Type"
+							],
+							"message": "memory.cards_must_match",
+							"name": "componentPropsEqual"
+						}
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "stackCount",
+						"args": [
+							"game.VisibleCards",
+							"==",
+							"2"
+						],
+						"message": "memory.two_cards_required"
+					},
+					{
+						"name": "componentPropsEqual",
+						"args": [
+							"game.VisibleCards",
+							"first-occupied",
+							"game.VisibleCards",
+							"occupied-ordinal:1",
+							"Type"
+						],
+						"message": "memory.cards_must_match"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Start Hide Cards Timer",
+			"HelpText": "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
+			"IsFixUp": true,
+			"GoType": "memory.moveStartHideCardsTimer",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"game.VisibleCards",
+								"==",
+								"2"
+							],
+							"message": "memory.two_cards_required",
+							"name": "stackCount"
+						},
+						{
+							"args": [
+								"game.VisibleCards",
+								"first-occupied",
+								"game.VisibleCards",
+								"occupied-ordinal:1",
+								"Type"
+							],
+							"message": "memory.cards_must_differ",
+							"name": "componentPropsNotEqual"
+						}
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "stackCount",
+						"args": [
+							"game.VisibleCards",
+							"==",
+							"2"
+						],
+						"message": "memory.two_cards_required"
+					},
+					{
+						"name": "componentPropsNotEqual",
+						"args": [
+							"game.VisibleCards",
+							"first-occupied",
+							"game.VisibleCards",
+							"occupied-ordinal:1",
+							"Type"
+						],
+						"message": "memory.cards_must_differ"
+					}
+				],
+				"HasCustom": true
+			},
+			"Bodies": {}
+		}
+	],
+	"SetUp": {
+		"Distribute": ""
+	},
+	"End": {},
+	"Agents": [
+		{
+			"Name": "ai",
+			"DisplayName": "Robby the Robot"
+		}
+	],
+	"Functions": []
+}

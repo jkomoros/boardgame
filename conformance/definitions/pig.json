@@ -1,0 +1,445 @@
+{
+	"SchemaVersion": 1,
+	"Source": {
+		"Package": "github.com/jkomoros/boardgame/examples/pig",
+		"Exporter": "gamedef@1"
+	},
+	"Name": "pig",
+	"DisplayName": "Pig",
+	"Description": "Players roll the dice, collecting points, but bust if they roll a one.",
+	"MinNumPlayers": 2,
+	"MaxNumPlayers": 6,
+	"DefaultNumPlayers": 2,
+	"Definition": {
+		"Name": "pig",
+		"Decks": {
+			"dice": {
+				"Size": 1,
+				"Components": [
+					{
+						"Faces": [
+							1,
+							2,
+							3,
+							4,
+							5,
+							6
+						]
+					}
+				],
+				"ComponentProps": {
+					"Faces": {
+						"Type": "intSlice"
+					}
+				}
+			}
+		},
+		"Enums": {},
+		"GroupEnum": "",
+		"Game": {
+			"Props": {
+				"CurrentPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"Die": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "dice",
+					"Size": 1
+				},
+				"TargetScore": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				}
+			}
+		},
+		"Player": {
+			"Props": {
+				"DieCounted": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Done": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Eliminated": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"PlayerInactive": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"RoundScore": {
+					"Type": "int",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Score": {
+					"Type": "int",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatClosed": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatFilled": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				}
+			}
+		},
+		"DynamicComponentValues": {
+			"dice": {
+				"Props": {
+					"RollCount": {
+						"Type": "int",
+						"Sanitize": {
+							"all": "visible"
+						}
+					},
+					"SelectedFace": {
+						"Type": "int",
+						"Sanitize": {
+							"all": "visible"
+						}
+					},
+					"Value": {
+						"Type": "int",
+						"Sanitize": {
+							"all": "visible"
+						}
+					}
+				}
+			}
+		}
+	},
+	"Constants": null,
+	"ComponentEnums": {},
+	"PhaseEnum": "",
+	"GroupEnum": "",
+	"Initial": {
+		"Game": {
+			"TargetScore": 100
+		},
+		"Players": [
+			{},
+			{},
+			{},
+			{},
+			{},
+			{}
+		],
+		"Dynamic": {
+			"dice": [
+				{
+					"Value": 1
+				}
+			]
+		}
+	},
+	"Traits": {
+		"Game": {},
+		"Player": {
+			"Seat": true,
+			"Inactive": true,
+			"Elimination": true,
+			"GameScore": "score"
+		}
+	},
+	"Variants": {},
+	"Computed": [],
+	"LegalTemplates": {
+		"pig.already_done": "you already signaled that you are done",
+		"pig.done_roll_not_counted": "your most recent roll has not yet been counted",
+		"pig.roll_already_counted": "the most recent die roll has already been counted",
+		"pig.roll_not_counted": "Your most recent roll has not yet been counted"
+	},
+	"Predicates": [],
+	"Moves": [
+		{
+			"Name": "Seat Player",
+			"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+			"IsFixUp": true,
+			"GoType": "moves.SeatPlayer",
+			"Stock": {
+				"Type": "SeatPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"SeatsPlayer": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Activate Inactive Player",
+			"HelpText": "Activates any players who are not currently active.",
+			"IsFixUp": true,
+			"GoType": "moves.ActivateInactivePlayer",
+			"Stock": {
+				"Type": "ActivateInactivePlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Roll Dice",
+			"HelpText": "Rolls the dice for the current player",
+			"IsFixUp": false,
+			"GoType": "pig.moveRollDice",
+			"Stock": {
+				"Type": "CurrentPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "Rolls the dice for the current player",
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"DieCounted"
+							],
+							"message": "pig.roll_not_counted",
+							"name": "playerBool"
+						}
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "playerBool",
+						"args": [
+							"DieCounted"
+						],
+						"message": "pig.roll_not_counted"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Done Turn",
+			"HelpText": "Played when a player is done with their turn and wants to keep their score.",
+			"IsFixUp": false,
+			"GoType": "pig.moveDoneTurn",
+			"Stock": {
+				"Type": "CurrentPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "Played when a player is done with their turn and wants to keep their score.",
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"DieCounted"
+							],
+							"message": "pig.done_roll_not_counted",
+							"name": "playerBool"
+						},
+						{
+							"args": [
+								"Done",
+								"false"
+							],
+							"message": "pig.already_done",
+							"name": "playerBool"
+						}
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "playerBool",
+						"args": [
+							"DieCounted"
+						],
+						"message": "pig.done_roll_not_counted"
+					},
+					{
+						"name": "playerBool",
+						"args": [
+							"Done",
+							"false"
+						],
+						"message": "pig.already_done"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Count Die",
+			"HelpText": "After a die has been rolled, tabulating its impact",
+			"IsFixUp": true,
+			"GoType": "pig.moveCountDie",
+			"Stock": {
+				"Type": "CurrentPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "After a die has been rolled, tabulating its impact",
+					"github.com/jkomoros/boardgame/moves.IsFixUp": true,
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"DieCounted",
+								"false"
+							],
+							"message": "pig.roll_already_counted",
+							"name": "playerBool"
+						}
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "playerBool",
+						"args": [
+							"DieCounted",
+							"false"
+						],
+						"message": "pig.roll_already_counted"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Finish Turn",
+			"HelpText": "Advance to the next player when the current player has busted or said they are done.",
+			"IsFixUp": true,
+			"GoType": "moves.FinishTurn",
+			"Stock": {
+				"Type": "FinishTurn",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Advance to the next player when the current player has busted or said they are done."
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		}
+	],
+	"SetUp": {
+		"Distribute": ""
+	},
+	"End": {},
+	"Agents": [],
+	"Functions": []
+}

@@ -1,0 +1,787 @@
+{
+	"SchemaVersion": 1,
+	"Source": {
+		"Package": "github.com/jkomoros/boardgame/examples/debuganimations",
+		"Exporter": "gamedef@1"
+	},
+	"Name": "debuganimations",
+	"DisplayName": "Animations Debugger",
+	"Description": "A game type designed to test all of the stack animations in one place",
+	"MinNumPlayers": 2,
+	"MaxNumPlayers": 2,
+	"DefaultNumPlayers": 2,
+	"Definition": {
+		"Name": "debuganimations",
+		"Decks": {
+			"cards": {
+				"Size": 54,
+				"Components": [
+					{
+						"Type": "🏇"
+					},
+					{
+						"Type": "🏇"
+					},
+					{
+						"Type": "🏇"
+					},
+					{
+						"Type": "🚴"
+					},
+					{
+						"Type": "🚴"
+					},
+					{
+						"Type": "🚴"
+					},
+					{
+						"Type": "✋"
+					},
+					{
+						"Type": "✋"
+					},
+					{
+						"Type": "✋"
+					},
+					{
+						"Type": "💘"
+					},
+					{
+						"Type": "💘"
+					},
+					{
+						"Type": "💘"
+					},
+					{
+						"Type": "🎓"
+					},
+					{
+						"Type": "🎓"
+					},
+					{
+						"Type": "🎓"
+					},
+					{
+						"Type": "🐕"
+					},
+					{
+						"Type": "🐕"
+					},
+					{
+						"Type": "🐕"
+					},
+					{
+						"Type": "🐄"
+					},
+					{
+						"Type": "🐄"
+					},
+					{
+						"Type": "🐄"
+					},
+					{
+						"Type": "🐘"
+					},
+					{
+						"Type": "🐘"
+					},
+					{
+						"Type": "🐘"
+					},
+					{
+						"Type": "🐍"
+					},
+					{
+						"Type": "🐍"
+					},
+					{
+						"Type": "🐍"
+					},
+					{
+						"Type": "🦀"
+					},
+					{
+						"Type": "🦀"
+					},
+					{
+						"Type": "🦀"
+					},
+					{
+						"Type": "🍒"
+					},
+					{
+						"Type": "🍒"
+					},
+					{
+						"Type": "🍒"
+					},
+					{
+						"Type": "🍔"
+					},
+					{
+						"Type": "🍔"
+					},
+					{
+						"Type": "🍔"
+					},
+					{
+						"Type": "🍭"
+					},
+					{
+						"Type": "🍭"
+					},
+					{
+						"Type": "🍭"
+					},
+					{
+						"Type": "🍺"
+					},
+					{
+						"Type": "🍺"
+					},
+					{
+						"Type": "🍺"
+					},
+					{
+						"Type": "🌮"
+					},
+					{
+						"Type": "🌮"
+					},
+					{
+						"Type": "🌮"
+					},
+					{
+						"Type": "🌭"
+					},
+					{
+						"Type": "🌭"
+					},
+					{
+						"Type": "🌭"
+					},
+					{
+						"Type": "🧀"
+					},
+					{
+						"Type": "🧀"
+					},
+					{
+						"Type": "🧀"
+					},
+					{
+						"Type": "🥐"
+					},
+					{
+						"Type": "🥐"
+					},
+					{
+						"Type": "🥐"
+					}
+				],
+				"GenericValues": {
+					"Type": "\u003chidden\u003e"
+				},
+				"ComponentProps": {
+					"Type": {
+						"Type": "string"
+					}
+				}
+			},
+			"tokens": {
+				"Size": 38,
+				"Components": [
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null,
+					null
+				]
+			}
+		},
+		"Enums": {
+			"phase": {
+				"Values": {
+					"0": "",
+					"1": "Normal"
+				},
+				"DefaultValue": 1,
+				"Parents": {
+					"0": 0,
+					"1": 0
+				}
+			}
+		},
+		"GroupEnum": "",
+		"Game": {
+			"Props": {
+				"AllHiddenStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "order"
+					},
+					"Deck": "cards"
+				},
+				"AllVisibleStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards"
+				},
+				"Card": {
+					"Type": "mergedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards",
+					"Overlap": true,
+					"Stacks": [
+						"VisibleCard",
+						"HiddenCard"
+					]
+				},
+				"CurrentPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"DiscardStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards"
+				},
+				"DrawStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "order"
+					},
+					"Deck": "cards"
+				},
+				"FanDiscard": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "order"
+					},
+					"Deck": "cards"
+				},
+				"FanShuffleCount": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"FanStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards"
+				},
+				"FirstShortStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "order"
+					},
+					"Deck": "cards"
+				},
+				"HiddenCard": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "order"
+					},
+					"Deck": "cards",
+					"Size": 1
+				},
+				"HiddenStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "nonempty"
+					},
+					"Deck": "cards"
+				},
+				"Phase": {
+					"Type": "enum",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Enum": "phase"
+				},
+				"SanitizedTokensFrom": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "tokens"
+				},
+				"SanitizedTokensTo": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "nonempty"
+					},
+					"Deck": "tokens"
+				},
+				"SecondShortStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "order"
+					},
+					"Deck": "cards"
+				},
+				"TokensFrom": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "tokens"
+				},
+				"TokensTo": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "tokens"
+				},
+				"VisibleCard": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards",
+					"Size": 1
+				},
+				"VisibleStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards"
+				}
+			}
+		},
+		"Player": {
+			"Props": {
+				"Hand": {
+					"Type": "stack",
+					"Sanitize": {
+						"other": "visible"
+					},
+					"Deck": "cards",
+					"MaxSize": 1
+				},
+				"PlayerInactive": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatClosed": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatFilled": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				}
+			}
+		},
+		"DynamicComponentValues": {}
+	},
+	"Constants": null,
+	"ComponentEnums": {},
+	"PhaseEnum": "phase",
+	"GroupEnum": "",
+	"Initial": {
+		"Game": {},
+		"Players": [
+			{},
+			{}
+		],
+		"Dynamic": {}
+	},
+	"Traits": {
+		"Game": {},
+		"Player": {
+			"Seat": true,
+			"Inactive": true
+		}
+	},
+	"Variants": {},
+	"Computed": [],
+	"LegalTemplates": {
+		"debuganimations.all_hidden_stack_empty": "No components in hidden stack to move",
+		"debuganimations.all_hidden_stack_occupied": "The hidden stack already has items. Use the 'To Visible' move",
+		"debuganimations.all_visible_stack_empty": "No components in visible stack to move",
+		"debuganimations.all_visible_stack_occupied": "The visible stack already has items. Use the 'To Hidden' move",
+		"debuganimations.fan_discard_empty": "FanDiscard has no cards to shuffle",
+		"debuganimations.fan_stack_too_small": "Aren't enough cards to shuffle"
+	},
+	"Predicates": [],
+	"Moves": [
+		{
+			"Name": "Seat Player",
+			"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+			"IsFixUp": true,
+			"GoType": "moves.SeatPlayer",
+			"Stock": {
+				"Type": "SeatPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"SeatsPlayer": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Move Card Between Short Stacks",
+			"HelpText": "Moves a card between two short stacks",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveMoveCardBetweenShortStacks",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {
+				"FromFirst": {
+					"Type": "bool",
+					"Sanitize": "all:visible",
+					"Input": "required",
+					"Codec": "boolean"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Move Card Between Draw And Discard Stacks",
+			"HelpText": "Moves a card between draw and discard stacks",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveMoveCardBetweenDrawAndDiscardStacks",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {
+				"FromDraw": {
+					"Type": "bool",
+					"Sanitize": "all:visible",
+					"Input": "required",
+					"Codec": "boolean"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Flip Card Between Hidden and Revealed",
+			"HelpText": "Flips the card between hidden and revealed",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveFlipHiddenCard",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Move Fan Card",
+			"HelpText": "Moves a card from or to Fan and Fan Discard",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveMoveCardBetweenFanStacks",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Visible Shuffle",
+			"HelpText": "Performs a visible shuffle",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveVisibleShuffleCards",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "stackCount",
+						"args": [
+							"game.FanStack",
+							">",
+							"1"
+						],
+						"message": "debuganimations.fan_stack_too_small"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Shuffle",
+			"HelpText": "Performs a secret shuffle",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveShuffleCards",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "stackCount",
+						"args": [
+							"game.FanStack",
+							">",
+							"1"
+						],
+						"message": "debuganimations.fan_stack_too_small"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Move Between Hidden",
+			"HelpText": "Moves between hidden and visible stacks",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveMoveBetweenHidden",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Move Token",
+			"HelpText": "Moves tokens",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveMoveToken",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Move Token Sanitized",
+			"HelpText": "Moves tokens",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveMoveTokenSanitized",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Start Move All Components To Hidden",
+			"HelpText": "Moves all components from visible to hidden",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveStartMoveAllComponentsToHidden",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "stackNotEmpty",
+						"args": [
+							"game.AllVisibleStack"
+						],
+						"message": "debuganimations.all_visible_stack_empty"
+					},
+					{
+						"name": "stackEmpty",
+						"args": [
+							"game.AllHiddenStack"
+						],
+						"message": "debuganimations.all_hidden_stack_occupied"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Start Move All Components To Visible",
+			"HelpText": "Moves all components from hidden to visible",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveStartMoveAllComponentsToVisible",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "stackNotEmpty",
+						"args": [
+							"game.AllHiddenStack"
+						],
+						"message": "debuganimations.all_hidden_stack_empty"
+					},
+					{
+						"name": "stackEmpty",
+						"args": [
+							"game.AllVisibleStack"
+						],
+						"message": "debuganimations.all_visible_stack_occupied"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Shuffle Hidden",
+			"HelpText": "Shuffles the fan discard pile and increments the shuffle count",
+			"IsFixUp": false,
+			"GoType": "debuganimations.moveShuffleHidden",
+			"Stock": null,
+			"Base": "default",
+			"Fields": {},
+			"NameSanitization": "self:visible",
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "stackNotEmpty",
+						"args": [
+							"game.FanDiscard"
+						],
+						"message": "debuganimations.fan_discard_empty"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		}
+	],
+	"SetUp": {
+		"Distribute": ""
+	},
+	"End": {},
+	"Agents": [],
+	"Functions": []
+}

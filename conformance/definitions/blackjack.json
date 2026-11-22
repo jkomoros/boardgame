@@ -1,0 +1,2581 @@
+{
+	"SchemaVersion": 1,
+	"Source": {
+		"Package": "github.com/jkomoros/boardgame/examples/blackjack",
+		"Exporter": "gamedef@1"
+	},
+	"Name": "blackjack",
+	"DisplayName": "Blackjack",
+	"Description": "Players draw cards trying to get as close to 21 as possible without going over",
+	"MinNumPlayers": 2,
+	"MaxNumPlayers": 7,
+	"DefaultNumPlayers": 4,
+	"Definition": {
+		"Name": "blackjack",
+		"Decks": {
+			"cards": {
+				"Size": 52,
+				"Components": [
+					{
+						"Suit": "♠",
+						"Rank": "Ace"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "2"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "3"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "4"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "5"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "6"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "7"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "8"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "9"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "10"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "Jack"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "Queen"
+					},
+					{
+						"Suit": "♠",
+						"Rank": "King"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "Ace"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "2"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "3"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "4"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "5"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "6"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "7"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "8"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "9"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "10"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "Jack"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "Queen"
+					},
+					{
+						"Suit": "♥",
+						"Rank": "King"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "Ace"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "2"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "3"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "4"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "5"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "6"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "7"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "8"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "9"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "10"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "Jack"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "Queen"
+					},
+					{
+						"Suit": "♣",
+						"Rank": "King"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "Ace"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "2"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "3"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "4"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "5"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "6"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "7"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "8"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "9"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "10"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "Jack"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "Queen"
+					},
+					{
+						"Suit": "♦",
+						"Rank": "King"
+					}
+				],
+				"GenericValues": {
+					"Suit": "�",
+					"Rank": "Unknown"
+				},
+				"ComponentProps": {
+					"Rank": {
+						"Type": "enum",
+						"Enum": "Rank"
+					},
+					"Suit": {
+						"Type": "enum",
+						"Enum": "Suit"
+					}
+				}
+			}
+		},
+		"Enums": {
+			"phase": {
+				"Values": {
+					"0": "Gathering",
+					"1": "Initial Deal",
+					"2": "Normal Play",
+					"3": "Round Cleanup"
+				},
+				"DefaultValue": 0
+			}
+		},
+		"GroupEnum": "",
+		"Game": {
+			"Props": {
+				"CurrentPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"DiscardStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "len"
+					},
+					"Deck": "cards"
+				},
+				"DrawStack": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "len"
+					},
+					"Deck": "cards"
+				},
+				"MaxRounds": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"Phase": {
+					"Type": "enum",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Enum": "phase"
+				},
+				"RRHasStarted": {
+					"Type": "bool",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"RRLastPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"RRRoundCount": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"RRStarterPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"RoundsCompleted": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"UnusedCards": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "cards"
+				}
+			}
+		},
+		"Player": {
+			"Props": {
+				"Eliminated": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Hand": {
+					"Type": "mergedStack",
+					"Sanitize": {
+						"other": "visible"
+					},
+					"Deck": "cards",
+					"Stacks": [
+						"HiddenHand",
+						"VisibleHand"
+					]
+				},
+				"HiddenHand": {
+					"Type": "stack",
+					"Sanitize": {
+						"other": "len"
+					},
+					"Deck": "cards",
+					"MaxSize": 1
+				},
+				"PlayerInactive": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Score": {
+					"Type": "int",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatClosed": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatFilled": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Stood": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"VisibleHand": {
+					"Type": "stack",
+					"Sanitize": {
+						"other": "visible"
+					},
+					"Deck": "cards"
+				}
+			}
+		},
+		"DynamicComponentValues": {}
+	},
+	"Constants": null,
+	"ComponentEnums": {
+		"Rank": {
+			"Values": {
+				"0": "Unknown",
+				"1": "Ace",
+				"10": "10",
+				"11": "Jack",
+				"12": "Queen",
+				"13": "King",
+				"14": "Joker",
+				"2": "2",
+				"3": "3",
+				"4": "4",
+				"5": "5",
+				"6": "6",
+				"7": "7",
+				"8": "8",
+				"9": "9"
+			},
+			"DefaultValue": 0
+		},
+		"Suit": {
+			"Values": {
+				"0": "�",
+				"1": "♠",
+				"2": "♥",
+				"3": "♣",
+				"4": "♦",
+				"5": "Jokers"
+			},
+			"DefaultValue": 0
+		}
+	},
+	"PhaseEnum": "phase",
+	"GroupEnum": "",
+	"Initial": {
+		"Game": {},
+		"Players": [
+			{},
+			{},
+			{},
+			{},
+			{},
+			{},
+			{}
+		],
+		"Dynamic": {}
+	},
+	"Traits": {
+		"Game": {
+			"DrawDiscardPair": {
+				"Draw": "DrawStack",
+				"Discard": "DiscardStack"
+			},
+			"RoundRobin": true
+		},
+		"Player": {
+			"Seat": true,
+			"Inactive": true,
+			"Elimination": true,
+			"GameScore": "score"
+		}
+	},
+	"Variants": {
+		"maxrounds": {
+			"Default": "5",
+			"Description": "Number of rounds to play before the game ends",
+			"DisplayName": "Max Rounds",
+			"Name": "maxrounds",
+			"Values": {
+				"1": {
+					"Description": "1 rounds",
+					"DisplayName": "1",
+					"Name": "1"
+				},
+				"10": {
+					"Description": "10 rounds",
+					"DisplayName": "10",
+					"Name": "10"
+				},
+				"2": {
+					"Description": "2 rounds",
+					"DisplayName": "2",
+					"Name": "2"
+				},
+				"3": {
+					"Description": "3 rounds",
+					"DisplayName": "3",
+					"Name": "3"
+				},
+				"4": {
+					"Description": "4 rounds",
+					"DisplayName": "4",
+					"Name": "4"
+				},
+				"5": {
+					"Description": "5 rounds",
+					"DisplayName": "5",
+					"Name": "5"
+				},
+				"6": {
+					"Description": "6 rounds",
+					"DisplayName": "6",
+					"Name": "6"
+				},
+				"7": {
+					"Description": "7 rounds",
+					"DisplayName": "7",
+					"Name": "7"
+				},
+				"8": {
+					"Description": "8 rounds",
+					"DisplayName": "8",
+					"Name": "8"
+				},
+				"9": {
+					"Description": "9 rounds",
+					"DisplayName": "9",
+					"Name": "9"
+				}
+			}
+		}
+	},
+	"Computed": [
+		{
+			"Name": "HandValue",
+			"Scope": "player",
+			"Type": "int",
+			"Compute": ""
+		}
+	],
+	"LegalTemplates": {
+		"cleanup.players_unfinished": "not all active players have finished their turn",
+		"hit.already_busted": "Current player is busted",
+		"hit.no_cards_left": "No cards left in draw stack",
+		"reveal.no_hidden_card": "Target player has no cards to reveal",
+		"stand.already_busted": "the current player has already busted",
+		"stand.already_stood": "the current player already stood"
+	},
+	"Predicates": [],
+	"Moves": [
+		{
+			"Name": "Shuffle Discard Into Draw",
+			"HelpText": "When the draw deck is empty, shuffles the discard deck into draw deck.",
+			"IsFixUp": true,
+			"GoType": "moves.ShuffleDiscardIntoDraw",
+			"Stock": {
+				"Type": "ShuffleDiscardIntoDraw",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "When the draw deck is empty, shuffles the discard deck into draw deck."
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Seat Player",
+			"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+			"IsFixUp": true,
+			"GoType": "moves.SeatPlayer",
+			"Stock": {
+				"Type": "SeatPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"SeatsPlayer": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Activate Inactive Player - Gathering",
+			"HelpText": "Activates any players who are not currently active.",
+			"IsFixUp": true,
+			"GoType": "moves.ActivateInactivePlayer",
+			"Stock": {
+				"Type": "ActivateInactivePlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveNameSuffix": "Gathering"
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Wait For Enough Players - Gathering",
+			"HelpText": "Waits until at least target count players are active and seated before applying itself",
+			"IsFixUp": true,
+			"GoType": "moves.WaitForEnoughPlayers",
+			"Stock": {
+				"Type": "WaitForEnoughPlayers",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveNameSuffix": "Gathering"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Inactivate Empty Seat - Gathering",
+			"HelpText": "Marks any empty seats as being inactive, so other game logic will skip them",
+			"IsFixUp": true,
+			"GoType": "moves.InactivateEmptySeat",
+			"Stock": {
+				"Type": "InactivateEmptySeat",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveNameSuffix": "Gathering"
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Begin Game",
+			"HelpText": "Enters phase Initial Deal",
+			"IsFixUp": true,
+			"GoType": "moves.StartPhase",
+			"Stock": {
+				"Type": "StartPhase",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Begin Game",
+					"github.com/jkomoros/boardgame/moves.StartPhase": 1,
+					"github.com/jkomoros/boardgame/moves.StartPhaseEnum": "phase"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"EndsPhaseProgression": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Start Round Cleanup",
+			"HelpText": "When all players have finished, transitions to round cleanup.",
+			"IsFixUp": true,
+			"GoType": "blackjack.moveStartRoundCleanup",
+			"Stock": {
+				"Type": "StartPhase",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "When all players have finished, transitions to round cleanup.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"message": "cleanup.players_unfinished",
+							"name": "allActivePlayers",
+							"sub": [
+								{
+									"name": "any",
+									"sub": [
+										{
+											"args": [
+												"Eliminated"
+											],
+											"name": "playerBool"
+										},
+										{
+											"args": [
+												"Stood"
+											],
+											"name": "playerBool"
+										}
+									]
+								}
+							]
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.StartPhase": 3,
+					"github.com/jkomoros/boardgame/moves.StartPhaseEnum": "phase"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "inPhase",
+						"args": [
+							"2"
+						]
+					},
+					{
+						"name": "allActivePlayers",
+						"sub": [
+							{
+								"name": "any",
+								"sub": [
+									{
+										"name": "playerBool",
+										"args": [
+											"Eliminated"
+										]
+									},
+									{
+										"name": "playerBool",
+										"args": [
+											"Stood"
+										]
+									}
+								]
+							}
+						],
+						"message": "cleanup.players_unfinished"
+					}
+				],
+				"HasCustom": false
+			},
+			"EndsPhaseProgression": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Current Player Hit",
+			"HelpText": "The current player hits, drawing a card.",
+			"IsFixUp": false,
+			"GoType": "blackjack.moveCurrentPlayerHit",
+			"Stock": {
+				"Type": "DrawToPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "The current player hits, drawing a card.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.PlayerPropety": "VisibleHand",
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"Eliminated",
+								"false"
+							],
+							"message": "hit.already_busted",
+							"name": "playerBool"
+						},
+						{
+							"args": [
+								"game.DrawStack"
+							],
+							"message": "hit.no_cards_left",
+							"name": "stackNotEmpty"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.ResolvedDrawDestination": "VisibleHand",
+					"github.com/jkomoros/boardgame/moves.ResolvedDrawSource": "DrawStack"
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "inPhase",
+						"args": [
+							"2"
+						]
+					},
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "mayMoveFirstTo",
+						"args": [
+							"game.DrawStack",
+							"player.VisibleHand"
+						]
+					},
+					{
+						"name": "playerBool",
+						"args": [
+							"Eliminated",
+							"false"
+						],
+						"message": "hit.already_busted"
+					},
+					{
+						"name": "stackNotEmpty",
+						"args": [
+							"game.DrawStack"
+						],
+						"message": "hit.no_cards_left"
+					}
+				],
+				"HasCustom": true
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Current Player Stand",
+			"HelpText": "If the current player no longer wants to draw cards, they can stand.",
+			"IsFixUp": false,
+			"GoType": "blackjack.moveCurrentPlayerStand",
+			"Stock": {
+				"Type": "CurrentPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "If the current player no longer wants to draw cards, they can stand.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"Eliminated",
+								"false"
+							],
+							"message": "stand.already_busted",
+							"name": "playerBool"
+						},
+						{
+							"args": [
+								"Stood",
+								"false"
+							],
+							"message": "stand.already_stood",
+							"name": "playerBool"
+						}
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "inPhase",
+						"args": [
+							"2"
+						]
+					},
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "playerBool",
+						"args": [
+							"Eliminated",
+							"false"
+						],
+						"message": "stand.already_busted"
+					},
+					{
+						"name": "playerBool",
+						"args": [
+							"Stood",
+							"false"
+						],
+						"message": "stand.already_stood"
+					}
+				],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Reveal Hidden Card",
+			"HelpText": "Reveals the hidden card in the user's hand",
+			"IsFixUp": true,
+			"GoType": "blackjack.moveRevealHiddenCard",
+			"Stock": {
+				"Type": "CurrentPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "Reveals the hidden card in the user's hand",
+					"github.com/jkomoros/boardgame/moves.IsFixUp": true,
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"player.HiddenHand"
+							],
+							"message": "reveal.no_hidden_card",
+							"name": "stackNotEmpty"
+						}
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "inPhase",
+						"args": [
+							"2"
+						]
+					},
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "stackNotEmpty",
+						"args": [
+							"player.HiddenHand"
+						],
+						"message": "reveal.no_hidden_card"
+					}
+				],
+				"HasCustom": true
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Finish Turn",
+			"HelpText": "When the current player has either busted or decided to stand, we advance to next player.",
+			"IsFixUp": true,
+			"GoType": "moves.FinishTurn",
+			"Stock": {
+				"Type": "FinishTurn",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "When the current player has either busted or decided to stand, we advance to next player.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Force Finish Turn",
+			"HelpText": "Admin-only: end the current player's turn even if TurnDone() would refuse. Used by host SkipTurn in Table+Hand mode.",
+			"IsFixUp": false,
+			"GoType": "moves.ForceFinishTurn",
+			"Stock": {
+				"Type": "ForceFinishTurn",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Admin-only: end the current player's turn even if TurnDone() would refuse. Used by host SkipTurn in Table+Hand mode.",
+					"github.com/jkomoros/boardgame/moves.IsFixUp": false,
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Force Finish Turn"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Activate Inactive Player",
+			"HelpText": "Activates any players who are not currently active.",
+			"IsFixUp": true,
+			"GoType": "moves.ActivateInactivePlayer",
+			"Stock": {
+				"Type": "ActivateInactivePlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "serial",
+								"Children": [
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Activate Inactive Player"
+										}
+									},
+									{
+										"Kind": "move",
+										"Name": "Wait For Enough Players"
+									},
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Inactivate Empty Seat"
+										}
+									}
+								]
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Hidden Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Visible Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Normal Play"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": [
+				1
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat"
+								}
+							}
+						]
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Hidden Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Visible Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Normal Play"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Wait For Enough Players",
+			"HelpText": "Waits until at least target count players are active and seated before applying itself",
+			"IsFixUp": true,
+			"GoType": "moves.WaitForEnoughPlayers",
+			"Stock": {
+				"Type": "WaitForEnoughPlayers",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "serial",
+								"Children": [
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Activate Inactive Player"
+										}
+									},
+									{
+										"Kind": "move",
+										"Name": "Wait For Enough Players"
+									},
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Inactivate Empty Seat"
+										}
+									}
+								]
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Hidden Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Visible Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Normal Play"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				1
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat"
+								}
+							}
+						]
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Hidden Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Visible Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Normal Play"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Inactivate Empty Seat",
+			"HelpText": "Marks any empty seats as being inactive, so other game logic will skip them",
+			"IsFixUp": true,
+			"GoType": "moves.InactivateEmptySeat",
+			"Stock": {
+				"Type": "InactivateEmptySeat",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "serial",
+								"Children": [
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Activate Inactive Player"
+										}
+									},
+									{
+										"Kind": "move",
+										"Name": "Wait For Enough Players"
+									},
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Inactivate Empty Seat"
+										}
+									}
+								]
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Hidden Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Visible Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Normal Play"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": [
+				1
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat"
+								}
+							}
+						]
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Hidden Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Visible Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Normal Play"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Deal Initial Hidden Card",
+			"HelpText": "Deals a hidden card to each player",
+			"IsFixUp": true,
+			"GoType": "moves.DealCountComponents",
+			"Stock": {
+				"Type": "DealCountComponents",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.GameProperty": "DrawStack",
+					"github.com/jkomoros/boardgame/moves.HelpText": "Deals a hidden card to each player",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "serial",
+								"Children": [
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Activate Inactive Player"
+										}
+									},
+									{
+										"Kind": "move",
+										"Name": "Wait For Enough Players"
+									},
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Inactivate Empty Seat"
+										}
+									}
+								]
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Hidden Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Visible Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Normal Play"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Deal Initial Hidden Card",
+					"github.com/jkomoros/boardgame/moves.PlayerPropety": "HiddenHand"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				1
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat"
+								}
+							}
+						]
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Hidden Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Visible Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Normal Play"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Deal Initial Visible Card",
+			"HelpText": "Deals a visible card to each player",
+			"IsFixUp": true,
+			"GoType": "moves.DealCountComponents",
+			"Stock": {
+				"Type": "DealCountComponents",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.GameProperty": "DrawStack",
+					"github.com/jkomoros/boardgame/moves.HelpText": "Deals a visible card to each player",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "serial",
+								"Children": [
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Activate Inactive Player"
+										}
+									},
+									{
+										"Kind": "move",
+										"Name": "Wait For Enough Players"
+									},
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Inactivate Empty Seat"
+										}
+									}
+								]
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Hidden Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Visible Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Normal Play"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Deal Initial Visible Card",
+					"github.com/jkomoros/boardgame/moves.PlayerPropety": "VisibleHand"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				1
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat"
+								}
+							}
+						]
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Hidden Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Visible Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Normal Play"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Start Phase Normal Play",
+			"HelpText": "Enters phase Normal Play",
+			"IsFixUp": true,
+			"GoType": "moves.StartPhase",
+			"Stock": {
+				"Type": "StartPhase",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "serial",
+								"Children": [
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Activate Inactive Player"
+										}
+									},
+									{
+										"Kind": "move",
+										"Name": "Wait For Enough Players"
+									},
+									{
+										"Kind": "repeat",
+										"Count": {
+											"Kind": "between",
+											"Min": 0,
+											"Max": 1
+										},
+										"Child": {
+											"Kind": "move",
+											"Name": "Inactivate Empty Seat"
+										}
+									}
+								]
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Hidden Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Deal Initial Visible Card"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Normal Play"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					],
+					"github.com/jkomoros/boardgame/moves.StartPhase": 2,
+					"github.com/jkomoros/boardgame/moves.StartPhaseEnum": "phase"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				1
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat"
+								}
+							}
+						]
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Hidden Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Deal Initial Visible Card"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Normal Play"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"EndsPhaseProgression": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Accumulate Scores",
+			"HelpText": "Adds each player's hand value to their total score.",
+			"IsFixUp": true,
+			"GoType": "blackjack.moveAccumulateScores",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Adds each player's hand value to their total score.",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "move",
+								"Name": "Accumulate Scores"
+							},
+							{
+								"Kind": "move",
+								"Name": "Collect Cards"
+							},
+							{
+								"Kind": "move",
+								"Name": "Reset Player For New Round"
+							},
+							{
+								"Kind": "move",
+								"Name": "Increment Rounds Completed"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Next Round"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						3
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				3
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "move",
+						"Name": "Accumulate Scores"
+					},
+					{
+						"Kind": "move",
+						"Name": "Collect Cards"
+					},
+					{
+						"Kind": "move",
+						"Name": "Reset Player For New Round"
+					},
+					{
+						"Kind": "move",
+						"Name": "Increment Rounds Completed"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Next Round"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Collect Cards",
+			"HelpText": "Collects all cards from players back to the discard pile.",
+			"IsFixUp": true,
+			"GoType": "blackjack.moveCollectCards",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Collects all cards from players back to the discard pile.",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "move",
+								"Name": "Accumulate Scores"
+							},
+							{
+								"Kind": "move",
+								"Name": "Collect Cards"
+							},
+							{
+								"Kind": "move",
+								"Name": "Reset Player For New Round"
+							},
+							{
+								"Kind": "move",
+								"Name": "Increment Rounds Completed"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Next Round"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						3
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				3
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "move",
+						"Name": "Accumulate Scores"
+					},
+					{
+						"Kind": "move",
+						"Name": "Collect Cards"
+					},
+					{
+						"Kind": "move",
+						"Name": "Reset Player For New Round"
+					},
+					{
+						"Kind": "move",
+						"Name": "Increment Rounds Completed"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Next Round"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Reset Player For New Round",
+			"HelpText": "Resets player flags for the next round.",
+			"IsFixUp": true,
+			"GoType": "blackjack.moveResetPlayerForNewRound",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Resets player flags for the next round.",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "move",
+								"Name": "Accumulate Scores"
+							},
+							{
+								"Kind": "move",
+								"Name": "Collect Cards"
+							},
+							{
+								"Kind": "move",
+								"Name": "Reset Player For New Round"
+							},
+							{
+								"Kind": "move",
+								"Name": "Increment Rounds Completed"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Next Round"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						3
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				3
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "move",
+						"Name": "Accumulate Scores"
+					},
+					{
+						"Kind": "move",
+						"Name": "Collect Cards"
+					},
+					{
+						"Kind": "move",
+						"Name": "Reset Player For New Round"
+					},
+					{
+						"Kind": "move",
+						"Name": "Increment Rounds Completed"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Next Round"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Increment Rounds Completed",
+			"HelpText": "Increments the round counter.",
+			"IsFixUp": true,
+			"GoType": "blackjack.moveIncrementRoundsCompleted",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Increments the round counter.",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "move",
+								"Name": "Accumulate Scores"
+							},
+							{
+								"Kind": "move",
+								"Name": "Collect Cards"
+							},
+							{
+								"Kind": "move",
+								"Name": "Reset Player For New Round"
+							},
+							{
+								"Kind": "move",
+								"Name": "Increment Rounds Completed"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Next Round"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						3
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				3
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "move",
+						"Name": "Accumulate Scores"
+					},
+					{
+						"Kind": "move",
+						"Name": "Collect Cards"
+					},
+					{
+						"Kind": "move",
+						"Name": "Reset Player For New Round"
+					},
+					{
+						"Kind": "move",
+						"Name": "Increment Rounds Completed"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Next Round"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Start Next Round",
+			"HelpText": "Enters phase Initial Deal",
+			"IsFixUp": true,
+			"GoType": "moves.StartPhase",
+			"Stock": {
+				"Type": "StartPhase",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "move",
+								"Name": "Accumulate Scores"
+							},
+							{
+								"Kind": "move",
+								"Name": "Collect Cards"
+							},
+							{
+								"Kind": "move",
+								"Name": "Reset Player For New Round"
+							},
+							{
+								"Kind": "move",
+								"Name": "Increment Rounds Completed"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Next Round"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						3
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Start Next Round",
+					"github.com/jkomoros/boardgame/moves.StartPhase": 1,
+					"github.com/jkomoros/boardgame/moves.StartPhaseEnum": "phase"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				3
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "move",
+						"Name": "Accumulate Scores"
+					},
+					{
+						"Kind": "move",
+						"Name": "Collect Cards"
+					},
+					{
+						"Kind": "move",
+						"Name": "Reset Player For New Round"
+					},
+					{
+						"Kind": "move",
+						"Name": "Increment Rounds Completed"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Next Round"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"EndsPhaseProgression": true,
+			"Bodies": {}
+		}
+	],
+	"SetUp": {
+		"Distribute": ""
+	},
+	"End": {},
+	"Agents": [],
+	"Functions": []
+}

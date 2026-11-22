@@ -1,0 +1,914 @@
+{
+	"SchemaVersion": 1,
+	"Source": {
+		"Package": "github.com/jkomoros/boardgame/examples/werewolf",
+		"Exporter": "gamedef@1"
+	},
+	"Name": "werewolf",
+	"DisplayName": "Werewolf",
+	"Description": "A hidden-role game where villagers try to find the werewolves among them",
+	"MinNumPlayers": 4,
+	"MaxNumPlayers": 7,
+	"DefaultNumPlayers": 5,
+	"Definition": {
+		"Name": "werewolf",
+		"Decks": {},
+		"Enums": {
+			"group": {
+				"Values": {
+					"0": "Villager",
+					"1": "Werewolf"
+				},
+				"DefaultValue": 0
+			},
+			"phase": {
+				"Values": {
+					"0": "Gathering",
+					"1": "Day",
+					"2": "Night"
+				},
+				"DefaultValue": 0
+			},
+			"role": {
+				"Values": {
+					"0": "Villager",
+					"1": "Werewolf"
+				},
+				"DefaultValue": 0
+			}
+		},
+		"GroupEnum": "group",
+		"Game": {
+			"Props": {
+				"Phase": {
+					"Type": "enum",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Enum": "phase"
+				},
+				"RoundNumber": {
+					"Type": "int",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"VoteTimer": {
+					"Type": "timer",
+					"Sanitize": {
+						"all": "visible"
+					}
+				}
+			}
+		},
+		"Player": {
+			"Props": {
+				"DayVote": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Eliminated": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"FellowWolves": {
+					"Type": "playerIndexSlice",
+					"Sanitize": {
+						"other": "hidden"
+					}
+				},
+				"NightVote": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"other": "hidden"
+					}
+				},
+				"PlayerInactive": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"Role": {
+					"Type": "enum",
+					"Sanitize": {
+						"other": "hidden"
+					},
+					"Enum": "role"
+				},
+				"SeatClosed": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatFilled": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				}
+			}
+		},
+		"DynamicComponentValues": {}
+	},
+	"Constants": null,
+	"ComponentEnums": {},
+	"PhaseEnum": "phase",
+	"GroupEnum": "group",
+	"Initial": {
+		"Game": {},
+		"Players": [
+			{
+				"DayVote": -1,
+				"NightVote": -1
+			},
+			{
+				"DayVote": -1,
+				"NightVote": -1
+			},
+			{
+				"DayVote": -1,
+				"NightVote": -1
+			},
+			{
+				"DayVote": -1,
+				"NightVote": -1
+			},
+			{
+				"DayVote": -1,
+				"NightVote": -1
+			},
+			{
+				"DayVote": -1,
+				"NightVote": -1
+			},
+			{
+				"DayVote": -1,
+				"NightVote": -1
+			}
+		],
+		"Dynamic": {}
+	},
+	"Traits": {
+		"Game": {},
+		"Player": {
+			"Seat": true,
+			"Inactive": true,
+			"Elimination": true,
+			"Role": true
+		}
+	},
+	"Variants": {
+		"timedvoting": {
+			"Default": "off",
+			"Description": "Resolve each day and night vote after 45 seconds, using the votes cast so far.",
+			"DisplayName": "Timed Voting",
+			"Name": "timedvoting",
+			"Values": {
+				"off": {
+					"Description": "",
+					"DisplayName": "Off",
+					"Name": "off"
+				},
+				"on": {
+					"Description": "",
+					"DisplayName": "45 seconds",
+					"Name": "on"
+				}
+			}
+		}
+	},
+	"Computed": [],
+	"LegalTemplates": {},
+	"Predicates": [],
+	"Moves": [
+		{
+			"Name": "Seat Player",
+			"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+			"IsFixUp": true,
+			"GoType": "moves.SeatPlayer",
+			"Stock": {
+				"Type": "SeatPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"SeatsPlayer": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Activate Inactive Player - Gathering",
+			"HelpText": "Activates any players who are not currently active.",
+			"IsFixUp": true,
+			"GoType": "moves.ActivateInactivePlayer",
+			"Stock": {
+				"Type": "ActivateInactivePlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveNameSuffix": "Gathering"
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Wait For Enough Players - Gathering",
+			"HelpText": "Waits until at least target count players are active and seated before applying itself",
+			"IsFixUp": true,
+			"GoType": "moves.WaitForEnoughPlayers",
+			"Stock": {
+				"Type": "WaitForEnoughPlayers",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveNameSuffix": "Gathering"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Inactivate Empty Seat - Gathering",
+			"HelpText": "Marks any empty seats as being inactive, so other game logic will skip them",
+			"IsFixUp": true,
+			"GoType": "moves.InactivateEmptySeat",
+			"Stock": {
+				"Type": "InactivateEmptySeat",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveNameSuffix": "Gathering"
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Begin Game",
+			"HelpText": "Starts the day phase and assigns roles among seated players.",
+			"IsFixUp": true,
+			"GoType": "werewolf.moveBeginGame",
+			"Stock": {
+				"Type": "StartPhase",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Starts the day phase and assigns roles among seated players.",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Activate Inactive Player - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Wait For Enough Players - Gathering"
+							},
+							{
+								"Kind": "repeat",
+								"Count": {
+									"Kind": "between",
+									"Min": 0,
+									"Max": 1
+								},
+								"Child": {
+									"Kind": "move",
+									"Name": "Inactivate Empty Seat - Gathering"
+								}
+							},
+							{
+								"Kind": "move",
+								"Name": "Begin Game"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Begin Game",
+					"github.com/jkomoros/boardgame/moves.StartPhase": 1,
+					"github.com/jkomoros/boardgame/moves.StartPhaseEnum": "phase"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Activate Inactive Player - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Wait For Enough Players - Gathering"
+					},
+					{
+						"Kind": "repeat",
+						"Count": {
+							"Kind": "between",
+							"Min": 0,
+							"Max": 1
+						},
+						"Child": {
+							"Kind": "move",
+							"Name": "Inactivate Empty Seat - Gathering"
+						}
+					},
+					{
+						"Kind": "move",
+						"Name": "Begin Game"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"EndsPhaseProgression": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Cast Vote",
+			"HelpText": "Vote for a player to eliminate.",
+			"IsFixUp": false,
+			"GoType": "werewolf.moveCastVote",
+			"Stock": {
+				"Type": "AnyPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveChoiceProjection": {
+						"Disclosure": "actor-exact",
+						"ExcludedValues": null,
+						"FieldName": "VoteTarget",
+						"Source": "",
+						"StackSource": null
+					},
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "Vote for a player to eliminate.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					],
+					"github.com/jkomoros/boardgame/moves.MoveChoiceProjections": [
+						{
+							"err": "",
+							"projection": {
+								"Disclosure": "actor-exact",
+								"ExcludedValues": null,
+								"FieldName": "VoteTarget",
+								"Source": "",
+								"StackSource": null
+							}
+						}
+					]
+				}
+			},
+			"Base": "anyPlayer",
+			"Fields": {
+				"VoteTarget": {
+					"Type": "playerIndex",
+					"Sanitize": "self:visible,same-role:visible",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": [
+				1
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Choices": {
+				"disclosure": "actor-exact",
+				"fieldName": "VoteTarget",
+				"moveName": "Cast Vote",
+				"source": "players"
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Resolve Votes",
+			"HelpText": "Tallies votes, eliminates the chosen player, and transitions to the next phase.",
+			"IsFixUp": true,
+			"GoType": "werewolf.moveResolveVotes",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Tallies votes, eliminates the chosen player, and transitions to the next phase.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				1
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Resolve Day Votes on Timeout",
+			"HelpText": "Resolves the daytime deadline using votes cast so far.",
+			"IsFixUp": false,
+			"GoType": "werewolf.moveResolveVotesOnTimeout",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Resolves the daytime deadline using votes cast so far.",
+					"github.com/jkomoros/boardgame/moves.IsFixUp": false,
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Resolve Day Votes on Timeout"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				1
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Cast Night Vote",
+			"HelpText": "Werewolves choose a target to eliminate.",
+			"IsFixUp": false,
+			"GoType": "werewolf.moveCastVote",
+			"Stock": {
+				"Type": "AnyPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveChoiceProjection": {
+						"Disclosure": "actor-exact",
+						"ExcludedValues": null,
+						"FieldName": "VoteTarget",
+						"Source": "",
+						"StackSource": null
+					},
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame.MoveNameSanitization": {
+						"err": "",
+						"hiddenAnimationKey": "Hidden Action",
+						"policy": "self:visible,same-role:visible"
+					},
+					"github.com/jkomoros/boardgame/moves.HelpText": "Werewolves choose a target to eliminate.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.MoveChoiceProjections": [
+						{
+							"err": "",
+							"projection": {
+								"Disclosure": "actor-exact",
+								"ExcludedValues": null,
+								"FieldName": "VoteTarget",
+								"Source": "",
+								"StackSource": null
+							}
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Cast Night Vote"
+				}
+			},
+			"Base": "anyPlayer",
+			"Fields": {
+				"VoteTarget": {
+					"Type": "playerIndex",
+					"Sanitize": "self:visible,same-role:visible",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"NameSanitization": "self:visible,same-role:visible",
+			"HiddenAnimationKey": "Hidden Action",
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Choices": {
+				"disclosure": "actor-exact",
+				"fieldName": "VoteTarget",
+				"moveName": "Cast Night Vote",
+				"source": "players"
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Resolve Night Votes",
+			"HelpText": "Tallies werewolf votes, eliminates the target, and transitions to day.",
+			"IsFixUp": true,
+			"GoType": "werewolf.moveResolveVotes",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Tallies werewolf votes, eliminates the target, and transitions to day.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Resolve Night Votes"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Resolve Night Votes on Timeout",
+			"HelpText": "Resolves the nighttime deadline using votes cast so far.",
+			"IsFixUp": false,
+			"GoType": "werewolf.moveResolveVotesOnTimeout",
+			"Stock": {
+				"Type": "FixUp",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Resolves the nighttime deadline using votes cast so far.",
+					"github.com/jkomoros/boardgame/moves.IsFixUp": false,
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						2
+					],
+					"github.com/jkomoros/boardgame/moves.MoveName": "Resolve Night Votes on Timeout"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				2
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		}
+	],
+	"SetUp": {
+		"Distribute": ""
+	},
+	"End": {},
+	"Agents": [],
+	"Functions": []
+}

@@ -1,0 +1,745 @@
+{
+	"SchemaVersion": 1,
+	"Source": {
+		"Package": "github.com/jkomoros/boardgame/examples/checkers",
+		"Exporter": "gamedef@1"
+	},
+	"Name": "checkers",
+	"DisplayName": "Checkers",
+	"Description": "Checkers is the classic game on a grid where players compete to capture opponents' pieces.",
+	"MinNumPlayers": 2,
+	"MaxNumPlayers": 2,
+	"DefaultNumPlayers": 2,
+	"Definition": {
+		"Name": "checkers",
+		"Decks": {
+			"Tokens": {
+				"Size": 24,
+				"Components": [
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Black"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					},
+					{
+						"Color": "Red"
+					}
+				],
+				"ComponentProps": {
+					"Color": {
+						"Type": "enum",
+						"Enum": "color"
+					}
+				}
+			}
+		},
+		"Enums": {
+			"color": {
+				"Values": {
+					"0": "Red",
+					"4": "Black"
+				},
+				"DefaultValue": 0
+			},
+			"phase": {
+				"Values": {
+					"0": "Setup",
+					"1": "Playing"
+				},
+				"DefaultValue": 0
+			},
+			"spaces": {
+				"Values": {
+					"0": "0_0",
+					"1": "0_1",
+					"10": "1_2",
+					"11": "1_3",
+					"12": "1_4",
+					"13": "1_5",
+					"14": "1_6",
+					"15": "1_7",
+					"16": "2_0",
+					"17": "2_1",
+					"18": "2_2",
+					"19": "2_3",
+					"2": "0_2",
+					"20": "2_4",
+					"21": "2_5",
+					"22": "2_6",
+					"23": "2_7",
+					"24": "3_0",
+					"25": "3_1",
+					"26": "3_2",
+					"27": "3_3",
+					"28": "3_4",
+					"29": "3_5",
+					"3": "0_3",
+					"30": "3_6",
+					"31": "3_7",
+					"32": "4_0",
+					"33": "4_1",
+					"34": "4_2",
+					"35": "4_3",
+					"36": "4_4",
+					"37": "4_5",
+					"38": "4_6",
+					"39": "4_7",
+					"4": "0_4",
+					"40": "5_0",
+					"41": "5_1",
+					"42": "5_2",
+					"43": "5_3",
+					"44": "5_4",
+					"45": "5_5",
+					"46": "5_6",
+					"47": "5_7",
+					"48": "6_0",
+					"49": "6_1",
+					"5": "0_5",
+					"50": "6_2",
+					"51": "6_3",
+					"52": "6_4",
+					"53": "6_5",
+					"54": "6_6",
+					"55": "6_7",
+					"56": "7_0",
+					"57": "7_1",
+					"58": "7_2",
+					"59": "7_3",
+					"6": "0_6",
+					"60": "7_4",
+					"61": "7_5",
+					"62": "7_6",
+					"63": "7_7",
+					"7": "0_7",
+					"8": "1_0",
+					"9": "1_1"
+				},
+				"DefaultValue": 0,
+				"Range": [
+					8,
+					8
+				]
+			}
+		},
+		"GroupEnum": "",
+		"Game": {
+			"Props": {
+				"CurrentPlayer": {
+					"Type": "playerIndex",
+					"Sanitize": {
+						"all": "visible"
+					}
+				},
+				"Phase": {
+					"Type": "enum",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Enum": "phase"
+				},
+				"Spaces": {
+					"Type": "sizedStack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "Tokens",
+					"Size": 64
+				},
+				"UnusedTokens": {
+					"Type": "stack",
+					"Sanitize": {
+						"all": "visible"
+					},
+					"Deck": "Tokens"
+				}
+			}
+		},
+		"Player": {
+			"Props": {
+				"CapturedTokens": {
+					"Type": "stack",
+					"Sanitize": {
+						"other": "visible"
+					},
+					"Deck": "Tokens",
+					"Constraints": [
+						"same(Color)"
+					]
+				},
+				"Color": {
+					"Type": "enum",
+					"Sanitize": {
+						"other": "visible"
+					},
+					"Enum": "color"
+				},
+				"FinishedTurn": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"PlayerInactive": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatClosed": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				},
+				"SeatFilled": {
+					"Type": "bool",
+					"Sanitize": {
+						"other": "visible"
+					}
+				}
+			}
+		},
+		"DynamicComponentValues": {
+			"Tokens": {
+				"Props": {
+					"Crowned": {
+						"Type": "bool",
+						"Sanitize": {
+							"all": "visible"
+						}
+					}
+				}
+			}
+		}
+	},
+	"Constants": {
+		"BOARD_SIZE": 64
+	},
+	"ComponentEnums": {},
+	"PhaseEnum": "phase",
+	"GroupEnum": "",
+	"Initial": {
+		"Game": {},
+		"Players": [
+			{},
+			{}
+		],
+		"Dynamic": {
+			"Tokens": [
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				{}
+			]
+		}
+	},
+	"Traits": {
+		"Game": {},
+		"Player": {
+			"Seat": true,
+			"Inactive": true,
+			"Color": true
+		}
+	},
+	"Variants": {},
+	"Computed": [],
+	"LegalTemplates": {
+		"checkers.black_spaces_only": "you can only move to spaces that are black",
+		"checkers.illegal_dest": "spaceIndex does not represent a legal space for that token to move to",
+		"checkers.no_more_components": "No more components to place",
+		"checkers.no_token_there": "That space does not have a component in it",
+		"checkers.not_your_token": "that token isn't your token to move"
+	},
+	"Predicates": [
+		{
+			"Name": "checkers.spaceIsBlack",
+			"Construct": ""
+		}
+	],
+	"Moves": [
+		{
+			"Name": "Seat Player",
+			"HelpText": "Marks the next available seat as seated, which when done will mean the next player is part of the game",
+			"IsFixUp": true,
+			"GoType": "moves.SeatPlayer",
+			"Stock": {
+				"Type": "SeatPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"SeatsPlayer": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Activate Inactive Player",
+			"HelpText": "Activates any players who are not currently active.",
+			"IsFixUp": true,
+			"GoType": "moves.ActivateInactivePlayer",
+			"Stock": {
+				"Type": "ActivateInactivePlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetPlayerIndex": {
+					"Type": "playerIndex",
+					"Input": "required",
+					"Codec": "player-index"
+				}
+			},
+			"LegalPhases": null,
+			"Progression": null,
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Place Token",
+			"HelpText": "Places one token at a time on the board.",
+			"IsFixUp": true,
+			"GoType": "checkers.movePlaceToken",
+			"Stock": {
+				"Type": "FixUpMulti",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Places one token at a time on the board.",
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "move",
+								"Name": "Place Token"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Playing"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"game.UnusedTokens"
+							],
+							"message": "checkers.no_more_components",
+							"name": "stackNotEmpty"
+						}
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"TargetIndex": {
+					"Type": "enum",
+					"Enum": "spaces",
+					"Input": "required",
+					"Codec": "integer"
+				}
+			},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "move",
+						"Name": "Place Token"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Playing"
+					}
+				]
+			},
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "inPhase",
+						"args": [
+							"0"
+						]
+					},
+					{
+						"name": "inProgression",
+						"args": [
+							"Place Token"
+						]
+					},
+					{
+						"name": "stackNotEmpty",
+						"args": [
+							"game.UnusedTokens"
+						],
+						"message": "checkers.no_more_components"
+					}
+				],
+				"HasCustom": true
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Start Phase Playing",
+			"HelpText": "Enters phase Playing",
+			"IsFixUp": true,
+			"GoType": "moves.StartPhase",
+			"Stock": {
+				"Type": "StartPhase",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalMoveProgression": {
+						"Kind": "serial",
+						"Children": [
+							{
+								"Kind": "move",
+								"Name": "Place Token"
+							},
+							{
+								"Kind": "move",
+								"Name": "Start Phase Playing"
+							}
+						]
+					},
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						0
+					],
+					"github.com/jkomoros/boardgame/moves.StartPhase": 1,
+					"github.com/jkomoros/boardgame/moves.StartPhaseEnum": "phase"
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				0
+			],
+			"Progression": {
+				"Kind": "serial",
+				"Children": [
+					{
+						"Kind": "move",
+						"Name": "Place Token"
+					},
+					{
+						"Kind": "move",
+						"Name": "Start Phase Playing"
+					}
+				]
+			},
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"EndsPhaseProgression": true,
+			"Bodies": {}
+		},
+		{
+			"Name": "Crown Token",
+			"HelpText": "Crowns tokens that make it to the other end of the board.",
+			"IsFixUp": true,
+			"GoType": "checkers.moveCrownToken",
+			"Stock": {
+				"Type": "DefaultComponent",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.HelpText": "Crowns tokens that make it to the other end of the board.",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					],
+					"github.com/jkomoros/boardgame/moves.SourceProperty": "Spaces"
+				}
+			},
+			"Base": "default",
+			"Fields": {
+				"ComponentIndex": {
+					"Type": "int",
+					"Input": "required",
+					"Codec": "integer"
+				}
+			},
+			"LegalPhases": [
+				1
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": true,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Finish Turn",
+			"HelpText": "Advances to the next player when the current player's turn is done.",
+			"IsFixUp": true,
+			"GoType": "moves.FinishTurn",
+			"Stock": {
+				"Type": "FinishTurn",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": null,
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					]
+				}
+			},
+			"Base": "default",
+			"Fields": {},
+			"LegalPhases": [
+				1
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": false,
+				"Specs": [],
+				"HasCustom": false
+			},
+			"Bodies": {}
+		},
+		{
+			"Name": "Move Token",
+			"HelpText": "Moves a token from one place to another",
+			"IsFixUp": false,
+			"GoType": "checkers.moveMoveToken",
+			"Stock": {
+				"Type": "CurrentPlayer",
+				"Config": {
+					"github.com/jkomoros/boardgame.MoveInputFields": [
+						{
+							"Codec": "player-index",
+							"Disposition": "context-owned",
+							"Name": "TargetPlayerIndex"
+						}
+					],
+					"github.com/jkomoros/boardgame/moves.HelpText": "Moves a token from one place to another",
+					"github.com/jkomoros/boardgame/moves.LegalPhases": [
+						1
+					],
+					"github.com/jkomoros/boardgame/moves.LegalPlanEnabled": true,
+					"github.com/jkomoros/boardgame/moves.Preconditions": [
+						{
+							"args": [
+								"game.Spaces",
+								"move.TokenIndexToMove",
+								"move.SpaceIndex"
+							],
+							"name": "maySwapComponentsByKey"
+						},
+						{
+							"args": [
+								"game.Spaces",
+								"move.TokenIndexToMove"
+							],
+							"message": "checkers.no_token_there",
+							"name": "componentPresentAtKey"
+						},
+						{
+							"args": [
+								"game.Spaces",
+								"move.TokenIndexToMove",
+								"Color"
+							],
+							"message": "checkers.not_your_token",
+							"name": "componentPropEqualsCurrentPlayer"
+						},
+						{
+							"args": [
+								"move.SpaceIndex"
+							],
+							"name": "checkers.spaceIsBlack"
+						}
+					]
+				}
+			},
+			"Base": "currentPlayer",
+			"Fields": {
+				"SpaceIndex": {
+					"Type": "enum",
+					"Enum": "spaces",
+					"Input": "required",
+					"Codec": "integer"
+				},
+				"TokenIndexToMove": {
+					"Type": "enum",
+					"Enum": "spaces",
+					"Input": "required",
+					"Codec": "integer"
+				}
+			},
+			"LegalPhases": [
+				1
+			],
+			"Progression": null,
+			"AllowMultipleInProgression": false,
+			"Plan": {
+				"Declared": true,
+				"Specs": [
+					{
+						"name": "inPhase",
+						"args": [
+							"1"
+						]
+					},
+					{
+						"name": "proposerIsCurrentPlayer"
+					},
+					{
+						"name": "maySwapComponentsByKey",
+						"args": [
+							"game.Spaces",
+							"move.TokenIndexToMove",
+							"move.SpaceIndex"
+						]
+					},
+					{
+						"name": "componentPresentAtKey",
+						"args": [
+							"game.Spaces",
+							"move.TokenIndexToMove"
+						],
+						"message": "checkers.no_token_there"
+					},
+					{
+						"name": "componentPropEqualsCurrentPlayer",
+						"args": [
+							"game.Spaces",
+							"move.TokenIndexToMove",
+							"Color"
+						],
+						"message": "checkers.not_your_token"
+					},
+					{
+						"name": "checkers.spaceIsBlack",
+						"args": [
+							"move.SpaceIndex"
+						]
+					}
+				],
+				"HasCustom": true
+			},
+			"Bodies": {}
+		}
+	],
+	"SetUp": {
+		"Distribute": ""
+	},
+	"End": {},
+	"Agents": [],
+	"Functions": []
+}
