@@ -38,7 +38,7 @@
 // | computed (global) | Computed[i].Compute, Scope 'global' | `(state: RulesState) => unknown` (the value) |
 // | computed (player) | Computed[i].Compute, Scope 'player' | `(state: RulesState, player: number) => unknown` |
 // | setUpBegin | SetUp.Begin | `(state: RulesState, variant: Readonly<Record<string, string>>) => void \| string \| null`, THROWS |
-// | distribute | SetUp.Distribute | `(state: RulesState, deck: string, index: number) => Stack \| { state: RulesState; at: StackRef }`, THROWS |
+// | distribute | SetUp.Distribute | `(state: RulesState, deck: string, index: number) => Stack \| { state: RulesState; at: StackRef }`, THROWS. `''` (the game does not declare it) is base.GameDelegate's stub, which throws Go's error |
 // | setUpFinish | SetUp.Finish | `(state: RulesState) => void \| string \| null`, THROWS |
 // | conditionMet | End.ConditionMet | `(state: RulesState) => boolean` |
 // | playerScore | End.PlayerScore | `(state: RulesState, player: number) => number` |
@@ -52,7 +52,7 @@
 // | counter | CounterData { Kind: 'custom', Count } | `(currentCount: number, length: number) => string \| null` (Go's ValidCounter) |
 // | helper | FunctionEntry only | Never resolved by the loader: bodies call helpers directly, with whatever signature their translation has (`state` first) |
 // | predicate | Predicates[i].Construct | `(spec: PredicateSpec) => GamePredicate \| string`, THROWS (rules/types.ts; details below) |
-// | component | ComponentLegal[deck] | `(state: RulesState, index: number, legalType: number \| null) => string \| null` (Go's `(*T).Legal(state, legalType)` on the deck's component values) |
+// | component | ComponentLegal[deck] | `(state: RulesState, t: { deck: string; index: number }, legalType: number \| null) => string \| null` (Go's `(*T).Legal(state, legalType)` on the deck's component values; `t` is the receiver's handle) |
 //
 // Details that the table cannot carry:
 //
@@ -76,7 +76,9 @@
 //   `resolve` arguments are not passed.
 // - component: interfaces.LegalComponent's `Legal(state, legalType)` on
 //   the values type of the deck named by the key (moves.DefaultComponent
-//   calls it). `index` is the component's deck index; `legalType` is the
+//   calls it). `t` is the receiver, the values handle `{ deck, index }`
+//   (the deck named by the key, the component's deck index), the shape a
+//   translated values method takes its receiver in; `legalType` is the
 //   configured legal type's key, or null where Go passes nil. Null when
 //   legal, else Go's error text. This slot is GameData.ComponentLegal.
 //
@@ -372,6 +374,9 @@ const DISPOSITIONS: readonly string[] = ['required', 'server-defaulted', 'contex
 const CODECS: readonly string[] = ['integer', 'boolean', 'enum', 'player-index', 'string'];
 const COMPUTED_TYPES: readonly string[] = ['bool', 'int', 'string', 'playerIndex', 'intSlice', 'boolSlice', 'stringSlice', 'playerIndexSlice'];
 const BASES: readonly string[] = ['default', 'currentPlayer', 'anyPlayer'];
+
+/** base.GameDelegate's DistributeComponentToStarterStack error (testdata/base-delegate.vectors.json). */
+export const BASE_DISTRIBUTE_ERROR = 'DistributeComponentToStarterStack was called, but the component was not stored in a stack';
 
 /** A role's result where Go returns an error that the engine expects thrown. */
 function throwIfError(result: unknown): void {
@@ -695,6 +700,14 @@ export function gameFromData(data: GameData, bodies: Bodies): GameSpec {
 	// ----- set-up and the end
 	const setUp: GameSpec['setUp'] = {
 		distribute: (() => {
+			// '' is a game that does not declare DistributeComponentToStarterStack
+			// (werewolf, with no deck): base.GameDelegate's stub, which Go calls
+			// only for a component, so only a game with a deck can reach it.
+			if (data.SetUp.Distribute === '') {
+				return (): Stack => {
+					throw new Error(BASE_DISTRIBUTE_ERROR);
+				};
+			}
 			const body = resolve<(state: RulesState, deck: string, index: number) => unknown>(data.SetUp.Distribute, 'distribute');
 			return (state: RulesState, deck: string, index: number): Stack => toStack(state, body(state, deck, index), data.SetUp.Distribute);
 		})(),
@@ -731,7 +744,11 @@ export function gameFromData(data: GameData, bodies: Bodies): GameSpec {
 	const componentLegal = data.ComponentLegal ?? {};
 	for (const deck of Object.keys(componentLegal)) {
 		if (decks[deck] === undefined) throw gameSpecError('gameFromData: ComponentLegal names deck ' + deck + ', which the game does not configure');
-		decks[deck] = { ...decks[deck], componentLegal: resolve<NonNullable<DeckSpec['componentLegal']>>(componentLegal[deck], 'component') };
+		// The body's receiver is the values handle `{ deck, index }` (Go's
+		// `*T`, which knows its component), as every translated values method's.
+		const body = resolve<(state: RulesState, t: { readonly deck: string; readonly index: number }, legalType: number | null) => string | null>(componentLegal[deck], 'component');
+		const legal: NonNullable<DeckSpec['componentLegal']> = (state, index, legalType) => body(state, { deck, index }, legalType);
+		decks[deck] = { ...decks[deck], componentLegal: legal };
 	}
 	const predicates = data.Predicates.map(item => {
 		if (item.Name === '') throw gameSpecError('gameFromData: a predicate constructor has no name');

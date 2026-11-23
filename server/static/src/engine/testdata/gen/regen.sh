@@ -21,6 +21,7 @@
 #   facadevec    -> ../facade.vectors.json,      the Go-shaped facade (engine/go/):
 #                   ../facade-stacks.vectors.json  language answers and stack calls
 #                   ../facade-moves.vectors.json   an enum-typed move field (checkers)
+#                   ../base-delegate.vectors.json  base.GameDelegate defaults the loader reproduces
 #   libvec       -> ../lib.vectors.json          range enums, grid graphs, dice, playing cards
 #   stockvec     -> ../stock/*                   stockgame and seatgame played on the Go engine
 #   checkersvec  -> ../checkers.vectors.json.gz  constructed checkers positions: Legal, ledgers, Apply

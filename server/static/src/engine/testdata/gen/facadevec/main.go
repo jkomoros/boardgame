@@ -3,7 +3,9 @@
 // the framework's enum, graph and behavior packages, and
 // ../../facade-stacks.vectors.json, from scripted sequences of component
 // and stack calls on real vecgame states, and ../../facade-moves.vectors.json,
-// an enum-typed move field of real Go checkers (moves.go). Run from the repository root:
+// an enum-typed move field of real Go checkers (moves.go), and
+// ../../base-delegate.vectors.json, base.GameDelegate's default answers the
+// loader reproduces (delegate.go). Run from the repository root:
 //
 //	./scripts/go-local run ./server/static/src/engine/testdata/gen/facadevec
 package main
@@ -29,4 +31,5 @@ func main() {
 	write("server/static/src/engine/testdata/facade.vectors.json", langVecs())
 	write("server/static/src/engine/testdata/facade-stacks.vectors.json", stackVecs())
 	write("server/static/src/engine/testdata/facade-moves.vectors.json", moveFieldVecs())
+	write("server/static/src/engine/testdata/base-delegate.vectors.json", delegateVecs())
 }
