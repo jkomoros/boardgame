@@ -103,6 +103,11 @@ async function gameSpec(name) {
 	const modules = {
 		memory: 'memory', blackjack: 'blackjack', tictactoe: 'tictactoe', pig: 'pig', debuganimations: 'debuganimations', werewolf: 'werewolf',
 	};
+	// Checkers has no hand port: its generated game is the one under test.
+	if (name === 'checkers') {
+		const generated = await import(pathToFileURL(path.join(engineDir, 'games', 'checkers', 'index.ts')).href);
+		return generated.checkersGenerated;
+	}
 	if (!(name in modules)) throw new Error('no game registered for ' + name);
 	const module = await import(pathToFileURL(path.join(engineDir, 'games', modules[name] + '.ts')).href);
 	return module[name];

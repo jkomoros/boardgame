@@ -91,7 +91,7 @@ Move types the checked-in corpus never applies, by design:
 ./scripts/go-local run ./boardgame-util fuzz corpus --check  # verify only
 ```
 
-`./scripts/go-local test ./boardgame-util/lib/fuzz/...` regenerates all 48
+`./scripts/go-local test ./boardgame-util/lib/fuzz/...` regenerates all 56
 documents and the index in memory (about 30 seconds) and fails if any
 differs (decompressed bytes are compared), if a game records no refusal, or
 if a move type outside the list above is never applied.
