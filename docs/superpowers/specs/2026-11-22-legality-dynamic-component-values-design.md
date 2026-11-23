@@ -60,6 +60,26 @@ The shapes, by how often they appear:
 Shapes 1 and 2 are the blocking ones. Both are *reads*. Neither needs a new
 relation, only a way to name the value.
 
+## 2a. Related history
+
+I searched issues and discussions on jkomoros/boardgame and jkomoros/games.
+boardgame has one discussion (#776, the welcome post), and games has
+discussions disabled, so all the history below comes from issues.
+
+| Issue | Relationship |
+|---|---|
+| boardgame#189 (capture `Legal` logic so the client can reject obviously illegal moves) | **Advances.** This is the root issue for declarative legality. The largest remaining class of opaque checks, dynamic component values, becomes declarative and ledger-visible. |
+| boardgame#213 (client `proposeMove` should bail early) | **Advances**, through #189. Component-path verdicts now carry honest per-viewer evaluability, which is what a client early-bail needs. |
+| boardgame#41 (implement dynamic component state), #595, #201 (Values/DynamicValues/computed are "all the same") | **Context.** #201's observation that these are all sub-states is the reason the path does *not* make the author name the storage split (§4 alternative 3). |
+| boardgame#415 (expand DynamicComponentValues client-side) | **Prerequisite for a future TypeScript evaluator** of component paths. It is not closed: the server-side ledger is the only consumer today. |
+| boardgame#736 / #741 (stack-constraint predicates; computed index helpers for boards) | **Adjacent.** Those are about *move-time* stack constraints and computed properties. Component paths are the read-side equivalent for legality, and they compose with #741-style computed properties when a check needs real computation (rule 3). |
+| boardgame#791 (`only(propPath, value)` stack constraint) | **Adjacent.** It uses the `constraints` package's `component.`/`dynamic.` prefix grammar (`constraints/prop_path.go`). That grammar is deliberately not reused (§4 alternative 3). Unifying the two prop-path grammars is a possible follow-up. |
+| boardgame#553 (cards that do different moves at different times), games#15 (cards should only light up if they're legal) | **Advances.** Per-card legality that depends on a card's current state is now expressible declaratively, and so it can reach the ledger. |
+| boardgame#65, #624, #473, #640, #644, #295 | Checked and **not affected**. They cover fix-up logging, deal-move emptiness, parallel evaluation, progression performance, state-dependent repeats, and AI helpers. No part of this change touches them. |
+
+This change does not fully close any issue. #189 and #213 stay open until a
+client evaluator exists.
+
 ## 3. Decision: a component segment in the path grammar
 
 A selector becomes a **path segment**, and the terminal property resolves
@@ -253,19 +273,25 @@ questions).
   inside the graph walk, and pig's die value is read only in `Apply`. The
   new grammar is exercised through the checkers conformance fixture
   (`game.Spaces[move.TokenIndexToMove].Crowned` and `.Color`).
-- **GAMES darwin:** `moveIncreasePopulation` and `moveIncreaseBodySize`
-  become fully declarative
-  (`PropCompare(targetSpecies.Prop("Population"), "<", MaxSpeciesPopulation)`).
-  `moveRemoveTrait` becomes fully declarative
-  (`ComponentPresentAt(targetSpecies.Prop("Traits"), "move.TargetTraitCard")`).
-  `moveAddTrait` stays partially custom: its player-count-dependent cap and
-  its duplicate-trait loop are rule-3 residue. The migration was verified
-  against this branch through a `go.work`. The darwin goldens were extended
-  with max/below-max population and body size, a missing species, and a
-  present trait, and every proposer matches the legacy imperative messages
-  exactly. `go test ./...` passes across the GAMES module. The change lands
-  in GAMES through a paired worktree. It is not part of this boardgame
-  commit, and the patch is in the session hand-over notes.
+- **GAMES** (branch `legal-dynamic-values`, paired worktree, not pushed):
+  - darwin `moveIncreasePopulation`/`moveIncreaseBodySize` are fully
+    declarative, using
+    `PropCompare(targetSpecies.Prop("Population"), "<", MaxSpeciesPopulation)`.
+  - darwin `moveRemoveTrait` is fully declarative, using
+    `ComponentPresentAt(targetSpecies.Prop("Traits"), "move.TargetTraitCard")`.
+  - metaltrader `moveActivateMetalCard` is fully declarative, using
+    `PropEquals(activeCard.Prop("Type"), "Metal")` and four
+    `MayMoveCountTo(bowl, player.X, activeCard.Prop("MetalX"))`. The card's
+    static values used to force `LegalCustom` here, and they now feed a
+    count argument directly.
+  - darwin `moveAddTrait` stays partially custom. Its cap depends on player
+    count, and its duplicate-trait check is a loop (rule 3).
+  - darwin's feeding and attack `Legal()` overrides stay imperative. They
+    are mostly computation (`CanTakeFood`, attack graph).
+  - The darwin goldens were extended (max and below-max caps, a missing
+    species, a present trait), and a metaltrader activate golden was added.
+    Every case matches the legacy messages exactly. `go test ./...` passes
+    across the GAMES module through the task-local `go.work`.
 
 ## 10. Open questions
 
@@ -279,8 +305,5 @@ questions).
    `{prop}` stops being a load-bearing binding?
 3. **A second component hop.** Darwin's duplicate-trait check would still
    need a loop, so no surveyed move needs `...Traits[move.T].Trait` today.
-4. **Count arguments read from components.** metaltrader's
-   `MayMoveCountTo(bowl, hand, card.MetalIron)` would become declarative if
-   `MayMoveCountTo`'s `countPath` accepted a component path. It already
-   resolves through `ResolvePath`, so this may just work, but it was not
-   exercised here.
+4. ~~Count arguments read from components.~~ Resolved: `MayMoveCountTo`'s
+   `countPath` accepts a component path as-is, as metaltrader shows.
