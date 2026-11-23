@@ -378,13 +378,8 @@ func (d *Default) legalWithStackConstraints(state boardgame.ImmutableState, prop
 	//      double-evaluating the contributed atoms.
 	// For a move that did NOT opt in, both calls are cheap no-ops and control
 	// falls through to the byte-for-byte-unchanged frozen chain below.
-	if manager := state.Manager(); manager != nil {
-		if manager.LegalProbeActive() {
-			return nil
-		}
-		if handled, err := manager.LegalEvaluatePlan(d.Name(), state, d.Info().ConcreteMove(), proposer); handled {
-			return err
-		}
+	if handled, err := d.legalPlanEntry(state, proposer); handled {
+		return err
 	}
 
 	if err := d.legalInPhase(state); err != nil {
@@ -399,6 +394,30 @@ func (d *Default) legalWithStackConstraints(state boardgame.ImmutableState, prop
 		return d.legalStackConstraints(state)
 	}
 	return nil
+}
+
+// legalPlanEntry is the one place the frozen chain hands over to an opted-in
+// move's declarative plan. handled is true during the boot probe (which only
+// observes that execution got here; owned names the residue atoms the
+// calling level owns, for framework types that, like ForceFinishTurn, enter
+// here without going through Default.Legal) and when the move has an
+// assembled plan, whose verdict is then err. Otherwise the caller runs its
+// frozen chain.
+func (d *Default) legalPlanEntry(state boardgame.ImmutableState, proposer boardgame.PlayerIndex, owned ...PreconditionName) (handled bool, err error) {
+	if state == nil {
+		return false, nil
+	}
+	manager := state.Manager()
+	if manager == nil {
+		return false, nil
+	}
+	if manager.LegalProbeActive() {
+		for _, name := range owned {
+			manager.LegalProbeReachResidue(string(name))
+		}
+		return true, nil
+	}
+	return manager.LegalEvaluatePlan(d.Name(), state, d.Info().ConcreteMove(), proposer)
 }
 
 // legalStackConstraints checks stack constraints for moves that declare

@@ -257,7 +257,7 @@ func TestCustomLegalerWithoutDeclarerIsBootError(t *testing.T) {
 		// its base type is not opt-in-capable, not merely that specs are
 		// absent — so the message must point at switching base, not just
 		// adding WithLegalPreconditions (which alone would re-trigger this error).
-		assert.For(t, "explains the base type is not opt-in-capable").ThatActual(strings.Contains(err.Error(), "does not support declarative legality")).IsTrue()
+		assert.For(t, "explains the move embeds no framework type").ThatActual(strings.Contains(err.Error(), "embeds no framework move type")).IsTrue()
 	}
 }
 
@@ -556,34 +556,19 @@ func TestBuildLegalRegistryAndTemplatesOverlaysDelegate(t *testing.T) {
 	assert.For(t).ThatActual(gameRegistered["defaultPred"]).Equals(false)
 }
 
-// TestSeamAllowlistErrorsNameEveryAllowedBase pins the drift this test exists
-// to prevent: the three boot errors that report the seam used to hand-copy the
-// allowlist as a literal, and all three had gone stale at five entries against
-// an allowlist of eight -- omitting exactly MoveComponentToSlot and
-// DrawToPlayer, the two reusable verbs a creator is most likely to embed. Every
-// one of them now renders legalSupportedMovesBaseTypes, and this asserts it.
-func TestSeamAllowlistErrorsNameEveryAllowedBase(t *testing.T) {
-
+// TestSeamErrorsNameNoAllowlist pins the widened seam (design spec
+// 2026-11-22): every framework base type contributes its own legality, so no
+// boot error may tell a creator that some base type cannot opt in.
+func TestSeamErrorsNameNoAllowlist(t *testing.T) {
 	messages := map[string]string{
-		"unsupported base seam": legalUnsupportedBaseSeamError("aMove", "FinishTurn").Error(),
-		"LegalCustom base":      legalCustomUnsupportedBaseError("aMove").Error(),
-		"probe unreachable":     legalProbeUnreachableError("aMove").Error(),
+		"LegalCustom base":  legalCustomUnsupportedBaseError("aMove").Error(),
+		"probe unreachable": legalProbeUnreachableError("aMove").Error(),
 	}
-
 	for label, message := range messages {
-		for name := range legalSupportedMovesBaseTypes {
-			if !strings.Contains(message, "moves."+name) {
-				t.Errorf("the %v boot error does not name allowlisted base %q: %v", label, name, message)
+		for _, stale := range []string{"allowlist", "unsupported framework move type", "only moves."} {
+			if strings.Contains(message, stale) {
+				t.Errorf("the %v boot error still describes a base-type allowlist (%q): %v", label, stale, message)
 			}
-		}
-	}
-
-	// And it must not name a type that is NOT on the allowlist, which is the
-	// other way the prose could lie.
-	prose := legalSupportedMovesBaseTypesProse()
-	for _, absent := range []string{"moves.FinishTurn", "moves.DealCountComponents", "moves.RoundRobin"} {
-		if strings.Contains(prose, absent) {
-			t.Errorf("the seam prose names %q, which is not on the allowlist: %v", absent, prose)
 		}
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -266,6 +267,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		moves.AddForPhase(phaseDay,
 			auto.MustConfig(
 				new(moveCastVote),
+				moves.WithLegalPreconditions(castVotePreconditions()...),
 				moves.WithChoices("VoteTarget"),
 				moves.WithHelpText("Vote for a player to eliminate."),
 			),
@@ -284,6 +286,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveCastVote),
 				moves.WithMoveName("Cast Night Vote"),
+				moves.WithLegalPreconditions(castVotePreconditions()...),
 				moves.WithMoveNameSanitization("self:visible,same-role:visible", "Hidden Action"),
 				moves.WithChoices("VoteTarget"),
 				moves.WithHelpText("Werewolves choose a target to eliminate."),
@@ -309,6 +312,26 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 }
 
 // NewDelegate is the primary entry point of the package.
+// castVotePreconditions is moveCastVote's declared legality, shared by the day
+// and night installations. It runs after the base's contributed checks and
+// before moveCastVote's LegalCustom.
+func castVotePreconditions() []legal.Spec {
+	return []legal.Spec{
+		legal.PlayerBoolAt(legal.PlayerFromMove("TargetPlayerIndex"), "Eliminated", false).
+			WithMessage(templateEliminatedCannotVote),
+	}
+}
+
+const templateEliminatedCannotVote = "werewolf.eliminated_cannot_vote"
+
+// ConfigureLegalTemplates supplies the exact legacy text for the declared
+// eliminated-voter gate.
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		templateEliminatedCannotVote: "eliminated players cannot vote",
+	}
+}
+
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

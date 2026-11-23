@@ -50,6 +50,13 @@ func registeredPredicateNames() []string {
 	var names []string
 	add := func(cs []*legal.PredicateConstructor) {
 		for _, c := range cs {
+			// A framework residue atom (moves' framework checks) is opaque Go
+			// with no client semantics; there is nothing for a conformance
+			// fixture to pin. Its equivalence with the frozen chain is pinned
+			// by moves' differential tests instead.
+			if c.IsResidue() {
+				continue
+			}
 			if seen[c.Name] {
 				continue
 			}

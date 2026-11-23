@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -53,7 +54,17 @@ func (a *ApplyUntil) legalWithBase(state boardgame.ImmutableState, proposer boar
 	if err := baseLegal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionApplyUntil) {
+		return nil
+	}
+	return a.legalApplyUntil(state, proposer)
+}
 
+// legalApplyUntil is ApplyUntil's own legality beyond the move it embeds:
+// legal only while ConditionMet still reports an error. The frozen chain runs
+// it after the super-call; an opted-in move's plan runs it as the contributed
+// PreconditionApplyUntil atom instead.
+func (a *ApplyUntil) legalApplyUntil(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	conditionMet, ok := a.Info().ConcreteMove().(interfaces.ConditionMetter)
 
 	if !ok {
@@ -67,6 +78,12 @@ func (a *ApplyUntil) legalWithBase(state boardgame.ImmutableState, proposer boar
 	}
 
 	return errors.New("the condition was met, so the move is no longer legal")
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// ApplyUntil's own condition check.
+func (a *ApplyUntil) ContributedPreconditions() []legal.Spec {
+	return append(a.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionApplyUntil))
 }
 
 // FallbackName simply returns "Apply Until"

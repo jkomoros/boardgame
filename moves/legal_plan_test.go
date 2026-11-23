@@ -322,17 +322,16 @@ func TestFixUpMultiBaseTypeBootsAndEvaluates(t *testing.T) {
 	}
 }
 
-// TestUnsupportedBaseTypeDealCountComponentsIsBootError (design spec §9(c)):
-// a move embedding moves.DealCountComponents (which has its own Legal logic)
-// cannot opt in — boot fails naming the base type. This complements the
-// StartPhase case: the seam check is embed-graph-based, so it catches both a
-// base type without its own Legal override and one with.
-func TestUnsupportedBaseTypeDealCountComponentsIsBootError(t *testing.T) {
+// TestDealCountComponentsOptsIn (seam widening, design spec 2026-11-22): a
+// move embedding moves.DealCountComponents -- four framework Legal() levels
+// deep (DealCountComponents -> RoundRobinNumRounds -> RoundRobin ->
+// ApplyUntil) and once a boot error -- opts in like any other. Its plan is
+// Default's contribution, RoundRobin's own check, DealCountComponents' own
+// check, then the authored spec, and the authored failure surfaces from
+// Legal().
+func TestDealCountComponentsOptsIn(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
-		// moveDealCards (moves_test.go) embeds DealCountComponents and
-		// implements the PlayerStacker/GameStacker/TargetCounter interfaces,
-		// so it passes ValidConfiguration and reaches the seam check.
 		return Add(
 			auto.MustConfig(
 				new(moveDealCards),
@@ -342,11 +341,23 @@ func TestUnsupportedBaseTypeDealCountComponentsIsBootError(t *testing.T) {
 		)
 	}
 
-	_, err := newGameManager(installer)
-	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	manager, err := newGameManager(installer)
+	assert.For(t, "boot").ThatActual(err).IsNil()
 	if err != nil {
-		assert.For(t, "names DealCountComponents").ThatActual(strings.Contains(err.Error(), "DealCountComponents")).IsTrue()
+		return
 	}
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "new game").ThatActual(err).IsNil()
+
+	move := game.MoveByName("Deal Opt In")
+	var names []string
+	for _, spec := range boardgame.Move(move).(PreconditionsProvider).ContributedPreconditions() {
+		names = append(names, spec.Name)
+	}
+	assert.For(t, "contribution").ThatActual(names).Equals([]string{string(PreconditionRoundRobin), string(PreconditionDealCountComponents)})
+
+	legalErr := move.Legal(game.CurrentState(), boardgame.AdminPlayerIndex)
+	assert.For(t, "authored failure surfaces").ThatActual(legalErr).IsNotNil()
 }
 
 // --- CurrentPlayer opt-in (contributed proposer atom in the plan) ---

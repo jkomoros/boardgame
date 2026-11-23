@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -42,11 +43,19 @@ type MoveOnGraph struct {
 // Legal validates the move: checks turn, destination validity, path existence,
 // space legality, and movement budget.
 func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, m.Name(), PreconditionMoveOnGraph) {
+		return nil
+	}
+	return m.legalMoveOnGraph(state, proposer)
+}
 
+// legalMoveOnGraph is MoveOnGraph's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionMoveOnGraph atom instead.
+func (m *MoveOnGraph) legalMoveOnGraph(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	locProvider, ok := m.Info().ConcreteMove().(LocationProvider)
 	if !ok {
 		return errors.New("MoveOnGraph: embedding move must implement LocationProvider")
@@ -115,6 +124,12 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	}
 
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// MoveOnGraph's own check, in the order Legal runs them.
+func (m *MoveOnGraph) ContributedPreconditions() []legal.Spec {
+	return append(m.CurrentPlayer.ContributedPreconditions(), FrameworkPrecondition(PreconditionMoveOnGraph))
 }
 
 // Apply stores the path on the LocationBehavior for HopAlongPath to execute,

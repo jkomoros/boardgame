@@ -1,6 +1,9 @@
 package codegen
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"testing"
 
 	"github.com/workfit/tester/assert"
@@ -452,4 +455,40 @@ func TestReduceProposedKey(t *testing.T) {
 		actual := e.reduceProposedKey(test.in)
 		assert.For(t, i).ThatActual(actual).Equals(test.expected)
 	}
+}
+
+// TestFindDelegateNameIgnoresTestFiles: a test-only wrapper delegate (for
+// example one that opts every move in to declarative legality for a
+// differential test) must not be treated as the package's delegate, or
+// ConfigureEnums would be emitted for it into the non-test auto_enum.go.
+func TestFindDelegateNameIgnoresTestFiles(t *testing.T) {
+	const delegateSrc = `package game
+
+import "github.com/jkomoros/boardgame"
+
+type gameDelegate struct{}
+
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig { return nil }
+`
+	const testSrc = `package game
+
+import "github.com/jkomoros/boardgame"
+
+type wrapperDelegate struct{ *gameDelegate }
+
+func (w *wrapperDelegate) ConfigureMoves() []boardgame.MoveConfig { return nil }
+`
+	fset := token.NewFileSet()
+	pkg := &ast.Package{Name: "game", Files: map[string]*ast.File{}}
+	for name, src := range map[string]string{"main.go": delegateSrc, "seam_test.go": testSrc} {
+		file, err := parser.ParseFile(fset, name, src, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pkg.Files[name] = file
+	}
+
+	names, err := findDelegateName(map[string]*ast.Package{"game": pkg})
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(names).Equals([]string{"gameDelegate"})
 }

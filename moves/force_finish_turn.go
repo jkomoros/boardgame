@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 /*
@@ -100,6 +101,19 @@ func (f *ForceFinishTurn) ValidConfiguration(exampleState boardgame.State) error
 // because the admin-only gate is stricter (server-initiated moves don't
 // have the same player-side legality concerns).
 func (f *ForceFinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	//ForceFinishTurn deliberately inherits nothing, so it enters the plan
+	//directly instead of through a super-call.
+	if handled, err := f.legalPlanEntry(state, proposer, PreconditionForceFinishTurn); handled {
+		return err
+	}
+	return f.legalForceFinishTurn(state, proposer)
+}
+
+// legalForceFinishTurn is ForceFinishTurn's entire legality: an admin may end
+// a valid current player's turn. The frozen chain runs it directly; an
+// opted-in move's plan runs it as the contributed
+// PreconditionForceFinishTurn atom instead.
+func (f *ForceFinishTurn) legalForceFinishTurn(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if proposer != boardgame.AdminPlayerIndex {
 		return errors.New("ForceFinishTurn can only be proposed by AdminPlayerIndex")
 	}
@@ -108,6 +122,13 @@ func (f *ForceFinishTurn) Legal(state boardgame.ImmutableState, proposer boardga
 		return errors.New("Current player is not valid")
 	}
 	return nil
+}
+
+// ContributedPreconditions is ForceFinishTurn's own check and nothing else:
+// like Legal, it inherits none of FinishTurn's or Default's checks, so a
+// phase or progression configured on it is ignored, exactly as it always was.
+func (f *ForceFinishTurn) ContributedPreconditions() []legal.Spec {
+	return []legal.Spec{FrameworkPrecondition(PreconditionForceFinishTurn)}
 }
 
 // Apply is inherited from FinishTurn — it already calls ResetForTurnEnd

@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 const configPropMarketField = fullyQualifiedPackageName + "MarketField"
@@ -67,7 +68,16 @@ func (r *ReplenishMarket) Legal(state boardgame.ImmutableState, proposer boardga
 	if err := r.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, r.Name(), PreconditionReplenishMarket) {
+		return nil
+	}
+	return r.legalReplenishMarket(state, proposer)
+}
 
+// legalReplenishMarket is ReplenishMarket's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionReplenishMarket atom instead.
+func (r *ReplenishMarket) legalReplenishMarket(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	market, err := r.market(state)
 	if err != nil {
 		return err
@@ -92,6 +102,12 @@ func (r *ReplenishMarket) Legal(state boardgame.ImmutableState, proposer boardga
 		return fmt.Errorf("market cannot replenish its next slot: %w", err)
 	}
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// ReplenishMarket's own check, in the order Legal runs them.
+func (r *ReplenishMarket) ContributedPreconditions() []legal.Spec {
+	return append(r.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionReplenishMarket))
 }
 
 // Apply moves one component from the source stack to the display stack. The

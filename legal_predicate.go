@@ -139,6 +139,9 @@ type LegalPredicate struct {
 	// readScope caches the enforcement view of Reads, computed at boot by
 	// sealLegalPredicate (legal_reads.go).
 	readScope *legalReadScope
+	// residue marks a framework base type's contributed opaque check (see
+	// legal_residue.go). Every residue predicate is also opaque.
+	residue bool
 }
 
 // LegalComponentFieldRequirement is boot-validation metadata for a static
@@ -192,6 +195,10 @@ type LegalPredicateConstructor struct {
 	// same registry and validation path as top-level specs.
 	Constructor func(spec LegalSpec, chest *ComponentChest,
 		resolve func(LegalSpec) (*LegalPredicate, error)) (*LegalPredicate, error)
+	// residue marks a constructor built by NewLegalResidueConstructor: its
+	// predicates are a framework base type's own opaque check. Unexported so
+	// only that helper can claim it.
+	residue bool
 }
 
 // legalAnyCompositorName is the registry-reserved name of the sole v1

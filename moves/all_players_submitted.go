@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -47,6 +48,16 @@ func (a *AllPlayersSubmitted) Legal(state boardgame.ImmutableState, proposer boa
 	if err := a.StartPhase.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionAllPlayersSubmitted) {
+		return nil
+	}
+	return a.legalAllPlayersSubmitted(state, proposer)
+}
+
+// legalAllPlayersSubmitted is AllPlayersSubmitted's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionAllPlayersSubmitted atom instead.
+func (a *AllPlayersSubmitted) legalAllPlayersSubmitted(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	for i, player := range state.ImmutablePlayerStates() {
 		if behaviors.PlayerIsInactive(player) {
 			continue
@@ -60,6 +71,12 @@ func (a *AllPlayersSubmitted) Legal(state boardgame.ImmutableState, proposer boa
 		}
 	}
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// AllPlayersSubmitted's own check, in the order Legal runs them.
+func (a *AllPlayersSubmitted) ContributedPreconditions() []legal.Spec {
+	return append(a.StartPhase.ContributedPreconditions(), FrameworkPrecondition(PreconditionAllPlayersSubmitted))
 }
 
 // FallbackName returns "All Players Submitted"

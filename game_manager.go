@@ -61,6 +61,13 @@ type GameManager struct {
 	// runs; stable-false at runtime. See LegalProbeActive.
 	legalProbing      bool
 	legalProbeReached bool
+	// legalProbeReachedResidues records which framework residue atoms'
+	// owning Legal() levels the current probe passed through (boot-only;
+	// see LegalProbeReachResidue in legal_residue.go).
+	legalProbeReachedResidues map[string]bool
+	// legalPlansSuspended > 0 hides assembled plans from the frozen chain
+	// (LegalWithPlansSuspended, differential tests only).
+	legalPlansSuspended int32
 	// legalIndex is the boot-assembled phase index (design spec §5),
 	// consulted by CandidateMoves. nil until buildLegalIndex runs (at the
 	// end of NewGameManager, right after assembleLegalPlans) — see

@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -39,7 +40,16 @@ func (s *SelectColor) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	if err := s.AnyPlayer.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, s.Name(), PreconditionSelectColor) {
+		return nil
+	}
+	return s.legalSelectColor(state, proposer)
+}
 
+// legalSelectColor is SelectColor's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionSelectColor atom instead.
+func (s *SelectColor) legalSelectColor(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if s.SelectedColor == nil {
 		return errors.New("no color selected")
 	}
@@ -76,6 +86,12 @@ func (s *SelectColor) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	}
 
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// SelectColor's own check, in the order Legal runs them.
+func (s *SelectColor) ContributedPreconditions() []legal.Spec {
+	return append(s.AnyPlayer.ContributedPreconditions(), FrameworkPrecondition(PreconditionSelectColor))
 }
 
 // isUniqueEnforced returns true if uniqueness should be enforced.

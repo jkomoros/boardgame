@@ -271,6 +271,14 @@ func (m *MoveComponentToSlot) LegalPlanEnabled() bool {
 	return true
 }
 
+// LegalPlanOnly reports that MoveComponentToSlot has no frozen imperative chain to compare
+// its plan against: its defining check exists only as a contributed
+// precondition. Differential harnesses (package legaltest) skip it; its own
+// golden tests fence it instead.
+func (m *MoveComponentToSlot) LegalPlanOnly() bool {
+	return true
+}
+
 // SourceStack returns the stack named by WithSourceProperty.
 func (m *MoveComponentToSlot) SourceStack(state boardgame.State) boardgame.Stack {
 	return resolveConfiguredStack(m.Info().ConcreteMove(), configPropSourceProperty, state)

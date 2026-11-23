@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -297,6 +298,17 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	if err := r.Default.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, r.Name(), PreconditionRoundRobin) {
+		return nil
+	}
+	return r.legalRoundRobin(state, proposer)
+}
+
+// legalRoundRobin is RoundRobin's own legality beyond the move it embeds: the
+// whole started/not-started conditional, as one check. The frozen chain runs
+// it after the super-call; an opted-in move's plan runs it as the contributed
+// PreconditionRoundRobin atom instead.
+func (r *RoundRobin) legalRoundRobin(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if !r.roundRobinHasStarted(state) {
 
@@ -311,9 +323,13 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		return nil
 	}
 
-	//We do ApplyUntil down here because it will check ConditionMet, which
-	//will be true before the game starts in many cases.
-	if err := r.ApplyUntil.Legal(state, proposer); err != nil {
+	//We do ApplyUntil's condition check down here because ConditionMet will
+	//be true before the game starts in many cases. This calls ApplyUntil's own
+	//check directly rather than ApplyUntil.Legal: that would re-run
+	//Default.Legal, which already passed above for the same state and
+	//proposer (and, for an opted-in move, would re-enter the plan this check
+	//is part of).
+	if err := r.legalApplyUntil(state, proposer); err != nil {
 		return err
 	}
 
@@ -321,6 +337,14 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	//legal, we've turned off the round robing.
 
 	return nil
+}
+
+// ContributedPreconditions is Default's contribution followed by RoundRobin's
+// own conditional check. It deliberately does not include ApplyUntil's atom:
+// RoundRobin only consults that condition once the round robin has started,
+// inside its own check.
+func (r *RoundRobin) ContributedPreconditions() []legal.Spec {
+	return append(r.Default.ContributedPreconditions(), FrameworkPrecondition(PreconditionRoundRobin))
 }
 
 // Apply is a complex implementation because it needs to figure out when the

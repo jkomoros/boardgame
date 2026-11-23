@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 /*
@@ -30,11 +31,19 @@ type HopAlongPath struct {
 
 // Legal returns nil if there is a LocationBehavior with remaining hops.
 func (h *HopAlongPath) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
 	if err := h.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, h.Name(), PreconditionHopAlongPath) {
+		return nil
+	}
+	return h.legalHopAlongPath(state, proposer)
+}
 
+// legalHopAlongPath is HopAlongPath's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionHopAlongPath atom instead.
+func (h *HopAlongPath) legalHopAlongPath(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	behavior := findBehaviorWithRemainingPath(state)
 	if behavior == nil {
 		return errors.New("no location behavior has remaining path hops")
@@ -45,6 +54,12 @@ func (h *HopAlongPath) Legal(state boardgame.ImmutableState, proposer boardgame.
 	}
 
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// HopAlongPath's own check, in the order Legal runs them.
+func (h *HopAlongPath) ContributedPreconditions() []legal.Spec {
+	return append(h.FixUp.ContributedPreconditions(), FrameworkPrecondition(PreconditionHopAlongPath))
 }
 
 // Apply moves the token one hop along the remaining path.

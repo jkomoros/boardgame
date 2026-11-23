@@ -111,8 +111,8 @@ each invert one specific relation, covering the common single-property
 negation without a general wrapper. A disjunction-of-conjunctions shape
 ((A∧B)∨(C∧D)) still has no expression (no nested `any`, no `all`) and stays
 LegalCustom. Framework move types whose semantics are inherently negated or
-conditional (ApplyUntil and its subclasses, RoundRobin) stay opaque rather
-than bending this rule.
+conditional (ApplyUntil and its subclasses, RoundRobin) contribute their own
+check as one named framework check (below) rather than bending this rule.
 
 # Component paths
 
@@ -180,6 +180,19 @@ base into declarative legality; a custom-only move needs no constructor marker.
 LegalCustom combined with a wholesale Legal() override on the
 same type is a boot error too: the override would orphan both the declared
 plan and the residue.
+
+Framework base types use the same escape hatch for their own checks. A base
+whose Legal() calls back into game Go (FinishTurn's TurnDone, ApplyUntil's
+ConditionMet, DealCountComponents' TargetCount, the seat moves' delegate
+calls, ...) contributes that check as a named framework check
+(moves.PreconditionFinishTurn, moves.PreconditionApplyUntil, ...): LegalCustom
+with a name and a position in its contribution, opaque and server-only like
+LegalCustom, never memoized, rendered with the base's own error text, and in
+the ledger reported "not evaluated" after an earlier failure. A framework
+check can be MOVED -- suppress it and list moves.FrameworkPrecondition(name)
+where you want it in WithLegalPreconditions -- but never removed: suppressing
+it without re-authoring it, or authoring one your move does not contribute,
+is a boot error.
 
 WithoutLegalPrecondition(name moves.PreconditionName) suppresses one *contributed* check by its
 stable name (moves.Default/CurrentPlayer's own, never a game-authored one):
@@ -441,19 +454,19 @@ respectively — and widened the composition seam. What's left, honestly:
     for enum fields. They are kept for their wire names and {prop} binding,
     and they remain static-only, string-capable, and ClientEvaluable=false.
     PropEquals has no string arm.
-  - **The composition seam is moves.CurrentPlayer, moves.Default,
-    moves.DrawToPlayer, moves.FixUp, moves.FixUpMulti,
-    moves.MoveComponentToSlot, moves.RecordCurrentPlayerChoice and
-    moves.StartPhase.** None of them declares
-    a Legal() override of its own (a source-parse test enforces this
-    invariant, so a future override is a boot-red test forcing a conscious
-    seam decision). Every other framework move type in package moves —
-    DealCountComponents, FinishTurn, RoundRobin, and the rest — is opaque:
-    it does not implement the contribution interface, so a move embedding
-    one of them and declaring WithLegalPreconditions fails at boot, naming the
-    unsupported base type. FinishTurn/DealCountComponents specifically stay
-    blocked because a partial contribution could desync the ledger;
-    round-robin/progression-aware predicates are future work.
+  - **Every framework base type composes, but most framework checks stay
+    server-only.** Any move type in package moves can be embedded by an
+    opted-in move: each contributes its own legality, cataloged where a
+    relation fits and otherwise as a named, opaque framework check (see the
+    escape hatch above). The opaque ones are mostly fix-ups, which are never
+    rendered as forms. The player-facing exception is moves.AnyPlayer (and
+    AdminPlayer/Select* on top of it): its check normalizes the move's
+    TargetPlayerIndex inside Legal(), so it cannot become catalog atoms
+    (proposerIsPlayerFromMove, playerSeatIsFilled) until that defaulting
+    moves out of Legal(). A Legal() override must super-call the framework
+    move it embeds, not a further ancestor: boot fails naming the skipped
+    check, since opting in would otherwise add a check the frozen chain
+    skipped.
   - **MayMoveTo takes one source index; MayMoveToSlot takes distinct source
     and destination fields.** Use MayMoveToSameSlot for mirrored layouts.
   - **An unknown enum value name (PropEquals/PropNotEquals) is a

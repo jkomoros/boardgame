@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -189,6 +190,16 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	if err := s.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, s.Name(), PreconditionSeatPlayer) {
+		return nil
+	}
+	return s.legalSeatPlayer(state, proposer)
+}
+
+// legalSeatPlayer is SeatPlayer's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionSeatPlayer atom instead.
+func (s *SeatPlayer) legalSeatPlayer(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), interfaces.PlayerToSeatRendezvousDataType)
 	if playerToSeatGeneric == nil {
 		return errors.New("No player to seat")
@@ -218,6 +229,12 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		return errors.New("The selected seat was already filled")
 	}
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// SeatPlayer's own check, in the order Legal runs them.
+func (s *SeatPlayer) ContributedPreconditions() []legal.Spec {
+	return append(s.FixUp.ContributedPreconditions(), FrameworkPrecondition(PreconditionSeatPlayer))
 }
 
 // Apply sets the targeted player to be Filled. If the player state also
@@ -350,7 +367,23 @@ func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgam
 	if err := c.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, c.Name(), PreconditionCloseEmptySeat) {
+		return nil
+	}
+	return c.legalCloseEmptySeat(state, proposer)
+}
+
+// legalCloseEmptySeat is CloseEmptySeat's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionCloseEmptySeat atom instead.
+func (c *CloseEmptySeat) legalCloseEmptySeat(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	return c.legalTarget(state)
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// CloseEmptySeat's own check, in the order Legal runs them.
+func (c *CloseEmptySeat) ContributedPreconditions() []legal.Spec {
+	return append(c.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionCloseEmptySeat))
 }
 
 // Apply sets the TargetPlayerIndex to be closed via interfaces.Seater
@@ -426,12 +459,27 @@ func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boa
 	if err := i.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, i.Name(), PreconditionInactivateEmptySeat) {
+		return nil
+	}
+	return i.legalInactivateEmptySeat(state, proposer)
+}
 
+// legalInactivateEmptySeat is InactivateEmptySeat's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionInactivateEmptySeat atom instead.
+func (i *InactivateEmptySeat) legalInactivateEmptySeat(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if !gameWillSeatPlayer(state) {
 		return errors.New("Game will never seat players, so we shouldn't inactivate any, or we'd inactivate all of them")
 	}
 
 	return i.legalTarget(state)
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// InactivateEmptySeat's own check, in the order Legal runs them.
+func (i *InactivateEmptySeat) ContributedPreconditions() []legal.Spec {
+	return append(i.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionInactivateEmptySeat))
 }
 
 // legalTarget is the seat half of Legal.
@@ -542,7 +590,23 @@ func (a *ActivateEmptySeat) Legal(state boardgame.ImmutableState, proposer board
 	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionActivateEmptySeat) {
+		return nil
+	}
+	return a.legalActivateEmptySeat(state, proposer)
+}
+
+// legalActivateEmptySeat is ActivateEmptySeat's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionActivateEmptySeat atom instead.
+func (a *ActivateEmptySeat) legalActivateEmptySeat(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	return activateEmptySeatTarget.legalTarget(state, a.TargetPlayerIndex)
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// ActivateEmptySeat's own check, in the order Legal runs them.
+func (a *ActivateEmptySeat) ContributedPreconditions() []legal.Spec {
+	return append(a.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionActivateEmptySeat))
 }
 
 // Apply sets the TargetPlayerIndex to be active via interfaces.PlayerInactiver.
@@ -637,7 +701,23 @@ func (a *ActivateFilledSeat) Legal(state boardgame.ImmutableState, proposer boar
 	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionActivateFilledSeat) {
+		return nil
+	}
+	return a.legalActivateFilledSeat(state, proposer)
+}
+
+// legalActivateFilledSeat is ActivateFilledSeat's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionActivateFilledSeat atom instead.
+func (a *ActivateFilledSeat) legalActivateFilledSeat(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	return activateFilledSeatTarget.legalTarget(state, a.TargetPlayerIndex)
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// ActivateFilledSeat's own check, in the order Legal runs them.
+func (a *ActivateFilledSeat) ContributedPreconditions() []legal.Spec {
+	return append(a.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionActivateFilledSeat))
 }
 
 // Apply sets the TargetPlayerIndex to be active via interfaces.PlayerInactiver.
@@ -699,7 +779,16 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 	if err := c.Default.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, c.Name(), PreconditionCloseAllSeats) {
+		return nil
+	}
+	return c.legalCloseAllSeats(state, proposer)
+}
 
+// legalCloseAllSeats is CloseAllSeats's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionCloseAllSeats atom instead.
+func (c *CloseAllSeats) legalCloseAllSeats(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	hasOpenSeat := false
 	for _, p := range state.ImmutablePlayerStates() {
 		if seat, ok := p.(interfaces.Seater); ok {
@@ -745,6 +834,12 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 	}
 
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// CloseAllSeats's own check, in the order Legal runs them.
+func (c *CloseAllSeats) ContributedPreconditions() []legal.Spec {
+	return append(c.Default.ContributedPreconditions(), FrameworkPrecondition(PreconditionCloseAllSeats))
 }
 
 // TargetCount returns the value that was provided via WithTargetCount. If none
@@ -847,7 +942,16 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 	if err := w.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, w.Name(), PreconditionWaitForEnoughPlayers) {
+		return nil
+	}
+	return w.legalWaitForEnoughPlayers(state, proposer)
+}
 
+// legalWaitForEnoughPlayers is WaitForEnoughPlayers's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionWaitForEnoughPlayers atom instead.
+func (w *WaitForEnoughPlayers) legalWaitForEnoughPlayers(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if !gameWillSeatPlayer(state) {
 		//We're in a context that won't ever SeatPlayer, so we should just
 		//auto trigger now. The requireExplicitStart check is also skipped
@@ -889,6 +993,12 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 	}
 
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// WaitForEnoughPlayers's own check, in the order Legal runs them.
+func (w *WaitForEnoughPlayers) ContributedPreconditions() []legal.Spec {
+	return append(w.FixUp.ContributedPreconditions(), FrameworkPrecondition(PreconditionWaitForEnoughPlayers))
 }
 
 // requireExplicitStart returns true if WithRequireExplicitStart was configured.

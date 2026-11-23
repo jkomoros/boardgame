@@ -1,10 +1,7 @@
 package boardgame
 
 import (
-	stderrors "errors"
 	"fmt"
-	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/jkomoros/boardgame/enum"
@@ -182,7 +179,14 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 
 	consider := func(step legalPlanStep) bool {
 		pred := step.predicate
-		v := p.evaluateStep(ctx, step, fullLedger)
+		var v LegalVerdict
+		if fullLedger && haveOverall && pred.residue {
+			// A framework residue assumes its predecessors passed; the hot
+			// path would never have run it (legal_residue.go).
+			v = legalNotEvaluatedVerdict()
+		} else {
+			v = p.evaluateStep(ctx, step, fullLedger)
+		}
 		if fullLedger {
 			entries = append(entries, LegalVerdictEntry{
 				Name:            pred.Name,
@@ -286,7 +290,7 @@ func (g *GameManager) LegalProbeActive() bool {
 // plan. Framework move types use it after a Default.Legal super-call to avoid
 // re-running legality that the plan already contributed and evaluated.
 func (g *GameManager) LegalPlanAssembled(moveName string) bool {
-	return g != nil && g.legalPlans != nil && g.legalPlans[moveName] != nil
+	return g != nil && g.legalPlans != nil && g.legalPlans[moveName] != nil && !g.legalPlansAreSuspended()
 }
 
 // LegalEvaluatePlan is engine-internal plumbing the frozen framework chain
@@ -299,7 +303,7 @@ func (g *GameManager) LegalPlanAssembled(moveName string) bool {
 // runs its frozen imperative chain unchanged — this is the seam that keeps
 // non-opted-in moves byte-for-byte identical.
 func (g *GameManager) LegalEvaluatePlan(moveName string, state ImmutableState, move Move, proposer PlayerIndex) (bool, error) {
-	if g.legalPlans == nil {
+	if g.legalPlans == nil || g.legalPlansAreSuspended() {
 		return false, nil
 	}
 	plan := g.legalPlans[moveName]
@@ -376,29 +380,20 @@ func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
 	return err.Error()
 }
 
-// legalUnsupportedBaseSeamError reports a move that declares preconditions but
-// embeds a framework moves-package base outside the seam allowlist.
-func legalUnsupportedBaseSeamError(moveName, base string) error {
-	return fmt.Errorf("move %q declares preconditions but embeds unsupported framework move type %q: only %v support declarative legality (the seam allowlist is legalSupportedMovesBaseTypes in legal_plan.go, enforced structurally by moves/seam_source_test.go — widening it requires that type to declare no Legal() override of its own)", moveName, base, legalSupportedMovesBaseTypesProse())
-}
-
 // legalCustomUnsupportedBaseError reports a LegalCustom method that cannot be
 // attached to a declarative plan because the move does not embed a supported
 // moves-package base. LegalCustom automatically opts supported moves in.
 func legalCustomUnsupportedBaseError(moveName string) error {
-	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom), which automatically opts into declarative legality, but its base type does not support declarative legality (only %v do); switch to one of those base types or move the LegalCustom logic into a Legal() override", moveName, legalSupportedMovesBaseTypesProse())
+	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom), which automatically opts into declarative legality, but it embeds no framework move type from package moves, so nothing would ever evaluate its plan; embed moves.Default (or any other framework move) or move the LegalCustom logic into a Legal() override", moveName)
 }
 
 // assembleLegalPlans is called once at the end of NewGameManager (after moves
 // are installed and the example state exists). For every installed move type
 // that has opted in to declarative legality (declares WithLegalPreconditions or
-// explicitly enables a zero-authored-spec plan), it
-// verifies the move is on a supported base (design spec §5's seam:
-// legalSupportedMovesBaseTypes — Default, CurrentPlayer,
-// RecordCurrentPlayerChoice, FixUp, FixUpMulti, StartPhase), assembles and
-// validates its plan, stores it, and probes that
-// the declarations are actually reachable. Any failure is a boot error naming
-// the offending move (and, for the seam check, the unsupported base type). A
+// explicitly enables a zero-authored-spec plan), it assembles and validates
+// its plan (every embedded framework base type contributes its own legality;
+// see legal_residue.go), stores it, and probes that the declarations are
+// actually reachable. Any failure is a boot error naming the offending move. A
 // move with neither form of opt-in is left entirely alone: no plan, no probe
 // — its frozen chain runs at runtime exactly as today.
 func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
@@ -437,12 +432,9 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 			continue
 		}
 
-		// Seam (design spec §5): a move embedding any moves-package framework
-		// type outside legalSupportedMovesBaseTypes cannot opt in — its
-		// imperative Legal() would interleave wrongly with plan evaluation.
-		if base := legalUnsupportedMovesBaseType(move); base != "" {
-			return legalUnsupportedBaseSeamError(mType.Name(), base)
-		}
+		// Every framework base type expresses its legality as its
+		// contribution (design spec 2026-11-22), so there is no base-type
+		// allowlist: whatever the move embeds contributes below.
 
 		var contributed []LegalSpec
 		if contributor, ok := move.(legalContributor); ok {
@@ -458,6 +450,10 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		// move the proposer atom IS contributed, so it would pass this
 		// check).
 		if err := validateLegalSuppressions(mType.Name(), contributed, suppressions); err != nil {
+			return err
+		}
+
+		if err := legalValidateResidueAtoms(mType.Name(), contributed, authored, suppressions, registry); err != nil {
 			return err
 		}
 
@@ -619,7 +615,7 @@ func buildLegalPlanFromPredicates(moveName string, predicates []*LegalPredicate,
 	plan := &legalPlan{specs: specs, moveName: moveName}
 	for _, pred := range predicates {
 		sealLegalPredicate(pred, pred.Args)
-		if legalReadsIncludeMovePath(pred.Reads) {
+		if legalPredicateOpaque(pred) || legalReadsIncludeMovePath(pred.Reads) {
 			plan.fieldDependent = append(plan.fieldDependent, pred)
 			plan.ordered = append(plan.ordered, legalPlanStep{predicate: pred, fieldDependent: true, memoIndex: -1})
 		} else {
@@ -668,18 +664,7 @@ func newLegalCustomWrapper() *LegalPredicate {
 			if !ok {
 				return LegalVerdict{Outcome: LegalUnknown, Reason: "custom: move does not implement CustomLegaler"}
 			}
-			err := cl.LegalCustom(ctx.State, ctx.ProposerPlayerIndex)
-			if err == nil {
-				return LegalVerdict{Outcome: LegalPass}
-			}
-			var le *LegalError
-			if stderrors.As(err, &le) {
-				return le.Verdict
-			}
-			return LegalVerdict{
-				Outcome: LegalFail,
-				Message: &LegalMessage{Template: err.Error()},
-			}
+			return legalVerdictFromError(cl.LegalCustom(ctx.State, ctx.ProposerPlayerIndex))
 		},
 	}
 }
@@ -700,15 +685,21 @@ func (g *GameManager) probeLegalReachable(mType *moveType, exampleState Immutabl
 
 	g.legalProbing = true
 	g.legalProbeReached = false
+	g.legalProbeReachedResidues = nil
 	// The returned error is deliberately ignored: the probe observes
-	// reachability via the flag, not the verdict.
-	_ = probeMove.Legal(exampleState, ObserverPlayerIndex)
+	// reachability via the flags, not the verdict.
+	legalProbeCall(probeMove, exampleState)
 	reached := g.legalProbeReached
+	reachedResidues := g.legalProbeReachedResidues
 	g.legalProbing = false
 	g.legalProbeReached = false
+	g.legalProbeReachedResidues = nil
 
 	if !reached {
 		return legalProbeUnreachableError(mType.Name())
+	}
+	if missing := legalProbeUnreachedResidues(g.legalPlans[mType.Name()], reachedResidues); len(missing) > 0 {
+		return legalProbeUnreachedResidueError(mType.Name(), missing)
 	}
 	return nil
 }
@@ -716,7 +707,7 @@ func (g *GameManager) probeLegalReachable(mType *moveType, exampleState Immutabl
 // legalProbeUnreachableError reports a move whose own Legal() override never
 // super-calls into moves.Default.Legal, so its declarations would be dead.
 func legalProbeUnreachableError(moveName string) error {
-	return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it; only moves embedding a base type from the seam allowlist (legalSupportedMovesBaseTypes in legal_plan.go: %v) can opt in at all; the bases beyond the original Default/CurrentPlayer seam declare no Legal() override, so this probe should only ever fire on a move's OWN override, never on those embedded bases", moveName, legalSupportedMovesBaseTypesProse())
+	return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it; every framework base type's own Legal() reaches it, so this probe only ever fires on a move's OWN override", moveName)
 }
 
 /*
@@ -913,172 +904,4 @@ func legalProbeEvaluateTouchesMove(pred *LegalPredicate, ctx LegalContext) (touc
 	}()
 	pred.Evaluate(ctx)
 	return false
-}
-
-// legalMovesPackagePathSuffix is the import-path suffix identifying the
-// framework moves package. Matches moves/default.go's own convention for
-// recognizing moves-package types by reflection.
-const legalMovesPackagePathSuffix = "boardgame/moves"
-
-// legalSupportedMovesBaseTypes is the design spec §5 seam allowlist: the
-// complete set of framework moves-package base types a move may embed and
-// still opt in to declarative legality. Default and CurrentPlayer are the
-// original v1 seam (design spec §2) — they declare their own Legal()
-// overrides, verified equivalent to plan evaluation by
-// TestLegalChainStringFreeze and the CurrentPlayer opt-in tests
-// (moves/legal_plan_test.go). RecordCurrentPlayerChoice inherits that exact
-// CurrentPlayer legality and declares no Legal method of its own. FixUp,
-// FixUpMulti, and StartPhase were added by
-// Task 6 (design spec §5): none of the three declares its own Legal()
-// override — their legality IS Default.Legal, verbatim, so plan evaluation
-// composes exactly as it does for a bare Default-embedding move. This is
-// enforced structurally, not just asserted here: moves/seam_source_test.go
-// parses every moves/*.go with go/parser and fails if any type in this set
-// beyond Default/CurrentPlayer is ever given its own Legal() method — a
-// future override on one of these types must flip that test red, forcing a
-// conscious seam decision (widen deliberately, or don't) rather than silently
-// starting to interleave imperative and declarative evaluation. FixUpMulti
-// specifically required its own proof before joining this set: its
-// AllowMultipleInProgression() override changes move-progression matching,
-// and moves/preconditions_test.go's TestFixUpMultiProgressionAtomEquivalence
-// proves — empirically, against a real repeated-move tape, not just by
-// reading the source — that the "inProgression" declarative atom
-// (moves/catalog_framework.go) and the frozen chain agree on every
-// occurrence, including repeats, because they call the exact same
-// moves.Default.legalMoveInProgression method.
-// MoveComponentToSlot and DrawToPlayer -- the reusable "play a card" and
-// "draw a card" verbs -- join this set on the same terms as the Task 6
-// additions, and for a stronger reason than convenience: neither declares a
-// Legal() of its own AT ALL. Their entire legality is contributed
-// preconditions (legal.MayMoveFirstToSlot / legal.MayMoveToSlot /
-// legal.MayMoveFirstTo) layered on CurrentPlayer's, and each forces
-// LegalPlanEnabled() to true so a plan is always assembled. A game embedding
-// one of them therefore keeps the full declarative surface -- its own
-// WithLegalPreconditions and its own LegalCustom residue -- which is exactly
-// what the four example games that hand-rolled these verbs already relied on
-// and could not have given up to adopt a reusable move.
-var legalSupportedMovesBaseTypes = map[string]bool{
-	"Default":                   true,
-	"CurrentPlayer":             true,
-	"RecordCurrentPlayerChoice": true,
-	"FixUp":                     true,
-	"FixUpMulti":                true,
-	"StartPhase":                true,
-	"MoveComponentToSlot":       true,
-	"DrawToPlayer":              true,
-}
-
-// legalSupportedMovesBaseTypesProse renders legalSupportedMovesBaseTypes as
-// the "only moves.X, moves.Y, and moves.Z support declarative legality" clause
-// that every boot error reporting the seam has to say.
-//
-// DERIVED, NOT HAND-COPIED, and that is the whole point of it. Three boot
-// errors used to spell the list out as a literal, and all three had drifted:
-// they named five types against an allowlist of eight, omitting exactly
-// MoveComponentToSlot and DrawToPlayer -- the two reusable verbs a creator is
-// most likely to want to embed, so the error told them the one thing that
-// would have unblocked them was impossible. The allowlist is the single source
-// of truth for the test (LegalSupportedMovesBaseTypeNames, below) and now for
-// the prose too.
-func legalSupportedMovesBaseTypesProse() string {
-	names := make([]string, 0, len(legalSupportedMovesBaseTypes))
-	for name := range legalSupportedMovesBaseTypes {
-		names = append(names, "moves."+name)
-	}
-	sort.Strings(names)
-	if len(names) < 2 {
-		return strings.Join(names, "")
-	}
-	return strings.Join(names[:len(names)-1], ", ") + ", and " + names[len(names)-1]
-}
-
-// LegalSupportedMovesBaseTypeNames is engine-internal plumbing exposing the
-// design spec §5 seam allowlist (legalSupportedMovesBaseTypes, above) BEYOND
-// the original v1 seam (Default, CurrentPlayer): the framework moves-package
-// base types that (a) are safe to embed and still opt in to declarative
-// legality, and (b) must NOT declare their own Legal() method, because their
-// legality IS moves.Default.Legal, verbatim (see legalSupportedMovesBaseTypes'
-// own doc comment). It exists so moves/seam_source_test.go's structural
-// "these types declare no Legal()" check has a single source of truth to
-// consume instead of a hand-copied duplicate of this set that could
-// silently drift out of sync with the real allowlist when it widens. No
-// caller other than that test should need this. The names are returned in
-// no particular order.
-func LegalSupportedMovesBaseTypeNames() []string {
-	names := make([]string, 0, len(legalSupportedMovesBaseTypes))
-	for name := range legalSupportedMovesBaseTypes {
-		if name == "Default" || name == "CurrentPlayer" {
-			continue
-		}
-		names = append(names, name)
-	}
-	return names
-}
-
-// legalUnsupportedMovesBaseType walks move's anonymous-embed graph looking
-// for an embedded struct type from the framework moves package that is not
-// in legalSupportedMovesBaseTypes (design spec §5's seam). It returns the
-// name of the first such type found, or "" if the move embeds only supported
-// framework types. Detection is by reflection over the embed graph (the
-// spec-offered alternative to a marker-method chain) because it is robust to
-// deep embedding and needs no cooperation from the framework types
-// themselves: a move built on any allowlisted type (or nested combination of
-// them — FixUpMulti embeds FixUp embeds Default, and all three are allowed,
-// so a move built on any of them walks clean) walks clean; a move built on
-// DealCountComponents, FinishTurn, etc. surfaces that type's name.
-func legalUnsupportedMovesBaseType(move Move) string {
-	var found string
-	legalWalkMovesEmbeds(move, func(name string) bool {
-		if !legalSupportedMovesBaseTypes[name] {
-			found = name
-			return true
-		}
-		return false
-	})
-	return found
-}
-
-// legalWalkMovesEmbeds walks move's anonymous-embed graph depth-first,
-// calling visit with the name of every embedded framework moves-package type
-// found (e.g. "Default", "CurrentPlayer", "StartPhase", ...), stopping and
-// returning true as soon as visit returns true. legalUnsupportedMovesBaseType
-// uses it to find the first framework embed outside the supported seam.
-func legalWalkMovesEmbeds(move Move, visit func(name string) bool) bool {
-	seen := make(map[reflect.Type]bool)
-
-	var walk func(t reflect.Type) bool
-	walk = func(t reflect.Type) bool {
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
-		}
-		if t.Kind() != reflect.Struct || seen[t] {
-			return false
-		}
-		seen[t] = true
-
-		for i := 0; i < t.NumField(); i++ {
-			field := t.Field(i)
-			if !field.Anonymous {
-				continue
-			}
-			ft := field.Type
-			if ft.Kind() == reflect.Ptr {
-				ft = ft.Elem()
-			}
-			if ft.Kind() != reflect.Struct {
-				continue
-			}
-			if strings.HasSuffix(ft.PkgPath(), legalMovesPackagePathSuffix) {
-				if visit(ft.Name()) {
-					return true
-				}
-			}
-			if walk(ft) {
-				return true
-			}
-		}
-		return false
-	}
-
-	return walk(reflect.TypeOf(move))
 }

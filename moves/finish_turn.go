@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -44,11 +45,19 @@ func (f *FinishTurn) ValidConfiguration(exampleState boardgame.State) error {
 
 // Legal checks if the game's CurrentPlayer's TurnDone() returns true.
 func (f *FinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
 	if err := f.Default.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, f.Name(), PreconditionFinishTurn) {
+		return nil
+	}
+	return f.legalFinishTurn(state, proposer)
+}
 
+// legalFinishTurn is FinishTurn's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionFinishTurn atom instead.
+func (f *FinishTurn) legalFinishTurn(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	currentPlayerIndex := state.CurrentPlayerIndex()
 
 	if !currentPlayerIndex.Valid(state) {
@@ -73,6 +82,12 @@ func (f *FinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 
 	return nil
 
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// FinishTurn's own check, in the order Legal runs them.
+func (f *FinishTurn) ContributedPreconditions() []legal.Spec {
+	return append(f.Default.ContributedPreconditions(), FrameworkPrecondition(PreconditionFinishTurn))
 }
 
 // Apply resets the current player via ResetForTurnEnd, then advances to the

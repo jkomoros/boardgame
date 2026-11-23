@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -39,12 +40,28 @@ func (r *ResetAllPlayerSubmissions) Legal(state boardgame.ImmutableState, propos
 	if err := r.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, r.Name(), PreconditionResetAllPlayerSubmissions) {
+		return nil
+	}
+	return r.legalResetAllPlayerSubmissions(state, proposer)
+}
+
+// legalResetAllPlayerSubmissions is ResetAllPlayerSubmissions's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionResetAllPlayerSubmissions atom instead.
+func (r *ResetAllPlayerSubmissions) legalResetAllPlayerSubmissions(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	for _, player := range state.ImmutablePlayerStates() {
 		if behaviors.PlayerHasSubmitted(player) {
 			return nil
 		}
 	}
 	return errors.New("no players have pending submissions to reset")
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// ResetAllPlayerSubmissions's own check, in the order Legal runs them.
+func (r *ResetAllPlayerSubmissions) ContributedPreconditions() []legal.Spec {
+	return append(r.FixUp.ContributedPreconditions(), FrameworkPrecondition(PreconditionResetAllPlayerSubmissions))
 }
 
 // Apply resets all players' submission flags to false.

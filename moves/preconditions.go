@@ -7,16 +7,15 @@ import (
 )
 
 /*
-This file wires Default, CurrentPlayer, RecordCurrentPlayerChoice, FixUp,
-FixUpMulti, and StartPhase into
-the declarative legality composition seam: PreconditionsProvider is the
-optional interface core consults (a later task) to derive a move type's
-plan, base-first contributed specs (ContributedPreconditions) plus authored
-specs from WithLegalPreconditions (DeclaredPreconditions), minus
-WithoutLegalPrecondition suppressions.
+This file wires Default and CurrentPlayer into the declarative legality
+composition seam: PreconditionsProvider is the optional interface core
+consults to derive a move type's plan, base-first contributed specs
+(ContributedPreconditions) plus authored specs from WithLegalPreconditions
+(DeclaredPreconditions), minus WithoutLegalPrecondition suppressions.
 
-Other framework move types (DealCountComponents, FinishTurn, RoundRobin, etc.)
-remain opaque; configuring them declaratively is a named boot error.
+Every other framework move type extends the same chain: its
+ContributedPreconditions is its embedded move's plus its own check (see
+framework_checks.go), so any of them can be embedded by an opted-in move.
 */
 
 // The stable names of the framework-contributed precondition checks — the
