@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "game": "checkers",
+  "package": "github.com/jkomoros/boardgame/examples/checkers",
+  "definition": "current",
+  "movesData": 4,
+  "movesWithCode": 3,
+  "functions": {
+    "total": 20,
+    "data": {
+      "count": 14,
+      "functions": [
+        "checkers.(*gameDelegate).ConfigureConstants",
+        "checkers.(*gameDelegate).ConfigureDecks",
+        "checkers.(*gameDelegate).ConfigureLegalTemplates",
+        "checkers.(*gameDelegate).ConfigureMoves",
+        "checkers.(*gameDelegate).DefaultNumPlayers",
+        "checkers.(*gameDelegate).Description",
+        "checkers.(*gameDelegate).DynamicComponentValuesConstructor",
+        "checkers.(*gameDelegate).GameStateConstructor",
+        "checkers.(*gameDelegate).MaxNumPlayers",
+        "checkers.(*gameDelegate).MinNumPlayers",
+        "checkers.(*gameDelegate).Name",
+        "checkers.(*gameDelegate).PlayerStateConstructor",
+        "checkers.NewDelegate",
+        "checkers.newTokenDeck"
+      ]
+    },
+    "mechanical": null,
+    "agent": {
+      "count": 0,
+      "functions": []
+    },
+    "agentNowMechanical": {
+      "count": 0,
+      "functions": []
+    },
+    "engineGap": {
+      "count": 0,
+      "functions": []
+    },
+    "notPorted": {
+      "count": 0,
+      "functions": []
+    },
+    "translatable": 19,
+    "boundForAgent": {
+      "count": 1,
+      "functions": [
+        {
+          "func": "checkers.(*gameDelegate).ConfigurePredicateConstructors",
+          "refusals": [
+            "predicate-constructor checkers.spaceIsBlack"
+          ]
+        }
+      ]
+    }
+  },
+  "headline": {
+    "units": 24,
+    "data": {
+      "count": 4,
+      "of": 24,
+      "percent": "16.7"
+    },
+    "mechanical": {
+      "count": 19,
+      "of": 24,
+      "percent": "79.2"
+    },
+    "agent": {
+      "count": 1,
+      "of": 24,
+      "percent": "4.2"
+    },
+    "engineGap": {
+      "count": 0,
+      "of": 24,
+      "percent": "0.0"
+    }
+  },
+  "coverage": null,
+  "replay": {
+    "source": "translator-output",
+    "loaded": false,
+    "error": "gameFromData: no body for predicate checkers.(*gameDelegate).ConfigurePredicateConstructors",
+    "documents": 0,
+    "passed": 0
+  },
+  "stale": null,
+  "nulls": {
+    "coverage": "no checked-in fuzz corpus (conformance/fuzz/checkers/)",
+    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/checkers/); functions.translatable is what the translator would write",
+    "stale": "no generated game is checked in"
+  }
+}

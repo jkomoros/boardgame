@@ -1,0 +1,574 @@
+{
+  "version": 1,
+  "game": "debuganimations",
+  "package": "github.com/jkomoros/boardgame/examples/debuganimations",
+  "definition": "current",
+  "movesData": 1,
+  "movesWithCode": 12,
+  "functions": {
+    "total": 24,
+    "data": {
+      "count": 23,
+      "functions": [
+        "debuganimations.(*gameDelegate).ConfigureDecks",
+        "debuganimations.(*gameDelegate).ConfigureLegalTemplates",
+        "debuganimations.(*gameDelegate).ConfigureMoves",
+        "debuganimations.(*gameDelegate).Description",
+        "debuganimations.(*gameDelegate).DisplayName",
+        "debuganimations.(*gameDelegate).GameStateConstructor",
+        "debuganimations.(*gameDelegate).MaxNumPlayers",
+        "debuganimations.(*gameDelegate).MinNumPlayers",
+        "debuganimations.(*gameDelegate).Name",
+        "debuganimations.(*gameDelegate).PlayerStateConstructor",
+        "debuganimations.(*moveFlipHiddenCard).HelpText",
+        "debuganimations.(*moveMoveBetweenHidden).HelpText",
+        "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).HelpText",
+        "debuganimations.(*moveMoveCardBetweenFanStacks).HelpText",
+        "debuganimations.(*moveMoveCardBetweenShortStacks).HelpText",
+        "debuganimations.(*moveMoveToken).HelpText",
+        "debuganimations.(*moveMoveTokenSanitized).HelpText",
+        "debuganimations.(*moveShuffleCards).HelpText",
+        "debuganimations.(*moveShuffleHidden).HelpText",
+        "debuganimations.(*moveStartMoveAllComponentsToHidden).HelpText",
+        "debuganimations.(*moveStartMoveAllComponentsToVisible).HelpText",
+        "debuganimations.(*moveVisibleShuffleCards).HelpText",
+        "debuganimations.NewDelegate"
+      ]
+    },
+    "mechanical": {
+      "count": 24,
+      "functions": [
+        "debuganimations.(*gameDelegate).CheckGameFinished",
+        "debuganimations.(*gameDelegate).DistributeComponentToStarterStack",
+        "debuganimations.(*gameDelegate).FinishSetUp",
+        "debuganimations.(*moveFlipHiddenCard).Apply",
+        "debuganimations.(*moveFlipHiddenCard).Legal",
+        "debuganimations.(*moveMoveBetweenHidden).Apply",
+        "debuganimations.(*moveMoveBetweenHidden).Legal",
+        "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Apply",
+        "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).DefaultsForState",
+        "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Legal",
+        "debuganimations.(*moveMoveCardBetweenFanStacks).Apply",
+        "debuganimations.(*moveMoveCardBetweenFanStacks).Legal",
+        "debuganimations.(*moveMoveCardBetweenShortStacks).Apply",
+        "debuganimations.(*moveMoveCardBetweenShortStacks).DefaultsForState",
+        "debuganimations.(*moveMoveCardBetweenShortStacks).Legal",
+        "debuganimations.(*moveMoveToken).Apply",
+        "debuganimations.(*moveMoveToken).Legal",
+        "debuganimations.(*moveMoveTokenSanitized).Apply",
+        "debuganimations.(*moveMoveTokenSanitized).Legal",
+        "debuganimations.(*moveShuffleCards).Apply",
+        "debuganimations.(*moveShuffleHidden).Apply",
+        "debuganimations.(*moveStartMoveAllComponentsToHidden).Apply",
+        "debuganimations.(*moveStartMoveAllComponentsToVisible).Apply",
+        "debuganimations.(*moveVisibleShuffleCards).Apply"
+      ]
+    },
+    "agent": {
+      "count": 0,
+      "functions": []
+    },
+    "agentNowMechanical": {
+      "count": 0,
+      "functions": []
+    },
+    "engineGap": {
+      "count": 0,
+      "functions": []
+    },
+    "notPorted": {
+      "count": 1,
+      "functions": [
+        "debuganimations.(*gameDelegate).Diagram"
+      ]
+    },
+    "translatable": 24,
+    "boundForAgent": {
+      "count": 0,
+      "functions": []
+    }
+  },
+  "headline": {
+    "units": 25,
+    "data": {
+      "count": 1,
+      "of": 25,
+      "percent": "4.0"
+    },
+    "mechanical": {
+      "count": 24,
+      "of": 25,
+      "percent": "96.0"
+    },
+    "agent": {
+      "count": 0,
+      "of": 25,
+      "percent": "0.0"
+    },
+    "engineGap": {
+      "count": 0,
+      "of": 25,
+      "percent": "0.0"
+    }
+  },
+  "coverage": {
+    "documents": 8,
+    "versions": 168,
+    "rejections": 22,
+    "moves": [
+      {
+        "name": "Seat Player",
+        "isFixUp": true,
+        "applied": 0,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Move Card Between Short Stacks",
+        "isFixUp": false,
+        "applied": 24,
+        "proposed": 24,
+        "refused": 5
+      },
+      {
+        "name": "Move Card Between Draw And Discard Stacks",
+        "isFixUp": false,
+        "applied": 24,
+        "proposed": 24,
+        "refused": 2
+      },
+      {
+        "name": "Flip Card Between Hidden and Revealed",
+        "isFixUp": false,
+        "applied": 12,
+        "proposed": 12,
+        "refused": 1
+      },
+      {
+        "name": "Move Fan Card",
+        "isFixUp": false,
+        "applied": 13,
+        "proposed": 13,
+        "refused": 2
+      },
+      {
+        "name": "Visible Shuffle",
+        "isFixUp": false,
+        "applied": 10,
+        "proposed": 10,
+        "refused": 0
+      },
+      {
+        "name": "Shuffle",
+        "isFixUp": false,
+        "applied": 14,
+        "proposed": 14,
+        "refused": 0
+      },
+      {
+        "name": "Move Between Hidden",
+        "isFixUp": false,
+        "applied": 12,
+        "proposed": 12,
+        "refused": 0
+      },
+      {
+        "name": "Move Token",
+        "isFixUp": false,
+        "applied": 12,
+        "proposed": 12,
+        "refused": 1
+      },
+      {
+        "name": "Move Token Sanitized",
+        "isFixUp": false,
+        "applied": 19,
+        "proposed": 19,
+        "refused": 1
+      },
+      {
+        "name": "Start Move All Components To Hidden",
+        "isFixUp": false,
+        "applied": 7,
+        "proposed": 7,
+        "refused": 5
+      },
+      {
+        "name": "Start Move All Components To Visible",
+        "isFixUp": false,
+        "applied": 1,
+        "proposed": 1,
+        "refused": 4
+      },
+      {
+        "name": "Shuffle Hidden",
+        "isFixUp": false,
+        "applied": 12,
+        "proposed": 12,
+        "refused": 1
+      }
+    ],
+    "predicates": [
+      {
+        "move": "Visible Shuffle",
+        "index": 0,
+        "name": "stackCount",
+        "args": [
+          "game.FanStack",
+          ">",
+          "1"
+        ],
+        "pass": 672,
+        "fail": 0,
+        "unknown": 0
+      },
+      {
+        "move": "Shuffle",
+        "index": 0,
+        "name": "stackCount",
+        "args": [
+          "game.FanStack",
+          ">",
+          "1"
+        ],
+        "pass": 672,
+        "fail": 0,
+        "unknown": 0
+      },
+      {
+        "move": "Start Move All Components To Hidden",
+        "index": 0,
+        "name": "stackNotEmpty",
+        "args": [
+          "game.AllVisibleStack"
+        ],
+        "pass": 416,
+        "fail": 256,
+        "unknown": 0
+      },
+      {
+        "move": "Start Move All Components To Hidden",
+        "index": 1,
+        "name": "stackEmpty",
+        "args": [
+          "game.AllHiddenStack"
+        ],
+        "pass": 416,
+        "fail": 256,
+        "unknown": 0
+      },
+      {
+        "move": "Start Move All Components To Visible",
+        "index": 0,
+        "name": "stackNotEmpty",
+        "args": [
+          "game.AllHiddenStack"
+        ],
+        "pass": 256,
+        "fail": 416,
+        "unknown": 0
+      },
+      {
+        "move": "Start Move All Components To Visible",
+        "index": 1,
+        "name": "stackEmpty",
+        "args": [
+          "game.AllVisibleStack"
+        ],
+        "pass": 256,
+        "fail": 416,
+        "unknown": 0
+      },
+      {
+        "move": "Shuffle Hidden",
+        "index": 0,
+        "name": "stackNotEmpty",
+        "args": [
+          "game.FanDiscard"
+        ],
+        "pass": 504,
+        "fail": 0,
+        "unknown": 0
+      }
+    ],
+    "visibility": [
+      {
+        "property": "Game.AllHiddenStack",
+        "sanitizedNonZero": 192,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,occupancy,order,nonempty]"
+        ]
+      },
+      {
+        "property": "Game.DrawStack",
+        "sanitizedNonZero": 504,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,occupancy,order,nonempty]"
+        ]
+      },
+      {
+        "property": "Game.FanDiscard",
+        "sanitizedNonZero": 504,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,occupancy,order,nonempty]"
+        ]
+      },
+      {
+        "property": "Game.FirstShortStack",
+        "sanitizedNonZero": 387,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,occupancy,order,nonempty]"
+        ]
+      },
+      {
+        "property": "Game.HiddenCard",
+        "sanitizedNonZero": 402,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,occupancy,order,nonempty]"
+        ]
+      },
+      {
+        "property": "Game.HiddenStack",
+        "sanitizedNonZero": 504,
+        "revealedNonZero": 0,
+        "facets": [
+          "[nonempty]"
+        ]
+      },
+      {
+        "property": "Game.SanitizedTokensTo",
+        "sanitizedNonZero": 504,
+        "revealedNonZero": 0,
+        "facets": [
+          "[nonempty]"
+        ]
+      },
+      {
+        "property": "Game.SecondShortStack",
+        "sanitizedNonZero": 360,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,occupancy,order,nonempty]"
+        ]
+      }
+    ],
+    "blocks": {
+      "reached": 135,
+      "blocks": 154,
+      "functions": [
+        {
+          "func": "debuganimations.(*gameDelegate).CheckGameFinished",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*gameDelegate).DistributeComponentToStarterStack",
+          "blocks": 28,
+          "reached": 28,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*gameDelegate).FinishSetUp",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveFlipHiddenCard).Apply",
+          "blocks": 7,
+          "reached": 6,
+          "unreached": [
+            "moves.go:289.3-290.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveFlipHiddenCard).Legal",
+          "blocks": 8,
+          "reached": 5,
+          "unreached": [
+            "moves.go:260.3-261.1",
+            "moves.go:266.3-267.1",
+            "moves.go:270.3-271.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveBetweenHidden).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveMoveBetweenHidden).Legal",
+          "blocks": 8,
+          "reached": 6,
+          "unreached": [
+            "moves.go:398.3-399.1",
+            "moves.go:411.2-411.53"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Apply",
+          "blocks": 7,
+          "reached": 6,
+          "unreached": [
+            "moves.go:241.3-242.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).DefaultsForState",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Legal",
+          "blocks": 9,
+          "reached": 8,
+          "unreached": [
+            "moves.go:205.3-206.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenFanStacks).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenFanStacks).Legal",
+          "blocks": 8,
+          "reached": 6,
+          "unreached": [
+            "moves.go:308.3-309.1",
+            "moves.go:321.2-321.62"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenShortStacks).Apply",
+          "blocks": 7,
+          "reached": 6,
+          "unreached": [
+            "moves.go:176.3-177.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenShortStacks).DefaultsForState",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveMoveCardBetweenShortStacks).Legal",
+          "blocks": 9,
+          "reached": 8,
+          "unreached": [
+            "moves.go:140.3-141.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveToken).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveMoveToken).Legal",
+          "blocks": 8,
+          "reached": 6,
+          "unreached": [
+            "moves.go:439.3-440.1",
+            "moves.go:452.2-452.54"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveMoveTokenSanitized).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveMoveTokenSanitized).Legal",
+          "blocks": 8,
+          "reached": 6,
+          "unreached": [
+            "moves.go:480.3-481.1",
+            "moves.go:493.2-493.54"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveShuffleCards).Apply",
+          "blocks": 2,
+          "reached": 2,
+          "unreached": []
+        },
+        {
+          "func": "debuganimations.(*moveShuffleHidden).Apply",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "moves.go:598.3-599.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveStartMoveAllComponentsToHidden).Apply",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "moves.go:538.4-539.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveStartMoveAllComponentsToVisible).Apply",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "moves.go:566.4-567.1"
+          ]
+        },
+        {
+          "func": "debuganimations.(*moveVisibleShuffleCards).Apply",
+          "blocks": 2,
+          "reached": 2,
+          "unreached": []
+        }
+      ]
+    },
+    "gaps": {
+      "neverApplied": [
+        "Seat Player"
+      ],
+      "neverRefused": [
+        "Visible Shuffle",
+        "Shuffle",
+        "Move Between Hidden"
+      ],
+      "predicates": [
+        "Visible Shuffle #0 stackCount(game.FanStack, >, 1): no fail, unknown",
+        "Shuffle #0 stackCount(game.FanStack, >, 1): no fail, unknown",
+        "Start Move All Components To Hidden #0 stackNotEmpty(game.AllVisibleStack): no unknown",
+        "Start Move All Components To Hidden #1 stackEmpty(game.AllHiddenStack): no unknown",
+        "Start Move All Components To Visible #0 stackNotEmpty(game.AllHiddenStack): no unknown",
+        "Start Move All Components To Visible #1 stackEmpty(game.AllVisibleStack): no unknown",
+        "Shuffle Hidden #0 stackNotEmpty(game.FanDiscard): no fail, unknown"
+      ],
+      "visibility": null
+    },
+    "mutants": null
+  },
+  "replay": {
+    "source": "checked-in",
+    "loaded": true,
+    "documents": 9,
+    "passed": 9
+  },
+  "stale": [],
+  "nulls": {
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)"
+  }
+}

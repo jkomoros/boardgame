@@ -18,12 +18,16 @@
 //
 // It is the cheap, labs-free half of the check. The other half is loading
 // the engine in a real pattern: fabric/patterns/*/parity.test.tsx.
+//
+// The rules themselves are testing/sourceRules.ts sandboxProblems, which
+// `boardgame-util port check` also runs on an agent's translation.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, relative, resolve, dirname } from 'node:path';
 import ts from 'typescript';
+import { sandboxProblems } from './testing/sourceRules.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -40,35 +44,6 @@ function sources(dir: string, out: string[] = []): string[] {
 	return out;
 }
 
-/** A literal, or arithmetic over literals. */
-function literal(node: ts.Expression): boolean {
-	if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)) return true;
-	if (ts.isPrefixUnaryExpression(node)) return literal(node.operand);
-	if (ts.isParenthesizedExpression(node)) return literal(node.expression);
-	if (ts.isBinaryExpression(node)) return literal(node.left) && literal(node.right);
-	return false;
-}
-
-/** Whether an initializer is data the sandbox can freeze: no functions in it. */
-function plainData(node: ts.Expression): boolean {
-	if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node) || ts.isIdentifier(node)) return true;
-	if (node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword || node.kind === ts.SyntaxKind.NullKeyword) return true;
-	if (ts.isPrefixUnaryExpression(node)) return plainData(node.operand);
-	if (ts.isAsExpression(node) || ts.isParenthesizedExpression(node) || ts.isSatisfiesExpression(node)) return plainData(node.expression);
-	// Another constant may be named, alone or inside a record, but not
-	// computed with: `DIM * DIM` is refused where `{ size: DIM }` is not.
-	if (ts.isBinaryExpression(node)) return literal(node.left) && literal(node.right);
-	if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) return true;
-	if (ts.isArrayLiteralExpression(node)) return node.elements.every(element => !ts.isSpreadElement(element) && !ts.isOmittedExpression(element) && plainData(element));
-	if (ts.isObjectLiteralExpression(node)) {
-		return node.properties.every(property => ts.isPropertyAssignment(property) && plainData(property.initializer));
-	}
-	if (ts.isRegularExpressionLiteral(node)) return !/[gy][a-z]*$/.test(node.text.slice(node.text.lastIndexOf('/')));
-	// A call's result is validated when the module loads.
-	if (ts.isCallExpression(node)) return true;
-	return false;
-}
-
 const files = sources(HERE);
 
 test('every engine source is scanned', () => {
@@ -83,38 +58,8 @@ test('no engine module holds anything at module scope that the pattern sandbox r
 	for (const file of files) {
 		const name = relative(HERE, file);
 		const text = readFileSync(file, 'utf8');
-		const source = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
-		const at = (node: ts.Node) => `${name}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
-		for (const statement of source.statements) {
-			if (ts.isClassDeclaration(statement)) problems.push(`${at(statement)} declares a class at module scope`);
-			const declares = ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement) || ts.isVariableStatement(statement) ||
-				ts.isFunctionDeclaration(statement) || ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement) ||
-				ts.isClassDeclaration(statement) || ts.isEnumDeclaration(statement);
-			if (!declares) problems.push(`${at(statement)} runs a statement at module scope`);
-			if (ts.isEnumDeclaration(statement)) problems.push(`${at(statement)} declares an enum at module scope`);
-			if (ts.isFunctionDeclaration(statement) && statement.asteriskToken) problems.push(`${at(statement)} declares a generator at module scope`);
-			if (ts.isVariableStatement(statement)) {
-				if (!(statement.declarationList.flags & ts.NodeFlags.Const)) problems.push(`${at(statement)} declares let or var at module scope`);
-				for (const declaration of statement.declarationList.declarations) {
-					const init = declaration.initializer;
-					if (init === undefined || ts.isArrowFunction(init) || ts.isFunctionExpression(init)) continue;
-					if (!plainData(init)) problems.push(`${at(declaration)} holds something other than a function or plain data at module scope`);
-				}
-			}
-			if (ts.isImportDeclaration(statement) || (ts.isExportDeclaration(statement) && statement.moduleSpecifier)) {
-				const specifier = (statement.moduleSpecifier as ts.StringLiteral).text;
-				const target = resolve(dirname(file), specifier);
-				if (!specifier.startsWith('.') || relative(HERE, target).startsWith('..')) problems.push(`${at(statement)} imports ${specifier}, outside the engine`);
-				if (!specifier.endsWith('.ts')) problems.push(`${at(statement)} imports ${specifier} without its extension`);
-			}
-		}
-		(function walk(node: ts.Node): void {
-			if (ts.isAsExpression(node) && ts.isAsExpression(node.expression) && node.expression.type.kind === ts.SyntaxKind.UnknownKeyword) {
-				problems.push(`${at(node)} casts through unknown`);
-			}
-			if (ts.isClassExpression(node)) problems.push(`${at(node)} holds a class expression`);
-			ts.forEachChild(node, walk);
-		})(source);
+		const escapes = (specifier: string): boolean => relative(HERE, resolve(dirname(file), specifier)).startsWith('..');
+		problems.push(...sandboxProblems(ts, name, text, escapes));
 	}
 	assert.deepEqual(problems, []);
 });

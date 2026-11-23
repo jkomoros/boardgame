@@ -1,0 +1,325 @@
+{
+  "version": 1,
+  "game": "werewolf",
+  "package": "github.com/jkomoros/boardgame/examples/werewolf",
+  "definition": "current",
+  "movesData": 4,
+  "movesWithCode": 7,
+  "functions": {
+    "total": 16,
+    "data": {
+      "count": 11,
+      "functions": [
+        "werewolf.(*gameDelegate).ConfigureDecks",
+        "werewolf.(*gameDelegate).ConfigureMoves",
+        "werewolf.(*gameDelegate).DefaultNumPlayers",
+        "werewolf.(*gameDelegate).Description",
+        "werewolf.(*gameDelegate).GameStateConstructor",
+        "werewolf.(*gameDelegate).MaxNumPlayers",
+        "werewolf.(*gameDelegate).MinNumPlayers",
+        "werewolf.(*gameDelegate).Name",
+        "werewolf.(*gameDelegate).PlayerStateConstructor",
+        "werewolf.(*gameDelegate).Variants",
+        "werewolf.NewDelegate"
+      ]
+    },
+    "mechanical": null,
+    "agent": {
+      "count": 0,
+      "functions": []
+    },
+    "agentNowMechanical": {
+      "count": 0,
+      "functions": []
+    },
+    "engineGap": {
+      "count": 0,
+      "functions": []
+    },
+    "notPorted": {
+      "count": 1,
+      "functions": [
+        "werewolf.(*gameDelegate).Diagram"
+      ]
+    },
+    "translatable": 16,
+    "boundForAgent": {
+      "count": 0,
+      "functions": []
+    }
+  },
+  "headline": {
+    "units": 20,
+    "data": {
+      "count": 4,
+      "of": 20,
+      "percent": "20.0"
+    },
+    "mechanical": {
+      "count": 16,
+      "of": 20,
+      "percent": "80.0"
+    },
+    "agent": {
+      "count": 0,
+      "of": 20,
+      "percent": "0.0"
+    },
+    "engineGap": {
+      "count": 0,
+      "of": 20,
+      "percent": "0.0"
+    }
+  },
+  "coverage": {
+    "documents": 8,
+    "versions": 157,
+    "rejections": 18,
+    "moves": [
+      {
+        "name": "Seat Player",
+        "isFixUp": true,
+        "applied": 33,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Activate Inactive Player - Gathering",
+        "isFixUp": true,
+        "applied": 32,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Wait For Enough Players - Gathering",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Inactivate Empty Seat - Gathering",
+        "isFixUp": true,
+        "applied": 7,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Begin Game",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Cast Vote",
+        "isFixUp": false,
+        "applied": 31,
+        "proposed": 31,
+        "refused": 13
+      },
+      {
+        "name": "Resolve Votes",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Resolve Day Votes on Timeout",
+        "isFixUp": false,
+        "applied": 4,
+        "proposed": 0,
+        "refused": 2
+      },
+      {
+        "name": "Cast Night Vote",
+        "isFixUp": false,
+        "applied": 8,
+        "proposed": 8,
+        "refused": 3
+      },
+      {
+        "name": "Resolve Night Votes",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Resolve Night Votes on Timeout",
+        "isFixUp": false,
+        "applied": 2,
+        "proposed": 0,
+        "refused": 0
+      }
+    ],
+    "predicates": [],
+    "visibility": [
+      {
+        "property": "Players.FellowWolves",
+        "sanitizedNonZero": 0,
+        "revealedNonZero": 0,
+        "facets": [
+          "[]"
+        ]
+      },
+      {
+        "property": "Players.NightVote",
+        "sanitizedNonZero": 3812,
+        "revealedNonZero": 0,
+        "facets": [
+          "[]"
+        ]
+      },
+      {
+        "property": "Players.Role",
+        "sanitizedNonZero": 3821,
+        "revealedNonZero": 0,
+        "facets": [
+          "[]"
+        ]
+      }
+    ],
+    "blocks": {
+      "reached": 143,
+      "blocks": 151,
+      "functions": [
+        {
+          "func": "werewolf.(*gameDelegate).BeginSetUp",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.(*gameDelegate).CheckGameFinished",
+          "blocks": 21,
+          "reached": 21,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.(*gameDelegate).CurrentPlayerIndex",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.(*moveBeginGame).Apply",
+          "blocks": 19,
+          "reached": 17,
+          "unreached": [
+            "moves.go:44.3-45.1",
+            "moves.go:59.3-60.1"
+          ]
+        },
+        {
+          "func": "werewolf.(*moveCastVote).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.(*moveCastVote).Legal",
+          "blocks": 23,
+          "reached": 21,
+          "unreached": [
+            "moves.go:199.3-200.1",
+            "moves.go:205.3-206.1"
+          ]
+        },
+        {
+          "func": "werewolf.(*moveResolveVotes).Apply",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.(*moveResolveVotes).Legal",
+          "blocks": 15,
+          "reached": 14,
+          "unreached": [
+            "moves.go:286.3-287.1"
+          ]
+        },
+        {
+          "func": "werewolf.(*moveResolveVotesOnTimeout).Apply",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.(*moveResolveVotesOnTimeout).Legal",
+          "blocks": 7,
+          "reached": 7,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.finishVoteResolution",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "moves.go:342.3-343.1"
+          ]
+        },
+        {
+          "func": "werewolf.populateFellowWolves",
+          "blocks": 8,
+          "reached": 7,
+          "unreached": [
+            "moves.go:113.5-114.1"
+          ]
+        },
+        {
+          "func": "werewolf.resolveVotes",
+          "blocks": 29,
+          "reached": 29,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.startVoteTimer",
+          "blocks": 7,
+          "reached": 6,
+          "unreached": [
+            "moves.go:95.3-96.1"
+          ]
+        },
+        {
+          "func": "werewolf.timedVotingEnabled",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "werewolf.voteForPhase",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        }
+      ]
+    },
+    "gaps": {
+      "neverApplied": null,
+      "neverRefused": [
+        "Resolve Night Votes on Timeout"
+      ],
+      "predicates": null,
+      "visibility": [
+        "Players.FellowWolves"
+      ]
+    },
+    "mutants": null
+  },
+  "replay": {
+    "source": "translator-output",
+    "loaded": false,
+    "error": "gameFromData: no body for distribute ",
+    "documents": 0,
+    "passed": 0
+  },
+  "stale": null,
+  "nulls": {
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)",
+    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/werewolf/); functions.translatable is what the translator would write",
+    "stale": "no generated game is checked in"
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "game": "tictactoe",
+  "package": "github.com/jkomoros/boardgame/examples/tictactoe",
+  "definition": "current",
+  "movesData": 3,
+  "movesWithCode": 1,
+  "functions": {
+    "total": 11,
+    "data": {
+      "count": 14,
+      "functions": [
+        "tictactoe.(*gameDelegate).ConfigureAgents",
+        "tictactoe.(*gameDelegate).ConfigureConstants",
+        "tictactoe.(*gameDelegate).ConfigureDecks",
+        "tictactoe.(*gameDelegate).ConfigureLegalTemplates",
+        "tictactoe.(*gameDelegate).ConfigureMoves",
+        "tictactoe.(*gameDelegate).DefaultNumPlayers",
+        "tictactoe.(*gameDelegate).Description",
+        "tictactoe.(*gameDelegate).DisplayName",
+        "tictactoe.(*gameDelegate).GameStateConstructor",
+        "tictactoe.(*gameDelegate).MaxNumPlayers",
+        "tictactoe.(*gameDelegate).MinNumPlayers",
+        "tictactoe.(*gameDelegate).Name",
+        "tictactoe.(*gameDelegate).PlayerStateConstructor",
+        "tictactoe.NewDelegate"
+      ]
+    },
+    "mechanical": null,
+    "agent": {
+      "count": 0,
+      "functions": []
+    },
+    "agentNowMechanical": {
+      "count": 0,
+      "functions": []
+    },
+    "engineGap": {
+      "count": 0,
+      "functions": []
+    },
+    "notPorted": {
+      "count": 5,
+      "functions": [
+        "tictactoe.(*Agent).DisplayName",
+        "tictactoe.(*Agent).Name",
+        "tictactoe.(*Agent).ProposeMove",
+        "tictactoe.(*Agent).SetUpForGame",
+        "tictactoe.(*gameDelegate).Diagram"
+      ]
+    },
+    "translatable": 11,
+    "boundForAgent": {
+      "count": 0,
+      "functions": []
+    }
+  },
+  "headline": {
+    "units": 14,
+    "data": {
+      "count": 3,
+      "of": 14,
+      "percent": "21.4"
+    },
+    "mechanical": {
+      "count": 11,
+      "of": 14,
+      "percent": "78.6"
+    },
+    "agent": {
+      "count": 0,
+      "of": 14,
+      "percent": "0.0"
+    },
+    "engineGap": {
+      "count": 0,
+      "of": 14,
+      "percent": "0.0"
+    }
+  },
+  "coverage": {
+    "documents": 8,
+    "versions": 134,
+    "rejections": 5,
+    "moves": [
+      {
+        "name": "Seat Player",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Activate Inactive Player",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Place Token",
+        "isFixUp": false,
+        "applied": 59,
+        "proposed": 59,
+        "refused": 5
+      },
+      {
+        "name": "Finish Turn",
+        "isFixUp": true,
+        "applied": 51,
+        "proposed": 0,
+        "refused": 0
+      }
+    ],
+    "predicates": [
+      {
+        "move": "Place Token",
+        "index": 0,
+        "name": "proposerIsCurrentPlayer",
+        "pass": 266,
+        "fail": 0,
+        "unknown": 0
+      },
+      {
+        "move": "Place Token",
+        "index": 1,
+        "name": "mayMoveFirstToSlot",
+        "args": [
+          "players[move.TargetPlayerIndex].UnusedTokens",
+          "game.Slots",
+          "move.Slot"
+        ],
+        "pass": 264,
+        "fail": 2,
+        "unknown": 0
+      }
+    ],
+    "visibility": [],
+    "blocks": {
+      "reached": 67,
+      "blocks": 73,
+      "functions": [
+        {
+          "func": "tictactoe.(*gameDelegate).CheckGameFinished",
+          "blocks": 14,
+          "reached": 14,
+          "unreached": []
+        },
+        {
+          "func": "tictactoe.(*gameDelegate).DistributeComponentToStarterStack",
+          "blocks": 6,
+          "reached": 5,
+          "unreached": [
+            "main.go:39.2-39.59"
+          ]
+        },
+        {
+          "func": "tictactoe.(*gameState).tokenValueAtIndex",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "tictactoe.(*movePlaceToken).Apply",
+          "blocks": 6,
+          "reached": 5,
+          "unreached": [
+            "moves.go:60.3-61.1"
+          ]
+        },
+        {
+          "func": "tictactoe.(*movePlaceToken).DefaultsForState",
+          "blocks": 5,
+          "reached": 5,
+          "unreached": []
+        },
+        {
+          "func": "tictactoe.(*playerState).ResetForTurnEnd",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "tictactoe.(*playerState).ResetForTurnStart",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "tictactoe.(*playerState).TurnDone",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "tictactoe.checkGameFinished",
+          "blocks": 24,
+          "reached": 21,
+          "unreached": [
+            "main.go:240.3-241.1",
+            "main.go:281.3-282.1",
+            "main.go:287.3-288.1"
+          ]
+        },
+        {
+          "func": "tictactoe.checkRunWon",
+          "blocks": 9,
+          "reached": 8,
+          "unreached": [
+            "main.go:308.3-309.1"
+          ]
+        },
+        {
+          "func": "tictactoe.rowColToIndex",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        }
+      ]
+    },
+    "gaps": {
+      "neverApplied": null,
+      "neverRefused": null,
+      "predicates": [
+        "Place Token #0 proposerIsCurrentPlayer(): no fail, unknown",
+        "Place Token #1 mayMoveFirstToSlot(players[move.TargetPlayerIndex].UnusedTokens, game.Slots, move.Slot): no unknown"
+      ],
+      "visibility": null
+    },
+    "mutants": null
+  },
+  "replay": {
+    "source": "translator-output",
+    "loaded": false,
+    "error": "stockMove: MoveComponentToSlot needs configuration SlotField",
+    "documents": 0,
+    "passed": 0
+  },
+  "stale": null,
+  "nulls": {
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)",
+    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/tictactoe/); functions.translatable is what the translator would write",
+    "stale": "no generated game is checked in"
+  }
+}

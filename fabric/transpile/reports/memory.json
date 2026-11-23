@@ -1,0 +1,395 @@
+{
+  "version": 1,
+  "game": "memory",
+  "package": "github.com/jkomoros/boardgame/examples/memory",
+  "definition": "current",
+  "movesData": 3,
+  "movesWithCode": 4,
+  "functions": {
+    "total": 17,
+    "data": {
+      "count": 14,
+      "functions": [
+        "memory.(*gameDelegate).ConfigureAgents",
+        "memory.(*gameDelegate).ConfigureComputedProperties",
+        "memory.(*gameDelegate).ConfigureDecks",
+        "memory.(*gameDelegate).ConfigureLegalTemplates",
+        "memory.(*gameDelegate).ConfigureMoves",
+        "memory.(*gameDelegate).Description",
+        "memory.(*gameDelegate).GameStateConstructor",
+        "memory.(*gameDelegate).MaxNumPlayers",
+        "memory.(*gameDelegate).MinNumPlayers",
+        "memory.(*gameDelegate).Name",
+        "memory.(*gameDelegate).PlayerStateConstructor",
+        "memory.(*gameDelegate).Variants",
+        "memory.NewDelegate",
+        "memory.newDeck"
+      ]
+    },
+    "mechanical": null,
+    "agent": {
+      "count": 0,
+      "functions": []
+    },
+    "agentNowMechanical": {
+      "count": 0,
+      "functions": []
+    },
+    "engineGap": {
+      "count": 0,
+      "functions": []
+    },
+    "notPorted": {
+      "count": 11,
+      "functions": [
+        "memory.(*Agent).DisplayName",
+        "memory.(*Agent).Name",
+        "memory.(*Agent).ProposeMove",
+        "memory.(*Agent).SetUpForGame",
+        "memory.(*agentState).CardSeen",
+        "memory.(*agentState).CullInvalidCards",
+        "memory.(*agentState).FirstCardToFlip",
+        "memory.(*agentState).PerhapsForgetCard",
+        "memory.(*agentState).PickRandomCard",
+        "memory.(*agentState).SecondCardToFlip",
+        "memory.(*gameDelegate).Diagram"
+      ]
+    },
+    "translatable": 16,
+    "boundForAgent": {
+      "count": 1,
+      "functions": [
+        {
+          "func": "memory.(*moveStartHideCardsTimer).Apply",
+          "refusals": [
+            "package-var-read memory.hideCardMoveName"
+          ]
+        }
+      ]
+    }
+  },
+  "headline": {
+    "units": 20,
+    "data": {
+      "count": 3,
+      "of": 20,
+      "percent": "15.0"
+    },
+    "mechanical": {
+      "count": 16,
+      "of": 20,
+      "percent": "80.0"
+    },
+    "agent": {
+      "count": 1,
+      "of": 20,
+      "percent": "5.0"
+    },
+    "engineGap": {
+      "count": 0,
+      "of": 20,
+      "percent": "0.0"
+    }
+  },
+  "coverage": {
+    "documents": 8,
+    "versions": 269,
+    "rejections": 18,
+    "moves": [
+      {
+        "name": "Seat Player",
+        "isFixUp": true,
+        "applied": 24,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Activate Inactive Player",
+        "isFixUp": true,
+        "applied": 24,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Reveal Card",
+        "isFixUp": false,
+        "applied": 92,
+        "proposed": 92,
+        "refused": 14
+      },
+      {
+        "name": "Hide Cards",
+        "isFixUp": false,
+        "applied": 36,
+        "proposed": 16,
+        "refused": 4
+      },
+      {
+        "name": "Finish Turn",
+        "isFixUp": true,
+        "applied": 39,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Capture Cards",
+        "isFixUp": true,
+        "applied": 3,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Start Hide Cards Timer",
+        "isFixUp": true,
+        "applied": 43,
+        "proposed": 0,
+        "refused": 0
+      }
+    ],
+    "predicates": [
+      {
+        "move": "Reveal Card",
+        "index": 0,
+        "name": "proposerIsCurrentPlayer",
+        "pass": 538,
+        "fail": 1144,
+        "unknown": 0
+      },
+      {
+        "move": "Reveal Card",
+        "index": 1,
+        "name": "propAtLeast",
+        "args": [
+          "player.CardsLeftToReveal",
+          "1"
+        ],
+        "pass": 727,
+        "fail": 955,
+        "unknown": 0
+      },
+      {
+        "move": "Reveal Card",
+        "index": 2,
+        "name": "revealableCardAt",
+        "args": [
+          "game.HiddenCards",
+          "game.VisibleCards",
+          "move.CardIndex"
+        ],
+        "pass": 1682,
+        "fail": 0,
+        "unknown": 0
+      },
+      {
+        "move": "Reveal Card",
+        "index": 3,
+        "name": "mayMoveToSlot",
+        "args": [
+          "game.HiddenCards",
+          "game.VisibleCards",
+          "move.CardIndex",
+          "move.CardIndex"
+        ],
+        "pass": 1682,
+        "fail": 0,
+        "unknown": 0
+      },
+      {
+        "move": "Hide Cards",
+        "index": 0,
+        "name": "proposerIsCurrentPlayer",
+        "pass": 538,
+        "fail": 1144,
+        "unknown": 0
+      },
+      {
+        "move": "Hide Cards",
+        "index": 1,
+        "name": "propCompare",
+        "args": [
+          "player.CardsLeftToReveal",
+          "<=",
+          "0"
+        ],
+        "pass": 955,
+        "fail": 727,
+        "unknown": 0
+      },
+      {
+        "move": "Hide Cards",
+        "index": 2,
+        "name": "stackNotEmpty",
+        "args": [
+          "game.VisibleCards"
+        ],
+        "pass": 916,
+        "fail": 766,
+        "unknown": 0
+      }
+    ],
+    "visibility": [
+      {
+        "property": "Game.HiddenCards",
+        "sanitizedNonZero": 1413,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,occupancy,order,nonempty]"
+        ]
+      }
+    ],
+    "blocks": {
+      "reached": 79,
+      "blocks": 91,
+      "functions": [
+        {
+          "func": "memory.(*gameDelegate).BeginSetUp",
+          "blocks": 12,
+          "reached": 9,
+          "unreached": [
+            "main.go:154.3-154.21",
+            "main.go:158.3-159.1",
+            "main.go:161.3-162.1"
+          ]
+        },
+        {
+          "func": "memory.(*gameDelegate).ConfigureComputedProperties.func1",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*gameDelegate).DistributeComponentToStarterStack",
+          "blocks": 2,
+          "reached": 2,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*gameDelegate).FinishSetUp",
+          "blocks": 28,
+          "reached": 23,
+          "unreached": [
+            "main.go:211.4-212.1",
+            "main.go:226.5-227.1",
+            "main.go:229.5-230.1",
+            "main.go:233.5-234.1",
+            "main.go:236.5-237.1"
+          ]
+        },
+        {
+          "func": "memory.(*gameDelegate).GameEndConditionMet",
+          "blocks": 4,
+          "reached": 3,
+          "unreached": [
+            "main.go:291.2-291.13"
+          ]
+        },
+        {
+          "func": "memory.(*gameDelegate).PlayerScore",
+          "blocks": 1,
+          "reached": 0,
+          "unreached": [
+            "main.go:295.2-296.1"
+          ]
+        },
+        {
+          "func": "memory.(*gameState).CurrentPlayerHasCardsToReveal",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*moveCaptureCards).Apply",
+          "blocks": 6,
+          "reached": 6,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*moveHideCards).Apply",
+          "blocks": 7,
+          "reached": 6,
+          "unreached": [
+            "moves.go:195.5-196.1"
+          ]
+        },
+        {
+          "func": "memory.(*moveRevealCard).Apply",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "moves.go:75.3-76.1"
+          ]
+        },
+        {
+          "func": "memory.(*moveRevealCard).DefaultsForState",
+          "blocks": 5,
+          "reached": 5,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*moveStartHideCardsTimer).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*moveStartHideCardsTimer).LegalCustom",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*playerState).GameScore",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*playerState).ResetForTurnEnd",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*playerState).ResetForTurnStart",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "memory.(*playerState).TurnDone",
+          "blocks": 6,
+          "reached": 6,
+          "unreached": []
+        }
+      ]
+    },
+    "gaps": {
+      "neverApplied": null,
+      "neverRefused": null,
+      "predicates": [
+        "Reveal Card #0 proposerIsCurrentPlayer(): no unknown",
+        "Reveal Card #1 propAtLeast(player.CardsLeftToReveal, 1): no unknown",
+        "Reveal Card #2 revealableCardAt(game.HiddenCards, game.VisibleCards, move.CardIndex): no fail, unknown",
+        "Reveal Card #3 mayMoveToSlot(game.HiddenCards, game.VisibleCards, move.CardIndex, move.CardIndex): no fail, unknown",
+        "Hide Cards #0 proposerIsCurrentPlayer(): no unknown",
+        "Hide Cards #1 propCompare(player.CardsLeftToReveal, <=, 0): no unknown",
+        "Hide Cards #2 stackNotEmpty(game.VisibleCards): no unknown"
+      ],
+      "visibility": null
+    },
+    "mutants": null
+  },
+  "replay": {
+    "source": "translator-output",
+    "loaded": false,
+    "error": "stockMove: MoveComponentToSlot needs configuration SlotField",
+    "documents": 0,
+    "passed": 0
+  },
+  "stale": null,
+  "nulls": {
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)",
+    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/memory/); functions.translatable is what the translator would write",
+    "stale": "no generated game is checked in"
+  }
+}
