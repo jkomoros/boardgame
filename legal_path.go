@@ -46,30 +46,106 @@ const (
 // parsedLegalPath is the result of successfully parsing a LegalPropPath: the
 // path's kind, the property name to look up within that kind's reader, and
 // (pathPlayersMoveField only) the move field naming which player to index.
+//
+// A component path (legal_component_path.go) additionally carries a
+// component selector and the property read from the selected component:
+// "game.Stack[selector].Prop" or "game.Board[move.Space][selector].Prop".
+// prop is still the owning stack (or board) property; component and
+// componentProp describe the one component hop.
 type parsedLegalPath struct {
 	kind            legalPathKind
 	prop            string
 	moveField       string
 	boardIndexField string
+	component       legalComponentSelector
+	componentProp   string
 }
 
-func parseLegalPropertyExpression(path, expression string) (string, string, error) {
+// readsMove reports whether resolving this path reads the move: a move.*
+// path, a players[move.F] owner, a [move.F] board index, or a [move.F]
+// component selector. Any such path is field-dependent.
+func (p parsedLegalPath) readsMove() bool {
+	return p.kind == pathMove || p.kind == pathPlayersMoveField || p.boardIndexField != "" || p.component.kind == legalSelectMoveField
+}
+
+// hasComponent reports whether this is a component path.
+func (p parsedLegalPath) hasComponent() bool {
+	return p.component.kind != legalSelectNone
+}
+
+// legalPropertyExpression is the parsed form of the part of a path after its
+// KIND: a property name, optionally followed by a board index, a component
+// selector and a component property.
+type legalPropertyExpression struct {
+	prop            string
+	boardIndexField string
+	component       legalComponentSelector
+	componentProp   string
+}
+
+// parseLegalPropertyExpression parses "Prop", "Board[move.F]",
+// "Stack[selector].Prop" or "Board[move.F][selector].Prop". The shape alone
+// decides what each bracket means: a single bracket with no suffix is a
+// board index (which yields a stack); a bracket followed by ".Prop" is a
+// component selector. A component is not a property type, so a component
+// selector must be followed by a property.
+func parseLegalPropertyExpression(path, expression string) (legalPropertyExpression, error) {
 	open := strings.Index(expression, "[")
 	if open == -1 {
 		if strings.Contains(expression, "]") {
-			return "", "", fmt.Errorf("boardgame: invalid legal path %q: unexpected closing bracket", path)
+			return legalPropertyExpression{}, fmt.Errorf("boardgame: invalid legal path %q: unexpected closing bracket", path)
 		}
-		return expression, "", nil
+		return legalPropertyExpression{prop: expression}, nil
 	}
-	if open == 0 || !strings.HasSuffix(expression, "]") || strings.Count(expression, "[") != 1 || strings.Count(expression, "]") != 1 {
-		return "", "", fmt.Errorf("boardgame: invalid legal path %q: expected Property[move.Field]", path)
+	if open == 0 {
+		return legalPropertyExpression{}, fmt.Errorf("boardgame: invalid legal path %q: expected Property[selector]", path)
 	}
-	selector := expression[open+1 : len(expression)-1]
-	field, ok := strings.CutPrefix(selector, "move.")
-	if !ok || field == "" || strings.ContainsAny(field, ".[]") {
-		return "", "", fmt.Errorf("boardgame: invalid legal path %q: board selector must be move.Field", path)
+	result := legalPropertyExpression{prop: expression[:open]}
+	rest := expression[open:]
+	var brackets []string
+	for strings.HasPrefix(rest, "[") {
+		closeIdx := strings.Index(rest, "]")
+		if closeIdx == -1 {
+			return legalPropertyExpression{}, fmt.Errorf("boardgame: invalid legal path %q: missing closing bracket", path)
+		}
+		content := rest[1:closeIdx]
+		if strings.Contains(content, "[") {
+			return legalPropertyExpression{}, fmt.Errorf("boardgame: invalid legal path %q: nested brackets", path)
+		}
+		brackets = append(brackets, content)
+		rest = rest[closeIdx+1:]
 	}
-	return expression[:open], field, nil
+	if rest != "" {
+		suffix, ok := strings.CutPrefix(rest, ".")
+		if !ok || suffix == "" || strings.ContainsAny(suffix, ".[]") {
+			return legalPropertyExpression{}, fmt.Errorf("boardgame: invalid legal path %q: expected .Property after a component selector (one component hop only)", path)
+		}
+		result.componentProp = suffix
+	}
+	boardField := func(content string) (string, error) {
+		field, ok := strings.CutPrefix(content, "move.")
+		if !ok || field == "" || strings.ContainsAny(field, ".[]") {
+			return "", fmt.Errorf("boardgame: invalid legal path %q: board selector must be move.Field", path)
+		}
+		return field, nil
+	}
+	var err error
+	switch {
+	case len(brackets) == 1 && result.componentProp == "":
+		result.boardIndexField, err = boardField(brackets[0])
+	case len(brackets) == 1:
+		result.component, err = parseLegalComponentSelector(path, brackets[0])
+	case len(brackets) == 2 && result.componentProp != "":
+		if result.boardIndexField, err = boardField(brackets[0]); err == nil {
+			result.component, err = parseLegalComponentSelector(path, brackets[1])
+		}
+	default:
+		err = fmt.Errorf("boardgame: invalid legal path %q: expected Board[move.Field], Stack[selector].Property, or Board[move.Field][selector].Property", path)
+	}
+	if err != nil {
+		return legalPropertyExpression{}, err
+	}
+	return result, nil
 }
 
 // legalPlayerIndexSource is the single internal algebra behind the public
@@ -132,15 +208,18 @@ func parseLegalPath(p LegalPropPath) (parsedLegalPath, error) {
 		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: unknown path kind %q (expected game, player, proposer, players[*], move, or players[move.Field])", s, kindStr)
 	}
 
-	base, boardIndexField, err := parseLegalPropertyExpression(s, prop)
+	expr, err := parseLegalPropertyExpression(s, prop)
 	if err != nil {
 		return parsedLegalPath{}, err
 	}
-	if kind == pathMove && boardIndexField != "" {
-		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: indexed boards must be game or player state properties", s)
+	if kind == pathMove && (expr.boardIndexField != "" || expr.component.kind != legalSelectNone) {
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: indexed boards and component selectors must be game or player state properties", s)
+	}
+	if kind == pathPlayersAll && expr.component.kind != legalSelectNone {
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: component selectors are not supported on quantifier-only players[*] paths", s)
 	}
 
-	return parsedLegalPath{kind: kind, prop: base, boardIndexField: boardIndexField}, nil
+	return parsedLegalPath{kind: kind, prop: expr.prop, boardIndexField: expr.boardIndexField, component: expr.component, componentProp: expr.componentProp}, nil
 }
 
 // parsePlayersMoveFieldPath parses the "players[move.<Field>].<Prop>" shape
@@ -166,12 +245,12 @@ func parsePlayersMoveFieldPath(p LegalPropPath, s string) (parsedLegalPath, erro
 	if !ok || propExpression == "" {
 		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: missing property name after players[move.%s]", s, field)
 	}
-	prop, boardIndexField, err := parseLegalPropertyExpression(s, propExpression)
+	expr, err := parseLegalPropertyExpression(s, propExpression)
 	if err != nil {
 		return parsedLegalPath{}, err
 	}
 
-	return parsedLegalPath{kind: pathPlayersMoveField, moveField: field, prop: prop, boardIndexField: boardIndexField}, nil
+	return parsedLegalPath{kind: pathPlayersMoveField, moveField: field, prop: expr.prop, boardIndexField: expr.boardIndexField, component: expr.component, componentProp: expr.componentProp}, nil
 }
 
 // validateLegalPath parses p and checks that its named property actually
@@ -246,9 +325,21 @@ func validateLegalPath(p LegalPropPath, exampleState ImmutableState, moveReader 
 	if err := validatePropOnReader(p, parsed.prop, reader); err != nil {
 		return err
 	}
-	if parsed.boardIndexField == "" {
-		return nil
+	if parsed.boardIndexField != "" {
+		if err := validateLegalBoardIndex(p, parsed, reader, moveReader); err != nil {
+			return err
+		}
 	}
+	if parsed.hasComponent() {
+		_, err := legalComponentPathType(p, parsed, exampleState, moveReader)
+		return err
+	}
+	return nil
+}
+
+// validateLegalBoardIndex validates the [move.Field] board index of parsed
+// against the owning reader and the move reader.
+func validateLegalBoardIndex(p LegalPropPath, parsed parsedLegalPath, reader PropertyReader, moveReader PropertyReader) error {
 	if reader.Props()[parsed.prop] != TypeBoard {
 		return fmt.Errorf("boardgame: legal path %q: property %q has PropertyType %v, expected TypeBoard before [move.%s]", p, parsed.prop, reader.Props()[parsed.prop], parsed.boardIndexField)
 	}
@@ -311,6 +402,12 @@ func validateLegalPathTypes(p LegalPropPath, allowed []PropertyType, exampleStat
 	actual := reader.Props()[parsed.prop]
 	if parsed.boardIndexField != "" {
 		actual = TypeStack
+	}
+	if parsed.hasComponent() {
+		actual, err = legalComponentPathType(p, parsed, exampleState, moveReader)
+		if err != nil {
+			return err
+		}
 	}
 	for _, expected := range allowed {
 		if actual == expected {
@@ -405,45 +502,71 @@ func resolveLegalPathForProposer(p LegalPropPath, state ImmutableState, move Mov
 }
 
 func resolveParsedLegalProp(path LegalPropPath, parsed parsedLegalPath, reader PropertyReader, move Move) (interface{}, PropertyType, error) {
-	if parsed.boardIndexField == "" {
+	if parsed.boardIndexField == "" && !parsed.hasComponent() {
 		return resolveProp(path, parsed.prop, reader)
 	}
+	var stack ImmutableStack
+	if parsed.boardIndexField != "" {
+		space, err := resolveLegalBoardSpace(path, parsed, reader, move)
+		if err != nil {
+			return nil, TypeIllegal, err
+		}
+		stack = space
+	} else {
+		val, propType, err := resolveProp(path, parsed.prop, reader)
+		if err != nil {
+			return nil, TypeIllegal, err
+		}
+		if propType != TypeStack {
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: property %q has PropertyType %v, expected TypeStack before a component selector", path, parsed.prop, propType)
+		}
+		stack, _ = val.(ImmutableStack)
+	}
+	if !parsed.hasComponent() {
+		return stack, TypeStack, nil
+	}
+	return resolveLegalComponentProp(path, parsed, stack, move)
+}
+
+// resolveLegalBoardSpace resolves the board space named by parsed's
+// [move.Field] board index.
+func resolveLegalBoardSpace(path LegalPropPath, parsed parsedLegalPath, reader PropertyReader, move Move) (ImmutableStack, error) {
 	if move == nil {
-		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: indexed board requires a move", path)
+		return nil, fmt.Errorf("boardgame: legal path %q: indexed board requires a move", path)
 	}
 	board, err := reader.ImmutableBoardProp(parsed.prop)
 	if err != nil || board == nil {
-		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: board property %q was unavailable: %v", path, parsed.prop, err)
+		return nil, fmt.Errorf("boardgame: legal path %q: board property %q was unavailable: %v", path, parsed.prop, err)
 	}
 	moveReader := move.Reader()
 	selectorType, ok := moveReader.Props()[parsed.boardIndexField]
 	if !ok {
-		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q does not exist", path, parsed.boardIndexField)
+		return nil, fmt.Errorf("boardgame: legal path %q: move field %q does not exist", path, parsed.boardIndexField)
 	}
 	var stack ImmutableStack
 	switch selectorType {
 	case TypeInt:
 		index, err := moveReader.IntProp(parsed.boardIndexField)
 		if err != nil {
-			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: could not read move field %q: %w", path, parsed.boardIndexField, err)
+			return nil, fmt.Errorf("boardgame: legal path %q: could not read move field %q: %w", path, parsed.boardIndexField, err)
 		}
 		stack = board.ImmutableSpaceAt(index)
 	case TypeEnum:
 		value, err := moveReader.ImmutableEnumProp(parsed.boardIndexField)
 		if err != nil || value == nil {
-			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: could not read enum move field %q: %v", path, parsed.boardIndexField, err)
+			return nil, fmt.Errorf("boardgame: legal path %q: could not read enum move field %q: %v", path, parsed.boardIndexField, err)
 		}
 		if board.Enum() == nil || board.Enum() != value.Enum() {
-			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: enum move field %q does not match board enum", path, parsed.boardIndexField)
+			return nil, fmt.Errorf("boardgame: legal path %q: enum move field %q does not match board enum", path, parsed.boardIndexField)
 		}
 		stack = board.ImmutableSpaceAtKey(value.Value())
 	default:
-		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypeInt or TypeEnum", path, parsed.boardIndexField, selectorType)
+		return nil, fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypeInt or TypeEnum", path, parsed.boardIndexField, selectorType)
 	}
 	if stack == nil {
-		return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: board selector %q was out of range", path, parsed.boardIndexField)
+		return nil, fmt.Errorf("boardgame: legal path %q: board selector %q was out of range", path, parsed.boardIndexField)
 	}
-	return stack, TypeStack, nil
+	return stack, nil
 }
 
 func resolveLegalPlayerReader(path LegalPropPath, source legalPlayerIndexSource, moveField string, state ImmutableState, move Move, proposer PlayerIndex) (PropertyReader, error) {

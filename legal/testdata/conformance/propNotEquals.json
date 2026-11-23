@@ -64,6 +64,25 @@
       "fixture": "memoryDefault",
       "proposer": 0,
       "expect": "unknown"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "true"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "true"]},
+      "fixture": "checkersCrownedToken",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_not_equals"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "true"]},
+      "fixture": "checkersEmptySpace",
+      "proposer": 0,
+      "expect": "unknown"
     }
   ]
 }

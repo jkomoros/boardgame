@@ -371,6 +371,25 @@ var legalFixtureBuilders = map[string]func(t *testing.T) legalFixture{
 		move := checkersMoveWithTokenIndex(t, game, idx)
 		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
 	},
+	// checkersCrownedToken: checkersDefault, but the token at
+	// move.TokenIndexToMove has its DYNAMIC Crowned value set to true — for
+	// component-path predicates over DynamicComponentValues.
+	"checkersCrownedToken": func(t *testing.T) legalFixture {
+		game, state := newCheckersGame(t)
+		spaces, err := state.GameState().ReadSetter().StackProp("Spaces")
+		if err != nil {
+			t.Fatalf("legal: reading Spaces: %v", err)
+		}
+		idx := firstOccupiedIndex(spaces)
+		if idx < 0 {
+			t.Fatal("legal: checkers fixture has no occupied space")
+		}
+		if err := spaces.ComponentAt(idx).DynamicValues().ReadSetter().SetBoolProp("Crowned", true); err != nil {
+			t.Fatalf("legal: crowning token: %v", err)
+		}
+		move := checkersMoveWithTokenIndex(t, game, idx)
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
 	// checkersNoMove: checkersDefault's state, but with a nil Move.
 	"checkersNoMove": func(t *testing.T) legalFixture {
 		game, state := newCheckersGame(t)

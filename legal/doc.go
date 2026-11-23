@@ -91,8 +91,10 @@ that doesn't exist:
 
  3. **No user arithmetic, loops, or lambdas in serialized form, ever.** If a
     check needs computation beyond a relation or a short hand-written branch
-    — summing a hand's value, walking a graph, or reading dynamic component
-    state — it does not belong in the catalog. Push the
+    — summing a hand's value, walking a graph, or looping over a stack's
+    components — it does not belong in the catalog. (Reading ONE selected
+    component's value is not computation; it is a path — see "Component
+    paths" below.) Push the
     computation into a computed state property that a relation predicate can
     then read, or use the escape hatch (LegalCustom, below). This rule is
     what keeps the catalog conformance-corpus-checkable and, eventually,
@@ -111,6 +113,49 @@ negation without a general wrapper. A disjunction-of-conjunctions shape
 LegalCustom. Framework move types whose semantics are inherently negated or
 conditional (ApplyUntil and its subclasses, RoundRobin) stay opaque rather
 than bending this rule.
+
+# Component paths
+
+A path can step into one selected component of a stack and read a property
+of it:
+
+	game.Spaces[move.TokenIndexToMove].Crowned
+	players[move.TargetPlayerIndex].Species[move.TargetSpecies].Population
+	game.VisibleCards[first].Type
+	game.VisibleCards[occupied:1].Type
+	game.Board[move.Space][first].Owner
+
+The bracket is a component selector: [move.Field] (the slot an int field
+indexes, or an enum field keys), [first] (the first occupied slot), or
+[occupied:N] (the N-th occupied slot, zero based, skipping holes). Build them
+with the same sealed selectors the ComponentProp* predicates take —
+MoveIndex, FirstOccupied, OccupiedOrdinal — and their Prop method:
+
+	species := legal.MoveIndex("players[move.TargetPlayerIndex].Species", "move.TargetSpecies")
+	legal.PropCompare(species.Prop("Population"), legal.OpLessThan, maxPopulation)
+	legal.ComponentPresentAt(species.Prop("Traits"), "move.TargetTraitCard")
+
+The property may live in the component's static Values() or in its
+DynamicComponentValues; you do not say which. NewGameManager checks, for
+every deck the stack can hold, that exactly one of the two defines it on
+every component with one PropertyType (a name in both is an ambiguity
+error), and the resolved type feeds the predicate's normal type contract —
+so PropCompare over a dynamic stack is a boot error, while StackCount or
+ComponentPresentAt over that same stack just works. Every predicate that
+reads a path accepts component paths; there is no separate "dynamic" family.
+
+An empty selected slot (or an out-of-range [move.Field]) evaluates to
+Unknown, which fails closed. Put a ComponentPresentAt or StackNotEmpty check
+earlier in the plan when the move needs its own message for that case.
+
+Evaluability is judged per hop. The stack must be PolicyVisible to the
+viewer (selecting a component needs its identity and values); a static
+property is then visible; a dynamic property must additionally survive the
+read's facet under the deck's own DynamicComponentValues policy — the same
+rule sanitization applies, where dynamic values are hidden unless their
+component sits in a visible stack. A [move.Field] selector makes the path
+field-dependent; [first] and [occupied:N] do not. Only one component hop is
+supported: "Species[move.S].Traits[move.T].Trait" is a parse error.
 
 # The escape hatch
 
@@ -377,22 +422,21 @@ respectively — and widened the composition seam. What's left, honestly:
     negation; there is still no general `not` wrapper and no `all`
     compositor, so a disjunction-of-conjunctions shape ((A∧B)∨(C∧D)) has no
     expression and stays LegalCustom.
-  - **DynamicComponentValues have no path grammar equivalent.** A check
-    reading a component's per-game dynamic values (as opposed to its static
-    chest-defined Values()) — a card's current face-up type, a species'
-    population counter — always needs LegalCustom. Across every game
-    surveyed so far, this is the single most common reason a real move
-    stays partially opaque.
-  - **Static component-value access is deliberately sealed.**
-    ComponentPropEquals/ComponentPropNotEquals compare one chest-defined
-    string or enum field with a literal; ComponentPropsEqual/
-    ComponentPropsNotEqual compare the same field on two components. A
-    ComponentSelector can only name FirstOccupied, a zero-based
-    OccupiedOrdinal, or an int-valued MoveIndex. Manager construction checks
-    the stack path, selector field, and field type against every component in
-    the deck. These predicates declare FacetValues and remain
-    ClientEvaluable=false until a TypeScript evaluator implements the same
-    closed selector semantics.
+  - **Component paths take one hop, and relations compare a path with a
+    literal.** Static and dynamic component values are now ordinary paths
+    (see "Component paths" above), so a species' population cap or a
+    token's dynamic Crowned flag is declarative. What still needs
+    LegalCustom: a second hop into a component nested in another
+    component's dynamic stack; any loop over a stack's components
+    ("no existing trait duplicates this one"); and comparing two paths with
+    each other, which has no general relation yet. ComponentPropsEqual/
+    ComponentPropsNotEqual remain the two-component case for static string
+    or enum fields, and ComponentPropEqualsCurrentPlayer the
+    component-vs-player case. ComponentPropEquals/ComponentPropNotEquals
+    are the same check as PropEquals/PropNotEquals over selector.Prop(field)
+    for enum fields. They are kept for their wire names and {prop} binding,
+    and they remain static-only, string-capable, and ClientEvaluable=false.
+    PropEquals has no string arm.
   - **The composition seam is moves.CurrentPlayer, moves.Default,
     moves.DrawToPlayer, moves.FixUp, moves.FixUpMulti,
     moves.MoveComponentToSlot, moves.RecordCurrentPlayerChoice and

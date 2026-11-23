@@ -447,6 +447,9 @@ func validateLegalComponentField(requirement LegalComponentFieldRequirement, exa
 	if err != nil {
 		return err
 	}
+	if parsed.hasComponent() {
+		return fmt.Errorf("component field %q on %q: the stack path itself selects a component; component field requirements support one component hop only", requirement.Field, requirement.StackPath)
+	}
 	var readers []PropertyReader
 	switch parsed.kind {
 	case pathGame:
@@ -862,11 +865,12 @@ func evalLegalPredicate(p *LegalPredicate, ctx LegalContext) (verdict LegalVerdi
 }
 
 // legalReadsIncludeMovePath reports whether reads contains at least one
-// path that parses as a move.* path, a players[move.<Field>].* path (spec
-// §3), or a path with a [move.<Field>] board selector (legalPathReadsMove):
-// the latter two resolve to a value that depends on the move's own <Field>,
-// so a predicate reading one is field-dependent by construction exactly like
-// a bare move.* read — it must land in the plan's
+// path that reads the move (legalPathReadsMove): a move.* path, a
+// players[move.<Field>].* path (spec §3), or a path with a [move.<Field>]
+// board index or component selector. The non-move.* kinds resolve to a
+// value that depends on the move's own <Field>, so a predicate reading one
+// is field-dependent by construction exactly like a bare move.* read — it
+// must land in the plan's
 // field-dependent bucket (buildLegalPlanFromPredicates, legal_plan.go) and
 // count as a declared move read for evalLegalPredicate's nil-Move panic
 // guard, above. A malformed path is treated as not a move path

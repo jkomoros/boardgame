@@ -98,14 +98,15 @@ func (e *legalReadEnforcement) violationVerdict() LegalVerdict {
 
 // legalPathReadsMove reports whether resolving p depends on the move's field
 // values: a move.X path, a players[move.Field].X path, or any path carrying a
-// [move.Field] board selector (game.Board[move.Space]). A malformed path is
-// not a move path; boot validation reports it separately.
+// [move.Field] board selector (game.Board[move.Space]) or component selector
+// (game.Stack[move.Slot].Prop) — see parsedLegalPath.readsMove. A malformed
+// path is not a move path; boot validation reports it separately.
 func legalPathReadsMove(p LegalPropPath) bool {
 	parsed, err := parseLegalPath(p)
 	if err != nil {
 		return false
 	}
-	return parsed.kind == pathMove || parsed.kind == pathPlayersMoveField || parsed.boardIndexField != ""
+	return parsed.readsMove()
 }
 
 // legalReadsFromArgs derives a conservative read-set for a predicate that
