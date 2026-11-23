@@ -5,6 +5,11 @@
 // state, the move record, and every viewer's game object, sanitized move,
 // legality and projected choices must equal what Go recorded.
 //
+// The games are the generated ones (games/<game>/index.ts, written by
+// `boardgame-util transpile` from Go), which replaced the hand ports; each
+// game's <game>.gen.test.ts replays the same documents and its fuzz
+// documents too. This file keeps the whole corpus's pass table in one place.
+//
 // See ../testing/conformance.ts for exactly what is compared and how.
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -15,12 +20,12 @@ import { gunzipSync } from 'node:zlib';
 import type { CompiledGame, GameSpec } from '../rules/index.ts';
 import { compileGame } from '../rules/index.ts';
 import { type ConformanceDocument, type DocumentResult, FIELDS, passTable, runDocument } from '../testing/conformance.ts';
-import { blackjack } from './blackjack.ts';
-import { debuganimations } from './debuganimations.ts';
-import { memory } from './memory.ts';
-import { pig } from './pig.ts';
-import { tictactoe } from './tictactoe.ts';
-import { werewolf } from './werewolf.ts';
+import { blackjack } from './blackjack/index.ts';
+import { debuganimations } from './debuganimations/index.ts';
+import { memory } from './memory/index.ts';
+import { pig } from './pig/index.ts';
+import { tictactoe } from './tictactoe/index.ts';
+import { werewolf } from './werewolf/index.ts';
 
 function corpusDir(): string {
 	let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -35,7 +40,7 @@ function corpusDir(): string {
 const dir = corpusDir();
 const index = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8')) as { file: string; game: string; name: string }[];
 
-// The four games this layer set out to port, and the two stretch games.
+// The four games the engine layer set out to port, and the two stretch games.
 const specs: Record<string, GameSpec> = { memory: memory(), blackjack: blackjack(), tictactoe: tictactoe(), pig: pig(), debuganimations: debuganimations(), werewolf: werewolf() };
 const compiled: Record<string, CompiledGame> = {};
 const results: DocumentResult[] = [];

@@ -3,6 +3,6 @@
 // its 8 fuzz documents, including their rejections. See
 // ../generated.testkit.test.ts for what is compared.
 import { generatedGameSuite } from '../generated.testkit.test.ts';
-import { pigGenerated } from './index.ts';
+import { pig } from './index.ts';
 
-generatedGameSuite('pig', pigGenerated, { corpus: 3, fuzz: 8 });
+generatedGameSuite('pig', pig, { corpus: 3, fuzz: 8 });

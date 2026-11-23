@@ -6,6 +6,6 @@ import { bodies } from './bodies.gen.ts';
 import { definition } from './definition.gen.ts';
 
 /** blackjack, built from its exported definition and its translated Go functions. */
-export function blackjackGenerated(): GameSpec {
+export function blackjack(): GameSpec {
 	return gameFromData(definition(), bodies);
 }

@@ -1,14 +1,15 @@
-// The loader (rules/data.ts) on the hand ports. For a game, a GameSpec built
-// by gameFromData from the game's exported definition, with the hand port's
-// own functions as bodies, must compile to the same header tables, plans and
-// state definition as the hand port, and must pass that game's whole
-// conformance corpus through the existing runner (testing/conformance.ts).
+// The loader (rules/data.ts) on its own contracts, with the generated games'
+// translated Go functions as bodies (games/<game>/bodies.gen.ts).
 //
 // Two sources of GameData:
 //
 //  - conformance/definitions/<game>.json, written by the Go exporter
-//    (`boardgame-util gamedef export`). Each game whose file is absent is a
-//    skipped subtest that says so.
+//    (`boardgame-util gamedef export`). The generated game IS that
+//    definition with those bodies, and games/<game>/<game>.gen.test.ts holds
+//    it to the whole corpus; here the same definition is loaded again with
+//    every move supplied whole through the `move:` hook, and must compile to
+//    the same header tables, plans and state definition as the generated
+//    game and pass the conformance corpus.
 //  - rules/testdata/<game>.gamedata.json: stand-ins written for this test
 //    before the exporter existed, for pig and blackjack. Their Definition
 //    equals Go's DefinitionFor output (testdata/defs/<game>.def.json) plus
@@ -17,12 +18,18 @@
 //    what the live Go manager reports (rules/testdata/movefacts/<game>.json,
 //    from rules/testdata/gen/movefacts); both are checked below. The rest
 //    (Stock, Base, Fields, Bodies FnRefs, Traits, Initial, flags) is written
-//    by hand from the Go source and is held only by the corpus.
+//    by hand from the Go source and is held by compiling like the generated
+//    game and by the corpus. A fixture move whose stock configuration the
+//    registry cannot build, or builds without the Apply that Go's exported
+//    configuration yields (the fixtures lack Go's boot-time inferences), gets
+//    the registry's parts built from Go's exported configuration of the same
+//    move, through the `stock:<name>` hook; a second pass supplies moves
+//    whole through `move:` instead, so both hooks are exercised.
 //
-// The hand port supplies bodies by role (handPortBodies). A move whose stock
-// type rules/stockRegistry.ts cannot build yet gets the hand port's parts
-// through the `stock:<name>` hook; a second pass builds every move through
-// the `move:<name>` hook instead, so both hooks are exercised.
+// Until the six hand ports (games/<game>.ts) were replaced by the generated
+// games, the bodies here were the hand ports' functions, adapted by role;
+// fabric/transpile/status/replacement.md says what that adapter proved and
+// where the record of those functions now is (the pair store).
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -31,13 +38,19 @@ import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import { policyMapFor } from '../definition.ts';
 import type { DeckDef, GameDefinition, SubStateDef } from '../definition.ts';
-import { blackjack } from '../games/blackjack.ts';
-import { debuganimations } from '../games/debuganimations.ts';
-import { memory } from '../games/memory.ts';
-import { pig } from '../games/pig.ts';
-import { tictactoe } from '../games/tictactoe.ts';
-import { werewolf } from '../games/werewolf.ts';
+import { bodies as blackjackBodies } from '../games/blackjack/bodies.gen.ts';
+import { blackjack } from '../games/blackjack/index.ts';
 import { bodies as checkersBodies } from '../games/checkers/bodies.gen.ts';
+import { bodies as debuganimationsBodies } from '../games/debuganimations/bodies.gen.ts';
+import { debuganimations } from '../games/debuganimations/index.ts';
+import { bodies as memoryBodies } from '../games/memory/bodies.gen.ts';
+import { memory } from '../games/memory/index.ts';
+import { bodies as pigBodies } from '../games/pig/bodies.gen.ts';
+import { pig } from '../games/pig/index.ts';
+import { bodies as tictactoeBodies } from '../games/tictactoe/bodies.gen.ts';
+import { tictactoe } from '../games/tictactoe/index.ts';
+import { bodies as werewolfBodies } from '../games/werewolf/bodies.gen.ts';
+import { werewolf } from '../games/werewolf/index.ts';
 import { GENERIC_COMPONENT } from '../ids.ts';
 import { loadEngineState } from '../state.ts';
 import { type ConformanceDocument, FIELDS, firstDifference, runDocument } from '../testing/conformance.ts';
@@ -49,7 +62,15 @@ import { newRulesState } from './state.ts';
 import { type StockParts, stockMove } from './stockRegistry.ts';
 import type { GameSpec, MoveSpec } from './types.ts';
 
-const HAND_PORTS: Record<string, () => GameSpec> = { memory, blackjack, tictactoe, pig, debuganimations, werewolf };
+/** The six formerly hand-ported games: the generated game and its bodies table. */
+const GENERATED: Record<string, { make: () => GameSpec; bodies: Bodies }> = {
+	memory: { make: memory, bodies: memoryBodies },
+	blackjack: { make: blackjack, bodies: blackjackBodies },
+	tictactoe: { make: tictactoe, bodies: tictactoeBodies },
+	pig: { make: pig, bodies: pigBodies },
+	debuganimations: { make: debuganimations, bodies: debuganimationsBodies },
+	werewolf: { make: werewolf, bodies: werewolfBodies },
+};
 const FIXTURES = ['pig', 'blackjack'];
 
 function repoRoot(): string {
@@ -70,9 +91,9 @@ function readJSON<T>(file: string): T {
 	return JSON.parse(readFileSync(file, 'utf8')) as T;
 }
 
-// ----- the hand port as bodies --------------------------------------------
+const exportedDefinition = (name: string): GameData => readJSON<GameData>(path.join(root, 'conformance', 'definitions', name + '.json'));
 
-type AnyBody = (...args: never[]) => unknown;
+// ----- the generated bodies -----------------------------------------------
 
 /** Whether rules/stockRegistry.ts builds this move's stock type yet. */
 function stockAvailable(move: MoveData): boolean {
@@ -86,104 +107,67 @@ function stockAvailable(move: MoveData): boolean {
 
 interface Adapter {
 	bodies: Bodies;
-	/** Moves given the hand port's parts through `stock:` / whole through `move:`. */
+	/** Moves given the registry's parts (from Go's exported configuration) through `stock:`. */
 	standIns: string[];
+	/** Moves supplied whole through `move:`. */
 	overrides: string[];
-	/** FnRefs served by a TEST_BODIES entry. */
-	testBodies: string[];
+	/** Moves left to their bodies under `wholeMoves`: their apply calls the stock Apply, which `move:` does not carry. */
+	notOverridden: string[];
+}
+
+/** The registry's parts for a stock configuration, or undefined when it cannot build them. */
+function partsFor(stock: NonNullable<MoveData['Stock']>): StockParts | undefined {
+	try {
+		return stockMove(stock.Type, stock.Config);
+	} catch {
+		return undefined;
+	}
 }
 
 /**
- * Bodies for Go functions a hand port has no separate function for, because
- * the hand port leaves to an engine default what the Go game declares as a
- * method. Each is the Go function, written from the hand port's pieces.
+ * The generated game's bodies for `data`.
+ *
+ * A move whose stock configuration in `data` the registry cannot build, or
+ * builds without the Apply that Go's exported configuration of the same
+ * move yields (a fixture lacks Go's boot-time inferences, such as
+ * DrawToPlayer's resolved source and destination), gets the registry's
+ * parts built from Go's exported configuration, through `stock:`.
+ *
+ * With `wholeMoves`, every move whose generated MoveSpec carries no stock
+ * Apply is supplied whole through the `move:` hook. A move that does is
+ * left to its bodies: the hook takes a move's behavior (`apply`, `legal`,
+ * ...) and not its stock parts, and a translated apply calls the stock
+ * Apply (`stockApply`), so through `move:` it would find none.
  */
-const TEST_BODIES: Record<string, (hand: GameSpec) => AnyBody | undefined> = {
-	// `return pState.(*playerState).GameScore()`. The hand port leaves
-	// end.playerScore unset, so the engine scores with the gameScore trait
-	// (rules/engine.ts checkGameFinished): this is that default.
-	'memory.(*gameDelegate).PlayerScore': hand => hand.player.traits?.gameScore,
-	// `return false, nil` (never finished). The hand port has no end, which the
-	// engine reads as never finished.
-	'debuganimations.(*gameDelegate).CheckGameFinished': () => (): { finished: boolean; winners: number[] } => ({ finished: false, winners: [] }),
-};
-
-/**
- * The hand port's functions as bodies, by the role the data names each
- * FnRef in. With `wholeMoves`, every move is the hand port's through the
- * `move:` hook; otherwise only moves whose stock type is not yet ported get
- * the hand port's stock-side parts through `stock:`.
- */
-function handPortBodies(data: GameData, hand: GameSpec, wholeMoves: boolean): Adapter {
-	const table = new Map<string, AnyBody>();
-	const adapter: Adapter = { bodies: ref => table.get(ref), standIns: [], overrides: [], testBodies: [] };
-	const add = (ref: string | undefined, handBody: AnyBody | undefined, role: string): void => {
-		if (ref === undefined) return;
-		let body = handBody;
-		if (body === undefined && TEST_BODIES[ref] !== undefined) {
-			body = TEST_BODIES[ref](hand);
-			if (body !== undefined && !adapter.testBodies.includes(ref)) adapter.testBodies.push(ref);
-		}
-		assert.ok(body !== undefined, 'the hand port has no ' + role + ' for ' + ref);
-		const existing = table.get(ref);
-		// One Go method shared by several move configs (werewolf's moveCastVote
-		// for Cast Vote and Cast Night Vote) is one closure per config in a hand
-		// port built by a factory. The same function expression is accepted and
-		// the first kept: the corpus then runs every config sharing it on that one.
-		assert.ok(existing === undefined || existing === body || existing.toString() === body.toString(), 'two different hand-port functions for ' + ref);
-		if (existing === undefined) table.set(ref, body);
-	};
-	const handMoves = new Map(hand.moves.map(move => [move.name, move] as const));
+function generatedBodies(data: GameData, name: string, wholeMoves: boolean): Adapter {
+	const generated = GENERATED[name];
+	const table = new Map<string, () => unknown>();
+	const adapter: Adapter = { bodies: ref => table.get(ref) ?? generated.bodies(ref), standIns: [], overrides: [], notOverridden: [] };
+	const moves = new Map(generated.make().moves.map(move => [move.name, move] as const));
+	const exported = new Map(exportedDefinition(name).Moves.map(move => [move.Name, move] as const));
 	for (const move of data.Moves) {
-		const hm = handMoves.get(move.Name);
-		assert.ok(hm, 'the hand port has no move ' + move.Name);
-		if (wholeMoves) {
-			table.set(moveOverrideRef(move.Name), (): MoveSpec => hm);
+		const whole = moves.get(move.Name);
+		assert.ok(whole, 'the generated ' + name + ' has no move ' + move.Name);
+		if (wholeMoves && whole.stock?.apply === undefined) {
+			table.set(moveOverrideRef(move.Name), (): MoveSpec => whole);
 			adapter.overrides.push(move.Name);
 			continue;
 		}
-		add(move.Bodies.Apply, hm.apply, 'apply');
-		add(move.Bodies.Legal, hm.legal, 'legal');
-		add(move.Bodies.LegalCustom, hm.legalCustom, 'legalCustom');
-		add(move.Bodies.Defaults, hm.defaults, 'defaults');
-		if (!stockAvailable(move)) {
-			// What the stock ancestor contributes, as the hand port has it: the
-			// methods the game does not override, and the stack properties.
-			const parts: StockParts = { spec: {} };
-			if (move.Bodies.Apply === undefined) parts.apply = hm.apply;
-			if (move.Bodies.Legal === undefined && hm.legal) parts.legal = hm.legal;
-			if (move.Bodies.Defaults === undefined && hm.defaults) parts.defaults = hm.defaults;
-			const spec: Partial<MoveSpec> = {};
-			if (hm.sourceProperty !== undefined) spec.sourceProperty = hm.sourceProperty;
-			if (hm.destinationProperty !== undefined) spec.destinationProperty = hm.destinationProperty;
-			if (hm.contributes) spec.contributes = hm.contributes;
-			parts.spec = spec;
-			table.set(stockOverrideRef(move.Name), (): StockParts => parts);
-			adapter.standIns.push(move.Name);
-		}
+		if (wholeMoves) adapter.notOverridden.push(move.Name);
+		if (move.Stock === null) continue;
+		const own = partsFor(move.Stock);
+		const go = exported.get(move.Name);
+		assert.ok(go?.Stock, name + ': Go exports no stock configuration for ' + move.Name);
+		const goParts = partsFor(go.Stock);
+		if (own !== undefined && (own.apply !== undefined || goParts?.apply === undefined)) continue;
+		assert.ok(goParts !== undefined, name + ': the registry cannot build ' + move.Name + " from Go's exported configuration either");
+		table.set(stockOverrideRef(move.Name), (): StockParts => goParts);
+		adapter.standIns.push(move.Name);
 	}
-	const computed = new Map((hand.computed ?? []).map(item => [item.name, item.compute as AnyBody] as const));
-	for (const item of data.Computed) add(item.Compute, computed.get(item.Name), 'computed ' + item.Name);
-	const playerTraits = hand.player.traits ?? {};
-	if (data.Traits.Player.GameScore !== undefined && data.Traits.Player.GameScore !== 'score') add(data.Traits.Player.GameScore, playerTraits.gameScore, 'gameScore');
-	const turn = data.Traits.Player.Turn;
-	if (turn) {
-		add(turn.TurnDone, playerTraits.turn?.turnDone, 'turnDone');
-		add(turn.ResetForTurnStart, playerTraits.turn?.resetForTurnStart, 'resetForTurnStart');
-		add(turn.ResetForTurnEnd, playerTraits.turn?.resetForTurnEnd, 'resetForTurnEnd');
-	}
-	add(data.Traits.Game.PlayerOrder, hand.game.traits?.playerOrder, 'playerOrder');
-	add(data.SetUp.Begin, hand.setUp.begin, 'setUp.begin');
-	add(data.SetUp.Distribute, hand.setUp.distribute, 'setUp.distribute');
-	add(data.SetUp.Finish, hand.setUp.finish, 'setUp.finish');
-	add(data.End.ConditionMet, hand.end?.conditionMet, 'end.conditionMet');
-	add(data.End.PlayerScore, hand.end?.playerScore, 'end.playerScore');
-	add(data.End.Check, hand.end?.check, 'end.check');
-	add(data.CurrentPlayerIndex, hand.currentPlayerIndex, 'currentPlayerIndex');
 	return adapter;
 }
 
-// ----- comparison with the hand port --------------------------------------
+// ----- comparison with the generated game ---------------------------------
 
 function normalizedSubState(def: SubStateDef, defaultGroup: string): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
@@ -210,7 +194,7 @@ function normalizedDefinition(def: GameDefinition): unknown {
 }
 
 /**
- * A progression group with each counter (a function in a hand port, data
+ * A progression group with each counter (a function in a hand-written GameSpec, data
  * from the loader) replaced by its results on currentCount 0..16 at the
  * length the group evaluates it at (1 for repeat, the child count for
  * parallel).
@@ -288,23 +272,33 @@ function runCorpus(game: CompiledGame, name: string): { documents: number; versi
 	return { documents: entries.length, versions };
 }
 
-/** The whole proof for one GameData: compiles like the hand port and passes the corpus, in both hook modes. */
-function proveLoader(t: { diagnostic(message: string): void }, data: GameData, name: string, noStandIns = false): void {
-	const hand = HAND_PORTS[name]();
-	const handGame = compileGame(hand);
-	for (const wholeMoves of [false, true]) {
-		const adapter = handPortBodies(data, hand, wholeMoves);
+/**
+ * The proof for one GameData: loaded with the generated bodies in each of
+ * `modes`, it compiles as the generated game does and passes the corpus.
+ */
+/** Per exported game, how many moves its last move: pass supplied whole. */
+const overridden: Record<string, number> = {};
+
+function proveLoader(t: { diagnostic(message: string): void }, data: GameData, name: string, modes: readonly boolean[], noStandIns = false): void {
+	const reference = compileGame(GENERATED[name].make());
+	for (const wholeMoves of modes) {
+		const adapter = generatedBodies(data, name, wholeMoves);
 		// An exported definition carries everything stockMove needs, Go's
 		// boot-time inferences included (gamedef addResolvedConfig): no move may
-		// fall back to the hand port's stock parts.
+		// need a stand-in.
 		if (noStandIns) assert.deepEqual(adapter.standIns, [], name + ': moves the stock registry cannot build from the exported configuration');
+		if (wholeMoves) {
+			overridden[name] = adapter.overrides.length;
+			// tictactoe's every move carries a stock Apply, so none can go through move:.
+			assert.equal(adapter.overrides.length + adapter.notOverridden.length, data.Moves.length);
+		}
 		const loaded = compileGame(gameFromData(data, adapter.bodies));
-		assert.equal(firstDifference(compiledSummary(loaded), compiledSummary(handGame)), null, name + ': the loaded game compiles as the hand port does');
+		assert.equal(firstDifference(compiledSummary(loaded), compiledSummary(reference)), null, name + ': the loaded game compiles as the generated game does');
 		const run = runCorpus(loaded, name);
 		t.diagnostic(
-			name + (wholeMoves ? ' (every move through move:)' : ' (bodies)') + ': ' + run.documents + ' documents, ' + run.versions + ' versions pass; ' +
-				(wholeMoves ? adapter.overrides.length + ' move: overrides' : adapter.standIns.length + ' of ' + data.Moves.length + ' moves had stock parts through stock: [' + adapter.standIns.join(', ') + ']') +
-				'; test bodies [' + adapter.testBodies.join(', ') + ']',
+			name + (wholeMoves ? ' (moves through move:)' : ' (bodies)') + ': ' + run.documents + ' documents, ' + run.versions + ' versions pass; ' +
+				(wholeMoves ? adapter.overrides.length + ' move: overrides, ' + adapter.notOverridden.length + ' left to bodies (stock Apply) [' + adapter.notOverridden.join(', ') + ']; ' : '') +
+				adapter.standIns.length + ' of ' + data.Moves.length + ' moves had stock parts through stock: [' + adapter.standIns.join(', ') + ']',
 		);
 	}
 }
@@ -342,30 +336,29 @@ for (const name of FIXTURES) {
 		assert.deepEqual({ ...data.Definition, Decks: decks }, go);
 	});
 
-	test(`${name} fixture: gameFromData with the hand port's functions passes the corpus`, t => {
-		proveLoader(t, data, name);
+	test(`${name} fixture: gameFromData with the generated game's functions passes the corpus`, t => {
+		proveLoader(t, data, name, [false, true]);
 	});
 }
 
 // ----- the exported definitions -------------------------------------------
 
-for (const name of Object.keys(HAND_PORTS)) {
-	const file = path.join(root, 'conformance', 'definitions', name + '.json');
-	test(`${name} exported definition: gameFromData with the hand port's functions passes the corpus`, t => {
-		if (!existsSync(file)) {
-			t.skip('conformance/definitions/' + name + '.json is absent: the Go exporter has not written it yet');
-			return;
-		}
-		const data = readJSON<GameData>(file);
-		if (data.Functions.length === 0 && data.SetUp.Distribute === '') {
-			// The exporter's static half fills every function reference. A
-			// definition written without it cannot be loaded; say so, loudly.
-			t.skip('conformance/definitions/' + name + '.json holds run-time parts only (no function references): the static half has not been joined yet');
-			return;
-		}
-		proveLoader(t, data, name, true);
+for (const name of Object.keys(GENERATED)) {
+	test(`${name} exported definition: moves through move: compile as the generated game and pass the corpus`, t => {
+		const data = exportedDefinition(name);
+		// The bodies pass needs no stand-in; it is the generated game itself,
+		// which games/<game>/<game>.gen.test.ts replays.
+		assert.deepEqual(generatedBodies(data, name, false).standIns, [], name + ': moves the stock registry cannot build from the exported configuration');
+		proveLoader(t, data, name, [true], true);
 	});
 }
+
+test('the move: hook served moves of every exported game but tictactoe', () => {
+	for (const name of Object.keys(GENERATED)) {
+		if (name === 'tictactoe') assert.equal(overridden[name], 0, name);
+		else assert.ok(overridden[name] > 0, name + ': no move went through move:');
+	}
+});
 
 // ----- the loader's own contracts -----------------------------------------
 
@@ -374,7 +367,7 @@ const blackjackData = (): GameData => readJSON<GameData>(path.join(here, 'testda
 
 test('a FnRef with no body is a GameSpecError naming it', () => {
 	const data = pigData();
-	const full = handPortBodies(data, pig(), false).bodies;
+	const full = generatedBodies(data, 'pig', false).bodies;
 	const missing: Bodies = ref => (ref === 'pig.(*moveRollDice).Apply' ? undefined : full(ref));
 	assert.throws(
 		() => gameFromData(data, missing),
@@ -387,7 +380,7 @@ test("an empty SetUp.Distribute is base.GameDelegate's stub, not a FnRef", () =>
 	// deck); the exporter writes ''. Go's stub errors if it is ever called.
 	const want = readJSON<{ distributeComponentToStarterStackError: string }>(path.join(here, '..', 'testdata', 'base-delegate.vectors.json'));
 	const data = pigData();
-	const full = handPortBodies(data, pig(), false).bodies;
+	const full = generatedBodies(data, 'pig', false).bodies;
 	const asked: string[] = [];
 	const spec = gameFromData({ ...data, SetUp: { ...data.SetUp, Distribute: '' } }, ref => {
 		asked.push(ref);
@@ -429,7 +422,7 @@ test('a stock type the engine cannot build is a GameSpecError, not a silent defa
 	const data = pigData();
 	const move = data.Moves.find(item => item.Name === 'Finish Turn') as MoveData;
 	if (stockAvailable(move)) return; // stockMove builds it now; nothing to refuse.
-	const bodies = handPortBodies(data, pig(), false).bodies;
+	const bodies = generatedBodies(data, 'pig', false).bodies;
 	const withoutStandIn: Bodies = ref => (ref === stockOverrideRef('Finish Turn') ? undefined : bodies(ref));
 	assert.throws(() => gameFromData(data, withoutStandIn));
 });
@@ -438,11 +431,11 @@ test('Plan.HasCustom must agree with a LegalCustom body', () => {
 	const data = blackjackData();
 	const hit = data.Moves.find(item => item.Name === 'Current Player Hit') as MoveData;
 	const edited: GameData = { ...data, Moves: data.Moves.map(item => (item === hit ? { ...hit, Plan: { ...hit.Plan, HasCustom: false } } : item)) };
-	assert.throws(() => gameFromData(edited, handPortBodies(data, blackjack(), false).bodies), (thrown: unknown) => isGameSpecError(thrown));
+	assert.throws(() => gameFromData(edited, generatedBodies(data, 'blackjack', false).bodies), (thrown: unknown) => isGameSpecError(thrown));
 });
 
 test('initial values, generic values and component props come through', () => {
-	const game = compileGame(gameFromData(blackjackData(), handPortBodies(blackjackData(), blackjack(), false).bodies));
+	const game = compileGame(gameFromData(blackjackData(), generatedBodies(blackjackData(), 'blackjack', false).bodies));
 	assert.deepEqual(game.def.Decks.cards.GenericValues, { Suit: '�', Rank: 'Unknown' });
 	assert.deepEqual(game.components.cards, { Rank: { Type: 'enum', Enum: 'Rank' }, Suit: { Type: 'enum', Enum: 'Suit' } });
 	const engine = loadEngineState(game.def, { gameId: '', secretSalt: '' }, 0, emptyStateJSON(game, 2), { skipConservation: true });
@@ -450,7 +443,7 @@ test('initial values, generic values and component props come through', () => {
 	assert.deepEqual(state.component('cards', GENERIC_COMPONENT), { Suit: '�', Rank: 'Unknown' });
 	assert.deepEqual(state.component('cards', 0), { Suit: '♠', Rank: 'Ace' });
 
-	const pigGame = compileGame(gameFromData(pigData(), handPortBodies(pigData(), pig(), false).bodies));
+	const pigGame = compileGame(gameFromData(pigData(), generatedBodies(pigData(), 'pig', false).bodies));
 	const empty = emptyStateJSON(pigGame, 3);
 	assert.equal(empty.Game.TargetScore, 100);
 	assert.equal(empty.Components.dice[0].Value, 1);
@@ -463,7 +456,7 @@ test('initial values, generic values and component props come through', () => {
 
 test('callStockApply runs the stock part and returns its error text', () => {
 	const data = pigData();
-	const bodies = handPortBodies(data, pig(), false).bodies;
+	const bodies = generatedBodies(data, 'pig', false).bodies;
 	const calls: string[] = [];
 	const withStock: Bodies = ref => {
 		if (ref === stockOverrideRef('Roll Dice')) {
@@ -486,7 +479,7 @@ test('callStockApply runs the stock part and returns its error text', () => {
 
 test('error results: a returned string from an apply-like body is thrown; a check tuple is read', () => {
 	const data = pigData();
-	const bodies = handPortBodies(data, pig(), false).bodies;
+	const bodies = generatedBodies(data, 'pig', false).bodies;
 	const withString: Bodies = ref => (ref === 'pig.(*moveDoneTurn).Apply' ? (): string => 'not now' : bodies(ref));
 	const spec = gameFromData(data, withString);
 	const doneTurn = spec.moves.find(move => move.name === 'Done Turn') as MoveSpec;

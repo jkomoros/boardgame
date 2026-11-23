@@ -10,7 +10,7 @@
  *     corpus and reports, per mutation, how many documents fail and on which
  *     field. A mutation the corpus does not catch is a SURVIVOR.
  *
- *   node scripts/fuzz-mutations.mjs body --file games/pig.ts --function pig [--docs PATH ...] [--max N] [--jobs N] [--json FILE]
+ *   node scripts/fuzz-mutations.mjs body --file games/pig/bodies.gen.ts --function pig_moveRollDice_Apply [--docs PATH ...] [--max N] [--jobs N] [--json FILE]
  *
  *     The routine generator: every comparison of the function flipped, every
  *     integer literal shifted by one, every statement deleted, one at a time
@@ -99,17 +99,12 @@ async function child() {
 }
 
 async function gameSpec(name) {
-	// The six hand ports. A generated game is added here beside them.
-	const modules = {
-		memory: 'memory', blackjack: 'blackjack', tictactoe: 'tictactoe', pig: 'pig', debuganimations: 'debuganimations', werewolf: 'werewolf',
-	};
-	// Checkers has no hand port: its generated game is the one under test.
-	if (name === 'checkers') {
-		const generated = await import(pathToFileURL(path.join(engineDir, 'games', 'checkers', 'index.ts')).href);
-		return generated.checkersGenerated;
-	}
-	if (!(name in modules)) throw new Error('no game registered for ' + name);
-	const module = await import(pathToFileURL(path.join(engineDir, 'games', modules[name] + '.ts')).href);
+	// The seven generated games (games/<game>/index.ts exports <game>()), which
+	// replaced the six hand ports; checkers never had one.
+	const games = ['memory', 'blackjack', 'tictactoe', 'pig', 'debuganimations', 'werewolf', 'checkers'];
+	if (!games.includes(name)) throw new Error('no game registered for ' + name);
+	const module = await import(pathToFileURL(path.join(engineDir, 'games', name, 'index.ts')).href);
+	if (typeof module[name] !== 'function') throw new Error('games/' + name + '/index.ts exports no ' + name);
 	return module[name];
 }
 

@@ -14,7 +14,7 @@ the work"). What the runtime would and would not do is in
 | File | What |
 |---|---|
 | [`table.tsx`](table.tsx) | The sealed table: the policy, the stored state, the one writer `move`, the one released lift `viewFor` |
-| [`game.ts`](game.ts) | The engine's Memory (`server/static/src/engine/games/memory.ts`), compiled; the public facts. No rules are written in this directory |
+| [`game.ts`](game.ts) | The engine's Memory (`server/static/src/engine/games/memory/`, generated from the Go), compiled; the public facts. No rules are written in this directory |
 | [`main.tsx`](main.tsx) | The piece: the `cf-iframe` |
 | [`../toolkit/table.ts`](../toolkit/table.ts) | Seats and the engine's three stored values; `stepTable`, `viewForPrincipal` |
 | [`../toolkit/view.ts`](../toolkit/view.ts), [`json.ts`](../toolkit/json.ts) | The wire types shared with the guest; JSON as a type a cell can hold |
@@ -62,6 +62,17 @@ record default is nobody's and would keep every view sealed.
 the fixes for served handlers (`FINDINGS.md` F1) and for a record its writer
 reads and sets (F2). Set the variable for every `cf` command below and for
 the servers.
+
+**The game is generated from the Go.** `game.ts` imports `memory()` from
+`server/static/src/engine/games/memory/index.ts`, which
+`boardgame-util transpile ./examples/memory` writes from `examples/memory`
+(its exported definition and its translated functions). It replaced the
+hand port `games/memory.ts`, which is gone
+(`fabric/transpile/status/replacement.md`). The engine modules a table
+imports are part of its policy's identity, so the switch gave this table a
+new one: a table created before it is stranded on the old identity, and any
+later change to the generated files' text (a regeneration that changes
+them) does the same again (`fabric/TRANSPILE-PROPOSAL.md`, risk 6).
 
 ## Tests, with no browser
 

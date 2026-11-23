@@ -1,6 +1,7 @@
 /**
  * Memory, as this table plays it: the TypeScript engine's port of
- * `examples/memory` (`server/static/src/engine/games/memory.ts`), compiled.
+ * `examples/memory`, generated from the Go by `boardgame-util transpile`
+ * (`server/static/src/engine/games/memory/`), compiled.
  *
  * Nothing about the rules is written here. The shuffle, the card ids, the
  * fix-up moves, the hide-cards timer and what each viewer may see are the
@@ -11,7 +12,7 @@ import {
   compileGame,
   type CompiledGame,
 } from "../../../server/static/src/engine/rules/index.ts";
-import { memory } from "../../../server/static/src/engine/games/memory.ts";
+import { memory } from "../../../server/static/src/engine/games/memory/index.ts";
 
 import { infoOf } from "../toolkit/table.ts";
 import type { TableInfo } from "../toolkit/view.ts";

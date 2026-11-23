@@ -6,6 +6,6 @@ import { bodies } from './bodies.gen.ts';
 import { definition } from './definition.gen.ts';
 
 /** tictactoe, built from its exported definition and its translated Go functions. */
-export function tictactoeGenerated(): GameSpec {
+export function tictactoe(): GameSpec {
 	return gameFromData(definition(), bodies);
 }

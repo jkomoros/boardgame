@@ -4,6 +4,6 @@
 // including their rejections. See ../generated.testkit.test.ts for what is
 // compared.
 import { generatedGameSuite } from '../generated.testkit.test.ts';
-import { debuganimationsGenerated } from './index.ts';
+import { debuganimations } from './index.ts';
 
-generatedGameSuite('debuganimations', debuganimationsGenerated, { corpus: 1, fuzz: 8 });
+generatedGameSuite('debuganimations', debuganimations, { corpus: 1, fuzz: 8 });

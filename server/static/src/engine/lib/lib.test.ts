@@ -1,16 +1,18 @@
 // lib/ against real Go (testdata/lib.vectors.json, from testdata/gen/libvec):
 // range enums, grid graphs, dice and playing cards answer what the Go
-// packages answer. Also that the hand ports that inlined these libraries
-// (games/pig.ts's roll and die, games/blackjack.ts's deck and enums) agree
-// with them.
+// packages answer. Also that the games built on these libraries agree with
+// them: the generated pig's die and Roll Dice (games/pig/, whose roll is the
+// facade's diceRoll) and the generated blackjack's deck and enums
+// (games/blackjack/, whose chest is Go's exported one). Until they were
+// replaced, these two tests held the hand ports, which inlined the libraries.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import type { EnumDef } from '../definition.ts';
 import { newGoRand } from '../rand.ts';
-import { blackjack } from '../games/blackjack.ts';
-import { pig } from '../games/pig.ts';
+import { blackjack } from '../games/blackjack/index.ts';
+import { pig } from '../games/pig/index.ts';
 import { loadState } from '../rules/engine.ts';
 import { type CompiledGame, type GameSnapshot, compileGame, createGame, newRulesState } from '../rules/index.ts';
 import { basicDie, defaultDie, dieMax, dieMin, roll, rollWith } from './dice.ts';
@@ -151,7 +153,7 @@ test('playing cards: every deck, its strings and its generic card', () => {
 	assert.deepEqual(cardEnums(), vectors.Enums);
 });
 
-test("blackjack's inlined deck and enums are playingcards'", () => {
+test("blackjack's deck and enums are playingcards'", () => {
 	const spec = blackjack();
 	assert.deepEqual(spec.decks.cards.components, newDeck(false));
 	const enums = { ...(spec.enums ?? {}), ...(spec.componentEnums ?? {}) };
@@ -159,7 +161,7 @@ test("blackjack's inlined deck and enums are playingcards'", () => {
 	assert.deepEqual(enums.Rank, cardEnums().Rank);
 });
 
-test("pig's inlined die and roll are dice's", () => {
+test("pig's die and roll are dice's", () => {
 	const spec = pig();
 	assert.deepEqual(spec.decks.dice.components, [defaultDie()]);
 	// Apply pig's own Roll Dice and dice.roll to two copies of one state:

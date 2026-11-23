@@ -1,7 +1,7 @@
 // The ported games against the fuzz corpus (conformance/fuzz/ at the
 // repository root): every seeded run the Go fuzz driver checked in for
-// memory, blackjack, tictactoe, pig, debuganimations and werewolf is
-// replayed on the TypeScript engine. Versions and views are compared as in
+// memory, blackjack, tictactoe, pig, debuganimations, werewolf and checkers
+// is replayed on the generated game. Versions and views are compared as in
 // conformance.test.ts; in addition every input Go refused is proposed at the
 // version Go refused it and must be refused with Go's exact text, returning
 // no versions and leaving the state and history untouched.
@@ -21,47 +21,26 @@ import type { CompiledGame, GameSpec } from '../rules/index.ts';
 import { compileGame } from '../rules/index.ts';
 import { FIELDS } from '../testing/conformance.ts';
 import { type FuzzDocument, type FuzzResult, fuzzPassTable, runFuzzDocument } from '../testing/fuzz.ts';
-import { blackjack } from './blackjack.ts';
-import { debuganimations } from './debuganimations.ts';
-import { memory } from './memory.ts';
-import { pig } from './pig.ts';
-import { tictactoe } from './tictactoe.ts';
-import { werewolf } from './werewolf.ts';
-import { checkersGenerated } from './checkers/index.ts';
+import { blackjack } from './blackjack/index.ts';
+import { checkers } from './checkers/index.ts';
+import { debuganimations } from './debuganimations/index.ts';
+import { memory } from './memory/index.ts';
+import { pig } from './pig/index.ts';
+import { tictactoe } from './tictactoe/index.ts';
+import { werewolf } from './werewolf/index.ts';
 
-/** Game name to the factory of the game under test. */
-type Registry = (game: string) => (() => GameSpec) | undefined;
-
-const HAND_PORTS: readonly string[] = ['memory', 'blackjack', 'tictactoe', 'pig', 'debuganimations', 'werewolf'];
-
-/** The six hand ports. A generated game is tested by putting its own registry in front of this one. */
-const handPorts: Registry = game => {
-	switch (game) {
-		case 'memory': return memory;
-		case 'blackjack': return blackjack;
-		case 'tictactoe': return tictactoe;
-		case 'pig': return pig;
-		case 'debuganimations': return debuganimations;
-		case 'werewolf': return werewolf;
-		default: return undefined;
-	}
-};
-
-/** Games with no hand port: the generated game is the one under test. */
-const generatedOnly: Registry = game => (game === 'checkers' ? checkersGenerated : undefined);
-
-const registries: readonly Registry[] = [handPorts, generatedOnly];
-const specFor = (game: string): (() => GameSpec) | undefined => {
-	for (const registry of registries) {
-		const found = registry(game);
-		if (found !== undefined) return found;
-	}
-	return undefined;
-};
+/**
+ * Game name to the factory of the game under test: the seven generated games
+ * (games/<game>/index.ts). Until the generated games replaced the six hand
+ * ports, the hand ports were registered here and a generated game only for
+ * checkers, which never had one.
+ */
+const GAMES: Readonly<Record<string, () => GameSpec>> = { memory, blackjack, tictactoe, pig, debuganimations, werewolf, checkers };
+const specFor = (game: string): (() => GameSpec) | undefined => (Object.prototype.hasOwnProperty.call(GAMES, game) ? GAMES[game] : undefined);
 
 /**
  * Documents known to differ, by name, each with its entry in
- * fabric/transpile/HAND-PORT-BUGS.md. Such a document must still fail, and
+ * fabric/transpile/HAND-PORT-BUGS.md (or GO-BUGS.md). Such a document must still fail, and
  * on the listed field: when it starts passing, the entry has to go.
  */
 const EXPECTED_FAILURES: ReadonlyMap<string, string> = new Map();
@@ -137,8 +116,8 @@ const index = JSON.parse(readFileSync(path.join(corpus, 'index.json'), 'utf8')) 
 const checkedIn = documentsUnder(corpus);
 const corpusResults: FuzzResult[] = [];
 
-test('the fuzz corpus holds eight documents for each hand port, as its index lists', () => {
-	for (const game of [...HAND_PORTS, 'checkers']) assert.equal(checkedIn.filter(entry => entry.game === game).length, 8, game);
+test('the fuzz corpus holds eight documents for each game, as its index lists', () => {
+	for (const game of Object.keys(GAMES)) assert.equal(checkedIn.filter(entry => entry.game === game).length, 8, game);
 	assert.equal(checkedIn.length, index.files.length, 'documents on disk against index.json');
 	for (const entry of checkedIn) assert.ok(specFor(entry.game) !== undefined, 'no game registered for ' + entry.game);
 });
