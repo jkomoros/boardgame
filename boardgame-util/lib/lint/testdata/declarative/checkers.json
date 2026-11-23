@@ -6,8 +6,8 @@
     "dataOnly": 4,
     "withGameCode": 3,
     "declaredPreconditionSpecs": 5,
-    "functions": 20,
-    "inSubset": 19,
+    "functions": 21,
+    "inSubset": 20,
     "outside": 1,
     "needEngineFeature": 0,
     "notPorted": 0
@@ -15,12 +15,12 @@
   "shares": {
     "dataOnly": "4/7",
     "declaredLegality": "7/7",
-    "inSubset": "19/20"
+    "inSubset": "20/21"
   },
   "buckets": {
     "engineGap": 0,
     "outside": 1,
-    "subset": 19
+    "subset": 20
   },
   "moves": [
     {
@@ -120,13 +120,24 @@
   "imperativeLegal": [],
   "functions": [
     {
+      "func": "checkers.(*gameDelegate).BeginSetUp",
+      "role": "setUpBegin",
+      "bucket": "subset",
+      "verdict": "subset",
+      "file": "main.go",
+      "line": 255,
+      "sourceHash": "sha256:5d26d7847cca2d595fe698789052c48ed47fb539f6a55cd9c612aedf102fe069",
+      "calls": [],
+      "refusals": []
+    },
+    {
       "func": "checkers.spaceIsBlack",
       "role": "helper",
       "bucket": "subset",
       "verdict": "subset",
       "file": "components.go",
       "line": 52,
-      "sourceHash": "sha256:e17d97695845c0c6a8be211492704a48fbc24d49c58c88335ff08eb8136c79ae",
+      "sourceHash": "sha256:a56f17d4b2a06ccf487e7691247f948055692805dd4ebbe1b77846d09fd40328",
       "calls": [],
       "refusals": []
     },
@@ -169,7 +180,7 @@
       "bucket": "subset",
       "verdict": "subset",
       "file": "main.go",
-      "line": 250,
+      "line": 269,
       "sourceHash": "sha256:dd8c01d42b01bd88b68ec1229146e4f04a5f4d7e2770d1ec00d0d0042d2e19f6",
       "calls": [],
       "refusals": []
@@ -191,7 +202,7 @@
       "bucket": "subset",
       "verdict": "subset",
       "file": "main.go",
-      "line": 261,
+      "line": 280,
       "sourceHash": "sha256:89dc7692dd453d43123257e4c8c29328fe78978c48c51cdf2502e1dfd960cfca",
       "calls": [
         "checkers.(*playerState).GameScore"
@@ -204,7 +215,7 @@
       "bucket": "subset",
       "verdict": "subset",
       "file": "moves.go",
-      "line": 302,
+      "line": 308,
       "sourceHash": "sha256:e20b4a0096735bfe3d5a90891b6e2882f06a11807e5ec9e5fbdb98d3d5c485a2",
       "calls": [],
       "refusals": []
@@ -227,7 +238,7 @@
       "verdict": "subset",
       "file": "components.go",
       "line": 128,
-      "sourceHash": "sha256:b7c1f3ee178a4c3e92a0584b8e0eefc3f2c736c312c830cbeda005d73f54f8a9",
+      "sourceHash": "sha256:e1c9534b27a9bcad39920d410de2abcecc4a684c093be35ec5afed0c0e6cedb3",
       "calls": [
         "checkers.(*token).Dynamic"
       ],
@@ -239,7 +250,7 @@
       "bucket": "subset",
       "verdict": "subset",
       "file": "components.go",
-      "line": 165,
+      "line": 167,
       "sourceHash": "sha256:e61c11e253c4ef280d7429d7f50827a89be34149a3fe14d6eb111858b6411a64",
       "calls": [
         "checkers.(*token).AllNextSpaces"
@@ -253,7 +264,7 @@
       "verdict": "subset",
       "file": "moves.go",
       "line": 231,
-      "sourceHash": "sha256:a0c844830eaa71dbacc4ece6eb7d3d2be36e5529704f586ac11a432cc3408607",
+      "sourceHash": "sha256:80041016f824cf2b5f0243a7d0dad826bdccf9827f0f326b6be699792d9019ef",
       "calls": [
         "checkers.(*token).LegalCaptureSpaces"
       ],
@@ -383,7 +394,7 @@
       "func": "checkers.(*gameDelegate).ConfigureDecks",
       "why": "ConfigureDecks",
       "file": "main.go",
-      "line": 265
+      "line": 284
     },
     {
       "func": "checkers.(*gameDelegate).ConfigureLegalTemplates",
@@ -449,7 +460,7 @@
       "func": "checkers.NewDelegate",
       "why": "NewDelegate",
       "file": "main.go",
-      "line": 273
+      "line": 292
     },
     {
       "func": "checkers.newTokenDeck",

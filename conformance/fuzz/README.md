@@ -61,6 +61,7 @@ the other one (selected on the setup, never on the outcome):
 | Game | Seeds | Max proposals | Max versions | Why |
 |---|---|---|---|---|
 | blackjack | 0-7 | 40 | 70 | Up to 9 viewers |
+| checkers | 0-7 | 80 | 90 | Games run 300-600 versions; the first 90 hold set-up, then captures in every seed, multi-jumps in seeds 0, 3, 4 and 5, a crowning in seeds 0, 2, 3, 5 and 6 (no game ends) |
 | debuganimations | first 8 unseated (0, 2, 3, 5, 6, 7, 10, 14) | 30 | 20 | Seated, its players are never activated, so nothing is legal |
 | memory | 0-7 | 30 | 32 | Up to 8 viewers and large layouts |
 | pig | 0-7 | 40 | 50 | |
@@ -68,11 +69,11 @@ the other one (selected on the setup, never on the outcome):
 | werewolf | first 8 seated (3, 7, 8, 16, 19, 20, 21, 26) | 60 | 80 | Unseated, every vote fails "your seat is not yet filled" |
 
 The bounds keep the corpus near the size of the hand-picked one: about
-2.7 MB gzipped against 1.75 MB for the rest of `conformance/`. By game:
-blackjack 0.94 MB (existing 1.1 MB), memory 0.90 MB (0.49 MB), debuganimations
-0.36 MB, pig 0.27 MB, werewolf 0.14 MB, tictactoe 0.07 MB; the last four have
-only one to three hand-picked documents each, so eight seeds of any useful
-length are larger.
+3.1 MB gzipped against 1.75 MB for the rest of `conformance/`. By game:
+blackjack 0.94 MB (existing 1.1 MB), memory 0.90 MB (0.49 MB), checkers
+0.42 MB (no hand-picked documents), debuganimations 0.36 MB, pig 0.27 MB,
+werewolf 0.14 MB, tictactoe 0.07 MB; the last four have only one to three
+hand-picked documents each, so eight seeds of any useful length are larger.
 
 Move types the checked-in corpus never applies, by design:
 

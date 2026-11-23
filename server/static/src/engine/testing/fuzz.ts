@@ -19,7 +19,7 @@ import type { CompiledGame, GameRecord, GameSpec, Input, MoveRecord, VersionOutp
 import { compileGame, createGame, parseInstant, propose, viewerOutput } from '../rules/index.ts';
 import type { StateJSON } from '../state.ts';
 import { cloneJSON } from '../state.ts';
-import { type ConformanceDocument, type DocumentResult, FIELDS, type Field, firstDifference, runDocument } from './conformance.ts';
+import { type ConformanceDocument, type DocumentResult, FIELDS, type Field, firstDifference, proposedInput, runDocument } from './conformance.ts';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -157,14 +157,7 @@ interface Replay {
 /** What the replay feeds for a recorded move, as runDocument feeds it. */
 function inputFor(game: CompiledGame, move: NonNullable<ConformanceDocument['versions'][number]['move']>, expectedVersion: number): Input | null {
 	if (move.trigger === 'propose') {
-		const compiled = game.movesByName[move.name];
-		const supplied: Record<string, unknown> = {};
-		if (compiled) {
-			for (const field of compiled.inputFields) {
-				if (field.disposition !== 'required' && field.disposition !== 'server-defaulted') continue;
-				if (Object.prototype.hasOwnProperty.call(move.arguments, field.name)) supplied[field.name] = move.arguments[field.name];
-			}
-		}
+		const supplied = proposedInput(game, move.name, move.arguments);
 		return { kind: 'propose', name: move.name, input: supplied, proposer: move.proposer, expectedVersion };
 	}
 	if (move.trigger === 'seat') return { kind: 'seat', player: move.arguments.TargetPlayerIndex as number };

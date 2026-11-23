@@ -9,7 +9,7 @@
 
 import { componentAt, componentAtKey, containingStack, dynamic, dynamicOf, enumEquals, enumKey, first, gameStack, legalError, mayMoveToSlot, moveTo, moveToLastSlot, neighborsByKey, player, playerIndexes, playerStack, rangeToValue, rangeValue, setEnumKey, stackView, swapComponentsByKey, valueToRange, valuesAreNil, valuesOf } from '../../go/api.ts';
 import type { Comp, DynamicRef, GraphRef, StackRef } from '../../go/api.ts';
-import { imod } from '../../go/num.ts';
+import { idiv, imod } from '../../go/num.ts';
 import { nonNil } from '../../go/panic.ts';
 import { appendTo, at, lenOf } from '../../go/slice.ts';
 import { sprintf } from '../../go/str.ts';
@@ -18,9 +18,27 @@ import type { LegalVerdict } from '../../legal/types.ts';
 import type { RulesState } from '../../rules/state.ts';
 import type { GamePredicate, MoveInstance, PredicateContext, PredicateSpec } from '../../rules/types.ts';
 
-// @generated transpile@1 go:checkers.spaceIsBlack sha256:e17d97695845c0c6a8be211492704a48fbc24d49c58c88335ff08eb8136c79ae first:b824c114
+// @generated transpile@1 go:checkers.(*gameDelegate).BeginSetUp sha256:5d26d7847cca2d595fe698789052c48ed47fb539f6a55cd9c612aedf102fe069 first:ba30f2c4
+export function checkers_gameDelegate_BeginSetUp(state: RulesState, variant: Readonly<Record<string, string>>): string | null {
+	let players: number[] | null = playerIndexes(state);
+	{
+		let err: string | null = setEnumKey(state, at(players, 0), 'Color', 0);
+		if (err !== null) {
+			return 'Couldn\'t set player 0\'s color: ' + nonNil(err);
+		}
+	}
+	{
+		let err2: string | null = setEnumKey(state, at(players, 1), 'Color', 4);
+		if (err2 !== null) {
+			return 'Couldn\'t set player 1\'s color: ' + nonNil(err2);
+		}
+	}
+	return null;
+}
+
+// @generated transpile@1 go:checkers.spaceIsBlack sha256:a56f17d4b2a06ccf487e7691247f948055692805dd4ebbe1b77846d09fd40328 first:ba30f2c4
 export function checkers_spaceIsBlack(state: RulesState, spaceIndex: number): boolean {
-	return imod(spaceIndex, 2) === 0;
+	return imod(idiv(spaceIndex, 8) + imod(spaceIndex, 8), 2) === 0;
 }
 
 // @generated agent:claude-opus-5-5 brief:4851f8bb94397a95b2ef034bcea1af8b8a5c780a0330dcc4267c20c11b8536fa go:checkers.(*gameDelegate).ConfigurePredicateConstructors sha256:399a2423a08a16b314ef1c3ad2b721c5cd52e11c690486d2d8620ff1e3239c4a first:f1c52576
@@ -112,7 +130,7 @@ export function checkers_token_Dynamic(state: RulesState, t: DynamicRef): Dynami
 	return dynamicOf(state, t);
 }
 
-// @generated transpile@1 go:checkers.(*token).AllNextSpaces sha256:b7c1f3ee178a4c3e92a0584b8e0eefc3f2c736c312c830cbeda005d73f54f8a9 first:b824c114
+// @generated transpile@1 go:checkers.(*token).AllNextSpaces sha256:e1c9534b27a9bcad39920d410de2abcecc4a684c093be35ec5afed0c0e6cedb3 first:ba30f2c4
 export function checkers_token_AllNextSpaces(state: RulesState, t: DynamicRef, componentIndex: number): number[] | null {
 	let fromBottom: boolean = false;
 	if (enumKey(state, { valuesOf: t }, 'Color') === 4) {
@@ -121,11 +139,11 @@ export function checkers_token_AllNextSpaces(state: RulesState, t: DynamicRef, c
 	let nextSpaces: number[] | null = null;
 	let dyn: DynamicRef = checkers_token_Dynamic(state, t);
 	let crowned: boolean = (dynamic(state, dyn).Crowned as boolean);
-	let g: GraphRef = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionUp', 'DirectionDiagonal'] };
-	let oppositeG: GraphRef = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionDown', 'DirectionDiagonal'] };
+	let g: GraphRef = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionDown', 'DirectionDiagonal'] };
+	let oppositeG: GraphRef = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionUp', 'DirectionDiagonal'] };
 	if (fromBottom) {
-		g = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionDown', 'DirectionDiagonal'] };
-		oppositeG = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionUp', 'DirectionDiagonal'] };
+		g = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionUp', 'DirectionDiagonal'] };
+		oppositeG = { enum: 'spaces', dimensions: [8, 8], directions: ['DirectionDown', 'DirectionDiagonal'] };
 	}
 	{
 		const $s2 = neighborsByKey(g, componentIndex);
@@ -182,7 +200,7 @@ export function checkers_token_LegalCaptureSpaces(state: RulesState, t: DynamicR
 	return result;
 }
 
-// @generated transpile@1 go:checkers.(*moveMoveToken).Apply sha256:a0c844830eaa71dbacc4ece6eb7d3d2be36e5529704f586ac11a432cc3408607 first:b824c114
+// @generated transpile@1 go:checkers.(*moveMoveToken).Apply sha256:80041016f824cf2b5f0243a7d0dad826bdccf9827f0f326b6be699792d9019ef first:ba30f2c4
 export function checkers_moveMoveToken_Apply(state: RulesState, m: MoveInstance): string | null {
 	let p: number = state.currentPlayerIndex();
 	{
@@ -199,21 +217,26 @@ export function checkers_moveMoveToken_Apply(state: RulesState, m: MoveInstance)
 	if ((finishIndexes === null) || (lenOf(finishIndexes) !== 2)) {
 		return 'Couldn\'t get indexes for finish space';
 	}
-	let middleIndexes: number[] | null = [at(finishIndexes, 0) - at(startIndexes, 0), at(finishIndexes, 1) - at(startIndexes, 1)];
-	let middleSpace: number = rangeToValue(state, 'spaces', (middleIndexes ?? []));
-	if (middleSpace === 9223372036854775807) {
-		return 'Invalid result from range to value';
-	}
-	let c: Comp | null = componentAtKey(gameStack(state, 'Spaces'), middleSpace);
 	let tokenCaptured: boolean = false;
-	if (c !== null) {
-		let tokenValues: DynamicRef = valuesOf(state, c);
-		if (!enumEquals(state, { valuesOf: tokenValues }, 'Color', p, 'Color')) {
-			tokenCaptured = true;
-			{
-				let err2: string | null = moveToLastSlot(componentAtKey(gameStack(state, 'Spaces'), middleSpace), playerStack(state, p, 'CapturedTokens'));
-				if (err2 !== null) {
-					return 'Couldn\'t capture token: ' + nonNil(err2);
+	{
+		let rowDiff: number = at(finishIndexes, 0) - at(startIndexes, 0);
+		if ((rowDiff === 2) || (rowDiff === (-2))) {
+			let middleIndexes: number[] | null = [idiv(at(startIndexes, 0) + at(finishIndexes, 0), 2), idiv(at(startIndexes, 1) + at(finishIndexes, 1), 2)];
+			let middleSpace: number = rangeToValue(state, 'spaces', (middleIndexes ?? []));
+			if (middleSpace === 9223372036854775807) {
+				return 'Invalid result from range to value';
+			}
+			let c: Comp | null = componentAtKey(gameStack(state, 'Spaces'), middleSpace);
+			if (c !== null) {
+				let tokenValues: DynamicRef = valuesOf(state, c);
+				if (!enumEquals(state, { valuesOf: tokenValues }, 'Color', p, 'Color')) {
+					tokenCaptured = true;
+					{
+						let err2: string | null = moveToLastSlot(componentAtKey(gameStack(state, 'Spaces'), middleSpace), playerStack(state, p, 'CapturedTokens'));
+						if (err2 !== null) {
+							return 'Couldn\'t capture token: ' + nonNil(err2);
+						}
+					}
 				}
 			}
 		}
@@ -365,6 +388,8 @@ export function checkers_token_Legal(state: RulesState, t: DynamicRef, $legalTyp
 /** The resolver gameFromData calls for every FnRef the definition names. */
 export function bodies(ref: string): ((...args: never[]) => unknown) | undefined {
 	switch (ref) {
+		case 'checkers.(*gameDelegate).BeginSetUp':
+			return checkers_gameDelegate_BeginSetUp;
 		case 'checkers.(*gameDelegate).ConfigurePredicateConstructors':
 			return checkers_gameDelegate_ConfigurePredicateConstructors;
 		case 'checkers.(*gameDelegate).DistributeComponentToStarterStack':

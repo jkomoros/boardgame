@@ -250,30 +250,36 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
 		return errors.New("Couldn't get indexes for finish space")
 	}
 
-	middleIndexes := []int{
-		finishIndexes[0] - startIndexes[0],
-		finishIndexes[1] - startIndexes[1],
-	}
-
-	middleSpace := spacesEnum.RangeToValue(middleIndexes...)
-
-	if middleSpace == enum.IllegalValue {
-		return errors.New("Invalid result from range to value")
-	}
-
-	c := g.Spaces.ComponentAtKey(middleSpace)
-
 	tokenCaptured := false
 
-	if c != nil {
+	//Only a jump (two rows away) passes over a space; a single diagonal step
+	//captures nothing.
+	if rowDiff := finishIndexes[0] - startIndexes[0]; rowDiff == 2 || rowDiff == -2 {
 
-		tokenValues := c.Values().(*token)
+		middleIndexes := []int{
+			(startIndexes[0] + finishIndexes[0]) / 2,
+			(startIndexes[1] + finishIndexes[1]) / 2,
+		}
 
-		if !tokenValues.Color.Equals(p.Color) {
-			tokenCaptured = true
-			if err := g.Spaces.ComponentAtKey(middleSpace).MoveToLastSlot(p.CapturedTokens); err != nil {
-				return errors.New("Couldn't capture token: " + err.Error())
+		middleSpace := spacesEnum.RangeToValue(middleIndexes...)
+
+		if middleSpace == enum.IllegalValue {
+			return errors.New("Invalid result from range to value")
+		}
+
+		c := g.Spaces.ComponentAtKey(middleSpace)
+
+		if c != nil {
+
+			tokenValues := c.Values().(*token)
+
+			if !tokenValues.Color.Equals(p.Color) {
+				tokenCaptured = true
+				if err := g.Spaces.ComponentAtKey(middleSpace).MoveToLastSlot(p.CapturedTokens); err != nil {
+					return errors.New("Couldn't capture token: " + err.Error())
+				}
 			}
+
 		}
 
 	}
