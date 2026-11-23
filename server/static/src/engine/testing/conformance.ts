@@ -204,6 +204,33 @@ function recordedHeader(doc: ConformanceDocument): Record<string, unknown> {
 }
 
 /** Replays one document on the engine and compares every recorded field. */
+/**
+ * The input a proposer sent for a recorded move: the fields a proposer
+ * supplies ('required', 'server-defaulted'), taken from the move record's
+ * arguments. A move record stores an enum field as its string, but a field
+ * whose input codec is 'integer' (a range enum such as checkers'
+ * TokenIndexToMove) is proposed as the enum's key, as Go's driver and
+ * clients send it, so its string is turned back into the key. Anything else
+ * is passed as recorded.
+ */
+export function proposedInput(game: CompiledGame, name: string, args: Readonly<Record<string, unknown>>): Record<string, unknown> {
+	const compiled = game.movesByName[name];
+	const supplied: Record<string, unknown> = {};
+	if (!compiled) return supplied;
+	for (const field of compiled.inputFields) {
+		if (field.disposition !== 'required' && field.disposition !== 'server-defaulted') continue;
+		if (!Object.prototype.hasOwnProperty.call(args, field.name)) continue;
+		let value = args[field.name];
+		const def = compiled.fields[field.name];
+		if (field.codec === 'integer' && typeof value === 'string' && def !== undefined && def.type === 'enum') {
+			const key = game.enums.get(def.enum)?.valueFromString(value) ?? null;
+			if (key !== null) value = key;
+		}
+		supplied[field.name] = value;
+	}
+	return supplied;
+}
+
 export function runDocument(game: CompiledGame, doc: ConformanceDocument): DocumentResult {
 	const fields = emptyResult();
 	const result: DocumentResult = { name: doc.name, versions: doc.versions.length, viewers: doc.viewers.length, fields, passed: false };
@@ -305,14 +332,7 @@ export function runDocument(game: CompiledGame, doc: ConformanceDocument): Docum
 		let input: Input;
 		if (move.trigger === 'propose') {
 			// Only the fields a proposer supplies; the engine must derive the rest.
-			const compiled = game.movesByName[move.name];
-			const supplied: Record<string, unknown> = {};
-			if (compiled) {
-				for (const field of compiled.inputFields) {
-					if (field.disposition !== 'required' && field.disposition !== 'server-defaulted') continue;
-					if (Object.prototype.hasOwnProperty.call(move.arguments, field.name)) supplied[field.name] = move.arguments[field.name];
-				}
-			}
+			const supplied = proposedInput(game, move.name, move.arguments);
 			input = { kind: 'propose', name: move.name, input: supplied, proposer: move.proposer, expectedVersion: history.length };
 		} else if (move.trigger === 'seat') {
 			input = { kind: 'seat', player: move.arguments.TargetPlayerIndex as number };

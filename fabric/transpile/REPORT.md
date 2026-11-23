@@ -12,8 +12,8 @@ Written by `boardgame-util port --all --dry-run` from `fabric/transpile/reports/
 | tictactoe | 14 | 3 (21.4%) | 11 (78.6%) | 0 (0.0%) | 0 (0.0%) |
 | werewolf | 20 | 4 (20.0%) | 16 (80.0%) | 0 (0.0%) | 0 (0.0%) |
 | debuganimations | 25 | 1 (4.0%) | 24 (96.0%) | 0 (0.0%) | 0 (0.0%) |
-| checkers | 24 | 4 (16.7%) | 19 (79.2%) | 1 (4.2%) | 0 (0.0%) |
-| **Total** | **155** | **34 (21.9%)** | **119 (76.8%)** | **2 (1.3%)** | **0 (0.0%)** |
+| checkers | 25 | 4 (16.0%) | 20 (80.0%) | 1 (4.0%) | 0 (0.0%) |
+| **Total** | **156** | **34 (21.8%)** | **120 (76.9%)** | **2 (1.3%)** | **0 (0.0%)** |
 
 How each bucket is counted. The units of a game are its move configs that
 are data only plus its functions that reach engine output (the manifest of
@@ -48,7 +48,7 @@ in. functions.mechanical below counts only what is checked in.
 | tictactoe | 3 | 1 | 11 | 14 | 11 | 11 | 0 | 0 | 0 | 0 | 5 | 0 | current | 12 of 12 pass (checked-in) |
 | werewolf | 4 | 7 | 16 | 11 | 16 | 16 | 0 | 0 | 0 | 0 | 1 | 0 | current | 9 of 9 pass (checked-in) |
 | debuganimations | 1 | 12 | 24 | 23 | 24 | 24 | 0 | 0 | 0 | 0 | 1 | 0 | current | 9 of 9 pass (checked-in) |
-| checkers | 4 | 3 | 20 | 14 | 19 | 19 | 1 | 0 | 0 | 0 | 0 | 0 | current | 8 of 8 pass (checked-in) |
+| checkers | 4 | 3 | 21 | 14 | 20 | 20 | 1 | 0 | 0 | 0 | 0 | 0 | current | 8 of 8 pass (checked-in) |
 
 The one number to watch per game is agent − agentNowMechanical; it should fall.
 
@@ -62,7 +62,7 @@ The one number to watch per game is agent − agentNowMechanical; it should fall
 | tictactoe | 8 | 134 | 5 | none | 2 of 2 | none | 67 of 73 | null |
 | werewolf | 8 | 157 | 18 | none | 0 of 0 | Players.FellowWolves | 143 of 151 | null |
 | debuganimations | 8 | 168 | 22 | Seat Player | 7 of 7 | none | 135 of 154 | null |
-| checkers | 8 | 224 | 1 | Crown Token; Finish Turn; Move Token | 7 of 7 | none | 82 of 151 | null |
+| checkers | 8 | 732 | 33 | none | 6 of 7 | none | 139 of 158 | null |
 
 ## Named functions
 

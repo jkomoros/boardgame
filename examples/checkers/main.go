@@ -247,6 +247,25 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 	return nil, errors.New("Unknown deck")
 }
 
+// BeginSetUp gives the two players their colors, which nothing else sets (a
+// player's Color otherwise stays the enum's default, red, for both, so the
+// black tokens belong to no one). Player 0, the first current player, keeps
+// red, whose tokens are placed at the top; player 1 plays black, from the
+// bottom.
+func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
+	_, players := concreteStates(state)
+
+	if err := players[0].Color.SetValue(colorRed); err != nil {
+		return errors.New("Couldn't set player 0's color: " + err.Error())
+	}
+
+	if err := players[1].Color.SetValue(colorBlack); err != nil {
+		return errors.New("Couldn't set player 1's color: " + err.Error())
+	}
+
+	return nil
+}
+
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	_, players := concreteStates(state)
 	for _, p := range players {

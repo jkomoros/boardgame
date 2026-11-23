@@ -1,9 +1,10 @@
 /*
 checkersvec writes ../../checkers.vectors.json.gz: what real Go checkers
-(examples/checkers, unchanged) answers on positions constructed directly on
-a live Go state, for the moves no Go game of checkers ever reaches. The
-fuzz driver shows the game stops at its first playing position, so Move
-Token's Apply, capture, crowning and Finish Turn are exercised only here.
+(examples/checkers) answers on positions constructed directly on a live Go
+state. The fuzz corpus plays real games, but only their first 90 versions;
+these positions pin each rule directly: steps, captures (blocked, off the
+board, over one's own token, refused by a constraint), multi-jumps, crowning,
+crowned tokens moving both ways, a finished turn and the end of the game.
 
 A position starts from the state a fresh game has after set-up (the 24
 Place Token fix-ups and Start Phase Playing, version 25) and is rearranged
@@ -31,11 +32,10 @@ For each position it records:
     its text; a nil error carries the state after;
   - GameEndConditionMet and PlayerScore.
 
-Positions: the real post-set-up position (as Go leaves it, both players
-red), a dozen designed to reach a legal step, a legal capture, a capture
-that the CapturedTokens same(Color) constraint refuses, crowning, a
-finished turn and the end of the game, and 30 random clustered positions
-from a fixed seed. Run from the repository root:
+Positions: the real post-set-up position (as Go leaves it: player 0 red,
+player 1 black), designed ones for each rule above (plus one with the
+players' colors swapped and one mid-jump, where the turn is not over), and
+30 random clustered positions on black spaces from a fixed seed. Run from the repository root:
 
 	./scripts/go-local run ./server/static/src/engine/testdata/gen/checkersvec
 
@@ -537,28 +537,31 @@ func record(manager *boardgame.GameManager, game *boardgame.Game, st boardgame.S
 
 func designed() []positionSpec {
 	rb := [2]int{red, black}
-	both := [2]int{red, red}
 	return []positionSpec{
 		{Name: "setup", Setup: true},
-		{Name: "red-step-from-odd", Tokens: []placement{{33, red, false}, {10, black, false}}, PlayerColors: both, Current: 0},
-		{Name: "black-step-captures-at-9", Tokens: []placement{{17, black, false}, {9, red, false}}, PlayerColors: rb, Current: 1},
-		{Name: "black-step-nothing-at-9", Tokens: []placement{{17, black, false}, {40, red, false}}, PlayerColors: rb, Current: 1},
-		{Name: "black-step-capture-then-more", Tokens: []placement{{17, black, false}, {9, red, false}, {35, red, false}}, PlayerColors: rb, Current: 1},
-		{Name: "red-capture-from-even", Tokens: []placement{{34, red, false}, {27, black, false}}, PlayerColors: rb, Current: 0},
-		{Name: "black-capture-from-even", Tokens: []placement{{18, black, false}, {27, red, false}}, PlayerColors: rb, Current: 1},
-		{Name: "capture-refused-by-same-color", Tokens: []placement{{17, black, false}, {9, red, false}}, Captured: [2][]int{nil, {black}}, PlayerColors: rb, Current: 1},
-		{Name: "crowned-red-both-ways", Tokens: []placement{{33, red, true}, {9, black, false}, {42, black, false}}, PlayerColors: rb, Current: 0},
-		{Name: "crown-candidates", Tokens: []placement{{57, red, false}, {59, red, true}, {2, black, false}, {4, black, true}, {30, red, false}}, PlayerColors: rb, Current: 0},
-		{Name: "turn-finished", Tokens: []placement{{33, red, false}, {17, black, false}}, PlayerColors: rb, Current: 0, FinishedTurn: [2]bool{true, false}},
-		{Name: "game-over", Tokens: []placement{{33, red, false}}, Captured: [2][]int{{black, black, black, black, black, black, black, black, black, black, black, black}, nil}, PlayerColors: rb, Current: 1},
-		{Name: "both-red-players", Tokens: []placement{{33, red, false}, {26, black, false}, {17, black, false}}, PlayerColors: both, Current: 1},
-		{Name: "black-player-red-tokens", Tokens: []placement{{17, red, false}, {9, black, false}}, PlayerColors: [2]int{black, red}, Current: 0},
+		{Name: "black-step", Tokens: []placement{{41, black, false}, {18, red, false}}, PlayerColors: rb, Current: 1},
+		{Name: "red-step", Tokens: []placement{{41, black, false}, {18, red, false}}, PlayerColors: rb, Current: 0},
+		{Name: "black-capture", Tokens: []placement{{41, black, false}, {34, red, false}}, PlayerColors: rb, Current: 1},
+		{Name: "red-capture", Tokens: []placement{{27, red, false}, {36, black, false}}, PlayerColors: rb, Current: 0},
+		{Name: "black-capture-then-more", Tokens: []placement{{41, black, false}, {34, red, false}, {20, red, false}}, PlayerColors: rb, Current: 1},
+		{Name: "mid-jump", Tokens: []placement{{27, black, false}, {20, red, false}, {54, black, false}}, PlayerColors: rb, Current: 1},
+		{Name: "capture-landing-occupied", Tokens: []placement{{41, black, false}, {34, red, false}, {27, red, false}}, PlayerColors: rb, Current: 1},
+		{Name: "capture-off-board", Tokens: []placement{{9, black, false}, {0, red, false}, {2, red, false}}, PlayerColors: rb, Current: 1},
+		{Name: "jump-own-token", Tokens: []placement{{41, black, false}, {34, black, false}}, PlayerColors: rb, Current: 1},
+		{Name: "capture-refused-by-same-color", Tokens: []placement{{41, black, false}, {34, red, false}}, Captured: [2][]int{nil, {black}}, PlayerColors: rb, Current: 1},
+		{Name: "crowned-black-both-ways", Tokens: []placement{{27, black, true}, {36, red, false}, {18, red, false}}, PlayerColors: rb, Current: 1},
+		{Name: "crowned-red-both-ways", Tokens: []placement{{27, red, true}, {36, black, false}, {18, black, false}}, PlayerColors: rb, Current: 0},
+		{Name: "crown-candidates", Tokens: []placement{{2, black, false}, {4, black, true}, {57, red, false}, {59, red, true}, {29, red, false}}, PlayerColors: rb, Current: 1},
+		{Name: "turn-finished", Tokens: []placement{{41, black, false}, {18, red, false}}, PlayerColors: rb, Current: 1, FinishedTurn: [2]bool{false, true}},
+		{Name: "game-over", Tokens: []placement{{41, black, false}}, Captured: [2][]int{nil, {red, red, red, red, red, red, red, red, red, red, red, red}}, PlayerColors: rb, Current: 0},
+		{Name: "last-capture", Tokens: []placement{{41, black, false}, {34, red, false}}, Captured: [2][]int{nil, {red, red, red, red, red, red, red, red, red, red, red}}, PlayerColors: rb, Current: 1},
+		{Name: "colors-swapped", Tokens: []placement{{41, black, false}, {18, red, false}}, PlayerColors: [2]int{black, red}, Current: 1},
 	}
 }
 
 func random(n int) []positionSpec {
 	rng := rand.New(rand.NewSource(20261122))
-	colorSets := [][2]int{{red, red}, {red, black}, {black, red}}
+	colorSets := [][2]int{{red, black}, {red, black}, {black, red}}
 	var out []positionSpec
 	for i := 0; i < n; i++ {
 		r0, c0 := rng.Intn(width-3), rng.Intn(width-3)
@@ -568,7 +571,7 @@ func random(n int) []positionSpec {
 		counts := map[int]int{}
 		for len(spec.Tokens) < k {
 			space := (r0+rng.Intn(4))*width + c0 + rng.Intn(4)
-			if used[space] {
+			if used[space] || (space/width+space%width)%2 != 0 {
 				continue
 			}
 			used[space] = true

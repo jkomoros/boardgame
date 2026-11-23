@@ -46,11 +46,11 @@ var graphUpward = graph.MustNewEnumGridConnectedness(spacesEnum, graph.Direction
 
 const tokenDeckName = "Tokens"
 
-// The first space in the upper left is black, and it alternates from there.
-// The red tokens start at the top, and the black tokens are arrayed from the
-// bottom.
+// The first space in the upper left is black, and it alternates from there,
+// along each row and down each column. The red tokens start at the top, and the
+// black tokens are arrayed from the bottom.
 func spaceIsBlack(spaceIndex int) bool {
-	return spaceIndex%2 == 0
+	return (spaceIndex/boardWidth+spaceIndex%boardWidth)%2 == 0
 }
 
 func newTokenDeck() *boardgame.Deck {
@@ -140,12 +140,14 @@ func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int
 
 	crowned := dyn.Crowned
 
-	g := graphUpward
-	oppositeG := graphDownward
+	//Red starts at the top, so it moves down (toward higher rows); black
+	//starts at the bottom and moves up.
+	g := graphDownward
+	oppositeG := graphUpward
 
 	if fromBottom {
-		g = graphDownward
-		oppositeG = graphUpward
+		g = graphUpward
+		oppositeG = graphDownward
 	}
 
 	for _, val := range g.NeighborsByKey(enum.EnumKey(componentIndex)) {

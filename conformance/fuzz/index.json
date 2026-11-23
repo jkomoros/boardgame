@@ -187,8 +187,8 @@
     {
       "game": "checkers",
       "seeds": 8,
-      "maxProposals": 40,
-      "maxVersions": 60,
+      "maxProposals": 80,
+      "maxVersions": 90,
       "finished": 0,
       "moves": [
         {
@@ -222,36 +222,34 @@
         {
           "name": "Crown Token",
           "isFixUp": true,
-          "applied": 0,
+          "applied": 7,
           "proposedLegally": 0,
           "refused": 0
         },
         {
           "name": "Finish Turn",
           "isFixUp": true,
-          "applied": 0,
+          "applied": 246,
           "proposedLegally": 0,
           "refused": 0
         },
         {
           "name": "Move Token",
           "isFixUp": false,
-          "applied": 0,
-          "proposedLegally": 0,
-          "refused": 1
+          "applied": 255,
+          "proposedLegally": 255,
+          "refused": 33
         }
       ],
       "rejectionsByKind": {
-        "propose": 1
+        "propose": 33
       },
       "refusalsByReason": {
-        "illegal-input": 1
+        "illegal-input": 14,
+        "stale-version": 8,
+        "wrong-actor": 11
       },
-      "neverApplied": [
-        "Crown Token",
-        "Finish Turn",
-        "Move Token"
-      ],
+      "neverApplied": [],
       "uncovered": []
     },
     {
@@ -773,12 +771,12 @@
       "players": 2,
       "variant": [],
       "seated": false,
-      "versions": 26,
+      "versions": 91,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 0,
-      "rejections": 0
+      "end": "max-versions",
+      "proposals": 38,
+      "rejections": 5
     },
     {
       "file": "checkers/seed-0001.json.gz",
@@ -787,12 +785,12 @@
       "players": 2,
       "variant": [],
       "seated": true,
-      "versions": 30,
+      "versions": 92,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 2,
-      "rejections": 0
+      "end": "max-versions",
+      "proposals": 35,
+      "rejections": 2
     },
     {
       "file": "checkers/seed-0002.json.gz",
@@ -801,12 +799,12 @@
       "players": 2,
       "variant": [],
       "seated": true,
-      "versions": 30,
+      "versions": 91,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 2,
-      "rejections": 0
+      "end": "max-versions",
+      "proposals": 34,
+      "rejections": 2
     },
     {
       "file": "checkers/seed-0003.json.gz",
@@ -815,12 +813,12 @@
       "players": 2,
       "variant": [],
       "seated": false,
-      "versions": 26,
+      "versions": 92,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 0,
-      "rejections": 0
+      "end": "max-versions",
+      "proposals": 38,
+      "rejections": 4
     },
     {
       "file": "checkers/seed-0004.json.gz",
@@ -829,12 +827,12 @@
       "players": 2,
       "variant": [],
       "seated": false,
-      "versions": 26,
+      "versions": 91,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 0,
-      "rejections": 0
+      "end": "max-versions",
+      "proposals": 38,
+      "rejections": 5
     },
     {
       "file": "checkers/seed-0005.json.gz",
@@ -843,12 +841,12 @@
       "players": 2,
       "variant": [],
       "seated": true,
-      "versions": 30,
+      "versions": 91,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 2,
-      "rejections": 0
+      "end": "max-versions",
+      "proposals": 37,
+      "rejections": 4
     },
     {
       "file": "checkers/seed-0006.json.gz",
@@ -857,12 +855,12 @@
       "players": 2,
       "variant": [],
       "seated": false,
-      "versions": 26,
+      "versions": 92,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 1,
-      "rejections": 1
+      "end": "max-versions",
+      "proposals": 40,
+      "rejections": 8
     },
     {
       "file": "checkers/seed-0007.json.gz",
@@ -871,12 +869,12 @@
       "players": 2,
       "variant": [],
       "seated": true,
-      "versions": 30,
+      "versions": 92,
       "viewers": 4,
       "finished": false,
-      "end": "no-action",
-      "proposals": 2,
-      "rejections": 0
+      "end": "max-versions",
+      "proposals": 36,
+      "rejections": 3
     },
     {
       "file": "debuganimations/seed-0000.json.gz",

@@ -6,7 +6,7 @@
   "movesData": 4,
   "movesWithCode": 3,
   "functions": {
-    "total": 20,
+    "total": 21,
     "data": {
       "count": 14,
       "functions": [
@@ -27,8 +27,9 @@
       ]
     },
     "mechanical": {
-      "count": 19,
+      "count": 20,
       "functions": [
+        "checkers.(*gameDelegate).BeginSetUp",
         "checkers.(*gameDelegate).DistributeComponentToStarterStack",
         "checkers.(*gameDelegate).GameEndConditionMet",
         "checkers.(*gameDelegate).PlayerScore",
@@ -68,39 +69,39 @@
       "count": 0,
       "functions": []
     },
-    "translatable": 19,
+    "translatable": 20,
     "boundForAgent": {
       "count": 0,
       "functions": []
     }
   },
   "headline": {
-    "units": 24,
+    "units": 25,
     "data": {
       "count": 4,
-      "of": 24,
-      "percent": "16.7"
+      "of": 25,
+      "percent": "16.0"
     },
     "mechanical": {
-      "count": 19,
-      "of": 24,
-      "percent": "79.2"
+      "count": 20,
+      "of": 25,
+      "percent": "80.0"
     },
     "agent": {
       "count": 1,
-      "of": 24,
-      "percent": "4.2"
+      "of": 25,
+      "percent": "4.0"
     },
     "engineGap": {
       "count": 0,
-      "of": 24,
+      "of": 25,
       "percent": "0.0"
     }
   },
   "coverage": {
     "documents": 8,
-    "versions": 224,
-    "rejections": 1,
+    "versions": 732,
+    "rejections": 33,
     "moves": [
       {
         "name": "Seat Player",
@@ -133,23 +134,23 @@
       {
         "name": "Crown Token",
         "isFixUp": true,
-        "applied": 0,
+        "applied": 7,
         "proposed": 0,
         "refused": 0
       },
       {
         "name": "Finish Turn",
         "isFixUp": true,
-        "applied": 0,
+        "applied": 246,
         "proposed": 0,
         "refused": 0
       },
       {
         "name": "Move Token",
         "isFixUp": false,
-        "applied": 0,
-        "proposed": 0,
-        "refused": 1
+        "applied": 255,
+        "proposed": 255,
+        "refused": 33
       }
     ],
     "predicates": [
@@ -160,7 +161,7 @@
         "args": [
           "1"
         ],
-        "pass": 96,
+        "pass": 2128,
         "fail": 800,
         "unknown": 0
       },
@@ -168,8 +169,8 @@
         "move": "Move Token",
         "index": 1,
         "name": "proposerIsCurrentPlayer",
-        "pass": 448,
-        "fail": 448,
+        "pass": 1464,
+        "fail": 1464,
         "unknown": 0
       },
       {
@@ -182,7 +183,7 @@
           "move.SpaceIndex"
         ],
         "pass": 0,
-        "fail": 896,
+        "fail": 2928,
         "unknown": 0
       },
       {
@@ -193,8 +194,8 @@
           "game.Spaces",
           "move.TokenIndexToMove"
         ],
-        "pass": 480,
-        "fail": 416,
+        "pass": 2432,
+        "fail": 496,
         "unknown": 0
       },
       {
@@ -206,9 +207,9 @@
           "move.TokenIndexToMove",
           "Color"
         ],
-        "pass": 480,
-        "fail": 0,
-        "unknown": 416
+        "pass": 1424,
+        "fail": 1008,
+        "unknown": 496
       },
       {
         "move": "Move Token",
@@ -217,7 +218,7 @@
         "args": [
           "move.SpaceIndex"
         ],
-        "pass": 896,
+        "pass": 2928,
         "fail": 0,
         "unknown": 0
       },
@@ -226,15 +227,24 @@
         "index": 6,
         "name": "custom",
         "pass": 0,
-        "fail": 480,
-        "unknown": 416
+        "fail": 2432,
+        "unknown": 496
       }
     ],
     "visibility": [],
     "blocks": {
-      "reached": 82,
-      "blocks": 151,
+      "reached": 139,
+      "blocks": 158,
       "functions": [
+        {
+          "func": "checkers.(*gameDelegate).BeginSetUp",
+          "blocks": 6,
+          "reached": 4,
+          "unreached": [
+            "main.go:259.3-260.1",
+            "main.go:263.3-264.1"
+          ]
+        },
         {
           "func": "checkers.(*gameDelegate).ConfigurePredicateConstructors",
           "blocks": 16,
@@ -259,7 +269,7 @@
           "blocks": 4,
           "reached": 3,
           "unreached": [
-            "main.go:254.4-255.1"
+            "main.go:273.4-274.1"
           ]
         },
         {
@@ -267,65 +277,34 @@
           "blocks": 1,
           "reached": 0,
           "unreached": [
-            "main.go:262.2-263.1"
+            "main.go:281.2-282.1"
           ]
         },
         {
           "func": "checkers.(*moveCrownToken).Apply",
           "blocks": 7,
-          "reached": 0,
+          "reached": 6,
           "unreached": [
-            "moves.go:303.2-304.1",
-            "moves.go:305.2-306.1",
-            "moves.go:307.2-307.14",
-            "moves.go:308.3-309.1",
-            "moves.go:311.2-312.1",
-            "moves.go:313.2-314.1",
-            "moves.go:315.2-315.12"
+            "moves.go:314.3-315.1"
           ]
         },
         {
           "func": "checkers.(*moveMoveToken).Apply",
-          "blocks": 26,
-          "reached": 0,
+          "blocks": 27,
+          "reached": 22,
           "unreached": [
-            "moves.go:233.2-234.1",
-            "moves.go:235.2-236.1",
-            "moves.go:237.2-237.103",
             "moves.go:238.3-239.1",
-            "moves.go:241.2-242.1",
-            "moves.go:243.2-243.51",
             "moves.go:244.3-245.1",
-            "moves.go:247.2-248.1",
-            "moves.go:249.2-249.53",
             "moves.go:250.3-251.1",
-            "moves.go:253.2-256.1",
-            "moves.go:258.2-259.1",
-            "moves.go:260.2-260.38",
-            "moves.go:261.3-262.1",
-            "moves.go:264.2-265.1",
-            "moves.go:266.2-267.1",
-            "moves.go:268.2-268.14",
-            "moves.go:270.3-271.1",
-            "moves.go:272.3-272.41",
-            "moves.go:273.4-274.96",
-            "moves.go:275.5-276.1",
-            "moves.go:282.2-282.20",
-            "moves.go:283.3-284.1",
-            "moves.go:287.3-288.72",
-            "moves.go:289.4-290.1",
-            "moves.go:293.2-293.12"
+            "moves.go:267.4-268.1",
+            "moves.go:279.6-280.1"
           ]
         },
         {
           "func": "checkers.(*moveMoveToken).LegalCustom",
           "blocks": 10,
-          "reached": 7,
-          "unreached": [
-            "moves.go:218.4-219.1",
-            "moves.go:223.3-223.42",
-            "moves.go:224.4-225.1"
-          ]
+          "reached": 10,
+          "unreached": []
         },
         {
           "func": "checkers.(*movePlaceToken).Apply",
@@ -357,37 +336,26 @@
         {
           "func": "checkers.(*playerState).ResetForTurnEnd",
           "blocks": 1,
-          "reached": 0,
-          "unreached": [
-            "state.go:57.2-58.1"
-          ]
+          "reached": 1,
+          "unreached": []
         },
         {
           "func": "checkers.(*playerState).ResetForTurnStart",
           "blocks": 1,
-          "reached": 0,
-          "unreached": [
-            "state.go:51.2-53.1"
-          ]
+          "reached": 1,
+          "unreached": []
         },
         {
           "func": "checkers.(*playerState).TurnDone",
           "blocks": 3,
-          "reached": 2,
-          "unreached": [
-            "state.go:47.2-47.12"
-          ]
+          "reached": 3,
+          "unreached": []
         },
         {
           "func": "checkers.(*token).AllNextSpaces",
           "blocks": 15,
-          "reached": 11,
-          "unreached": [
-            "components.go:134.3-135.1",
-            "components.go:147.3-149.1",
-            "components.go:156.3-156.78",
-            "components.go:157.4-158.1"
-          ]
+          "reached": 15,
+          "unreached": []
         },
         {
           "func": "checkers.(*token).Dynamic",
@@ -404,32 +372,17 @@
         {
           "func": "checkers.(*token).Legal",
           "blocks": 13,
-          "reached": 8,
+          "reached": 12,
           "unreached": [
-            "components.go:101.2-102.1",
-            "components.go:103.2-103.15",
-            "components.go:105.3-106.1",
-            "components.go:108.2-108.12",
             "components.go:91.3-92.1"
           ]
         },
         {
           "func": "checkers.(*token).LegalCaptureSpaces",
           "blocks": 19,
-          "reached": 7,
+          "reached": 18,
           "unreached": [
-            "components.go:178.3-178.24",
-            "components.go:179.4-179.12",
-            "components.go:181.3-182.30",
-            "components.go:184.4-184.12",
-            "components.go:189.3-191.1",
-            "components.go:192.3-195.1",
-            "components.go:197.3-200.1",
-            "components.go:202.3-203.1",
-            "components.go:204.3-204.38",
-            "components.go:206.4-206.12",
-            "components.go:209.3-209.47",
-            "components.go:211.4-212.1"
+            "components.go:181.4-181.12"
           ]
         },
         {
@@ -441,18 +394,13 @@
       ]
     },
     "gaps": {
-      "neverApplied": [
-        "Crown Token",
-        "Finish Turn",
-        "Move Token"
-      ],
+      "neverApplied": null,
       "neverRefused": null,
       "predicates": [
         "Move Token #0 inPhase(1): no unknown",
         "Move Token #1 proposerIsCurrentPlayer(): no unknown",
         "Move Token #2 maySwapComponentsByKey(game.Spaces, move.TokenIndexToMove, move.SpaceIndex): no pass, unknown",
         "Move Token #3 componentPresentAtKey(game.Spaces, move.TokenIndexToMove): no unknown",
-        "Move Token #4 componentPropEqualsCurrentPlayer(game.Spaces, move.TokenIndexToMove, Color): no fail",
         "Move Token #5 checkers.spaceIsBlack(move.SpaceIndex): no fail, unknown",
         "Move Token #6 custom(): no pass"
       ],

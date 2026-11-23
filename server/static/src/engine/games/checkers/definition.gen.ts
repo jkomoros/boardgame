@@ -761,6 +761,7 @@ export function definition(): GameData {
 			},
 		],
 		SetUp: {
+			Begin: 'checkers.(*gameDelegate).BeginSetUp',
 			Distribute: 'checkers.(*gameDelegate).DistributeComponentToStarterStack',
 		},
 		End: {
@@ -769,6 +770,16 @@ export function definition(): GameData {
 		},
 		Agents: [],
 		Functions: [
+			{
+				Func: 'checkers.(*gameDelegate).BeginSetUp',
+				Role: 'setUpBegin',
+				File: 'main.go',
+				Line: 255,
+				SourceHash: 'sha256:5d26d7847cca2d595fe698789052c48ed47fb539f6a55cd9c612aedf102fe069',
+				Calls: [],
+				Verdict: 'subset',
+				Refusals: [],
+			},
 			{
 				Func: 'checkers.(*gameDelegate).ConfigurePredicateConstructors',
 				Role: 'predicate',
@@ -804,7 +815,7 @@ export function definition(): GameData {
 				Func: 'checkers.(*gameDelegate).GameEndConditionMet',
 				Role: 'conditionMet',
 				File: 'main.go',
-				Line: 250,
+				Line: 269,
 				SourceHash: 'sha256:dd8c01d42b01bd88b68ec1229146e4f04a5f4d7e2770d1ec00d0d0042d2e19f6',
 				Calls: [],
 				Verdict: 'subset',
@@ -814,7 +825,7 @@ export function definition(): GameData {
 				Func: 'checkers.(*gameDelegate).PlayerScore',
 				Role: 'playerScore',
 				File: 'main.go',
-				Line: 261,
+				Line: 280,
 				SourceHash: 'sha256:89dc7692dd453d43123257e4c8c29328fe78978c48c51cdf2502e1dfd960cfca',
 				Calls: [
 					'checkers.(*playerState).GameScore',
@@ -826,7 +837,7 @@ export function definition(): GameData {
 				Func: 'checkers.(*moveCrownToken).Apply',
 				Role: 'apply',
 				File: 'moves.go',
-				Line: 302,
+				Line: 308,
 				SourceHash: 'sha256:e20b4a0096735bfe3d5a90891b6e2882f06a11807e5ec9e5fbdb98d3d5c485a2',
 				Calls: [],
 				Verdict: 'subset',
@@ -837,7 +848,7 @@ export function definition(): GameData {
 				Role: 'apply',
 				File: 'moves.go',
 				Line: 231,
-				SourceHash: 'sha256:a0c844830eaa71dbacc4ece6eb7d3d2be36e5529704f586ac11a432cc3408607',
+				SourceHash: 'sha256:80041016f824cf2b5f0243a7d0dad826bdccf9827f0f326b6be699792d9019ef',
 				Calls: [
 					'checkers.(*token).LegalCaptureSpaces',
 				],
@@ -936,7 +947,7 @@ export function definition(): GameData {
 				Role: 'helper',
 				File: 'components.go',
 				Line: 128,
-				SourceHash: 'sha256:b7c1f3ee178a4c3e92a0584b8e0eefc3f2c736c312c830cbeda005d73f54f8a9',
+				SourceHash: 'sha256:e1c9534b27a9bcad39920d410de2abcecc4a684c093be35ec5afed0c0e6cedb3',
 				Calls: [
 					'checkers.(*token).Dynamic',
 				],
@@ -981,7 +992,7 @@ export function definition(): GameData {
 				Func: 'checkers.(*token).LegalCaptureSpaces',
 				Role: 'helper',
 				File: 'components.go',
-				Line: 165,
+				Line: 167,
 				SourceHash: 'sha256:e61c11e253c4ef280d7429d7f50827a89be34149a3fe14d6eb111858b6411a64',
 				Calls: [
 					'checkers.(*token).AllNextSpaces',
@@ -994,7 +1005,7 @@ export function definition(): GameData {
 				Role: 'helper',
 				File: 'components.go',
 				Line: 52,
-				SourceHash: 'sha256:e17d97695845c0c6a8be211492704a48fbc24d49c58c88335ff08eb8136c79ae',
+				SourceHash: 'sha256:a56f17d4b2a06ccf487e7691247f948055692805dd4ebbe1b77846d09fd40328',
 				Calls: [],
 				Verdict: 'subset',
 				Refusals: [],

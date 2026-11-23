@@ -40,7 +40,6 @@ import { werewolf } from '../games/werewolf.ts';
 import { bodies as checkersBodies } from '../games/checkers/bodies.gen.ts';
 import { GENERIC_COMPONENT } from '../ids.ts';
 import { loadEngineState } from '../state.ts';
-import { CHECKERS_PREDICATE_REF, spaceIsBlackConstructor } from '../testing/checkers.ts';
 import { type ConformanceDocument, FIELDS, firstDifference, runDocument } from '../testing/conformance.ts';
 import { compileGame, emptyStateJSON, gameDisplayName, isGameSpecError, variantConfig } from './compile.ts';
 import { BASE_DISTRIBUTE_ERROR, type Bodies, type GameData, type MoveData, callStockApply, gameFromData, moveOverrideRef, stockOverrideRef } from './data.ts';
@@ -416,7 +415,7 @@ test("a ComponentLegal body gets its receiver as the values handle { deck, index
 				return 'recorded';
 			};
 		}
-		return wanted === CHECKERS_PREDICATE_REF ? spaceIsBlackConstructor : checkersBodies(wanted);
+		return checkersBodies(wanted);
 	});
 	const legal = spec.decks.Tokens.componentLegal;
 	assert.ok(legal !== undefined);

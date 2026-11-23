@@ -78,8 +78,10 @@ var measuredDifferences = map[string]map[string]int{
 	// swapComponentsByKey, rangeValue, rangeToValue, valueToRange and
 	// neighborsByKey in engine/go/api.ts; moves.DefaultComponent and
 	// behaviors.ComponentColor and PlayerColor in rules/stock-inventory.json),
-	// so none of checkers' functions needs an engine feature.
-	"checkers": {"needEngineFeature": 0},
+	// so none of checkers' functions needs an engine feature. The fix of the
+	// Go game (fabric/transpile/status/checkers-fix.md) added BeginSetUp,
+	// which gives the players their colors: 21 functions, 20 in the subset.
+	"checkers": {"needEngineFeature": 0, "functions": 21, "inSubset": 20},
 }
 
 func baselineField(b Baseline, name string) int {

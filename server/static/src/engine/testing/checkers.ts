@@ -1,41 +1,38 @@
-// Test support shared by rules/checkers.test.ts (checkers through the loader
-// with hand-written stand-in bodies) and games/checkers/checkers.gen.test.ts
-// (the translated bodies): the Go recordings of checkers and the code that
-// replays them against a compiled game.
+// Test support shared by rules/checkers.test.ts (checkers through the loader)
+// and games/checkers/checkers.gen.test.ts (the generated game held to Go): the
+// Go recordings of checkers and the code that replays them against a compiled
+// game.
 //
 //  - CHECKERS_DOCUMENTS: three Go fuzz-driver documents
-//    (rules/testdata/checkers/seed-000{0,1,6}.json.gz: unseated; seated; one
-//    with a recorded refusal).
+//    (rules/testdata/checkers/seed-000{0,1,6}.json.gz: seed 0 at default
+//    bounds, unseated, played to the end with refusals; seed 1 seated and
+//    seed 6, each cut at 60 versions).
 //  - CHECKERS_VECTORS and checkPositions: constructed positions
 //    (testdata/checkers.vectors.json.gz, from testdata/gen/checkersvec on a
 //    real Go checkers state): Move Token's Legal texts and ledgers, Crown
 //    Token's defaults and Legal, Finish Turn's Legal, every recorded Apply
 //    (error, panic, or the whole state after), the end condition and scores.
-//  - spaceIsBlackConstructor: a STAND-IN for the one checkers function the
-//    translator refuses, `checkers.(*gameDelegate).ConfigurePredicateConstructors`
-//    (predicate-constructor): main.go's "checkers.spaceIsBlack" constructor
-//    transliterated by hand onto PredicateContext. It is pending the agent
-//    loop; until then both tests load it from here.
+//
+// Both tests take checkers' bodies from the generated games/checkers/
+// bodies.gen.ts; there are no hand-written stand-ins.
 //
 // Node-only (reads files); not engine code.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
-import { sprintf } from '../go/str.ts';
-import { failT, passVerdict, unknownVerdict } from '../legal/types.ts';
 import type { LegalVerdict } from '../legal/types.ts';
 import type { CompiledGame, RulesState } from '../rules/state.ts';
 import { newRulesState } from '../rules/state.ts';
 import { syncTimerRecords } from '../rules/timers.ts';
-import type { GamePredicate, MoveInstance, PredicateSpec } from '../rules/types.ts';
+import type { MoveInstance } from '../rules/types.ts';
 import { loadEngineState } from '../state.ts';
 import type { StateJSON } from '../state.ts';
 import { firstDifference } from './conformance.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-/** Seed 0 (unseated), seed 1 (seated: Seat Player and Activate Inactive Player), seed 6 (one refusal). */
+/** Seed 0 (unseated, to the end), seed 1 (seated: Seat Player and Activate Inactive Player), seed 6. */
 export const CHECKERS_DOCUMENTS: readonly string[] = [0, 1, 6].map(seed => path.join(here, '..', 'rules', 'testdata', 'checkers', 'seed-000' + seed + '.json.gz'));
 export const CHECKERS_VECTORS = path.join(here, '..', 'testdata', 'checkers.vectors.json.gz');
 
@@ -43,40 +40,8 @@ export function readGzipJSON<T>(file: string): T {
 	return JSON.parse(gunzipSync(readFileSync(file)).toString('utf8')) as T;
 }
 
-// ----- the predicate stand-in ----------------------------------------------
-
 /** The FnRef of checkers' predicate constructor (GameData.Predicates[0].Construct). */
 export const CHECKERS_PREDICATE_REF = 'checkers.(*gameDelegate).ConfigurePredicateConstructors';
-
-/** components.go spaceIsBlack */
-function spaceIsBlack(spaceIndex: number): boolean {
-	return spaceIndex % 2 === 0;
-}
-
-/** main.go ConfigurePredicateConstructors: "checkers.spaceIsBlack"'s Constructor (STAND-IN, see above). */
-export function spaceIsBlackConstructor(spec: PredicateSpec): GamePredicate {
-	if (spec.args.length !== 1) throw new Error(sprintf('checkers.spaceIsBlack: requires exactly 1 arg (the space-index field), got %d', spec.args.length));
-	const field = spec.args[0];
-	let template = spec.message;
-	if (template === '') template = 'checkers.black_spaces_only';
-	return {
-		name: 'checkers.spaceIsBlack',
-		args: spec.args,
-		reads: [{ path: field, facet: 'values' }],
-		cost: 0,
-		emittedTemplates: [template],
-		emittedBindings: { [template]: [] },
-		evaluate(ctx) {
-			const [val, propType, err] = ctx.resolvePath(field);
-			if (err !== null) return unknownVerdict(err);
-			if (propType !== 'TypeEnum') return unknownVerdict('checkers.spaceIsBlack: path ' + field + ' is not an enum property');
-			const ev = val as { value: number } | null;
-			if (ev === null) return unknownVerdict('checkers.spaceIsBlack: path ' + field + ' resolved to a nil or non-enum value');
-			if (spaceIsBlack(ev.value)) return passVerdict();
-			return failT(template);
-		},
-	};
-}
 
 // ----- constructed positions ----------------------------------------------
 
