@@ -84,9 +84,9 @@ type legalMoveInProgressionChecker interface {
 // that registry alongside legal.DefaultConstructors() (or a delegate's
 // ConfigurePredicateConstructors override).
 func FrameworkConstructors() []*legal.PredicateConstructor {
-	return []*legal.PredicateConstructor{
+	return append([]*legal.PredicateConstructor{
 		inProgressionConstructor(),
-	}
+	}, frameworkCheckConstructors()...)
 }
 
 // inProgressionConstructor returns the registry entry for "inProgression".

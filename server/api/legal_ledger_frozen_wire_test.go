@@ -53,6 +53,17 @@ survey-cycle-scoped one — unlike checkers/memory, no genuinely-natural
 catalog gate was left un-migrated here; werewolf's moves.go documents the
 same finding (Task 12 report has the full per-game migration table).
 
+Fixture scope (seam-widening update, 2026-11-22): the seam no longer has a
+base-type allowlist -- every framework base type contributes its own
+legality -- so werewolf's "durable" opacity above ended, and moveCastVote
+migrated (its own golden: examples/werewolf/legal_golden_test.go). Every
+example game now has at least one opted-in move, so there is no fully opaque
+game left to swap to. The guarantee was always per move -- a move that did
+not opt in renders exactly the pre-Task-10 form -- so the test now checks
+every move WITHOUT an assembled plan in this game (werewolf's StartPhase,
+FixUp and seat moves, and its timeout moves) and requires that it compared
+several.
+
 There is no literal "before" JSON blob checked in here to diff against
 (this package had no test harness capable of building a real game before
 this task), so byte-identity is proven differentially instead, which is
@@ -96,6 +107,7 @@ func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
 
 	s := &Server{}
 	state := game.CurrentState()
+	compared := 0
 
 	for _, playerIndex := range []boardgame.PlayerIndex{0, 1, boardgame.ObserverPlayerIndex} {
 		forms := s.generateFormsWithLegality(game, state, playerIndex)
@@ -103,13 +115,18 @@ func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
 			t.Fatalf("expected at least one move form for player %d", playerIndex)
 		}
 
+		opaque := make(map[string]bool)
 		for _, form := range forms {
-			// None of werewolf's moves have opted in, and structurally never
-			// will under the v1 seam (see this file's doc comment) -- every
-			// single one must take the frozen opaque path: no Preconditions
-			// at all.
+			// Only moves that did not opt in are in scope (see this file's
+			// doc comment); each must take the frozen opaque path: no
+			// Preconditions at all.
+			if manager.LegalPlanAssembled(form.Name) {
+				continue
+			}
+			opaque[form.Name] = true
+			compared++
 			if form.Preconditions != nil {
-				t.Errorf("player %d, move %q: opaque game produced a non-nil Preconditions ledger: %+v", playerIndex, form.Name, form.Preconditions)
+				t.Errorf("player %d, move %q: a move that never opted in produced a non-nil Preconditions ledger: %+v", playerIndex, form.Name, form.Preconditions)
 			}
 
 			move := game.MoveByName(form.Name)
@@ -142,9 +159,16 @@ func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
 			t.Fatalf("player %d: unmarshal error: %v", playerIndex, err)
 		}
 		for _, entry := range raw {
+			name, _ := entry["Name"].(string)
+			if !opaque[name] {
+				continue
+			}
 			if _, ok := entry["Preconditions"]; ok {
-				t.Errorf("player %d: JSON move form %v carries a Preconditions key on an opaque game", playerIndex, entry["Name"])
+				t.Errorf("player %d: JSON move form %v carries a Preconditions key though it never opted in", playerIndex, entry["Name"])
 			}
 		}
+	}
+	if compared < 6 {
+		t.Fatalf("only %d opaque move forms were compared; the fixture no longer exercises the opaque path enough to mean anything", compared)
 	}
 }

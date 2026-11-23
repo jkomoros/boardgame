@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -124,7 +125,17 @@ func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 	if err := m.ApplyUntil.legalWithBase(state, proposer, m.Default.legalWithoutStackConstraints); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, m.Name(), PreconditionMoveCountComponents) {
+		return nil
+	}
+	return m.legalMoveCountComponents(state, proposer)
+}
 
+// legalMoveCountComponents is MoveCountComponents' own legality beyond
+// ApplyUntil's: the whole remaining transfer must be possible. The frozen
+// chain runs it after the super-call; an opted-in move's plan runs it as the
+// contributed PreconditionMoveCountComponents atom instead.
+func (m *MoveCountComponents) legalMoveCountComponents(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	source, destination := m.stacks(state)
 
 	if source == nil {
@@ -154,6 +165,21 @@ func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 
 	return source.MayMoveCountTo(destination, remaining)
 
+}
+
+// ContributedPreconditions mirrors Legal's call path exactly: ApplyUntil's
+// contribution WITHOUT Default's generic stack-constraint check (Legal calls
+// legalWithoutStackConstraints because the complete remaining transfer is
+// checked below), then the transfer check itself.
+func (m *MoveCountComponents) ContributedPreconditions() []legal.Spec {
+	var specs []legal.Spec
+	for _, spec := range m.ApplyUntil.ContributedPreconditions() {
+		if spec.Name == string(PreconditionStackConstraints) {
+			continue
+		}
+		specs = append(specs, spec)
+	}
+	return append(specs, FrameworkPrecondition(PreconditionMoveCountComponents))
 }
 
 // Apply by default moves one component from SourceStack() to

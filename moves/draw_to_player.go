@@ -229,6 +229,14 @@ func (d *DrawToPlayer) LegalPlanEnabled() bool {
 	return true
 }
 
+// LegalPlanOnly reports that DrawToPlayer has no frozen imperative chain to compare
+// its plan against: its defining check exists only as a contributed
+// precondition. Differential harnesses (package legaltest) skip it; its own
+// golden tests fence it instead.
+func (d *DrawToPlayer) LegalPlanOnly() bool {
+	return true
+}
+
 // Apply moves the first component of the draw stack to the current player's
 // stack. An embedding move with bookkeeping of its own should override Apply
 // and super-call this first.

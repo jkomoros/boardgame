@@ -67,7 +67,14 @@ func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 	var result []string
 
 	for _, theAST := range packageASTs {
-		for _, file := range theAST.Files {
+		for filename, file := range theAST.Files {
+			//A delegate declared in a test file (a test-only wrapper that
+			//overrides ConfigureMoves) must not get a ConfigureEnums emitted
+			//into the non-test auto_enum.go, which could not compile without
+			//it.
+			if strings.HasSuffix(filename, "_test.go") {
+				continue
+			}
 			for _, decl := range file.Decls {
 
 				//We're looking for function declarations like func (g

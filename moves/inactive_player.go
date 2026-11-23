@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -213,7 +214,23 @@ func (a *ActivateInactivePlayer) Legal(state boardgame.ImmutableState, proposer 
 	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionActivateInactivePlayer) {
+		return nil
+	}
+	return a.legalActivateInactivePlayer(state, proposer)
+}
+
+// legalActivateInactivePlayer is ActivateInactivePlayer's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionActivateInactivePlayer atom instead.
+func (a *ActivateInactivePlayer) legalActivateInactivePlayer(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	return activateAnySeat.legalTarget(state, a.TargetPlayerIndex)
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// ActivateInactivePlayer's own check, in the order Legal runs them.
+func (a *ActivateInactivePlayer) ContributedPreconditions() []legal.Spec {
+	return append(a.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionActivateInactivePlayer))
 }
 
 // Apply sets the TargetPlayerIndex to be active via SetPlayerActive.

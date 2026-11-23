@@ -222,10 +222,11 @@ actually contribute is a NewGameManager error naming the move
 path — arithmetic, graph walks, anything with real Go logic —
 [boardgame.CustomLegaler]'s LegalCustom method runs as imperative residue
 after every declared precondition passes; see the [legal] package doc for the
-full authoring guide, the catalog's rules of growth, and its honest limits
-(the supported seam is [CurrentPlayer], [Default], [DrawToPlayer], [FixUp],
-[FixUpMulti], [MoveComponentToSlot], [RecordCurrentPlayerChoice] and
-[StartPhase]; other framework move bases remain opaque).
+full authoring guide, the catalog's rules of growth, and its honest limits.
+Every framework move type in this package can be embedded by an opted-in
+move: each one's own legality is part of its contribution (framework
+checks such as [PreconditionFinishTurn], which can be moved with
+[FrameworkPrecondition] but never removed).
 See the tutorial's "Declarative Move Legality" section for a complete worked
 example.
 

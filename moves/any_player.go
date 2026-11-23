@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -41,7 +42,16 @@ func (a *AnyPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pla
 	if err := a.Default.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionAnyPlayer) {
+		return nil
+	}
+	return a.legalAnyPlayer(state, proposer)
+}
 
+// legalAnyPlayer is AnyPlayer's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionAnyPlayer atom instead.
+func (a *AnyPlayer) legalAnyPlayer(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	target := a.TargetPlayerIndex
 
 	// If the target is still the default sentinel (ObserverPlayerIndex) and
@@ -78,6 +88,12 @@ func (a *AnyPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pla
 	}
 
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// AnyPlayer's own check, in the order Legal runs them.
+func (a *AnyPlayer) ContributedPreconditions() []legal.Spec {
+	return append(a.Default.ContributedPreconditions(), FrameworkPrecondition(PreconditionAnyPlayer))
 }
 
 // DefaultsForState sets TargetPlayerIndex to ObserverPlayerIndex as a sentinel.

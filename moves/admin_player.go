@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 /*
@@ -36,7 +37,16 @@ func (a *AdminPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	if err := a.AnyPlayer.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionAdminPlayer) {
+		return nil
+	}
+	return a.legalAdminPlayer(state, proposer)
+}
 
+// legalAdminPlayer is AdminPlayer's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionAdminPlayer atom instead.
+func (a *AdminPlayer) legalAdminPlayer(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	target := a.TargetPlayerIndex
 	player := state.ImmutablePlayerStates()[target]
 
@@ -49,6 +59,12 @@ func (a *AdminPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	}
 
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// AdminPlayer's own check, in the order Legal runs them.
+func (a *AdminPlayer) ContributedPreconditions() []legal.Spec {
+	return append(a.AnyPlayer.ContributedPreconditions(), FrameworkPrecondition(PreconditionAdminPlayer))
 }
 
 // FallbackName returns "Admin Player Move"

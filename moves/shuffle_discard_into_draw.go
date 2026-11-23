@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 // ShuffleDiscardIntoDraw is a FixUp move that automatically shuffles the
@@ -57,7 +58,16 @@ func (s *ShuffleDiscardIntoDraw) Legal(state boardgame.ImmutableState, proposer 
 	if err := s.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, s.Name(), PreconditionShuffleDiscardIntoDraw) {
+		return nil
+	}
+	return s.legalShuffleDiscardIntoDraw(state, proposer)
+}
 
+// legalShuffleDiscardIntoDraw is ShuffleDiscardIntoDraw's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionShuffleDiscardIntoDraw atom instead.
+func (s *ShuffleDiscardIntoDraw) legalShuffleDiscardIntoDraw(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	dd, err := s.drawDiscardPair(state)
 	if err != nil {
 		return err
@@ -70,6 +80,12 @@ func (s *ShuffleDiscardIntoDraw) Legal(state boardgame.ImmutableState, proposer 
 		return fmt.Errorf("discard cannot be moved into draw stack: %w", err)
 	}
 	return nil
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// ShuffleDiscardIntoDraw's own check, in the order Legal runs them.
+func (s *ShuffleDiscardIntoDraw) ContributedPreconditions() []legal.Spec {
+	return append(s.FixUp.ContributedPreconditions(), FrameworkPrecondition(PreconditionShuffleDiscardIntoDraw))
 }
 
 // Apply moves all components from the discard stack to the draw stack, then

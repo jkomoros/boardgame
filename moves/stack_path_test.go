@@ -290,13 +290,22 @@ func TestQualifiedStackPathDropsTheStackConstraintsAtom(t *testing.T) {
 		if move == nil {
 			t.Fatal("move was not installed")
 		}
-		provider, ok := boardgame.Move(move).(PreconditionsProvider)
+		concrete, ok := boardgame.Move(move).(*MoveCountComponents)
 		if !ok {
-			t.Fatal("the move did not implement PreconditionsProvider")
+			t.Fatal("the move was not a MoveCountComponents")
 		}
-		for _, spec := range provider.ContributedPreconditions() {
+		//This pins Default's own derivation. MoveCountComponents' full
+		//contribution never includes the atom, because its Legal skips
+		//Default's generic stack check (legalWithoutStackConstraints); see
+		//TestMoveCountComponentsContributionSkipsStackConstraints.
+		for _, spec := range concrete.Default.ContributedPreconditions() {
 			if spec.Name == string(PreconditionStackConstraints) {
 				return true
+			}
+		}
+		for _, spec := range concrete.ContributedPreconditions() {
+			if spec.Name == string(PreconditionStackConstraints) {
+				t.Fatal("MoveCountComponents contributed stackConstraints, which its own Legal never runs")
 			}
 		}
 		return false

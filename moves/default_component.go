@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -117,7 +118,16 @@ func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardg
 	if err := d.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, d.Name(), PreconditionDefaultComponent) {
+		return nil
+	}
+	return d.legalDefaultComponent(state, proposer)
+}
 
+// legalDefaultComponent is DefaultComponent's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionDefaultComponent atom instead.
+func (d *DefaultComponent) legalDefaultComponent(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	//So sorry for this hack. :-(
 	mState, ok := state.(boardgame.State)
 	if !ok {
@@ -155,6 +165,12 @@ func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardg
 
 	return legal.Legal(state, legalTypeVal)
 
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// DefaultComponent's own check, in the order Legal runs them.
+func (d *DefaultComponent) ContributedPreconditions() []legal.Spec {
+	return append(d.FixUpMulti.ContributedPreconditions(), FrameworkPrecondition(PreconditionDefaultComponent))
 }
 
 // LegalType returns the value that will be passed to the Component's Legal()

@@ -127,43 +127,19 @@ func voteForPhase(player *playerState, phase enum.EnumKey) boardgame.PlayerIndex
 // During the day phase, any alive player may vote. During the night phase,
 // only alive werewolves may vote.
 //
-// Declarative-legality survey re-check (Task 7, design spec §6): this move
-// embeds moves.AnyPlayer, which Task 6's seam widening (design spec §5) did
-// NOT add to the allowlist ({Default, CurrentPlayer, FixUp, FixUpMulti,
-// StartPhase} only) — and could never qualify anyway, since moves.AnyPlayer
-// declares its own Legal() override (moves/any_player.go), violating spec
-// §5's "the allowlisted type must declare no Legal() override" invariant on
-// its face. This remains the dispositive blocker, unaffected by Task 7's
-// new predicates.
+// Declarative legality: moves.AnyPlayer contributes its own check (target
+// defaulting, seat and proposer validity) as the framework check
+// moves.PreconditionAnyPlayer, after the phase gate AddForPhase contributes.
+// The first gate this move adds -- an eliminated player cannot vote -- is a
+// declared precondition (see main.go). The rest stays LegalCustom, in its
+// original order: "already voted" reads a different field per phase, and the
+// night-phase "only werewolves may act" branch is a disjunction of
+// conjunctions ((phase==night AND role==werewolf) OR phase==day), which the
+// catalog deliberately cannot express. legal_golden_test.go compares this
+// against a snapshot of the Legal() it replaced.
 //
-// For the record, even setting the base-type block aside: the night-phase
-// "only werewolves may act" branch (`if phase == phaseNight { ... } else if
-// phase != phaseDay { ... }`) is equivalent to "(phase==night AND
-// role==werewolf) OR phase==day" — a conjunction nested inside a
-// disjunction, which design spec §6 explicitly defers ("no all-compositor /
-// nested any", the same gap debuganimations' and tictactoe's Task 7 survey
-// comments name for their own residual moves). Even design spec §2's new
-// typed-equality legal.PropEquals (which could express phase==day/
-// role==werewolf as individual leaves) doesn't change this: v1's "any" is
-// still OR-only and depth-1, so it cannot combine an AND term with an OR
-// term in one plan.
-//
-// Worth recording separately (the Task 12 brief specifically flagged this
-// game's hidden-info sanitization, #797): several of this move's checks —
-// the night-phase "only werewolves may act" gate in particular — read the
-// PROPOSING player's own Role, which carries behaviors.PlayerRole's default
-// `sanitize:"other:hidden"` tag (a role is hidden from OTHER players, not
-// from the player who holds it). Had a catalog gate been available and
-// natural here, its declared Reads would need to name a self-scoped
-// player.Role read, and the server ledger's ("evaluable" = every Read's
-// facet survives the viewer's sanitization policy) computation is
-// viewer-relative — a hidden field a player reads about THEMSELVES is a
-// different evaluability question than the same field read about another
-// player, and the ledger machinery built through Task 10 already
-// distinguishes player/admin/observer viewers for exactly this reason. This
-// move never reaches that question (the blockers above are dispositive on
-// their own), so it's recorded here as a survey note, not exercised. Left
-// byte-for-byte unchanged.
+// The proposer-relative reads here (the voter's own Role, sanitized from
+// other players) remain server-side: LegalCustom's verdict is server-only.
 //
 //boardgame:codegen
 type moveCastVote struct {
@@ -172,18 +148,12 @@ type moveCastVote struct {
 	VoteTarget boardgame.PlayerIndex `sanitize:"self:visible,same-role:visible"`
 }
 
-func (m *moveCastVote) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := m.AnyPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
+// LegalCustom runs after the contributed phase and AnyPlayer checks and the
+// declared eliminated-voter gate have passed.
+func (m *moveCastVote) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	voter := players[m.TargetPlayerIndex]
-
-	if voter.Eliminated {
-		return errors.New("eliminated players cannot vote")
-	}
 
 	phase := game.Phase.Value()
 

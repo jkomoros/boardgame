@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -35,11 +36,19 @@ type AdvanceToken struct {
 
 // Legal checks the base FixUp legality and then the optional AdvanceCondition.
 func (a *AdvanceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
 	if err := a.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
+	if legalPlanOwnsChain(state, a.Name(), PreconditionAdvanceToken) {
+		return nil
+	}
+	return a.legalAdvanceToken(state, proposer)
+}
 
+// legalAdvanceToken is AdvanceToken's own legality beyond the move it embeds. The frozen chain
+// runs it after the super-call in Legal; an opted-in move's plan runs it as
+// the contributed PreconditionAdvanceToken atom instead.
+func (a *AdvanceToken) legalAdvanceToken(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if condition, ok := a.Info().ConcreteMove().(interfaces.AdvanceCondition); ok {
 		if err := condition.ShouldAdvance(state); err != nil {
 			return err
@@ -48,6 +57,12 @@ func (a *AdvanceToken) Legal(state boardgame.ImmutableState, proposer boardgame.
 
 	_, _, _, err := a.advanceDestination(state)
 	return err
+}
+
+// ContributedPreconditions is the embedded move's contribution followed by
+// AdvanceToken's own check, in the order Legal runs them.
+func (a *AdvanceToken) ContributedPreconditions() []legal.Spec {
+	return append(a.FixUp.ContributedPreconditions(), FrameworkPrecondition(PreconditionAdvanceToken))
 }
 
 func (a *AdvanceToken) advanceDestination(state boardgame.ImmutableState) (*behaviors.LocationBehavior, enum.ImmutableVal, enum.ImmutableVal, error) {
