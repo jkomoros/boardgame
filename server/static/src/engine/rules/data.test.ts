@@ -37,11 +37,13 @@ import { memory } from '../games/memory.ts';
 import { pig } from '../games/pig.ts';
 import { tictactoe } from '../games/tictactoe.ts';
 import { werewolf } from '../games/werewolf.ts';
+import { bodies as checkersBodies } from '../games/checkers/bodies.gen.ts';
 import { GENERIC_COMPONENT } from '../ids.ts';
 import { loadEngineState } from '../state.ts';
+import { CHECKERS_PREDICATE_REF, spaceIsBlackConstructor } from '../testing/checkers.ts';
 import { type ConformanceDocument, FIELDS, firstDifference, runDocument } from '../testing/conformance.ts';
 import { compileGame, emptyStateJSON, gameDisplayName, isGameSpecError, variantConfig } from './compile.ts';
-import { type Bodies, type GameData, type MoveData, callStockApply, gameFromData, moveOverrideRef, stockOverrideRef } from './data.ts';
+import { BASE_DISTRIBUTE_ERROR, type Bodies, type GameData, type MoveData, callStockApply, gameFromData, moveOverrideRef, stockOverrideRef } from './data.ts';
 import { type Counter, type ProgressionGroup, evalCounter } from './progression.ts';
 import type { CompiledGame, RulesState } from './state.ts';
 import { newRulesState } from './state.ts';
@@ -379,6 +381,49 @@ test('a FnRef with no body is a GameSpecError naming it', () => {
 		() => gameFromData(data, missing),
 		(thrown: unknown) => isGameSpecError(thrown) && /apply pig\.\(\*moveRollDice\)\.Apply/.test((thrown as Error).message),
 	);
+});
+
+test("an empty SetUp.Distribute is base.GameDelegate's stub, not a FnRef", () => {
+	// Werewolf declares no DistributeComponentToStarterStack (it has no
+	// deck); the exporter writes ''. Go's stub errors if it is ever called.
+	const want = readJSON<{ distributeComponentToStarterStackError: string }>(path.join(here, '..', 'testdata', 'base-delegate.vectors.json'));
+	const data = pigData();
+	const full = handPortBodies(data, pig(), false).bodies;
+	const asked: string[] = [];
+	const spec = gameFromData({ ...data, SetUp: { ...data.SetUp, Distribute: '' } }, ref => {
+		asked.push(ref);
+		return full(ref);
+	});
+	assert.ok(!asked.includes(''), 'the loader asked bodies for the empty FnRef');
+	assert.equal(want.distributeComponentToStarterStackError, BASE_DISTRIBUTE_ERROR);
+	const game = compileGame(spec);
+	const engine = loadEngineState(game.def, { gameId: '', secretSalt: '' }, 0, emptyStateJSON(game, 2), { skipConservation: true });
+	const state = newRulesState(game, engine, { name: 'pig', id: '', secretSalt: '', numPlayers: 2, variant: null, agents: [], seating: false }, [], { pendingSeat: null });
+	assert.throws(() => spec.setUp.distribute(state, 'dice', 0), { message: want.distributeComponentToStarterStackError });
+});
+
+test("a ComponentLegal body gets its receiver as the values handle { deck, index }, the translator's shape", () => {
+	// checkers' (*token).Legal is translated as (state, t: DynamicRef,
+	// legalType); DeckSpec.componentLegal stays (state, index, legalType).
+	const data = readJSON<GameData>(path.join(root, 'conformance', 'definitions', 'checkers.json'));
+	const ref = data.ComponentLegal?.Tokens;
+	assert.equal(ref, 'checkers.(*token).Legal');
+	const calls: unknown[][] = [];
+	const spec = gameFromData(data, wanted => {
+		if (wanted === ref) {
+			return (...args: unknown[]): string | null => {
+				calls.push(args.slice(1));
+				return 'recorded';
+			};
+		}
+		return wanted === CHECKERS_PREDICATE_REF ? spaceIsBlackConstructor : checkersBodies(wanted);
+	});
+	const legal = spec.decks.Tokens.componentLegal;
+	assert.ok(legal !== undefined);
+	const state = {} as RulesState;
+	assert.equal(legal(state, 5, null), 'recorded');
+	assert.equal(legal(state, 0, 3), 'recorded');
+	assert.deepEqual(calls, [[{ deck: 'Tokens', index: 5 }, null], [{ deck: 'Tokens', index: 0 }, 3]]);
 });
 
 test('a stock type the engine cannot build is a GameSpecError, not a silent default', () => {
