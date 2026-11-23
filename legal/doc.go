@@ -305,8 +305,11 @@ becomes a small, named, serializable game-registered predicate rather than
 LegalCustom residue.
 
 Write the common case without declaring Reads at all: take the paths your
-predicate reads as Args, leave Reads unset, and resolve them with
-ctx.ResolvePath. The engine derives one FacetValues read per path-shaped arg
+predicate reads as Args, leave Reads unset, and resolve them with the typed
+resolvers — legal.ResolveInt, ResolveBool, ResolvePlayerIndex, ResolveEnum,
+and ResolveStack — or ctx.ResolvePath for any other type. Each typed
+resolver returns an error for a wrong type or (enum, stack) a nil value, so
+Evaluate needs no casts. The engine derives one FacetValues read per path-shaped arg
 (literals such as "3" or ">=" are skipped), so `move.*` and
 `players[move.*]` args make the predicate field-dependent automatically.
 checkers' spaceIsBlack is written exactly this way. Declare Reads explicitly
@@ -334,8 +337,9 @@ a boot error naming the move, the predicate, and the path. That probe only
 diagnoses violations early; runtime enforcement is what keeps them safe, so a
 violation the example state never triggers still cannot produce a stale
 verdict. Use legal.Evaluate(pred, ctx) to unit-test a predicate under the
-same enforcement (calling pred.Evaluate directly skips it). Prefer
-ctx.ResolvePath over ctx.Move: it is the surface enforcement can scope.
+same enforcement (calling pred.Evaluate directly skips it). Prefer the
+typed resolvers and ctx.ResolvePath over ctx.Move: they are the surface
+enforcement can scope.
 
 Evaluate must also be a pure function of its Context — see below.
 

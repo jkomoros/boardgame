@@ -117,3 +117,45 @@ func resolveEnumPath(path string, ctx Context) (enum.ImmutableVal, error) {
 	}
 	return v, nil
 }
+
+// ResolveInt, ResolveBool, ResolvePlayerIndex, ResolveEnum and ResolveStack
+// are the typed forms of ctx.ResolvePath for a predicate's Evaluate. Each
+// goes through ctx.ResolvePath, so the engine's read enforcement applies
+// unchanged: the path must be one of the predicate's declared (or derived)
+// Reads. Each returns an error if the property has a different type, and
+// ResolveEnum/ResolveStack also return an error if the value is nil, so a
+// successful call always yields a usable value. A typical Evaluate turns any
+// error into legal.UnknownVerdict(err.Error()).
+
+// ResolveInt resolves path as an int.
+func ResolveInt(ctx Context, path PropPath) (int, error) {
+	return resolveIntPath(string(path), ctx)
+}
+
+// ResolveBool resolves path as a bool.
+func ResolveBool(ctx Context, path PropPath) (bool, error) {
+	return resolveBoolPath(string(path), ctx)
+}
+
+// ResolvePlayerIndex resolves path as a boardgame.PlayerIndex.
+func ResolvePlayerIndex(ctx Context, path PropPath) (boardgame.PlayerIndex, error) {
+	return resolvePlayerIndexPath(string(path), ctx)
+}
+
+// ResolveEnum resolves path as a non-nil enum.ImmutableVal.
+func ResolveEnum(ctx Context, path PropPath) (enum.ImmutableVal, error) {
+	v, err := resolveEnumPath(string(path), ctx)
+	if err == nil && v == nil {
+		return nil, fmt.Errorf("legal: path %q resolved to a nil enum value", path)
+	}
+	return v, err
+}
+
+// ResolveStack resolves path as a non-nil boardgame.ImmutableStack.
+func ResolveStack(ctx Context, path PropPath) (boardgame.ImmutableStack, error) {
+	stack, err := resolveStackPath(string(path), ctx)
+	if err == nil && stack == nil {
+		return nil, fmt.Errorf("legal: path %q resolved to a nil stack", path)
+	}
+	return stack, err
+}

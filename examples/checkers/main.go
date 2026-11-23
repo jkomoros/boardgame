@@ -14,7 +14,6 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
-	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
@@ -181,15 +180,11 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 				// predicates section).
 				EmittedBindings: map[string][]string{template: nil},
 				Evaluate: func(ctx legal.Context) legal.Verdict {
-					val, _, err := ctx.ResolvePath(legal.PropPath(field))
+					space, err := legal.ResolveEnum(ctx, legal.PropPath(field))
 					if err != nil {
 						return legal.UnknownVerdict(err.Error())
 					}
-					ev, ok := val.(enum.ImmutableVal)
-					if !ok || ev == nil {
-						return legal.UnknownVerdict("checkers.spaceIsBlack: path " + field + " resolved to a nil or non-enum value")
-					}
-					if spaceIsBlack(ev.Value().Int()) {
+					if spaceIsBlack(space.Value().Int()) {
 						return legal.PassVerdict()
 					}
 					return legal.FailT(template)
