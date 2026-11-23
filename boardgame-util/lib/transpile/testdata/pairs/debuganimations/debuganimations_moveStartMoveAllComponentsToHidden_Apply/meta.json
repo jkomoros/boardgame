@@ -1,0 +1,28 @@
+{
+	"func": "debuganimations.(*moveStartMoveAllComponentsToHidden).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:302b1944d47d04a9380aca6c3e148d81647e5a371aa388b617f760e3c128c2c5",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "The hand port builds this move with moveAll(options), and its apply reads options from the factory; the wrapper calls the factory with the configuration the game passes and calls its apply.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 5,
+		"unreached": [
+			"moves.go:538.4-539.1"
+		],
+		"mutantsKilled": 1,
+		"mutantsTotal": 1
+	}
+}

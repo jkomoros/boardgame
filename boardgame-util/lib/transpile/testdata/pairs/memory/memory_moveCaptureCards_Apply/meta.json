@@ -1,0 +1,25 @@
+{
+	"func": "memory.(*moveCaptureCards).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:1ef03b551bb72b285f52bd25dfa9cbe55a6d017e4c05f68c29066ec7f249fd69",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 6,
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

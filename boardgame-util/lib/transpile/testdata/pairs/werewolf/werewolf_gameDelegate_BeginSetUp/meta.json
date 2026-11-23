@@ -1,0 +1,29 @@
+{
+	"func": "werewolf.(*gameDelegate).BeginSetUp",
+	"role": "setUpBegin",
+	"sourceHash": "sha256:0d6e0aa3473f6d0614ecf844b69d1446c39bce3d9b7d819af03ae92d269a37d1",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 4,
+		"mutantsKilled": 2,
+		"mutantsTotal": 5,
+		"survivors": [
+			"1 delete-statement 8:2 for (const player of state.players) { player.DayVote = -1; player.NightVo... -> (deleted)",
+			"2 delete-statement 9:3 player.DayVote = -1; -> (deleted)",
+			"4 delete-statement 10:3 player.NightVote = -1; -> (deleted)"
+		]
+	}
+}

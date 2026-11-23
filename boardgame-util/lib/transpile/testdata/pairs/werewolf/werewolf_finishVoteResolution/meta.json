@@ -1,0 +1,29 @@
+{
+	"func": "werewolf.finishVoteResolution",
+	"role": "helper",
+	"sourceHash": "sha256:8134b3690356a367d86a094a06ba88533f800f52aafbf5738eb44d386092f963",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "finishVoteResolution(state) returns nothing; Go returns an error, which the hand port throws instead (from startVoteTimer).",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 5,
+		"unreached": [
+			"moves.go:342.3-343.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

@@ -1,0 +1,24 @@
+{
+	"func": "pig.(*gameDelegate).DistributeComponentToStarterStack",
+	"role": "distribute",
+	"sourceHash": "sha256:3699b10a6c4f1ecd754b0996f68f0fabf50c90dc942c29dbd6f362196c348a97",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": 1,
+		"mutantsTotal": 1
+	}
+}

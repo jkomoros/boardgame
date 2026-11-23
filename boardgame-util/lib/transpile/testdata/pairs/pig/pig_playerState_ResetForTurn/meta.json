@@ -1,0 +1,26 @@
+{
+	"func": "pig.(*playerState).ResetForTurn",
+	"role": "helper",
+	"sourceHash": "sha256:e1294c7d789a1702d9e6fa275665f4f6abf492412ce8b3cea0ac4419b80f2f43",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "resetForTurn, which the hand port also installs as resetForTurnStart.",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

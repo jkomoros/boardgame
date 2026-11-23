@@ -1,0 +1,24 @@
+{
+	"func": "werewolf.(*gameDelegate).CheckGameFinished",
+	"role": "checkGameFinished",
+	"sourceHash": "sha256:76cfa5fc332996b06c1acf76fe069358b6e7227f3747f5cf5313db0fd4d2e277",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 21,
+		"blocksTotal": 21,
+		"mutantsKilled": 27,
+		"mutantsTotal": 27
+	}
+}

@@ -1,0 +1,29 @@
+{
+	"func": "debuganimations.(*moveMoveBetweenHidden).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:17548fcabed65f8c2ae489c915c5b8b560e8e4b57dea54fdb27d8c5692cb2397",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "The hand port builds this move with toggleThird(options), and its legal reads options from the factory; the wrapper calls the factory with the configuration the game passes and calls its legal.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 8,
+		"unreached": [
+			"moves.go:398.3-399.1",
+			"moves.go:411.2-411.53"
+		],
+		"mutantsKilled": 3,
+		"mutantsTotal": 3
+	}
+}

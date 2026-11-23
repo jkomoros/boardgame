@@ -1,0 +1,29 @@
+{
+	"func": "blackjack.(*moveAccumulateScores).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:0e41bab6d27627532e2aaa7b5e399f0c671cc8142d8d4b4ea9ac29e2f1d05cc2",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 8,
+		"unreached": [
+			"moves.go:103.2-103.60",
+			"moves.go:96.4-96.12"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

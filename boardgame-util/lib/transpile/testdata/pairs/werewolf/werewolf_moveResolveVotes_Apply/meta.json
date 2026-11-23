@@ -1,0 +1,24 @@
+{
+	"func": "werewolf.(*moveResolveVotes).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:12638a690bb74745932386ebb9a79d73fdc22f80d4f45ff23ac8d3efb072a2ac",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": 5,
+		"mutantsTotal": 5
+	}
+}

@@ -28,3 +28,53 @@ it as JSON). Record it here with the root cause; if the fix is outside the
 files that may be edited, add the document's name and the report's `field`
 to `EXPECTED_FAILURES` in `games/fuzz.test.ts`, which then requires it to keep
 failing on that field and fails when it starts passing.
+
+## Pair store and substitution proof (workstream 11)
+
+The six hand ports were split into 98 stored pairs
+(`boardgame-util/lib/transpile/testdata/pairs/`) and each pair's translator
+output was substituted, one at a time, for its `accepted.ts` in a game
+built from the definition and the store, then replayed against the game's
+whole conformance and fuzz corpus (`TestSubstitutionProof`,
+`boardgame-util/lib/transpile/pairs`). See `status/pairs.md`.
+
+**No hand-port difference from Go was observed.** Every one of the 86
+substituted translations (all pairs the loader resolves whose Go the
+translator accepts) passes every document; the 11 translated helpers pass
+inside their callers. The store itself (all 98 accepted functions together)
+passes all 70 documents of the six games.
+
+**One harness failure, fixed in the harness.** On the first run the
+translations of `memory.(*moveRevealCard).Apply` and
+`tictactoe.(*movePlaceToken).Apply` failed at version 1 of the first
+document: `the engine refused the recorded propose: The move's apply
+function returned an error:move Reveal Card embeds no stock move with an
+Apply` (likewise Place Token). Root cause: neither the translator nor the
+hand port. Both moves are `moves.MoveComponentToSlot` without
+`WithSlotField`, which `rules/stockRegistry.ts` cannot build from the
+exported configuration (the gap in `status/integration-1.md`), so the
+tests give them stock parts through the `stock:` hook. `rules/data.test.ts`
+builds those parts from the hand port, whose `apply` already calls its own
+`reveal().apply` / `place().apply`, so the parts carry no stock `apply`; the
+translated body calls Go's `m.MoveComponentToSlot.Apply(state)` as
+`stockApply(state, m)`, which needs one. `games/pairs.testkit.test.ts` now
+builds those two moves with the registry's own `MoveComponentToSlot` and the
+slot field Go discovers at boot (the move's only int field,
+`moves/move_component_to_slot.go resolveSlotField`). A generated memory or
+tictactoe needs the same: the registry (or the exporter) has to supply the
+discovered slot field.
+
+**Differences read while splitting, which no document shows** (each is in
+the pair's `meta.json` note):
+
+- `tictactoe.checkRunWon` and `checkGameFinished`: Go first returns Empty
+  (and `false, Empty`) when the run or board has the wrong length; the hand
+  port's `runWinner` and `boardResult` do not check. Every call passes three
+  and nine tokens.
+- `werewolf.finishVoteResolution`, `resolveVotes`, `startVoteTimer`: Go
+  returns errors; the hand port throws them (the move fails with the same
+  text either way).
+- `werewolf.populateFellowWolves`: Go walks the slice it is passed, the
+  hand port every player; the one caller passes every player.
+- `memory.(*moveCaptureCards).Apply` discards `MoveToNextSlot`'s error; the
+  hand port would throw (known; `GO-BUGS.md` G4).

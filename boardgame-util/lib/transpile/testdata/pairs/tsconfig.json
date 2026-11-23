@@ -1,0 +1,19 @@
+{
+  // Type-checks the pair store (every accepted.ts and index.ts) under the
+  // engine's sandbox options (exactOptionalPropertyTypes). The store is Go
+  // test data outside server/static, so neither the engine's sandbox project
+  // nor `npm run type-check` sees it: the engine's sandbox test refuses an
+  // import that leaves the engine, and the test project's rootDir is
+  // server/static (games/pairs.testkit.test.ts loads index.ts by a computed
+  // specifier for that reason). It is run by the Go test TestStoreTypeChecks
+  // (boardgame-util/lib/transpile/pairs), or from server/static:
+  //
+  //   npx tsc -p ../../boardgame-util/lib/transpile/testdata/pairs/tsconfig.json
+  "extends": "../../../../../server/static/src/engine/tsconfig.sandbox.json",
+  "compilerOptions": {
+    "rootDir": "../../../../..",
+    "typeRoots": []
+  },
+  "include": ["./**/*.ts"],
+  "exclude": []
+}

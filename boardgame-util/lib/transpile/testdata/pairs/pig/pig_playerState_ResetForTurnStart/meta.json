@@ -1,0 +1,29 @@
+{
+	"func": "pig.(*playerState).ResetForTurnStart",
+	"role": "resetForTurnStart",
+	"sourceHash": "sha256:728a16bde652f5a33b0f8503b8d97f616291a308b2e1f9d406c45d10da5c9025",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": 2,
+		"mutantsTotal": 5,
+		"survivors": [
+			"1 delete-statement 9:2 p.Done = false; -> (deleted)",
+			"2 delete-statement 10:2 p.Eliminated = false; -> (deleted)",
+			"3 delete-statement 11:2 p.RoundScore = 0; -> (deleted)"
+		]
+	}
+}

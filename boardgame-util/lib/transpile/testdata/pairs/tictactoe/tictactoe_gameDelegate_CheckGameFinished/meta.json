@@ -1,0 +1,28 @@
+{
+	"func": "tictactoe.(*gameDelegate).CheckGameFinished",
+	"role": "checkGameFinished",
+	"sourceHash": "sha256:bcdcc52a7e79ab22466841e3109fb6e426d4d5c00f4193b550f282350b001d4c",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 14,
+		"blocksTotal": 14,
+		"mutantsKilled": 11,
+		"mutantsTotal": 13,
+		"survivors": [
+			"6 shift-literal 49:22 0 -> 1",
+			"8 shift-literal 50:15 0 -> 1"
+		]
+	}
+}

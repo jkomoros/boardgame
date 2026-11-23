@@ -1,0 +1,28 @@
+{
+	"func": "memory.(*moveHideCards).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:05f24ad7c0f878b54575f29ee34d5f2c70819b4ef5857a1ec9818b7a9b581a8f",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 7,
+		"unreached": [
+			"moves.go:195.5-196.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

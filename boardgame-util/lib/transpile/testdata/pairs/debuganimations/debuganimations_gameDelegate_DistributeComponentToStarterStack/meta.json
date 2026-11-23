@@ -1,0 +1,24 @@
+{
+	"func": "debuganimations.(*gameDelegate).DistributeComponentToStarterStack",
+	"role": "distribute",
+	"sourceHash": "sha256:dab21ffbbc0c12879f33b0697479e91f3bd377fa0d420137b113a80ff800531d",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 28,
+		"blocksTotal": 28,
+		"mutantsKilled": 17,
+		"mutantsTotal": 17
+	}
+}

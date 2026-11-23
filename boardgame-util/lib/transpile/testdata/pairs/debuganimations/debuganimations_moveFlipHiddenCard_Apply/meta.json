@@ -1,0 +1,27 @@
+{
+	"func": "debuganimations.(*moveFlipHiddenCard).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:4735d34b6639c77dad57d49546555ac243f8f24929b514f2f970972c1548cb2f",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 7,
+		"unreached": [
+			"moves.go:289.3-290.1"
+		],
+		"mutantsKilled": 5,
+		"mutantsTotal": 5
+	}
+}

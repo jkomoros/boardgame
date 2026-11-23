@@ -1,0 +1,28 @@
+{
+	"func": "debuganimations.(*moveMoveTokenSanitized).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:7a5c2c0454dbf0a12b91c892edcd48418e962d2ceab6f89e86b8563b3401f727",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "The hand port builds this move with toggleThird(options), and its apply reads options from the factory; the wrapper calls the factory with the configuration the game passes and calls its apply.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 4,
+		"mutantsKilled": 2,
+		"mutantsTotal": 3,
+		"survivors": [
+			"3 shift-literal 39:87 9 -> 10"
+		]
+	}
+}

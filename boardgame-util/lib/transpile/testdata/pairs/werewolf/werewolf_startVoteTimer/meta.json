@@ -1,0 +1,29 @@
+{
+	"func": "werewolf.startVoteTimer",
+	"role": "helper",
+	"sourceHash": "sha256:1f5fc5cd433812a303244d48db63fe65a129e172f93656f4cba61f206eb6473e",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "startVoteTimer(state) throws \"timed vote resolver was not configured\" where Go returns it as an error.",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 7,
+		"unreached": [
+			"moves.go:95.3-96.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

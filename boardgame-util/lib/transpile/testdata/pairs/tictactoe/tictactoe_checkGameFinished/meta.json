@@ -1,0 +1,31 @@
+{
+	"func": "tictactoe.checkGameFinished",
+	"role": "helper",
+	"sourceHash": "sha256:22542813fc97d744b7076eb7f1c992735d9874006d33d724328aa0c420619089",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "boardResult(tokens), which returns an object where Go returns (finished, winner). Go also returns (false, Empty) when len(state) != totalDim; the hand port always passes nine tokens and does not check.",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 21,
+		"blocksTotal": 24,
+		"unreached": [
+			"main.go:240.3-241.1",
+			"main.go:281.3-282.1",
+			"main.go:287.3-288.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

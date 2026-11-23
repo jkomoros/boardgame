@@ -1,0 +1,32 @@
+{
+	"func": "debuganimations.(*moveMoveCardBetweenShortStacks).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:480bac00ee2b41ffc6621a1ef7abc7ad0dace72514593c3a4085c1b9f06b836b",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "The hand port builds this move with moveBetween(options), and its legal reads ends, options from the factory; the wrapper calls the factory with the configuration the game passes and calls its legal.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 8,
+		"blocksTotal": 9,
+		"unreached": [
+			"moves.go:140.3-141.1"
+		],
+		"mutantsKilled": 1,
+		"mutantsTotal": 3,
+		"survivors": [
+			"2 flip-comparison 51:57 >= -> <",
+			"3 shift-literal 51:60 1 -> 2"
+		]
+	}
+}

@@ -1,0 +1,24 @@
+{
+	"func": "tictactoe.(*movePlaceToken).DefaultsForState",
+	"role": "defaults",
+	"sourceHash": "sha256:aa459abe95c954b16f512204c7c604d0f45ee9f4ea6433768bae0820d487a2c6",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 5,
+		"blocksTotal": 5,
+		"mutantsKilled": 8,
+		"mutantsTotal": 8
+	}
+}

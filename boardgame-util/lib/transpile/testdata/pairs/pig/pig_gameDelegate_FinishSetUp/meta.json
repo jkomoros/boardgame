@@ -1,0 +1,27 @@
+{
+	"func": "pig.(*gameDelegate).FinishSetUp",
+	"role": "setUpFinish",
+	"sourceHash": "sha256:eaaa6142ec38ff23e4b64a585a1ed2159b3a122a9dd501436dc815d4f098815f",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 4,
+		"mutantsKilled": 1,
+		"mutantsTotal": 2,
+		"survivors": [
+			"2 delete-statement 12:2 state.g.TargetScore = DEFAULT_TARGET_SCORE; -> (deleted)"
+		]
+	}
+}

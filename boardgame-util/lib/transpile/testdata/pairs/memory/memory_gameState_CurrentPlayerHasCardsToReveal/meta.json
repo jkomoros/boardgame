@@ -1,0 +1,26 @@
+{
+	"func": "memory.(*gameState).CurrentPlayerHasCardsToReveal",
+	"role": "helper",
+	"sourceHash": "sha256:93f9e45d7c4c369da2773b05cc4a8ef3c50bb6c7e1dc10a533510655c2fbe4d8",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "the hand port inlines it into the computed property CurrentPlayerHasCardsToReveal, which is copied here (the same text as ConfigureComputedProperties.func1).",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 3,
+		"blocksTotal": 3,
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

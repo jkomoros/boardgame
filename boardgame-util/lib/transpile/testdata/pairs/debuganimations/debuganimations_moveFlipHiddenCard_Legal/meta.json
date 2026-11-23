@@ -1,0 +1,40 @@
+{
+	"func": "debuganimations.(*moveFlipHiddenCard).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:25d92c18bd593285fd488e8df9b8e90250776ac67beffad490070f27ae1de788",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 5,
+		"blocksTotal": 8,
+		"unreached": [
+			"moves.go:260.3-261.1",
+			"moves.go:266.3-267.1",
+			"moves.go:270.3-271.1"
+		],
+		"mutantsKilled": 7,
+		"mutantsTotal": 16,
+		"survivors": [
+			"1 delete-statement 12:2 if (err !== null) return err; -> (deleted)",
+			"2 flip-comparison 12:10 !== -> ===",
+			"3 delete-statement 12:20 return err; -> (deleted)",
+			"4 delete-statement 15:2 if (hidden < 1 && visible < 1) return 'Neither the HiddenCard nor RevealedCar... -> (deleted)",
+			"9 delete-statement 15:33 return 'Neither the HiddenCard nor RevealedCard is set'; -> (deleted)",
+			"10 delete-statement 16:2 if (hidden > 0 && visible > 0) return 'both hidden and revealed are full'; -> (deleted)",
+			"12 shift-literal 16:15 0 -> 1",
+			"14 shift-literal 16:30 0 -> 1",
+			"15 delete-statement 16:33 return 'both hidden and revealed are full'; -> (deleted)"
+		]
+	}
+}

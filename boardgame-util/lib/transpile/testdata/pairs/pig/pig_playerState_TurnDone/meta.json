@@ -1,0 +1,31 @@
+{
+	"func": "pig.(*playerState).TurnDone",
+	"role": "turnDone",
+	"sourceHash": "sha256:c79a4a5e2fb20877cfa4ca3b77e1a994454630614cbcd53908bc89803f62a41c",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 5,
+		"unreached": [
+			"state.go:45.3-46.1"
+		],
+		"mutantsKilled": 6,
+		"mutantsTotal": 8,
+		"survivors": [
+			"1 delete-statement 9:2 if (p.DieCounted !== true) return 'the most recent die roll has not been coun... -> (deleted)",
+			"3 delete-statement 9:29 return 'the most recent die roll has not been counted'; -> (deleted)"
+		]
+	}
+}

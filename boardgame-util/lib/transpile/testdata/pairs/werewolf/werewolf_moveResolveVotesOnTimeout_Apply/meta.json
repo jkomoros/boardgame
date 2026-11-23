@@ -1,0 +1,29 @@
+{
+	"func": "werewolf.(*moveResolveVotesOnTimeout).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:8fd3210bfb3d0caececcc8d2cdce8d8ab9d7c21b3059199c68850f6d60de9051",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": 2,
+		"mutantsTotal": 5,
+		"survivors": [
+			"1 delete-statement 79:2 state.timer('VoteTimer').cancel(); -> (deleted)",
+			"3 delete-statement 81:2 if (checkGameFinished(state).finished) return; -> (deleted)",
+			"4 delete-statement 81:41 return; -> (deleted)"
+		]
+	}
+}

@@ -1,0 +1,29 @@
+{
+	"func": "memory.(*gameDelegate).PlayerScore",
+	"role": "playerScore",
+	"sourceHash": "sha256:89dc7692dd453d43123257e4c8c29328fe78978c48c51cdf2502e1dfd960cfca",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "the hand port leaves end.playerScore unset, so the engine scores with the gameScore trait (rules/engine.ts checkGameFinished); Go's PlayerScore returns pState.GameScore(). The trait's function is copied (the same text as (*playerState).GameScore).",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 0,
+		"blocksTotal": 1,
+		"unreached": [
+			"main.go:295.2-296.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

@@ -1,0 +1,25 @@
+{
+	"func": "memory.(*playerState).GameScore",
+	"role": "gameScore",
+	"sourceHash": "sha256:711876c47daf3a49cd9e500cd97ed33404ddeab351d0ea4b1c70f9549cd5ae97",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

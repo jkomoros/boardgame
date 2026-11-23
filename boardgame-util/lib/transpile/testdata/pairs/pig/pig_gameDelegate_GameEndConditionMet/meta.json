@@ -1,0 +1,30 @@
+{
+	"func": "pig.(*gameDelegate).GameEndConditionMet",
+	"role": "conditionMet",
+	"sourceHash": "sha256:440856002ca378f3bd1d9110fded8314c6671bc6849a3e32a73594ef7b599133",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 5,
+		"unreached": [
+			"main.go:83.4-84.1"
+		],
+		"mutantsKilled": 4,
+		"mutantsTotal": 5,
+		"survivors": [
+			"5 delete-statement 9:2 return false; -> (deleted)"
+		]
+	}
+}

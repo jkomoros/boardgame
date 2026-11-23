@@ -1,0 +1,24 @@
+{
+	"func": "pig.(*moveCountDie).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:b13ee12e4912c303863e23298bd50c0097a2b66058f6704b8f6abd6d81b1bf8b",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 8,
+		"blocksTotal": 8,
+		"mutantsKilled": 7,
+		"mutantsTotal": 7
+	}
+}

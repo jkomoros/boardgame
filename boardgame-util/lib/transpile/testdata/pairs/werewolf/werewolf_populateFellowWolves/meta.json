@@ -1,0 +1,29 @@
+{
+	"func": "werewolf.populateFellowWolves",
+	"role": "helper",
+	"sourceHash": "sha256:0cb570da460253ff4fea0fae60563276032db91aea66f8051f9e76dc53fdef34",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "populateFellowWolves(state) walks every player; Go walks the slice it is passed, which its one caller builds from every player.",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 7,
+		"blocksTotal": 8,
+		"unreached": [
+			"moves.go:113.5-114.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}
