@@ -1,0 +1,25 @@
+{
+	"func": "debuganimations.(*gameDelegate).CheckGameFinished",
+	"role": "checkGameFinished",
+	"sourceHash": "sha256:e76e83bc6297746a4f202680db89400d30946a0fdbe996d58b0eb80981e45f5b",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "none",
+	"note": "the hand port has no `end` (\"Never ends\"), which the engine reads as never finished; Go returns false, nil. The body is that default.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": 1,
+		"mutantsTotal": 1
+	}
+}

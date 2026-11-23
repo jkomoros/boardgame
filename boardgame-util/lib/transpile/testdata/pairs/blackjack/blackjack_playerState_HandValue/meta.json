@@ -1,0 +1,26 @@
+{
+	"func": "blackjack.(*playerState).HandValue",
+	"role": "helper",
+	"sourceHash": "sha256:1d95e3f957abc4686677117b25fb64ff0e71d9b8c9e83c4080a460db6ce38242",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "handValue(state, player), which the hand port also installs as the computed property HandValue.",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

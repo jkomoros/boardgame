@@ -1,0 +1,26 @@
+{
+	"func": "werewolf.voteForPhase",
+	"role": "helper",
+	"sourceHash": "sha256:745e367b8ad296d8a8d50966b540fcba6aa9940a1f3a7f2bc9e95288faf97664",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "voteForPhase(state, player, phase).",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 3,
+		"blocksTotal": 3,
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

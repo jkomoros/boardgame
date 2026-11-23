@@ -1,0 +1,25 @@
+{
+	"func": "werewolf.(*moveResolveVotesOnTimeout).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:f9327dabdbd25cefd4f94df808d48637f161cbbb465570f4b9d8c6174bcc0874",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "One Go method serves moves[\"Resolve Day Votes on Timeout\"].legal and moves[\"Resolve Night Votes on Timeout\"].legal; the hand port builds each from the same function expression, copied once.",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 7,
+		"blocksTotal": 7,
+		"mutantsKilled": 9,
+		"mutantsTotal": 9
+	}
+}

@@ -1,0 +1,24 @@
+{
+	"func": "pig.(*moveRollDice).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:27975b948ff9ec437f7b2056ca95a583dafc017c2b43dcea2d5994ea91fefd7f",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 6,
+		"mutantsKilled": 7,
+		"mutantsTotal": 7
+	}
+}

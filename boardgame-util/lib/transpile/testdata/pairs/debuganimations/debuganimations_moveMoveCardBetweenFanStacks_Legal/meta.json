@@ -1,0 +1,29 @@
+{
+	"func": "debuganimations.(*moveMoveCardBetweenFanStacks).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:c015963cd0318a01cf9471542fd8e850426825b079b9f7c29f618f7204219bce",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "The hand port builds this move with toggleThird(options), and its legal reads options from the factory; the wrapper calls the factory with the configuration the game passes and calls its legal.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 8,
+		"unreached": [
+			"moves.go:308.3-309.1",
+			"moves.go:321.2-321.62"
+		],
+		"mutantsKilled": 3,
+		"mutantsTotal": 3
+	}
+}

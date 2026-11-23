@@ -1,0 +1,24 @@
+{
+	"func": "pig.(*playerState).ResetForTurnEnd",
+	"role": "resetForTurnEnd",
+	"sourceHash": "sha256:0f7484e302b65494cd0754d0aa3aca5132170277b40b0e6b08290b01a9795ca0",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 3,
+		"blocksTotal": 3,
+		"mutantsKilled": 4,
+		"mutantsTotal": 4
+	}
+}

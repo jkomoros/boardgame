@@ -1,0 +1,30 @@
+{
+	"func": "memory.(*gameDelegate).BeginSetUp",
+	"role": "setUpBegin",
+	"sourceHash": "sha256:a9cb095b72a7fbbd12bc2070a6a696fb4f89068ceaa94a4a9d037c24433a1e4c",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 9,
+		"blocksTotal": 12,
+		"unreached": [
+			"main.go:154.3-154.21",
+			"main.go:158.3-159.1",
+			"main.go:161.3-162.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

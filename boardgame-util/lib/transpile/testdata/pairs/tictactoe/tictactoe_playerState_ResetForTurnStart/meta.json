@@ -1,0 +1,24 @@
+{
+	"func": "tictactoe.(*playerState).ResetForTurnStart",
+	"role": "resetForTurnStart",
+	"sourceHash": "sha256:a1e26cf675b0c0040109bb7bdb64491248c4b72f7e059c1c1245092e18b496b2",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": 2,
+		"mutantsTotal": 2
+	}
+}

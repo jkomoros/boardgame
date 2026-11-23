@@ -1,0 +1,35 @@
+{
+	"func": "werewolf.(*moveCastVote).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:62712ffa21be4fb3b5e0f8c0c40746096bc302c08116af32564eeeca22787ef8",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "One Go method serves moves[\"Cast Vote\"].legal and moves[\"Cast Night Vote\"].legal; the hand port builds each from the same function expression, copied once.",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 21,
+		"blocksTotal": 23,
+		"unreached": [
+			"moves.go:199.3-200.1",
+			"moves.go:205.3-206.1"
+		],
+		"mutantsKilled": 25,
+		"mutantsTotal": 29,
+		"survivors": [
+			"14 delete-statement 35:9 if (phase !== PHASE_DAY) { return 'voting is not allowed during this phase'... -> (deleted)",
+			"16 delete-statement 36:3 return 'voting is not allowed during this phase'; -> (deleted)",
+			"17 delete-statement 39:2 if (target < 0 || target >= state.numPlayers()) return 'invalid vote target'; -> (deleted)",
+			"21 delete-statement 39:50 return 'invalid vote target'; -> (deleted)"
+		]
+	}
+}

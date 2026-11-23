@@ -1,0 +1,27 @@
+{
+	"func": "tictactoe.(*gameDelegate).DistributeComponentToStarterStack",
+	"role": "distribute",
+	"sourceHash": "sha256:c1893a5aabc59b26ac2bb704ecf92b810160dcb18fea34bea9b02c69f62d6a4e",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 5,
+		"blocksTotal": 6,
+		"unreached": [
+			"main.go:39.2-39.59"
+		],
+		"mutantsKilled": 4,
+		"mutantsTotal": 4
+	}
+}

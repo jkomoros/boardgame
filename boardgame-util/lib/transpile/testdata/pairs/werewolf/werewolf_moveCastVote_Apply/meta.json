@@ -1,0 +1,25 @@
+{
+	"func": "werewolf.(*moveCastVote).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:11ac9c7c246ceee02817d736536dc88b6149b03f4cd9174d34ac26493841149f",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "One Go method serves moves[\"Cast Vote\"].apply and moves[\"Cast Night Vote\"].apply; the hand port builds each from the same function expression, copied once.",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 4,
+		"mutantsKilled": 4,
+		"mutantsTotal": 4
+	}
+}

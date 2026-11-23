@@ -1,0 +1,24 @@
+{
+	"func": "debuganimations.(*gameDelegate).FinishSetUp",
+	"role": "setUpFinish",
+	"sourceHash": "sha256:04f07e18234a218cd5a1e8ac7e926e5e58fed72866e0f5193b5e58126804c72d",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 3,
+		"blocksTotal": 3,
+		"mutantsKilled": 1,
+		"mutantsTotal": 1
+	}
+}

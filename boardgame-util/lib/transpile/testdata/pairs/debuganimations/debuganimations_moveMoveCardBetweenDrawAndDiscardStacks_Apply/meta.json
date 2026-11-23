@@ -1,0 +1,32 @@
+{
+	"func": "debuganimations.(*moveMoveCardBetweenDrawAndDiscardStacks).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:0df8e2222bee33151a086086f91a50778781675f280cc27cf5601b99d3c29b3c",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "The hand port builds this move with moveBetween(options), and its apply reads ends, options from the factory; the wrapper calls the factory with the configuration the game passes and calls its apply.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 7,
+		"unreached": [
+			"moves.go:241.3-242.1"
+		],
+		"mutantsKilled": 1,
+		"mutantsTotal": 3,
+		"survivors": [
+			"2 flip-comparison 51:54 < -> >=",
+			"3 shift-literal 51:56 3 -> 4"
+		]
+	}
+}

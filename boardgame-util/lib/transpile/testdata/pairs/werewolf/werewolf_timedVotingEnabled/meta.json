@@ -1,0 +1,26 @@
+{
+	"func": "werewolf.timedVotingEnabled",
+	"role": "helper",
+	"sourceHash": "sha256:f011851a1137ad57c43f14f4fb8b229c70adfcfff2b72406a4c3d5eca62c0611",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "timedVoting(state).",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 1,
+		"blocksTotal": 1,
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

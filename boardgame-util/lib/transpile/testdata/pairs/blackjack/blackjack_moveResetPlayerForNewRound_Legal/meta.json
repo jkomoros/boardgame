@@ -1,0 +1,29 @@
+{
+	"func": "blackjack.(*moveResetPlayerForNewRound).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:1ba74148d2b8a15b10439651c9d2d6003cdc6a7a3524af9eb8b3f513c52fb7d2",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 6,
+		"blocksTotal": 8,
+		"unreached": [
+			"moves.go:166.4-166.12",
+			"moves.go:173.2-173.55"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}

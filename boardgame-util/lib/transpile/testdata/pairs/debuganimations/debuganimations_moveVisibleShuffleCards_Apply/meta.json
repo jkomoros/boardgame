@@ -1,0 +1,24 @@
+{
+	"func": "debuganimations.(*moveVisibleShuffleCards).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:5106ad0fdae3745487a2f9b39503b0034d04426023b19e646fbd7d1a8efff37f",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 2,
+		"blocksTotal": 2,
+		"mutantsKilled": 1,
+		"mutantsTotal": 1
+	}
+}

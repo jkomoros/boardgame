@@ -1,0 +1,25 @@
+{
+	"func": "debuganimations.(*moveMoveCardBetweenShortStacks).DefaultsForState",
+	"role": "defaults",
+	"sourceHash": "sha256:522b87c67496da511914fd0b7539be79cca436254dfe50cbc29b7f5ebc2e81c3",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "The hand port builds this move with moveBetween(options), and its defaults reads options from the factory; the wrapper calls the factory with the configuration the game passes and calls its defaults.",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 4,
+		"mutantsKilled": 3,
+		"mutantsTotal": 3
+	}
+}

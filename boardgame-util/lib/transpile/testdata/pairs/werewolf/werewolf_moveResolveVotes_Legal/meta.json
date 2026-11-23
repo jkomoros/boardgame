@@ -1,0 +1,32 @@
+{
+	"func": "werewolf.(*moveResolveVotes).Legal",
+	"role": "legal",
+	"sourceHash": "sha256:0814a7ff5a85cd960ab0775c529f6cecf45f8188493abfd93687a92b7aeb06d9",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"note": "One Go method serves moves[\"Resolve Votes\"].legal and moves[\"Resolve Night Votes\"].legal; the hand port builds each from the same function expression, copied once.",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 14,
+		"blocksTotal": 15,
+		"unreached": [
+			"moves.go:286.3-287.1"
+		],
+		"mutantsKilled": 18,
+		"mutantsTotal": 20,
+		"survivors": [
+			"4 delete-statement 29:2 if (phase !== PHASE_DAY && phase !== PHASE_NIGHT) return 'not in a voting pha... -> (deleted)",
+			"7 delete-statement 29:52 return 'not in a voting phase'; -> (deleted)"
+		]
+	}
+}

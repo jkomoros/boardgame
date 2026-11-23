@@ -1,0 +1,27 @@
+{
+	"func": "debuganimations.(*moveShuffleHidden).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:22ff5f939a46f6165576c3aa77b45ae441515e900ae34439a910197f987a2758",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			2,
+			3,
+			5,
+			6,
+			7,
+			10,
+			14
+		],
+		"blocksCovered": 4,
+		"blocksTotal": 5,
+		"unreached": [
+			"moves.go:598.3-599.1"
+		],
+		"mutantsKilled": 3,
+		"mutantsTotal": 3
+	}
+}

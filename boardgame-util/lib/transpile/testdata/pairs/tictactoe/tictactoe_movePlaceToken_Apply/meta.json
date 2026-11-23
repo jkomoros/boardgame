@@ -1,0 +1,27 @@
+{
+	"func": "tictactoe.(*movePlaceToken).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:a52517dba74312d5bba66921f1c9af595bb09fc0b989f706fdf7e4a71ef54f3e",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 5,
+		"blocksTotal": 6,
+		"unreached": [
+			"moves.go:60.3-61.1"
+		],
+		"mutantsKilled": 4,
+		"mutantsTotal": 4
+	}
+}

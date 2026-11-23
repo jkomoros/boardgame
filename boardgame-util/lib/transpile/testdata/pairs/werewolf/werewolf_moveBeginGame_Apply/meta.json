@@ -1,0 +1,33 @@
+{
+	"func": "werewolf.(*moveBeginGame).Apply",
+	"role": "apply",
+	"sourceHash": "sha256:661a3a027a6b7ae77cc9276498a22eb936fe47be7573da318a129485c22534ec",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "mechanical",
+	"fuzz": {
+		"seeds": [
+			3,
+			7,
+			8,
+			16,
+			19,
+			20,
+			21,
+			26
+		],
+		"blocksCovered": 17,
+		"blocksTotal": 19,
+		"unreached": [
+			"moves.go:44.3-45.1",
+			"moves.go:59.3-60.1"
+		],
+		"mutantsKilled": 14,
+		"mutantsTotal": 17,
+		"survivors": [
+			"8 shift-literal 52:41 6 -> 7",
+			"9 shift-literal 52:45 2 -> 3",
+			"16 delete-statement 58:2 populateFellowWolves(state); -> (deleted)"
+		]
+	}
+}

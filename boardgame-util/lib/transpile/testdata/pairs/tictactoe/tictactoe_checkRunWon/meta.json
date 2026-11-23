@@ -1,0 +1,29 @@
+{
+	"func": "tictactoe.checkRunWon",
+	"role": "helper",
+	"sourceHash": "sha256:61447350086aabfba9efe905d4d1ac662576a769245bfd530460ee6c1c4f2944",
+	"producer": "hand",
+	"refusals": [],
+	"extraction": "wrapped",
+	"note": "runWinner(run). Go first returns Empty when len(runState) != dim; the hand port has no such check (every run it builds has three tokens), so the wrapper does not add one.",
+	"fuzz": {
+		"seeds": [
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7
+		],
+		"blocksCovered": 8,
+		"blocksTotal": 9,
+		"unreached": [
+			"main.go:308.3-309.1"
+		],
+		"mutantsKilled": null,
+		"mutantsTotal": null,
+		"why": "not measured: a helper pair is never resolved by the loader, so its accepted.ts cannot change the game; a memory or blackjack pair's run (pairs-mutants.mjs --game memory --game blackjack) was stopped unfinished at the coordinator's request"
+	}
+}
