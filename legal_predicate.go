@@ -14,11 +14,12 @@ import (
 type LegalContext struct {
 	// State is the state being evaluated against.
 	State ImmutableState
-	// Move is the move being evaluated, or nil during field-independent
-	// evaluation (a predicate whose declared Reads include no move.* path
-	// may be evaluated with a nil Move). See evalLegalPredicate for the
-	// runtime guard that protects a predicate that touches ctx.Move despite
-	// not declaring a move.* read.
+	// Move is the move being evaluated. It is nil for every predicate whose
+	// declared Reads include no move-dependent path (move.X,
+	// players[move.F].X, or a [move.F] board selector): the engine withholds
+	// the move so a field-independent predicate's memoized verdict can never
+	// depend on it (legal_reads.go). Prefer ctx.ResolvePath over reaching
+	// into Move directly.
 	Move Move
 	// ProposerPlayerIndex is the runtime PlayerIndex proposing the move. It is
 	// a concrete player during ordinary play and AdminPlayerIndex for engine
@@ -26,6 +27,9 @@ type LegalContext struct {
 	ProposerPlayerIndex PlayerIndex
 	// Chest is the game's component chest.
 	Chest *ComponentChest
+	// reads is set by evalLegalPredicate while one predicate evaluates; it
+	// scopes ResolvePath to that predicate's declared Reads (legal_reads.go).
+	reads *legalReadEnforcement
 }
 
 // LegalPredicate is one resolved legality question: either a leaf, built by
@@ -39,9 +43,15 @@ type LegalPredicate struct {
 	// With Name, this round-trips the registry. Empty for compositors.
 	Args []string
 	// Reads is the declared read-set: a conservative over-approximation of
-	// the state this predicate's Evaluate depends on, used for client
-	// evaluability and (in the future) dirty-tracking. For the "any"
-	// compositor, Reads is the union of its children's Reads.
+	// the state this predicate's Evaluate depends on, used for memo
+	// bucketing, client evaluability and (in the future) dirty-tracking. For
+	// the "any" compositor, Reads is the union of its children's Reads.
+	//
+	// Reads is enforced, not trusted (legal_reads.go): Evaluate receives the
+	// move only if Reads declares a move-dependent path, and ctx.ResolvePath
+	// resolves only declared paths. Leave Reads nil to derive one
+	// LegalFacetValues read per path-shaped Arg; set it (even to an empty,
+	// non-nil slice) to declare it explicitly, e.g. for a narrower facet.
 	Reads []LegalRead
 	// Cost is a coarse cost tier, metadata only in v1. For "any", Cost is
 	// the max of its children's Cost.
@@ -126,6 +136,9 @@ type LegalPredicate struct {
 	// and cannot be turned back into one. Unexported: only this package's
 	// escape-hatch wrapper (added in a later task) sets it.
 	opaque bool
+	// readScope caches the enforcement view of Reads, computed at boot by
+	// sealLegalPredicate (legal_reads.go).
+	readScope *legalReadScope
 }
 
 // LegalComponentFieldRequirement is boot-validation metadata for a static
@@ -277,6 +290,17 @@ func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateCon
 			return nil, fmt.Errorf("boardgame: legal spec %q: constructor returned a nil predicate", spec.Name)
 		}
 		pred.AdminPolicy = spec.AdminPolicy
+		if pred.Reads == nil && !pred.opaque {
+			// Derived reads (legal_reads.go): a predicate that leaves Reads
+			// unset declares every path-shaped arg. Done here, per
+			// constructor, so a parent built from resolved children
+			// unions their derived reads.
+			args := pred.Args
+			if len(args) == 0 {
+				args = spec.Args
+			}
+			pred.Reads = legalReadsFromArgs(args)
+		}
 		return pred, nil
 	}
 
@@ -294,6 +318,7 @@ func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateCon
 		if err := checkNoNestedAny(pred); err != nil {
 			return nil, fmt.Errorf("boardgame: legal spec %q: %w", spec.Name, err)
 		}
+		sealLegalPredicate(pred, spec.Args)
 		if err := validateLegalPredicateForBoot(pred, exampleState, moveReader); err != nil {
 			return nil, fmt.Errorf("boardgame: legal spec %q: %w", spec.Name, err)
 		}
@@ -760,14 +785,23 @@ func validateLegalReadsForBoot(reads []LegalRead, exampleState ImmutableState, m
 }
 
 // evalLegalPredicate is the sole sanctioned way to run a *LegalPredicate's
-// Evaluate: it fails closed. Three failure modes are all converted to
-// LegalUnknown rather than propagating:
+// Evaluate: it enforces the predicate's declared Reads (legal_reads.go) and
+// fails closed. Enforcement, for every non-opaque predicate:
+//
+//   - The move is withheld: a predicate whose Reads declare no
+//     move-dependent path is evaluated with ctx.Move == nil, so its verdict
+//     can only depend on what the field-independent memo key covers.
+//   - ctx.ResolvePath is scoped to the declared Reads; resolving any other
+//     path makes the whole verdict LegalUnknown{Reason: "undeclared read:
+//     ..."}, whatever Evaluate returns afterwards.
+//
+// Failure modes, all converted to LegalUnknown rather than propagating:
 //
 //   - p is nil, or p.Evaluate is nil: LegalUnknown naming p.
-//   - p.Evaluate panics: recovered. If ctx.Move is nil and p's declared
-//     Reads contain no move.* path, the panic is assumed to be an
+//   - p.Evaluate panics: recovered. If the move was withheld (or ctx.Move was
+//     already nil and p declares no move read), the panic is assumed to be an
 //     undeclared touch of ctx.Move and reported as
-//     LegalUnknown{Reason: "undeclared move read"} (spec §1's "Runtime
+//     LegalUnknown{Reason: "undeclared move read: ..."} (spec §1's "Runtime
 //     guard"). Any other panic is reported as LegalUnknown with the
 //     predicate's Name and the recovered value in Reason.
 //   - p.Evaluate returns a zero-value (LegalOutcome-invalid) LegalVerdict:
@@ -784,14 +818,40 @@ func evalLegalPredicate(p *LegalPredicate, ctx LegalContext) (verdict LegalVerdi
 		return LegalVerdict{Outcome: LegalPass}
 	}
 
-	defer func() {
-		if r := recover(); r != nil {
-			if ctx.Move == nil && !legalReadsIncludeMovePath(p.Reads) {
-				verdict = LegalVerdict{Outcome: LegalUnknown, Reason: "undeclared move read"}
-				return
+	var enforcement *legalReadEnforcement
+	if !p.opaque {
+		scope := p.readScope
+		if scope == nil {
+			// Not sealed at boot (a hand-built predicate evaluated outside a
+			// plan): derive the same scope without mutating p, which may be
+			// shared across goroutines.
+			reads := p.Reads
+			if reads == nil {
+				reads = legalReadsFromArgs(p.Args)
 			}
-			verdict = LegalVerdict{Outcome: LegalUnknown, Reason: fmt.Sprintf("predicate %q panicked: %v", p.Name, r)}
+			scope = newLegalReadScope(reads)
 		}
+		enforcement = &legalReadEnforcement{predicate: p.Name, scope: scope, moveWithheld: !scope.readsMove}
+		if enforcement.moveWithheld {
+			ctx.Move = nil
+		}
+	}
+	ctx.reads = enforcement
+
+	defer func() {
+		r := recover()
+		if enforcement != nil && enforcement.violation != "" {
+			verdict = enforcement.violationVerdict()
+			return
+		}
+		if r == nil {
+			return
+		}
+		if ctx.Move == nil && (enforcement == nil || enforcement.moveWithheld) {
+			verdict = LegalVerdict{Outcome: LegalUnknown, Reason: fmt.Sprintf("undeclared move read: predicate %q panicked while evaluated without the move, which it receives only if its Reads declare a move-dependent path: %v", p.Name, r)}
+			return
+		}
+		verdict = LegalVerdict{Outcome: LegalUnknown, Reason: fmt.Sprintf("predicate %q panicked: %v", p.Name, r)}
 	}()
 
 	v := p.Evaluate(ctx)
@@ -802,10 +862,11 @@ func evalLegalPredicate(p *LegalPredicate, ctx LegalContext) (verdict LegalVerdi
 }
 
 // legalReadsIncludeMovePath reports whether reads contains at least one
-// path that parses as a move.* path OR a players[move.<Field>].* path (spec
-// §3): the latter resolves to a value that depends on the move's own
-// <Field>, so a predicate reading one is field-dependent by construction
-// exactly like a bare move.* read — it must land in the plan's
+// path that parses as a move.* path, a players[move.<Field>].* path (spec
+// §3), or a path with a [move.<Field>] board selector (legalPathReadsMove):
+// the latter two resolve to a value that depends on the move's own <Field>,
+// so a predicate reading one is field-dependent by construction exactly like
+// a bare move.* read — it must land in the plan's
 // field-dependent bucket (buildLegalPlanFromPredicates, legal_plan.go) and
 // count as a declared move read for evalLegalPredicate's nil-Move panic
 // guard, above. A malformed path is treated as not a move path
@@ -814,7 +875,7 @@ func evalLegalPredicate(p *LegalPredicate, ctx LegalContext) (verdict LegalVerdi
 // validation, not something evalLegalPredicate should mask or amplify).
 func legalReadsIncludeMovePath(reads []LegalRead) bool {
 	for _, r := range reads {
-		if parsed, err := parseLegalPath(r.Path); err == nil && (parsed.kind == pathMove || parsed.kind == pathPlayersMoveField) {
+		if legalPathReadsMove(r.Path) {
 			return true
 		}
 	}

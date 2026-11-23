@@ -161,8 +161,14 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 			return &legal.Predicate{
 				Name: "checkers.spaceIsBlack",
 				Args: spec.Args,
-				Reads: []legal.Read{
-					{Path: legal.PropPath(field), Facet: boardgame.LegalFacetValues},
+				// No Reads: the engine derives them from the path-shaped
+				// Args (here move.SpaceIndex, so the predicate is
+				// field-dependent) and enforces them — ResolvePath of any
+				// other path, or touching a withheld move, fails closed.
+				// The type contract still names the arg so a non-enum field
+				// is a boot error rather than a runtime Unknown.
+				RequiredReadTypes: map[legal.PropPath]boardgame.PropertyType{
+					legal.PropPath(field): boardgame.TypeEnum,
 				},
 				Cost:             boardgame.LegalCostTrivial,
 				EmittedTemplates: []string{template},
@@ -175,12 +181,9 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 				// predicates section).
 				EmittedBindings: map[string][]string{template: nil},
 				Evaluate: func(ctx legal.Context) legal.Verdict {
-					val, propType, err := ctx.ResolvePath(legal.PropPath(field))
+					val, _, err := ctx.ResolvePath(legal.PropPath(field))
 					if err != nil {
 						return legal.UnknownVerdict(err.Error())
-					}
-					if propType != boardgame.TypeEnum {
-						return legal.UnknownVerdict("checkers.spaceIsBlack: path " + field + " is not an enum property")
 					}
 					ev, ok := val.(enum.ImmutableVal)
 					if !ok || ev == nil {
