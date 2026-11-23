@@ -85,14 +85,14 @@ export interface DynamicRef {
  * fields (Go: `m.F` where F is an enum.Val or enum.RangeVal field of the
  * move). The component may be null (Go's nil), which panics on use as Go's
  * does. A move field holds the value's string, as the engine's
- * `MoveInstance.fields` and Go's move record both store it.
+ * `MoveInstance.fields` and Go's move record both store it. `fieldsOf` and
+ * `move` both name a move's own fields; the translator emits the first.
  */
 export type Owner =
 	| 'game'
 	| number
 	| { readonly dynamicOf: Comp | DynamicRef | null }
 	| { readonly valuesOf: Comp | DynamicRef | null }
-	// A move's own fields. `fieldsOf` is what the translator emits; `move` is the same owner under its other name.
 	| { readonly fieldsOf: MoveInstance }
 	| { readonly move: MoveInstance };
 

@@ -26,7 +26,27 @@
         "memory.newDeck"
       ]
     },
-    "mechanical": null,
+    "mechanical": {
+      "count": 16,
+      "functions": [
+        "memory.(*gameDelegate).BeginSetUp",
+        "memory.(*gameDelegate).ConfigureComputedProperties.func1",
+        "memory.(*gameDelegate).DistributeComponentToStarterStack",
+        "memory.(*gameDelegate).FinishSetUp",
+        "memory.(*gameDelegate).GameEndConditionMet",
+        "memory.(*gameDelegate).PlayerScore",
+        "memory.(*gameState).CurrentPlayerHasCardsToReveal",
+        "memory.(*moveCaptureCards).Apply",
+        "memory.(*moveHideCards).Apply",
+        "memory.(*moveRevealCard).Apply",
+        "memory.(*moveRevealCard).DefaultsForState",
+        "memory.(*moveStartHideCardsTimer).LegalCustom",
+        "memory.(*playerState).GameScore",
+        "memory.(*playerState).ResetForTurnEnd",
+        "memory.(*playerState).ResetForTurnStart",
+        "memory.(*playerState).TurnDone"
+      ]
+    },
     "agent": {
       "count": 0,
       "functions": []
@@ -380,16 +400,14 @@
     "mutants": null
   },
   "replay": {
-    "source": "translator-output",
+    "source": "checked-in",
     "loaded": false,
-    "error": "stockMove: MoveComponentToSlot needs configuration SlotField",
+    "error": "gameFromData: no body for apply memory.(*moveStartHideCardsTimer).Apply",
     "documents": 0,
     "passed": 0
   },
-  "stale": null,
+  "stale": [],
   "nulls": {
-    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)",
-    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/memory/); functions.translatable is what the translator would write",
-    "stale": "no generated game is checked in"
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)"
   }
 }

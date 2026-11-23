@@ -42,13 +42,13 @@ in. functions.mechanical below counts only what is checked in.
 
 | Game | movesData | movesWithCode | functions | data | mechanical | translatable | agent | agentNowMechanical | engineGap | boundForAgent | notPorted | stale | definition | TS replay |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| memory | 3 | 4 | 17 | 14 | null | 16 | 0 | 0 | 0 | 1 | 11 | null | current | does not load (translator-output) |
+| memory | 3 | 4 | 17 | 14 | 16 | 16 | 0 | 0 | 0 | 1 | 11 | 0 | current | does not load (checked-in) |
 | blackjack | 16 | 7 | 23 | 13 | 23 | 23 | 0 | 0 | 0 | 0 | 1 | 0 | current | 15 of 15 pass (checked-in) |
 | pig | 3 | 3 | 10 | 12 | 10 | 10 | 0 | 0 | 0 | 0 | 1 | 0 | current | 11 of 11 pass (checked-in) |
-| tictactoe | 3 | 1 | 11 | 14 | null | 11 | 0 | 0 | 0 | 0 | 5 | null | current | does not load (translator-output) |
-| werewolf | 4 | 7 | 16 | 11 | null | 16 | 0 | 0 | 0 | 0 | 1 | null | current | does not load (translator-output) |
+| tictactoe | 3 | 1 | 11 | 14 | 11 | 11 | 0 | 0 | 0 | 0 | 5 | 0 | current | 12 of 12 pass (checked-in) |
+| werewolf | 4 | 7 | 16 | 11 | 16 | 16 | 0 | 0 | 0 | 0 | 1 | 0 | current | 9 of 9 pass (checked-in) |
 | debuganimations | 1 | 12 | 24 | 23 | 24 | 24 | 0 | 0 | 0 | 0 | 1 | 0 | current | 9 of 9 pass (checked-in) |
-| checkers | 4 | 3 | 20 | 14 | null | 19 | 0 | 0 | 0 | 1 | 0 | null | current | does not load (translator-output) |
+| checkers | 4 | 3 | 20 | 14 | 19 | 19 | 0 | 0 | 0 | 1 | 0 | 0 | current | does not load (checked-in) |
 
 The one number to watch per game is agent − agentNowMechanical; it should fall.
 
@@ -69,10 +69,8 @@ The one number to watch per game is agent − agentNowMechanical; it should fall
 ### memory
 
 - bound for an agent: `memory.(*moveStartHideCardsTimer).Apply`: package-var-read memory.hideCardMoveName
-- the generated game does not load: stockMove: MoveComponentToSlot needs configuration SlotField
+- the generated game does not load: gameFromData: no body for apply memory.(*moveStartHideCardsTimer).Apply
 - null `coverage.mutants`: no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)
-- null `functions.mechanical`: no generated game is checked in (server/static/src/engine/games/memory/); functions.translatable is what the translator would write
-- null `stale`: no generated game is checked in
 
 ### blackjack
 
@@ -84,17 +82,11 @@ The one number to watch per game is agent − agentNowMechanical; it should fall
 
 ### tictactoe
 
-- the generated game does not load: stockMove: MoveComponentToSlot needs configuration SlotField
 - null `coverage.mutants`: no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)
-- null `functions.mechanical`: no generated game is checked in (server/static/src/engine/games/tictactoe/); functions.translatable is what the translator would write
-- null `stale`: no generated game is checked in
 
 ### werewolf
 
-- the generated game does not load: gameFromData: no body for distribute 
 - null `coverage.mutants`: no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)
-- null `functions.mechanical`: no generated game is checked in (server/static/src/engine/games/werewolf/); functions.translatable is what the translator would write
-- null `stale`: no generated game is checked in
 
 ### debuganimations
 
@@ -105,6 +97,4 @@ The one number to watch per game is agent − agentNowMechanical; it should fall
 - bound for an agent: `checkers.(*gameDelegate).ConfigurePredicateConstructors`: predicate-constructor checkers.spaceIsBlack
 - the generated game does not load: gameFromData: no body for predicate checkers.(*gameDelegate).ConfigurePredicateConstructors
 - null `coverage`: no checked-in fuzz corpus (conformance/fuzz/checkers/)
-- null `functions.mechanical`: no generated game is checked in (server/static/src/engine/games/checkers/); functions.translatable is what the translator would write
-- null `stale`: no generated game is checked in
 

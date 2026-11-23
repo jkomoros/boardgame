@@ -23,7 +23,27 @@
         "werewolf.NewDelegate"
       ]
     },
-    "mechanical": null,
+    "mechanical": {
+      "count": 16,
+      "functions": [
+        "werewolf.(*gameDelegate).BeginSetUp",
+        "werewolf.(*gameDelegate).CheckGameFinished",
+        "werewolf.(*gameDelegate).CurrentPlayerIndex",
+        "werewolf.(*moveBeginGame).Apply",
+        "werewolf.(*moveCastVote).Apply",
+        "werewolf.(*moveCastVote).Legal",
+        "werewolf.(*moveResolveVotes).Apply",
+        "werewolf.(*moveResolveVotes).Legal",
+        "werewolf.(*moveResolveVotesOnTimeout).Apply",
+        "werewolf.(*moveResolveVotesOnTimeout).Legal",
+        "werewolf.finishVoteResolution",
+        "werewolf.populateFellowWolves",
+        "werewolf.resolveVotes",
+        "werewolf.startVoteTimer",
+        "werewolf.timedVotingEnabled",
+        "werewolf.voteForPhase"
+      ]
+    },
     "agent": {
       "count": 0,
       "functions": []
@@ -310,16 +330,13 @@
     "mutants": null
   },
   "replay": {
-    "source": "translator-output",
-    "loaded": false,
-    "error": "gameFromData: no body for distribute ",
-    "documents": 0,
-    "passed": 0
+    "source": "checked-in",
+    "loaded": true,
+    "documents": 9,
+    "passed": 9
   },
-  "stale": null,
+  "stale": [],
   "nulls": {
-    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)",
-    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/werewolf/); functions.translatable is what the translator would write",
-    "stale": "no generated game is checked in"
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)"
   }
 }

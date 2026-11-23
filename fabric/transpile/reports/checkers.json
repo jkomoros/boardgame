@@ -26,7 +26,30 @@
         "checkers.newTokenDeck"
       ]
     },
-    "mechanical": null,
+    "mechanical": {
+      "count": 19,
+      "functions": [
+        "checkers.(*gameDelegate).DistributeComponentToStarterStack",
+        "checkers.(*gameDelegate).GameEndConditionMet",
+        "checkers.(*gameDelegate).PlayerScore",
+        "checkers.(*moveCrownToken).Apply",
+        "checkers.(*moveMoveToken).Apply",
+        "checkers.(*moveMoveToken).LegalCustom",
+        "checkers.(*movePlaceToken).Apply",
+        "checkers.(*movePlaceToken).DefaultsForState",
+        "checkers.(*movePlaceToken).LegalCustom",
+        "checkers.(*playerState).GameScore",
+        "checkers.(*playerState).ResetForTurnEnd",
+        "checkers.(*playerState).ResetForTurnStart",
+        "checkers.(*playerState).TurnDone",
+        "checkers.(*token).AllNextSpaces",
+        "checkers.(*token).Dynamic",
+        "checkers.(*token).FreeNextSpaces",
+        "checkers.(*token).Legal",
+        "checkers.(*token).LegalCaptureSpaces",
+        "checkers.spaceIsBlack"
+      ]
+    },
     "agent": {
       "count": 0,
       "functions": []
@@ -81,16 +104,14 @@
   },
   "coverage": null,
   "replay": {
-    "source": "translator-output",
+    "source": "checked-in",
     "loaded": false,
     "error": "gameFromData: no body for predicate checkers.(*gameDelegate).ConfigurePredicateConstructors",
     "documents": 0,
     "passed": 0
   },
-  "stale": null,
+  "stale": [],
   "nulls": {
-    "coverage": "no checked-in fuzz corpus (conformance/fuzz/checkers/)",
-    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/checkers/); functions.translatable is what the translator would write",
-    "stale": "no generated game is checked in"
+    "coverage": "no checked-in fuzz corpus (conformance/fuzz/checkers/)"
   }
 }

@@ -26,7 +26,22 @@
         "tictactoe.NewDelegate"
       ]
     },
-    "mechanical": null,
+    "mechanical": {
+      "count": 11,
+      "functions": [
+        "tictactoe.(*gameDelegate).CheckGameFinished",
+        "tictactoe.(*gameDelegate).DistributeComponentToStarterStack",
+        "tictactoe.(*gameState).tokenValueAtIndex",
+        "tictactoe.(*movePlaceToken).Apply",
+        "tictactoe.(*movePlaceToken).DefaultsForState",
+        "tictactoe.(*playerState).ResetForTurnEnd",
+        "tictactoe.(*playerState).ResetForTurnStart",
+        "tictactoe.(*playerState).TurnDone",
+        "tictactoe.checkGameFinished",
+        "tictactoe.checkRunWon",
+        "tictactoe.rowColToIndex"
+      ]
+    },
     "agent": {
       "count": 0,
       "functions": []
@@ -230,16 +245,13 @@
     "mutants": null
   },
   "replay": {
-    "source": "translator-output",
-    "loaded": false,
-    "error": "stockMove: MoveComponentToSlot needs configuration SlotField",
-    "documents": 0,
-    "passed": 0
+    "source": "checked-in",
+    "loaded": true,
+    "documents": 12,
+    "passed": 12
   },
-  "stale": null,
+  "stale": [],
   "nulls": {
-    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)",
-    "functions.mechanical": "no generated game is checked in (server/static/src/engine/games/tictactoe/); functions.translatable is what the translator would write",
-    "stale": "no generated game is checked in"
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)"
   }
 }

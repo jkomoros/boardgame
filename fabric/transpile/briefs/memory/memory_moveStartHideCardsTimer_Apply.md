@@ -341,15 +341,20 @@ THE TYPESCRIPT API YOU MAY USE
 
     /**
      * Who holds an enum property: the game sub-state, a player (by index), a
-     * component's dynamic values, or a component's static values. The component
-     * may be null (Go's nil), which panics on use as Go's does.
+     * component's dynamic values, a component's static values, or a move's own
+     * fields (Go: `m.F` where F is an enum.Val or enum.RangeVal field of the
+     * move). The component may be null (Go's nil), which panics on use as Go's
+     * does. A move field holds the value's string, as the engine's
+     * `MoveInstance.fields` and Go's move record both store it. `fieldsOf` and
+     * `move` both name a move's own fields; the translator emits the first.
      */
     export type Owner =
     	| 'game'
     	| number
     	| { readonly dynamicOf: Comp | DynamicRef | null }
     	| { readonly valuesOf: Comp | DynamicRef | null }
-    	| { readonly fieldsOf: MoveInstance };
+    	| { readonly fieldsOf: MoveInstance }
+    	| { readonly move: MoveInstance };
 
     /**
      * A grid graph over a range enum (enum/graph: MustNewEnumGridConnectedness),
@@ -480,6 +485,20 @@ THE TYPESCRIPT API YOU MAY USE
      * nil-dereference panic for a nil c. Added for the translator (workstream 10).
      */
     export function valuesAreNil(state: RulesState, c: Comp | DynamicRef | null): boolean
+
+    /**
+     * Go: `v.ContainingComponent().ImmutableInstance(state)` (or `Instance`),
+     * the handle a method of a component values type has for its own
+     * component, whose receiver the translator passes as the deck name and
+     * index (a component `Legal` body's `index`). Go always returns an
+     * instance; so does this. `stack` and `slot` are where the component is
+     * now; for a component the state cannot locate (a generic one, or one
+     * whose index went stale after ContractSize) `slot` is -1 and `stack` is
+     * any stack of `state`, used only for its state, and every operation on the
+     * handle then fails with Go's text, as Go's does. Throws for a deck the
+     * game lacks or an index outside it, which Go cannot express.
+     */
+    export function componentInstance(state: RulesState, deck: string, index: number): Comp
 
     /** Go: `c.MoveTo(dest, slot)`. Null on success, else Go's error text; nothing changes on failure. */
     export function moveTo(c: Comp | null, dest: StackRef, slot: number): string | null
@@ -1144,7 +1163,35 @@ SEMANTICS
 EXAMPLES
   From the checked-in generated games (server/static/src/engine/games/<game>/bodies.gen.ts), until boardgame-util/lib/transpile/testdata/pairs holds pairs, never from memory itself; nearest refusal reason first, then role, then Go calls shared.
 
-  Example 1: debuganimations.(*moveShuffleCards).Apply (game debuganimations, role apply, producer transpile@1, refusals none (translated mechanically))
+  Example 1: werewolf.(*moveResolveVotes).Apply (game werewolf, role apply, producer transpile@1, refusals none (translated mechanically))
+
+    Go:
+
+      func (m *moveResolveVotes) Apply(state boardgame.State) error {
+      	return finishVoteResolution(state)
+      }
+
+    TypeScript:
+
+      export function werewolf_moveResolveVotes_Apply(state: RulesState, m: MoveInstance): string | null {
+      	return werewolf_finishVoteResolution(state);
+      }
+
+  Example 2: werewolf.(*moveResolveVotesOnTimeout).Apply (game werewolf, role apply, producer transpile@1, refusals none (translated mechanically))
+
+    Go:
+
+      func (m *moveResolveVotesOnTimeout) Apply(state boardgame.State) error {
+      	return finishVoteResolution(state)
+      }
+
+    TypeScript:
+
+      export function werewolf_moveResolveVotesOnTimeout_Apply(state: RulesState, m: MoveInstance): string | null {
+      	return werewolf_finishVoteResolution(state);
+      }
+
+  Example 3: debuganimations.(*moveShuffleCards).Apply (game debuganimations, role apply, producer transpile@1, refusals none (translated mechanically))
 
     Go:
 
@@ -1160,41 +1207,6 @@ EXAMPLES
 
       export function debuganimations_moveShuffleCards_Apply(state: RulesState, m: MoveInstance): string | null {
       	return shuffle(gameStack(state, 'FanStack'));
-      }
-
-  Example 2: blackjack.(*moveIncrementRoundsCompleted).Apply (game blackjack, role apply, producer transpile@1, refusals none (translated mechanically))
-
-    Go:
-
-      func (m *moveIncrementRoundsCompleted) Apply(state boardgame.State) error {
-      	game, _ := concreteStates(state)
-      	game.RoundsCompleted++
-      	return nil
-      }
-
-    TypeScript:
-
-      export function blackjack_moveIncrementRoundsCompleted_Apply(state: RulesState, m: MoveInstance): string | null {
-      	state.g.RoundsCompleted = (state.g.RoundsCompleted as number) + 1;
-      	return null;
-      }
-
-  Example 3: debuganimations.(*moveVisibleShuffleCards).Apply (game debuganimations, role apply, producer transpile@1, refusals none (translated mechanically))
-
-    Go:
-
-      func (m *moveVisibleShuffleCards) Apply(state boardgame.State) error {
-
-      	game, _ := concreteStates(state)
-
-      	return game.FanStack.PublicShuffle()
-
-      }
-
-    TypeScript:
-
-      export function debuganimations_moveVisibleShuffleCards_Apply(state: RulesState, m: MoveInstance): string | null {
-      	return publicShuffle(gameStack(state, 'FanStack'));
       }
 
 OUTPUT

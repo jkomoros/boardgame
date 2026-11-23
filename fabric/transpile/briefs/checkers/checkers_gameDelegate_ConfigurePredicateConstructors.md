@@ -710,15 +710,20 @@ THE TYPESCRIPT API YOU MAY USE
 
     /**
      * Who holds an enum property: the game sub-state, a player (by index), a
-     * component's dynamic values, or a component's static values. The component
-     * may be null (Go's nil), which panics on use as Go's does.
+     * component's dynamic values, a component's static values, or a move's own
+     * fields (Go: `m.F` where F is an enum.Val or enum.RangeVal field of the
+     * move). The component may be null (Go's nil), which panics on use as Go's
+     * does. A move field holds the value's string, as the engine's
+     * `MoveInstance.fields` and Go's move record both store it. `fieldsOf` and
+     * `move` both name a move's own fields; the translator emits the first.
      */
     export type Owner =
     	| 'game'
     	| number
     	| { readonly dynamicOf: Comp | DynamicRef | null }
     	| { readonly valuesOf: Comp | DynamicRef | null }
-    	| { readonly fieldsOf: MoveInstance };
+    	| { readonly fieldsOf: MoveInstance }
+    	| { readonly move: MoveInstance };
 
     /**
      * A grid graph over a range enum (enum/graph: MustNewEnumGridConnectedness),
@@ -849,6 +854,20 @@ THE TYPESCRIPT API YOU MAY USE
      * nil-dereference panic for a nil c. Added for the translator (workstream 10).
      */
     export function valuesAreNil(state: RulesState, c: Comp | DynamicRef | null): boolean
+
+    /**
+     * Go: `v.ContainingComponent().ImmutableInstance(state)` (or `Instance`),
+     * the handle a method of a component values type has for its own
+     * component, whose receiver the translator passes as the deck name and
+     * index (a component `Legal` body's `index`). Go always returns an
+     * instance; so does this. `stack` and `slot` are where the component is
+     * now; for a component the state cannot locate (a generic one, or one
+     * whose index went stale after ContractSize) `slot` is -1 and `stack` is
+     * any stack of `state`, used only for its state, and every operation on the
+     * handle then fails with Go's text, as Go's does. Throws for a deck the
+     * game lacks or an index outside it, which Go cannot express.
+     */
+    export function componentInstance(state: RulesState, deck: string, index: number): Comp
 
     /** Go: `c.MoveTo(dest, slot)`. Null on success, else Go's error text; nothing changes on failure. */
     export function moveTo(c: Comp | null, dest: StackRef, slot: number): string | null
@@ -1588,7 +1607,35 @@ EXAMPLES
       	return currentValue;
       }
 
-  Example 2: blackjack.(*gameDelegate).DistributeComponentToStarterStack (game blackjack, role distribute, producer transpile@1, refusals none (translated mechanically))
+  Example 2: werewolf.(*moveCastVote).Apply (game werewolf, role apply, producer transpile@1, refusals none (translated mechanically))
+
+    Go:
+
+      func (m *moveCastVote) Apply(state boardgame.State) error {
+      	game, players := concreteStates(state)
+      	voter := players[m.TargetPlayerIndex]
+      	if game.Phase.Value() == phaseNight {
+      		voter.NightVote = m.VoteTarget
+      	} else {
+      		voter.DayVote = m.VoteTarget
+      	}
+      	return nil
+      }
+
+    TypeScript:
+
+      export function werewolf_moveCastVote_Apply(state: RulesState, m: MoveInstance): string | null {
+      	let players: number[] | null = playerIndexes(state);
+      	let voter: number = at(players, (m.fields.TargetPlayerIndex as number));
+      	if (enumKey(state, 'game', 'Phase') === 2) {
+      		player(state, voter).NightVote = (m.fields.VoteTarget as number);
+      	} else {
+      		player(state, voter).DayVote = (m.fields.VoteTarget as number);
+      	}
+      	return null;
+      }
+
+  Example 3: blackjack.(*gameDelegate).DistributeComponentToStarterStack (game blackjack, role distribute, producer transpile@1, refusals none (translated mechanically))
 
     Go:
 
@@ -1615,55 +1662,6 @@ EXAMPLES
       		return gameStack(state, 'UnusedCards');
       	}
       	return gameStack(state, 'DrawStack');
-      }
-
-  Example 3: blackjack.(*moveIncrementRoundsCompleted).Legal (game blackjack, role legal, producer transpile@1, refusals none (translated mechanically))
-
-    Go:
-
-      func (m *moveIncrementRoundsCompleted) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-      	if err := m.FixUp.Legal(state, proposer); err != nil {
-      		return err
-      	}
-      	game, _ := concreteStates(state)
-      	// Legal only if no player has cards and flags are reset (cleanup already done)
-      	for _, p := range state.ImmutablePlayerStates() {
-      		player := p.(*playerState)
-      		if player.HiddenHand.NumComponents() > 0 || player.VisibleHand.NumComponents() > 0 {
-      			return errors.New("cards haven't been collected yet")
-      		}
-      	}
-      	// Check that we haven't already incremented (by looking at whether we're
-      	// still in the cleanup phase — the StartPhase move after us will change it)
-      	if game.Phase.Value() != phaseRoundCleanup {
-      		return errors.New("not in cleanup phase")
-      	}
-      	return nil
-      }
-
-    TypeScript:
-
-      export function blackjack_moveIncrementRoundsCompleted_Legal(state: RulesState, m: MoveInstance, proposer: number, base: () => string | null): string | null {
-      	{
-      		let err: string | null = base();
-      		if (err !== null) {
-      			return err;
-      		}
-      	}
-      	{
-      		const $s2 = playerIndexes(state);
-      		for (let $i1 = 0; $i1 < lenOf($s2); $i1++) {
-      			let p: number = $s2![$i1];
-      			let player_: number = p;
-      			if ((stackView(playerStack(state, player_, 'HiddenHand')).numComponents() > 0) || (stackView(playerStack(state, player_, 'VisibleHand')).numComponents() > 0)) {
-      				return 'cards haven\'t been collected yet';
-      			}
-      		}
-      	}
-      	if (enumKey(state, 'game', 'Phase') !== 3) {
-      		return 'not in cleanup phase';
-      	}
-      	return null;
       }
 
 OUTPUT

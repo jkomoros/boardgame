@@ -47,7 +47,7 @@ func TestParseTSModule(t *testing.T) {
 		}
 	}
 	owner, _ := parseTSModule(mustRead(t, filepath.Join(root, EngineDir, "go", "api.ts"))).find("Owner")
-	if !strings.HasSuffix(owner.Text, "| { readonly fieldsOf: MoveInstance };") {
+	if !strings.HasSuffix(owner.Text, "| { readonly move: MoveInstance };") {
 		t.Errorf("a multi-line type alias was cut short: %q", owner.Text)
 	}
 }
