@@ -15,10 +15,10 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { policyMapFor } from '../definition.ts';
 import type { GameDefinition, SubStateDef } from '../definition.ts';
-import { blackjack } from '../games/blackjack.ts';
-import { memory } from '../games/memory.ts';
-import { pig } from '../games/pig.ts';
-import { tictactoe } from '../games/tictactoe.ts';
+import { blackjack } from '../games/blackjack/index.ts';
+import { memory } from '../games/memory/index.ts';
+import { pig } from '../games/pig/index.ts';
+import { tictactoe } from '../games/tictactoe/index.ts';
 import type { StateJSON } from '../state.ts';
 import { cloneJSON } from '../state.ts';
 import {
@@ -237,7 +237,18 @@ for (const name of ['memory', 'blackjack', 'tictactoe', 'pig'] as const) {
 		for (const deck of Object.keys(go.DynamicComponentValues)) {
 			assert.deepEqual(normalizedSubState(def.DynamicComponentValues[deck], 'all'), normalizedSubState(go.DynamicComponentValues[deck], 'all'));
 		}
-		assert.deepEqual(JSON.parse(JSON.stringify(def.Decks)), go.Decks);
+		// Go's DefinitionFor carries no generic values (Deck.GenericValues is a
+		// GameData addition, data.ts): the rest of each deck is compared with
+		// it, and the generic values with what Go's exporter wrote
+		// (conformance/definitions/<game>.json).
+		const exported = JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../conformance/definitions/${name}.json`, import.meta.url)), 'utf8')) as { Definition: GameDefinition };
+		const decks: Record<string, unknown> = {};
+		for (const deck of Object.keys(def.Decks)) {
+			const { GenericValues: generic, ...rest } = def.Decks[deck];
+			decks[deck] = rest;
+			assert.deepEqual(generic, exported.Definition.Decks[deck]?.GenericValues, deck + ': generic values');
+		}
+		assert.deepEqual(JSON.parse(JSON.stringify(decks)), go.Decks);
 		// Go's definition lists only the chest's enums.
 		for (const enumName of Object.keys(go.Enums)) assert.deepEqual(def.Enums[enumName], go.Enums[enumName]);
 		assert.equal(def.GroupEnum ?? '', go.GroupEnum ?? '');

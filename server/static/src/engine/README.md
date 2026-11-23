@@ -12,7 +12,7 @@ the core in TypeScript". It is built in three layers:
 |---|---|---|---|
 | Core | this directory | The generator, ids, stacks, conservation, sanitization | `fabric/status/engine-core.md` |
 | Legality | `legal/` | The declarative legal-predicate evaluator and plan | `fabric/status/engine-legal.md` |
-| Rules | `rules/`, `games/` | The game-definition API, the engine step, timers, per-viewer output, and six ported games | `fabric/status/engine-rules.md` |
+| Rules | `rules/`, `games/` | The game-definition API, the engine step, timers, per-viewer output, the loader for exported definitions, and seven games generated from their Go | `fabric/status/engine-rules.md`, `fabric/transpile/status/` |
 
 Start with [Defining a game](#defining-a-game) to write a game, or
 [What the host does](#what-the-host-does) to run one.
@@ -92,24 +92,27 @@ would have.
 | `rules/stock.ts` | Installers, behavior properties, and helpers for the reusable moves | `moves/`, `behaviors/` |
 | `rules/binding.ts`, `rules/enums.ts` | The legal evaluator's state access, over the real state | — |
 | `rules/sha256.ts` | SHA-256, for the schema fingerprints | `crypto/sha256` |
-| `games/` | `memory`, `blackjack`, `tictactoe`, `pig`, `debuganimations`, `werewolf` as definitions | `examples/` |
+| `rules/data.ts` | `gameFromData`: a `GameSpec` from an exported definition (`GameData`) and a table of function bodies | `boardgame-util gamedef export` |
+| `rules/stockRegistry.ts` | `stockMove(type, config)`: a stock move's parts from the configuration Go exports | `moves/` |
+| `go/` | The facade translated Go calls: slices, strings, integer arithmetic, panics, and the state API in Go's shape | the Go standard library and core API |
+| `lib/` | Ports of library packages: range enums, grid graphs, dice, playing cards | the packages `rules/stock-inventory.json` names |
+| `games/<game>/` | `memory`, `blackjack`, `tictactoe`, `pig`, `debuganimations`, `werewolf`, `checkers`, each generated from its Go: `definition.gen.ts`, `bodies.gen.ts`, `index.ts` (see [From Go](#from-go-the-shipped-games)) | `examples/<game>` |
+| `games/*.test.ts` | Every game against the conformance and fuzz corpora | |
 | `testing/` | Test support: a port of `internal/patchtree`, a reader for golden history files, and the conformance runner | |
 | `testdata/` | Known answers from Go, and the Go programs that produce them (`testdata/gen/`) | |
 
 ## Defining a game
 
 A game is a function returning a `GameSpec` (`rules/types.ts`): plain data
-plus functions. There
-are no base classes, decorators, reflection or generated code. Everything a
-Go game spreads across its delegate, its state structs with their tags and
-embedded behaviors, and `ConfigureMoves` is in one object.
+plus functions. There are no base classes, decorators or reflection.
+Everything a Go game spreads across its delegate, its state structs with
+their tags and embedded behaviors, and `ConfigureMoves` is in one object.
 
-The worked example is memory, `games/memory.ts`, a move-for-move port of
-`examples/memory`. The pieces below are excerpts from it.
+There are two ways to get one, and the engine runs both the same way:
 
 ```ts
 import { compileGame } from './rules/index.ts';
-import { memory } from './games/memory.ts';
+import { memory } from './games/memory/index.ts';
 
 const game = compileGame(memory());   // once; throws a GameSpecError or a LegalSpecError on a bad spec
 ```
@@ -118,7 +121,106 @@ const game = compileGame(memory());   // once; throws a GameSpecError or a Legal
 state definition, resolves every move's fields, visibility and legal plan,
 and builds the schemas a client is told about.
 
-### Components
+- **Generated from a Go game.** All seven games under `games/` are made this
+  way, by `boardgame-util`, from `examples/<game>`. Nothing in them is
+  written by hand; one function each in memory and checkers, which the
+  translator refuses, was translated by a coding agent and checked against
+  the recordings. See [From Go](#from-go-the-shipped-games).
+- **Written by hand** against the API the rest of this section describes.
+  The six games were first ported this way, move for move (the hand ports
+  `games/<game>.ts`); the generated games replaced them once each matched
+  Go on every recording there is (`fabric/transpile/status/replacement.md`).
+  The hand ports' functions are kept, one per Go function, in
+  `boardgame-util/lib/transpile/testdata/pairs/`. A hand-written spec is
+  still the way to write a game that has no Go, and the excerpts below
+  (memory, as its hand port wrote it) show that API.
+
+### From Go: the shipped games
+
+A generated game is three checked-in files under `games/<game>/`, each
+headed `DO NOT EDIT`:
+
+| File | What | Written by |
+|---|---|---|
+| `definition.gen.ts` | `definition()`: the game's exported definition (`GameData`: the state definition and chest, every move's configuration, plan, phases and progression, variants, computed properties, and the name of the Go function behind every behavior) as one literal | `boardgame-util transpile`, from `conformance/definitions/<game>.json`, which `boardgame-util gamedef export` writes from the running Go game |
+| `bodies.gen.ts` | One TypeScript function per Go function the definition names, translated from the Go source against the Go-shaped facade in `go/`, each under a header naming the Go function and its source hash; and `bodies(ref)`, the table from those names to the functions | `boardgame-util transpile`; a function the translator refuses is translated by a coding agent and stored by `boardgame-util port accept` under an `@generated agent:` header |
+| `index.ts` | `export function memory(): GameSpec { return gameFromData(definition(), bodies); }` | `boardgame-util transpile` |
+
+So memory's state is data, as Go's struct tags declared it
+(`definition.gen.ts`):
+
+```ts
+HiddenCards: {
+  Type: 'sizedStack',
+  Sanitize: {
+    all: 'order',
+  },
+  Deck: 'cards',
+  Size: 40,
+},
+```
+
+and its Hide Cards move is its configuration and declared plan
+(`Plan.Specs`: `proposerIsCurrentPlayer`, then the two preconditions from
+`ConfigureMoves`, each with its message) plus one translated function,
+`(*moveHideCards).Apply` (`bodies.gen.ts`):
+
+```ts
+export function memory_moveHideCards_Apply(state: RulesState, m: MoveInstance): string | null {
+	state.timer('HideCardsTimer').cancel();
+	{
+		const $s2 = components(gameStack(state, 'VisibleCards'));
+		for (let $i1 = 0; $i1 < lenOf($s2); $i1++) {
+			let i: number = $i1;
+			let c: Comp | null = $s2![$i1];
+			if (c !== null) {
+				{
+					let err: string | null = moveTo(c, gameStack(state, 'HiddenCards'), i);
+					if (err !== null) {
+						return 'Couldn\'t move component: ' + nonNil(err);
+					}
+				}
+			}
+		}
+	}
+	return null;
+}
+```
+
+A move built on a Go stock move (`moves.FinishTurn`, `moves.DealCountComponents`,
+...) is built by `rules/stockRegistry.ts` from the configuration Go exports;
+a translated `Apply` that calls its embedded stock move's `Apply` calls
+`stockApply`. The order of the moves in `Moves`, which decides which fix-up
+the engine applies first, is Go's registration order.
+
+The pipeline, from the repository root (Go through `./scripts/go-local`):
+
+```bash
+./scripts/go-local run ./boardgame-util gamedef export                      # conformance/definitions/<game>.json from the running Go games
+./scripts/go-local run ./boardgame-util lint --declarative ./examples/memory # which functions translate, and why any does not
+./scripts/go-local run ./boardgame-util transpile ./examples/memory          # writes games/memory/
+./scripts/go-local run ./boardgame-util transpile --check ./examples/...     # fails if a generated game is stale
+./scripts/go-local run ./boardgame-util port --all --dry-run                # the per-game reports (fabric/transpile/REPORT.md): data, mechanical, agent
+./scripts/go-local run ./boardgame-util port --all --no-game                # a brief for each refused function (fabric/transpile/briefs/)
+./scripts/go-local run ./boardgame-util port check 'memory.(*moveStartHideCardsTimer).Apply' --file PATH                    # an agent's translation against the recordings
+./scripts/go-local run ./boardgame-util port accept 'memory.(*moveStartHideCardsTimer).Apply' --file PATH --producer MODEL  # stores it in bodies.gen.ts
+```
+
+A generated game is held to Go by `games/<game>/<game>.gen.test.ts` (its
+conformance documents and its checked-in fuzz documents, every version,
+every viewer, every recorded rejection). The plan and its decisions are
+`fabric/TRANSPILE-PROPOSAL.md` and `fabric/status/transpile-pipeline.md`.
+After a Go game changes: `gamedef export`, then `transpile`, then the
+game's tests; `conformance export --check` and `fuzz corpus --check` say
+whether its recordings must be made again.
+
+### Written by hand
+
+The excerpts from here to the end of this section are memory as its hand
+port wrote it against the API. The generated memory says the same things as
+data and translated functions; the hand port's text is in the pair store.
+
+#### Components
 
 A deck is its components' static values, in deck order. Deck order matters:
 component ids are derived from it.
@@ -127,10 +229,10 @@ component ids are derived from it.
 decks: { cards: { components: newDeck() } },   // [{ Type: '🚴', CardSet: 'general' }, ...]
 ```
 
-Give `props` when a value is an enum (`games/blackjack.ts` does, for rank and
+Give `props` when a value is an enum (blackjack's hand port did, for rank and
 suit), with the enum itself under `componentEnums`.
 
-### State, and who may see it
+#### State, and who may see it
 
 Each property has a type and, optionally, a visibility policy written as the
 Go `sanitize` struct tag. The policies are `visible`, `order`, `len`,
@@ -168,7 +270,7 @@ Property types are `int`, `bool`, `string`, `playerIndex`, `enum`, the scalar
 slices, `timer`, `stack` (growable, optionally capped by `MaxSize`),
 `sizedStack` (fixed slots), `mergedStack` (a view over sibling stacks) and
 `board`. Every property starts at its zero value; `initial` supplies others
-(`games/tictactoe.ts` gives each player a token value).
+(tictactoe's hand port gave each player a token value).
 
 `traits` say what Go's embedded behaviors and methods say. `rules/stock.ts`
 has the property sets to spread in:
@@ -186,10 +288,10 @@ has the property sets to spread in:
 | `behaviors.DrawDiscardPair` | your two stacks | `game.traits.drawDiscardPair: { draw, discard }` |
 | `TurnDone`, `ResetForTurnStart`, `ResetForTurnEnd` | — | `player.traits.turn` |
 
-Dynamic component values (a die's face, in `games/pig.ts`) are declared per
+Dynamic component values (a die's face, in pig) are declared per
 deck under `dynamicComponentValues`.
 
-### What a function is handed
+#### What a function is handed
 
 Every function in a spec receives a `RulesState` (`rules/state.ts`):
 
@@ -209,7 +311,7 @@ Every function in a spec receives a `RulesState` (`rules/state.ts`):
 A function is given the state it should judge. Computed properties are given
 each viewer's **sanitized** state, so use the read-only views there.
 
-### Moves
+#### Moves
 
 A move is a `MoveSpec`: a name, whether it is a fix-up, its fields, its
 legality, and `apply`. In the source each one is returned from a function
@@ -311,7 +413,7 @@ A fix-up whose legality is too generous is applied forever; the engine stops
 after 256 levels of recursion with `ERR_TOO_MANY_FIX_UPS`, having applied
 them.
 
-### Stock moves and installers
+#### Stock moves and installers
 
 `rules/stock.ts` has the reusable moves as functions. Each returns a
 `MoveSpec`, or the parts of one to spread into yours and an `apply` to call.
@@ -326,7 +428,7 @@ them.
 | `shuffleDiscardIntoDraw()` | `moves.ShuffleDiscardIntoDraw` | Fix-up: when the draw stack is empty |
 | `drawToPlayer({ gameStack, playerStack })` | `moves.DrawToPlayer` | Parts: the current player draws the top component |
 | `moveComponentToSlot({ source, destination, slotField })` | `moves.MoveComponentToSlot` | Parts: a component into the slot the player chose |
-| `anyPlayerLegal` with `base: 'anyPlayer'` | `moves.AnyPlayer` | A move any seated player makes for themself (`games/werewolf.ts`) |
+| `anyPlayerLegal` with `base: 'anyPlayer'` | `moves.AnyPlayer` | A move any seated player makes for themself (werewolf's votes) |
 | `seatPlayer()` | `moves.SeatPlayer` | Applied when the host injects a seat |
 | `activateInactivePlayer()`, `inactivateEmptySeat()`, `waitForEnoughPlayers()` | the same names | Gathering players |
 | `defaultRoundSetup()` | `moves.DefaultRoundSetup` | The usual three, as an ordered group |
@@ -344,10 +446,10 @@ moves: add(seatPlayer(), activateInactivePlayer(), revealCard, hideCards, finish
 | `addOrderedForPhase(phase, ...items)` | Legal only in that phase and only in this order. An item is a move, or `optional(move)`, or `serial(...)`. The last must end the phase (`startPhase` or `noOp`) |
 | `combine(...lists)` | Concatenates |
 
-`games/blackjack.ts` uses all four: its deal and its round clean-up are
+Blackjack's hand port used all four: its deal and its round clean-up are
 ordered phases that run entirely as fix-ups.
 
-### Set-up, variants, computed properties and the end
+#### Set-up, variants, computed properties and the end
 
 ```ts
 variants: {
@@ -372,7 +474,7 @@ end: { conditionMet: state => state.gameView('Cards').numComponents() === 0 },
 - `end.conditionMet` ends the game; the winners are the players with the
   highest score (the `gameScore` trait, or `end.playerScore`) who are neither
   inactive nor eliminated. `end.check` replaces that rule
-  (`games/tictactoe.ts`).
+  (tictactoe's hand port).
 - A computed property is recomputed for each viewer from that viewer's
   sanitized state. In blackjack another player's `HandValue` counts their
   hole card as 0 until it is revealed.
@@ -616,8 +718,10 @@ everything. Each `*.test.ts` says at its top what it proves.
 
 | Test | Proves |
 |---|---|
-| `games/conformance.test.ts` | Every document of `conformance/` (memory, blackjack, tictactoe, pig, debuganimations, werewolf), replayed from its recorded id, salt, players, variant, seating and outside inputs alone: at every version the stored state, the move record, and every viewer's game object, sanitized move, legality and projected choices equal what Go recorded |
-| `rules/rejections.test.ts` | Go's error text and an untouched state for 49 refused proposals, and Go's outcome at the fix-up cap |
+| `games/conformance.test.ts` | Every document of `conformance/` (memory, blackjack, tictactoe, pig, debuganimations, werewolf), replayed on the generated game from its recorded id, salt, players, variant, seating and outside inputs alone: at every version the stored state, the move record, and every viewer's game object, sanitized move, legality and projected choices equal what Go recorded |
+| `games/<game>/<game>.gen.test.ts`, `games/fuzz.test.ts` | Each generated game against its conformance documents and the checked-in fuzz corpus (`conformance/fuzz/`), every recorded rejection proposed again; with `BOARDGAME_FUZZ_DIR`, a transient `boardgame-util fuzz run` too |
+| `rules/data.test.ts`, `rules/stockRegistry.test.ts` | The loader's contracts and its two hooks, and the stock registry, on the generated games' definitions and bodies |
+| `rules/rejections.test.ts` | Go's error text and an untouched state for 47 refused proposals, and Go's outcome at the fix-up cap (2 cases) |
 | `rules/binding.test.ts` | The legal corpus and every Go predicate verdict, through the real state |
 | `rules/engine.test.ts` | Timers against a moving clock, seat inputs, purity of a step, and each game's state definition against the one Go derives |
 | `rules/purity.test.ts`, `purity.test.ts` | The sandbox constraints |

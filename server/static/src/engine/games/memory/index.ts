@@ -6,6 +6,6 @@ import { bodies } from './bodies.gen.ts';
 import { definition } from './definition.gen.ts';
 
 /** memory, built from its exported definition and its translated Go functions. */
-export function memoryGenerated(): GameSpec {
+export function memory(): GameSpec {
 	return gameFromData(definition(), bodies);
 }

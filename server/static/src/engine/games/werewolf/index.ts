@@ -6,6 +6,6 @@ import { bodies } from './bodies.gen.ts';
 import { definition } from './definition.gen.ts';
 
 /** werewolf, built from its exported definition and its translated Go functions. */
-export function werewolfGenerated(): GameSpec {
+export function werewolf(): GameSpec {
 	return gameFromData(definition(), bodies);
 }

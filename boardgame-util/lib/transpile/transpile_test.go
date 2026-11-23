@@ -332,3 +332,28 @@ var pendingRefused = map[string][]string{
 	"memory":   {"memory.(*moveStartHideCardsTimer).Apply"},
 	"checkers": {"checkers.(*gameDelegate).ConfigurePredicateConstructors"},
 }
+
+// TestIndexExport: a generated game's index.ts exports exactly one
+// function, named after the game, which is the name every consumer imports
+// (games/<game>/index.ts `memory()`); a game named like one of the file's
+// own imports is refused rather than shadowing it.
+func TestIndexExport(t *testing.T) {
+	text, err := indexFile("github.com/jkomoros/boardgame/examples/memory", "memory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(text, "\nexport function memory(): GameSpec {\n\treturn gameFromData(definition(), bodies);\n}\n") {
+		t.Errorf("index.ts does not export memory():\n%s", text)
+	}
+	if n := strings.Count(text, "export "); n != 1 {
+		t.Errorf("index.ts has %d exports, want 1:\n%s", n, text)
+	}
+	if strings.Contains(text, "Generated(") {
+		t.Errorf("index.ts still exports a <game>Generated name:\n%s", text)
+	}
+	for name := range indexNames {
+		if _, err := indexFile("example.com/"+name, name); err == nil {
+			t.Errorf("a game named %q was not refused", name)
+		}
+	}
+}

@@ -11,9 +11,11 @@
 // With BOARDGAME_FUZZ_DIR naming a directory (the output of
 // `boardgame-util fuzz run --game G --seeds A..B --out DIR`), every
 // `<game>/seed-NNNN.json.gz` under it is replayed against the generated game
-// too. games/fuzz.test.ts replays the same directory against the hand ports,
-// so one run of `npm run test:unit` with the variable set checks both against
-// the same documents (the transient acceptance run).
+// too (the transient acceptance run). games/fuzz.test.ts replays the same
+// directory through its own registry of the same games. Until the hand ports
+// were removed it held the hand ports, so one run checked both against the
+// same documents; fabric/transpile/status/replacement.md records the last
+// such run.
 //
 // This file declares no test of its own; games/<game>/<game>.gen.test.ts
 // calls generatedGameSuite.
@@ -88,7 +90,7 @@ export function fuzzProblems(result: FuzzResult, doc: FuzzDocument): string[] {
  * Registers the tests of one generated game: it compiles, then each corpus
  * and fuzz document passes, then a pass table with the totals compared.
  * `make` builds the game under test (normally the generated index.ts's
- * `<game>Generated`).
+ * `<game>()`).
  */
 export function generatedGameSuite(name: string, make: () => GameSpec, expected: { corpus: number; fuzz: number }): void {
 	const dir = corpusDir();

@@ -10,22 +10,39 @@ import { HISTORICAL_MUTATIONS, LOOP_GUARD_COUNTER, applyMutation, bodyMutants, o
 
 const engineFile = (relative: string): string => readFileSync(fileURLToPath(new URL('../' + relative, import.meta.url)), 'utf8');
 
-test('the 20 historical mutations each apply to exactly one place', () => {
+test('the 20 historical mutations each apply to exactly the places they name', () => {
 	assert.equal(HISTORICAL_MUTATIONS.length, 20);
 	assert.equal(new Set(HISTORICAL_MUTATIONS.map(m => m.id)).size, 20, 'ids are unique');
 	for (const mutation of HISTORICAL_MUTATIONS) {
 		const source = engineFile(mutation.file);
-		assert.equal(occurrences(source, mutation.find), 1, mutation.id + ': ' + JSON.stringify(mutation.find) + ' in ' + mutation.file);
+		const want = mutation.occurs ?? 1;
+		assert.equal(occurrences(source, mutation.find), want, mutation.id + ': ' + JSON.stringify(mutation.find) + ' in ' + mutation.file);
 		const mutated = applyMutation(source, mutation);
 		assert.notEqual(mutated, source, mutation.id);
-		assert.equal(mutated.length, source.length - mutation.find.length + mutation.replace.length, mutation.id);
+		if (mutation.swapWith !== undefined) {
+			assert.equal(mutated.length, source.length, mutation.id + ': a swap keeps every character');
+			assert.ok(mutated.indexOf(mutation.swapWith) < mutated.indexOf(mutation.find), mutation.id + ': the blocks changed places');
+		} else {
+			assert.equal(mutated.length, source.length + want * (mutation.replace.length - mutation.find.length), mutation.id);
+		}
+		// None touches a hand port: they are gone (games/<game>.ts).
+		assert.doesNotMatch(mutation.file, /^games\/[a-z]+\.ts$/, mutation.id);
 	}
 });
 
-test('applyMutation refuses a text that does not occur exactly once', () => {
+test('applyMutation refuses a text that does not occur as often as it must', () => {
 	const base = { id: 'x', description: '', failedOn: '', file: 'f.ts', replace: 'y' };
 	assert.throws(() => applyMutation('a a', { ...base, find: 'a' }), /occurs 2 times/);
 	assert.throws(() => applyMutation('b', { ...base, find: 'a' }), /occurs 0 times/);
+	assert.equal(applyMutation('a a', { ...base, find: 'a', occurs: 2 }), 'y y');
+	assert.throws(() => applyMutation('a', { ...base, find: 'a', occurs: 2 }), /occurs 1 times in f.ts, not 2 times/);
+});
+
+test('applyMutation swaps two blocks', () => {
+	const base = { id: 'x', description: '', failedOn: '', file: 'f.ts', replace: '' };
+	assert.equal(applyMutation('<A 1;\n<B 2;\nrest', { ...base, find: '<A', swapWith: '<B', blockEnd: ';\n' }), '<B 2;\n<A 1;\nrest');
+	assert.throws(() => applyMutation('<A 1;\n<A 2;\n<B', { ...base, find: '<B', swapWith: '<A', blockEnd: ';\n' }), /occurs 2 times/);
+	assert.throws(() => applyMutation('<A 1 <B 2;\n', { ...base, find: '<A', swapWith: '<B', blockEnd: ';\n' }), /overlap/);
 });
 
 const SAMPLE = `import { x } from './x.ts';
@@ -75,12 +92,13 @@ test('bodyMutants: every comparison, integer literal and statement of the functi
 	assert.ok(deletedBody?.source.includes(LOOP_GUARD_COUNTER), 'the guard survives deleting the loop body');
 });
 
-test('bodyMutants: a real hand-port function', () => {
-	const source = engineFile('games/pig.ts');
-	const result = bodyMutants(ts, 'games/pig.ts', source, 'pig');
+test('bodyMutants: a real generated function', () => {
+	const file = 'games/blackjack/bodies.gen.ts';
+	const source = engineFile(file);
+	const result = bodyMutants(ts, file, source, 'blackjack_handValue');
 	assert.ok(result.total > 10, 'mutants: ' + result.total);
 	assert.ok(result.mutants.some(m => m.kind === 'flip-comparison'));
 	assert.ok(result.mutants.some(m => m.kind === 'shift-literal'));
 	assert.ok(result.mutants.some(m => m.kind === 'delete-statement'));
-	assert.throws(() => bodyMutants(ts, 'games/pig.ts', source, 'noSuchFunction'), /no top-level function/);
+	assert.throws(() => bodyMutants(ts, file, source, 'noSuchFunction'), /no top-level function/);
 });

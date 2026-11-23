@@ -3,6 +3,6 @@
 // conformance documents and its 8 fuzz documents, including their
 // rejections. See ../generated.testkit.test.ts for what is compared.
 import { generatedGameSuite } from '../generated.testkit.test.ts';
-import { tictactoeGenerated } from './index.ts';
+import { tictactoe } from './index.ts';
 
-generatedGameSuite('tictactoe', tictactoeGenerated, { corpus: 4, fuzz: 8 });
+generatedGameSuite('tictactoe', tictactoe, { corpus: 4, fuzz: 8 });

@@ -1,13 +1,14 @@
 /**
  * Blackjack, as this table plays it: the TypeScript engine's port of
- * `examples/blackjack` (`server/static/src/engine/games/blackjack.ts`),
- * compiled. Nothing about the rules is written here.
+ * `examples/blackjack`, generated from the Go by `boardgame-util transpile`
+ * (`server/static/src/engine/games/blackjack/`), compiled. Nothing about the
+ * rules is written here.
  */
 import {
   compileGame,
   type CompiledGame,
 } from "../../../server/static/src/engine/rules/index.ts";
-import { blackjack } from "../../../server/static/src/engine/games/blackjack.ts";
+import { blackjack } from "../../../server/static/src/engine/games/blackjack/index.ts";
 
 import { infoOf } from "../toolkit/table.ts";
 import type { TableInfo } from "../toolkit/view.ts";

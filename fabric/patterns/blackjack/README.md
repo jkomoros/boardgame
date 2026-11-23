@@ -12,7 +12,7 @@ own hole card and nobody else's (see "In a browser").
 | File | What |
 |---|---|
 | [`table.tsx`](table.tsx) | The sealed table: the policy, the stored state, the one writer `move`, the one released lift `viewFor` |
-| [`game.ts`](game.ts) | The engine's blackjack, compiled; the public facts |
+| [`game.ts`](game.ts) | The engine's blackjack (`server/static/src/engine/games/blackjack/`, generated from the Go), compiled; the public facts |
 | [`main.tsx`](main.tsx) | The piece: the `cf-iframe` |
 | [`parity.test.ts`](parity.test.ts) | Every recorded Go game of blackjack, replayed through the table; no view holds another seat's hole card |
 | [`parity.test.tsx`](parity.test.tsx) | The opening of one recording, replayed inside a lift in the pattern sandbox |
@@ -63,6 +63,16 @@ Two things this does not hold, neither of them the pattern's to fix:
 
 One `TODO(cfc)` remains in `table.tsx`: the table starts as `null`, because
 a record default is nobody's and would keep every view sealed.
+
+**The game is generated from the Go.** `game.ts` imports `blackjack()` from
+`server/static/src/engine/games/blackjack/index.ts`, which
+`boardgame-util transpile ./examples/blackjack` writes from
+`examples/blackjack`. It replaced the hand port `games/blackjack.ts`, which
+is gone (`fabric/transpile/status/replacement.md`). The engine modules a
+table imports are part of its policy's identity, so the switch gave this
+table a new one: a table created before it is stranded on the old identity,
+and any later change to the generated files' text does the same again
+(`fabric/TRANSPILE-PROPOSAL.md`, risk 6).
 
 ## Tests
 

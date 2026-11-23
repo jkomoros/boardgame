@@ -1,32 +1,33 @@
-// stockMove(type, config) against the conformance corpus: every move of the
-// six hand ports that is a Go stock move used as is (SeatPlayer, FinishTurn,
-// StartPhase, DealCountComponents, ...) is replaced by the registry's parts,
-// built from the configuration Go stores for it, keeping only what the
-// installers and the game add (name, help text, phases, progression,
-// authored preconditions). The rebuilt games must still pass every corpus
-// document at every version for every viewer. Blackjack's two deals then
-// run on the generic dealComponents, not on the hand ports'
-// dealCountComponents.
+// stockMove(type, config) on the games: every stock move of the seven
+// generated games (games/<game>/definition.gen.ts, Go's exported
+// definitions) is built by the registry from the configuration Go exports
+// for it, and the loader runs it (rules/data.ts); the games' corpora
+// (games/<game>/<game>.gen.test.ts) then hold those parts to Go at every
+// version for every viewer. The moves the hand ports wrote out as stock
+// moves (stockOf) must be the types and configuration Go exports.
+//
+// Until the hand ports were replaced, this file rebuilt each hand port with
+// its stock moves swapped for the registry's parts and replayed the corpus;
+// a generated game is built from the registry's parts already, so what that
+// rebuild proved is now the generated games' own corpus test
+// (fabric/transpile/status/replacement.md).
 //
 // Also: the registry's lookups and refusals.
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { gunzipSync } from 'node:zlib';
-import { blackjack } from '../games/blackjack.ts';
-import { debuganimations } from '../games/debuganimations.ts';
-import { memory } from '../games/memory.ts';
-import { pig } from '../games/pig.ts';
-import { tictactoe } from '../games/tictactoe.ts';
-import { werewolf } from '../games/werewolf.ts';
-import { type ConformanceDocument, FIELDS, runDocument } from '../testing/conformance.ts';
-import { compileGame } from './compile.ts';
+import { definition as blackjackDefinition } from '../games/blackjack/definition.gen.ts';
+import { definition as checkersDefinition } from '../games/checkers/definition.gen.ts';
+import { definition as debuganimationsDefinition } from '../games/debuganimations/definition.gen.ts';
+import { definition as memoryDefinition } from '../games/memory/definition.gen.ts';
+import { definition as pigDefinition } from '../games/pig/definition.gen.ts';
+import { definition as tictactoeDefinition } from '../games/tictactoe/definition.gen.ts';
+import { definition as werewolfDefinition } from '../games/werewolf/definition.gen.ts';
+import type { GameData } from './data.ts';
 import { CONFIG_PREFIX, configValue, stockMove } from './stockRegistry.ts';
-import type { GameSpec, MoveSpec } from './types.ts';
 
-/** A hand port's move by name: the Go stock type it is and the configuration Go stores for it. */
+/** A move the hand ports wrote out as a Go stock move, by name: the stock type and the configuration they read in the Go source. */
 function stockOf(game: string, name: string): { type: string; config: Record<string, unknown> } | null {
 	const q = (short: Record<string, unknown>): Record<string, unknown> => {
 		const out: Record<string, unknown> = {};
@@ -72,68 +73,42 @@ function stockOf(game: string, name: string): { type: string; config: Record<str
 	return null;
 }
 
-/** The game with every stock move rebuilt from the registry. */
-function rebuilt(game: string, spec: GameSpec): { spec: GameSpec; replaced: string[] } {
-	const replaced: string[] = [];
-	const moves = spec.moves.map((original): MoveSpec => {
-		const stock = stockOf(game, original.name);
-		if (stock === null) return original;
-		const parts = stockMove(stock.type, stock.config);
-		assert.ok(parts?.spec && parts.apply && parts.legal, stock.type);
-		replaced.push(original.name);
-		const move: MoveSpec = { ...(parts.spec as MoveSpec), name: original.name, helpText: original.helpText, apply: parts.apply, legal: parts.legal };
-		if (parts.defaults) move.defaults = parts.defaults;
-		else delete move.defaults;
-		// What the installers and the game add over the stock move.
-		if (original.legalPhases) move.legalPhases = original.legalPhases;
-		if (original.progression) move.progression = original.progression;
-		if (original.preconditions) move.preconditions = original.preconditions;
-		return move;
-	});
-	return { spec: { ...spec, moves }, replaced };
-}
-
-function corpusDir(): string {
-	let dir = path.dirname(fileURLToPath(import.meta.url));
-	for (;;) {
-		if (existsSync(path.join(dir, 'conformance', 'index.json'))) return path.join(dir, 'conformance');
-		const parent = path.dirname(dir);
-		assert.notEqual(parent, dir, 'could not find conformance/');
-		dir = parent;
-	}
-}
-
-const dir = corpusDir();
-const index = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8')) as { file: string; game: string }[];
-const ports: Record<string, () => GameSpec> = { memory, blackjack, tictactoe, pig, debuganimations, werewolf };
+const GENERATED: Record<string, () => GameData> = {
+	memory: memoryDefinition, blackjack: blackjackDefinition, tictactoe: tictactoeDefinition, pig: pigDefinition,
+	debuganimations: debuganimationsDefinition, werewolf: werewolfDefinition, checkers: checkersDefinition,
+};
 const totals: Record<string, number> = {};
 
-for (const game of Object.keys(ports)) {
-	test('registry parts reproduce ' + game + ' on its corpus', () => {
-		const { spec, replaced } = rebuilt(game, ports[game]());
-		totals[game] = replaced.length;
-		assert.ok(replaced.length >= 1, game + ' has no stock move');
-		const compiled = compileGame(spec);
-		const entries = index.filter(entry => entry.game === game);
-		assert.ok(entries.length >= 1);
-		for (const entry of entries) {
-			const doc = JSON.parse(gunzipSync(readFileSync(path.join(dir, entry.file))).toString('utf8')) as ConformanceDocument;
-			const result = runDocument(compiled, doc);
-			const problems: string[] = [];
-			if (result.fatal) problems.push('replay stopped: ' + result.fatal);
-			for (const field of FIELDS) {
-				const f = result.fields[field];
-				if (f.mismatches > 0) problems.push(field + ': ' + f.mismatches + ' of ' + f.compared + ' differ, e.g. ' + f.examples.join('; '));
+/** `config` holds every key of `want` with the same value. */
+function holds(config: Readonly<Record<string, unknown>>, want: Readonly<Record<string, unknown>>): boolean {
+	return Object.keys(want).every(key => JSON.stringify(config[key]) === JSON.stringify(want[key]));
+}
+
+for (const game of Object.keys(GENERATED)) {
+	test('the registry builds every stock move of the generated ' + game + ' from Go\'s exported configuration', () => {
+		let built = 0;
+		for (const move of GENERATED[game]().Moves) {
+			if (move.Stock === null) continue;
+			const parts = stockMove(move.Stock.Type, move.Stock.Config);
+			assert.ok(parts !== undefined, game + ': ' + move.Name + ' (' + move.Stock.Type + ') is not in the registry');
+			// The stock moves the hand ports wrote out are the types and the
+			// configuration Go exports for them.
+			const read = stockOf(game, move.Name);
+			if (read !== null) {
+				assert.equal('moves.' + move.Stock.Type.replace(/^moves\./, ''), read.type, game + ': ' + move.Name);
+				assert.ok(holds(move.Stock.Config, read.config), game + ': ' + move.Name + ': ' + JSON.stringify(read.config) + ' not in ' + JSON.stringify(move.Stock.Config));
+				assert.ok(parts.spec && parts.apply && parts.legal, game + ': ' + move.Name + ' has no stock apply and legal');
 			}
-			assert.equal(problems.length, 0, entry.file + ' with ' + replaced.join(', ') + ':\n  ' + problems.join('\n  '));
+			if (parts.apply !== undefined) built++;
 		}
+		totals[game] = built;
 	});
 }
 
-test('every hand port had stock moves replaced', () => {
-	// Blackjack's 13: shuffle, seat, the three gathering moves, Begin Game, Start Round Cleanup, Finish Turn, Force Finish Turn, the default round setup's three, two deals, two start phases.
+test('every generated game runs stock moves from the registry', () => {
+	// Blackjack's 13 and more: shuffle, seat, the three gathering moves, Begin Game, Start Round Cleanup, Finish Turn, Force Finish Turn, the default round setup's three, two deals, two start phases.
 	assert.ok(totals.blackjack >= 13, 'blackjack: ' + totals.blackjack);
-	for (const game of Object.keys(ports)) assert.ok(totals[game] >= 1, game);
+	for (const game of Object.keys(GENERATED)) assert.ok(totals[game] >= 1, game + ': ' + totals[game]);
 });
 
 test('registry: names with and without moves., keys qualified or bare, unknown types', () => {

@@ -26,13 +26,13 @@ import { type FuzzDocument, type FuzzResult, fuzzPassTable, runFuzzDocument } fr
 import { fuzzProblems, withPendingBodies } from '../generated.testkit.test.ts';
 import { bodies } from './bodies.gen.ts';
 import { definition } from './definition.gen.ts';
-import { checkersGenerated } from './index.ts';
+import { checkers } from './index.ts';
 
 /** The FnRefs the translator refused, which bodies.gen.ts therefore lacks. */
 /** None now: the predicate constructor was translated by a coding agent from its brief and accepted (see bodies.gen.ts, `@generated agent:`). */
 const PENDING: string[] = [];
 
-const checkersSpec = (): GameSpec => checkersGenerated();
+const checkersSpec = (): GameSpec => checkers();
 
 let compiled: CompiledGame | undefined;
 const game = (): CompiledGame => {
@@ -42,7 +42,7 @@ const game = (): CompiledGame => {
 
 test('checkers: the pending FnRefs are exactly the refused functions, and index.ts names them when it cannot load', () => {
 	assert.notEqual(bodies(CHECKERS_PREDICATE_REF), undefined, 'the agent-written predicate constructor has no body');
-	assert.equal(checkersGenerated().name, 'checkers');
+	assert.equal(checkers().name, 'checkers');
 	// Every other function slot the definition names has a generated body.
 	const data = definition();
 	const named = new Set<string>();

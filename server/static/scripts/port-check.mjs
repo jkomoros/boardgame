@@ -116,8 +116,8 @@ async function loadEngine() {
 /** The game's spec factory from games/<game>/index.ts, for one variant ('' for the plain one). */
 async function gameFactory(game, query) {
 	const module = await import(urlOf('games/' + game + '/index.ts') + (query ? '?' + query : ''));
-	const make = module[game + 'Generated'];
-	if (typeof make !== 'function') throw new Error('games/' + game + '/index.ts exports no ' + game + 'Generated');
+	const make = module[game];
+	if (typeof make !== 'function') throw new Error('games/' + game + '/index.ts exports no ' + game);
 	return make;
 }
 

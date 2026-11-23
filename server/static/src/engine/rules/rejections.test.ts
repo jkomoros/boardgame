@@ -13,10 +13,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { blackjack } from '../games/blackjack.ts';
-import { memory } from '../games/memory.ts';
-import { pig } from '../games/pig.ts';
-import { tictactoe } from '../games/tictactoe.ts';
+import { blackjack } from '../games/blackjack/index.ts';
+import { memory } from '../games/memory/index.ts';
+import { pig } from '../games/pig/index.ts';
+import { tictactoe } from '../games/tictactoe/index.ts';
 import type { StateJSON } from '../state.ts';
 import { cloneJSON } from '../state.ts';
 import {

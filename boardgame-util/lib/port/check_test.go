@@ -130,7 +130,8 @@ func TestCheckStaticAndTypes(t *testing.T) {
 
 // TestCheckMemory is the proposal's acceptance for the harness: memory's
 // refused function PASSes in a version written from the hand port
-// (games/memory.ts starts the hide-cards timer with the Hide Cards move)
+// (the removed games/memory.ts started the hide-cards timer with the Hide
+// Cards move; its pair is in lib/transpile/testdata/pairs/memory/)
 // against the facade, and gives the first difference for a mutated one.
 // While memory's generated game does not load (the stock registry builds
 // MoveComponentToSlot only with a SlotField the definition lacks) the check

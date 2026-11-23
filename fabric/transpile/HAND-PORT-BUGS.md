@@ -103,3 +103,23 @@ the pair's `meta.json` note):
   hand port every player; the one caller passes every player.
 - `memory.(*moveCaptureCards).Apply` discards `MoveToNextSlot`'s error; the
   hand port would throw (known; `GO-BUGS.md` G4).
+
+## Closed: the hand ports are replaced
+
+The six hand ports (`server/static/src/engine/games/{memory,blackjack,
+tictactoe,pig,debuganimations,werewolf}.ts`) were removed when the owner
+ruled that a generated game is the one in use wherever it is fully
+semantically equivalent to its hand port, and all six were
+(`status/replacement.md`: the structural comparison, the rejection vectors,
+the engine tests, and a fresh transient fuzz run of 1,316 documents
+replayed against both, with no difference). Nothing in this register was
+ever a difference a recording showed. The read-only differences above are
+moot for play: each was the hand port departing from Go where no document
+reaches, and the generated game follows Go in every one of them.
+
+This register stays as the record of what the fuzz replay and the pair
+store found while the hand ports existed. Their functions are kept, one
+per Go function, in `boardgame-util/lib/transpile/testdata/pairs/`. A
+difference the fuzz replay finds from now on is a generated game's (or the
+engine's) and is recorded here the same way, with `EXPECTED_FAILURES` in
+`games/fuzz.test.ts`.

@@ -6,6 +6,6 @@ import { bodies } from './bodies.gen.ts';
 import { definition } from './definition.gen.ts';
 
 /** pig, built from its exported definition and its translated Go functions. */
-export function pigGenerated(): GameSpec {
+export function pig(): GameSpec {
 	return gameFromData(definition(), bodies);
 }

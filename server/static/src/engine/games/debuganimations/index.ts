@@ -6,6 +6,6 @@ import { bodies } from './bodies.gen.ts';
 import { definition } from './definition.gen.ts';
 
 /** debuganimations, built from its exported definition and its translated Go functions. */
-export function debuganimationsGenerated(): GameSpec {
+export function debuganimations(): GameSpec {
 	return gameFromData(definition(), bodies);
 }
