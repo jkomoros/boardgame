@@ -26,19 +26,15 @@ import { definition } from './definition.gen.ts';
 import { memoryGenerated } from './index.ts';
 
 /** The FnRefs the translator refused, which bodies.gen.ts therefore lacks. */
-const PENDING = ['memory.(*moveStartHideCardsTimer).Apply'];
+/** None now: the one refused function was translated by a coding agent from its brief and accepted (see bodies.gen.ts, `@generated agent:`). */
+const PENDING: string[] = [];
+const AGENT_WRITTEN = ['memory.(*moveStartHideCardsTimer).Apply'];
 
-function handPortStandIn(): (...args: never[]) => unknown {
-	const move = memory().moves.find(m => m.name === 'Start Hide Cards Timer');
-	assert.ok(move?.apply !== undefined, "the hand port's Start Hide Cards Timer has no apply");
-	return move.apply;
-}
-
-const memoryWithStandIn = (): GameSpec => gameFromData(definition(), withPendingBodies(bodies, { [PENDING[0]]: handPortStandIn() }));
-
-test('memory: the pending FnRefs are exactly the refused functions, and index.ts names them when it cannot load', () => {
-	for (const ref of PENDING) assert.equal(bodies(ref), undefined, ref + ' has a generated body now; remove the stand-in');
-	assert.throws(memoryGenerated, (thrown: unknown) => isGameSpecError(thrown) && PENDING.every(ref => (thrown as Error).message.includes(ref)));
+test('memory: nothing is pending; index.ts loads; the agent-written function has a body', () => {
+	assert.deepEqual(PENDING, []);
+	for (const ref of AGENT_WRITTEN) assert.notEqual(bodies(ref), undefined, ref + ' has no body');
+	assert.equal(memoryGenerated().name, 'memory');
+	void definition;
 });
 
-generatedGameSuite('memory', memoryWithStandIn, { corpus: 6, fuzz: 8 });
+generatedGameSuite('memory', memoryGenerated, { corpus: 6, fuzz: 8 });

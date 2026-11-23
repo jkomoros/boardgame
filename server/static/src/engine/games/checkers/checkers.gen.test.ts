@@ -38,9 +38,10 @@ import { definition } from './definition.gen.ts';
 import { checkersGenerated } from './index.ts';
 
 /** The FnRefs the translator refused, which bodies.gen.ts therefore lacks. */
-const PENDING = [CHECKERS_PREDICATE_REF];
+/** None now: the predicate constructor was translated by a coding agent from its brief and accepted (see bodies.gen.ts, `@generated agent:`). */
+const PENDING: string[] = [];
 
-const checkersWithStandIn = (): GameSpec => gameFromData(definition(), withPendingBodies(bodies, { [CHECKERS_PREDICATE_REF]: spaceIsBlackConstructor }));
+const checkersWithStandIn = (): GameSpec => checkersGenerated();
 
 let compiled: CompiledGame | undefined;
 const game = (): CompiledGame => {
@@ -49,8 +50,8 @@ const game = (): CompiledGame => {
 };
 
 test('checkers: the pending FnRefs are exactly the refused functions, and index.ts names them when it cannot load', () => {
-	for (const ref of PENDING) assert.equal(bodies(ref), undefined, ref + ' has a generated body now; remove the stand-in');
-	assert.throws(checkersGenerated, (thrown: unknown) => isGameSpecError(thrown) && PENDING.every(ref => (thrown as Error).message.includes(ref)));
+	assert.notEqual(bodies(CHECKERS_PREDICATE_REF), undefined, 'the agent-written predicate constructor has no body');
+	assert.equal(checkersGenerated().name, 'checkers');
 	// Every other function slot the definition names has a generated body.
 	const data = definition();
 	const named = new Set<string>();

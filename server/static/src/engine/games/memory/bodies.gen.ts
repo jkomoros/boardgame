@@ -6,11 +6,6 @@
 // gofmt-ed source, and the commit at which this text was first written.
 // `bodies` resolves the definition's FnRefs (rules/data.ts, the body calling
 // convention).
-//
-// Refused, so not translated (the loader cannot build the game until each
-// has a body):
-//   memory.(*moveStartHideCardsTimer).Apply
-//     package-var-read memory.hideCardMoveName (moves.go:114)
 
 import { componentAt, components, first, gameStack, moveTo, moveToNextSlot, player, playerIndexes, playerStack, setSize, shuffle, slideToLastSlot, stackView, stockApply, values, valuesOf, variantValue } from '../../go/api.ts';
 import type { Comp, DynamicRef, StackRef } from '../../go/api.ts';
@@ -213,6 +208,13 @@ export function memory_moveRevealCard_DefaultsForState(state: RulesState, m: Mov
 	}
 }
 
+// @generated agent:claude-opus-5-5 brief:a77256ac82d20deb7052c950d95b762dda72ad2f27fb4663bc26a50f55862ce3 go:memory.(*moveStartHideCardsTimer).Apply sha256:639e2cc4e8c5299134062a27115a7eb15d4cfc693e6d32ff7e1399c7ce5b66d6 first:f1c52576
+export function memory_moveStartHideCardsTimer_Apply(state: RulesState, m: MoveInstance): string | null {
+	const move = state.moveByName('Hide Cards');
+	state.timer('HideCardsTimer').start(4000, move);
+	return null;
+}
+
 // @generated transpile@1 go:memory.(*moveStartHideCardsTimer).LegalCustom sha256:bc688179ce3fb49726ccd12e6175c146716cf81d28388de6eac0551955437e7d first:b824c114
 export function memory_moveStartHideCardsTimer_LegalCustom(state: RulesState, m: MoveInstance, proposer: number): string | LegalVerdict | null {
 	if (state.timer('HideCardsTimer').active()) {
@@ -266,6 +268,8 @@ export function bodies(ref: string): ((...args: never[]) => unknown) | undefined
 			return memory_moveRevealCard_Apply;
 		case 'memory.(*moveRevealCard).DefaultsForState':
 			return memory_moveRevealCard_DefaultsForState;
+		case 'memory.(*moveStartHideCardsTimer).Apply':
+			return memory_moveStartHideCardsTimer_Apply;
 		case 'memory.(*moveStartHideCardsTimer).LegalCustom':
 			return memory_moveStartHideCardsTimer_LegalCustom;
 		case 'memory.(*playerState).GameScore':

@@ -42,13 +42,13 @@ in. functions.mechanical below counts only what is checked in.
 
 | Game | movesData | movesWithCode | functions | data | mechanical | translatable | agent | agentNowMechanical | engineGap | boundForAgent | notPorted | stale | definition | TS replay |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| memory | 3 | 4 | 17 | 14 | 16 | 16 | 0 | 0 | 0 | 1 | 11 | 0 | current | does not load (checked-in) |
+| memory | 3 | 4 | 17 | 14 | 16 | 16 | 1 | 0 | 0 | 0 | 11 | 0 | current | 14 of 14 pass (checked-in) |
 | blackjack | 16 | 7 | 23 | 13 | 23 | 23 | 0 | 0 | 0 | 0 | 1 | 0 | current | 15 of 15 pass (checked-in) |
 | pig | 3 | 3 | 10 | 12 | 10 | 10 | 0 | 0 | 0 | 0 | 1 | 0 | current | 11 of 11 pass (checked-in) |
 | tictactoe | 3 | 1 | 11 | 14 | 11 | 11 | 0 | 0 | 0 | 0 | 5 | 0 | current | 12 of 12 pass (checked-in) |
 | werewolf | 4 | 7 | 16 | 11 | 16 | 16 | 0 | 0 | 0 | 0 | 1 | 0 | current | 9 of 9 pass (checked-in) |
 | debuganimations | 1 | 12 | 24 | 23 | 24 | 24 | 0 | 0 | 0 | 0 | 1 | 0 | current | 9 of 9 pass (checked-in) |
-| checkers | 4 | 3 | 20 | 14 | 19 | 19 | 0 | 0 | 0 | 1 | 0 | 0 | current | does not load (checked-in) |
+| checkers | 4 | 3 | 20 | 14 | 19 | 19 | 1 | 0 | 0 | 0 | 0 | 0 | current | 8 of 8 pass (checked-in) |
 
 The one number to watch per game is agent − agentNowMechanical; it should fall.
 
@@ -62,14 +62,13 @@ The one number to watch per game is agent − agentNowMechanical; it should fall
 | tictactoe | 8 | 134 | 5 | none | 2 of 2 | none | 67 of 73 | null |
 | werewolf | 8 | 157 | 18 | none | 0 of 0 | Players.FellowWolves | 143 of 151 | null |
 | debuganimations | 8 | 168 | 22 | Seat Player | 7 of 7 | none | 135 of 154 | null |
-| checkers | null | null | null | null | null | null | null | null |
+| checkers | 8 | 224 | 1 | Crown Token; Finish Turn; Move Token | 7 of 7 | none | 82 of 151 | null |
 
 ## Named functions
 
 ### memory
 
-- bound for an agent: `memory.(*moveStartHideCardsTimer).Apply`: package-var-read memory.hideCardMoveName
-- the generated game does not load: gameFromData: no body for apply memory.(*moveStartHideCardsTimer).Apply
+- agent-written: `memory.(*moveStartHideCardsTimer).Apply`
 - null `coverage.mutants`: no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)
 
 ### blackjack
@@ -94,7 +93,6 @@ The one number to watch per game is agent − agentNowMechanical; it should fall
 
 ### checkers
 
-- bound for an agent: `checkers.(*gameDelegate).ConfigurePredicateConstructors`: predicate-constructor checkers.spaceIsBlack
-- the generated game does not load: gameFromData: no body for predicate checkers.(*gameDelegate).ConfigurePredicateConstructors
-- null `coverage`: no checked-in fuzz corpus (conformance/fuzz/checkers/)
+- agent-written: `checkers.(*gameDelegate).ConfigurePredicateConstructors`
+- null `coverage.mutants`: no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)
 

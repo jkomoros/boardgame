@@ -30,7 +30,7 @@ func TestFuzzCoverageJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout.String()), &reports); err != nil {
 		t.Fatalf("not JSON: %v", err)
 	}
-	if len(reports) != 6 {
+	if len(reports) != 7 {
 		t.Fatalf("%d reports, want one per corpus game", len(reports))
 	}
 	for _, report := range reports {

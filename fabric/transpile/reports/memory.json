@@ -48,8 +48,10 @@
       ]
     },
     "agent": {
-      "count": 0,
-      "functions": []
+      "count": 1,
+      "functions": [
+        "memory.(*moveStartHideCardsTimer).Apply"
+      ]
     },
     "agentNowMechanical": {
       "count": 0,
@@ -77,15 +79,8 @@
     },
     "translatable": 16,
     "boundForAgent": {
-      "count": 1,
-      "functions": [
-        {
-          "func": "memory.(*moveStartHideCardsTimer).Apply",
-          "refusals": [
-            "package-var-read memory.hideCardMoveName"
-          ]
-        }
-      ]
+      "count": 0,
+      "functions": []
     }
   },
   "headline": {
@@ -401,10 +396,9 @@
   },
   "replay": {
     "source": "checked-in",
-    "loaded": false,
-    "error": "gameFromData: no body for apply memory.(*moveStartHideCardsTimer).Apply",
-    "documents": 0,
-    "passed": 0
+    "loaded": true,
+    "documents": 14,
+    "passed": 14
   },
   "stale": [],
   "nulls": {

@@ -27,6 +27,7 @@ import { memory } from './memory.ts';
 import { pig } from './pig.ts';
 import { tictactoe } from './tictactoe.ts';
 import { werewolf } from './werewolf.ts';
+import { checkersGenerated } from './checkers/index.ts';
 
 /** Game name to the factory of the game under test. */
 type Registry = (game: string) => (() => GameSpec) | undefined;
@@ -46,7 +47,10 @@ const handPorts: Registry = game => {
 	}
 };
 
-const registries: readonly Registry[] = [handPorts];
+/** Games with no hand port: the generated game is the one under test. */
+const generatedOnly: Registry = game => (game === 'checkers' ? checkersGenerated : undefined);
+
+const registries: readonly Registry[] = [handPorts, generatedOnly];
 const specFor = (game: string): (() => GameSpec) | undefined => {
 	for (const registry of registries) {
 		const found = registry(game);
@@ -134,7 +138,7 @@ const checkedIn = documentsUnder(corpus);
 const corpusResults: FuzzResult[] = [];
 
 test('the fuzz corpus holds eight documents for each hand port, as its index lists', () => {
-	for (const game of HAND_PORTS) assert.equal(checkedIn.filter(entry => entry.game === game).length, 8, game);
+	for (const game of [...HAND_PORTS, 'checkers']) assert.equal(checkedIn.filter(entry => entry.game === game).length, 8, game);
 	assert.equal(checkedIn.length, index.files.length, 'documents on disk against index.json');
 	for (const entry of checkedIn) assert.ok(specFor(entry.game) !== undefined, 'no game registered for ' + entry.game);
 });

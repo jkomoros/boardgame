@@ -6,24 +6,60 @@
 // gofmt-ed source, and the commit at which this text was first written.
 // `bodies` resolves the definition's FnRefs (rules/data.ts, the body calling
 // convention).
-//
-// Refused, so not translated (the loader cannot build the game until each
-// has a body):
-//   checkers.(*gameDelegate).ConfigurePredicateConstructors
-//     predicate-constructor checkers.spaceIsBlack (main.go:146)
 
 import { componentAt, componentAtKey, containingStack, dynamic, dynamicOf, enumEquals, enumKey, first, gameStack, legalError, mayMoveToSlot, moveTo, moveToLastSlot, neighborsByKey, player, playerIndexes, playerStack, rangeToValue, rangeValue, setEnumKey, stackView, swapComponentsByKey, valueToRange, valuesAreNil, valuesOf } from '../../go/api.ts';
 import type { Comp, DynamicRef, GraphRef, StackRef } from '../../go/api.ts';
 import { imod } from '../../go/num.ts';
 import { nonNil } from '../../go/panic.ts';
 import { appendTo, at, lenOf } from '../../go/slice.ts';
+import { sprintf } from '../../go/str.ts';
+import { failT, passVerdict, unknownVerdict } from '../../legal/types.ts';
 import type { LegalVerdict } from '../../legal/types.ts';
 import type { RulesState } from '../../rules/state.ts';
-import type { MoveInstance } from '../../rules/types.ts';
+import type { GamePredicate, MoveInstance, PredicateContext, PredicateSpec } from '../../rules/types.ts';
 
 // @generated transpile@1 go:checkers.spaceIsBlack sha256:e17d97695845c0c6a8be211492704a48fbc24d49c58c88335ff08eb8136c79ae first:b824c114
 export function checkers_spaceIsBlack(state: RulesState, spaceIndex: number): boolean {
 	return imod(spaceIndex, 2) === 0;
+}
+
+// @generated agent:claude-opus-5-5 brief:4851f8bb94397a95b2ef034bcea1af8b8a5c780a0330dcc4267c20c11b8536fa go:checkers.(*gameDelegate).ConfigurePredicateConstructors sha256:399a2423a08a16b314ef1c3ad2b721c5cd52e11c690486d2d8620ff1e3239c4a first:f1c52576
+export function checkers_gameDelegate_ConfigurePredicateConstructors(spec: PredicateSpec): GamePredicate | string {
+	if (spec.args.length !== 1) {
+		return sprintf('checkers.spaceIsBlack: requires exactly 1 arg (the space-index field), got %d', spec.args.length);
+	}
+	const field: string = spec.args[0];
+
+	let template: string = spec.message;
+	if (template === '') {
+		template = 'checkers.black_spaces_only';
+	}
+
+	return {
+		name: 'checkers.spaceIsBlack',
+		args: spec.args,
+		reads: [{ path: field, facet: 'values' }],
+		cost: 0,
+		emittedTemplates: [template],
+		emittedBindings: { [template]: [] },
+		evaluate: (ctx: PredicateContext): LegalVerdict => {
+			const [val, propType, err] = ctx.resolvePath(field);
+			if (err !== null) {
+				return unknownVerdict(err);
+			}
+			if (propType !== 'TypeEnum') {
+				return unknownVerdict('checkers.spaceIsBlack: path ' + field + ' is not an enum property');
+			}
+			if (val === null || typeof val !== 'object' || typeof (val as { value?: unknown }).value !== 'number') {
+				return unknownVerdict('checkers.spaceIsBlack: path ' + field + ' resolved to a nil or non-enum value');
+			}
+			const key: number = (val as { value: number }).value;
+			if (checkers_spaceIsBlack(ctx.state, key)) {
+				return passVerdict();
+			}
+			return failT(template);
+		},
+	};
 }
 
 // @generated transpile@1 go:checkers.(*gameDelegate).DistributeComponentToStarterStack sha256:664281a72a0f7d1d634fe77c234558b522f1a3f8c322d7105ab3a4baefa06a71 first:b824c114
@@ -329,6 +365,8 @@ export function checkers_token_Legal(state: RulesState, t: DynamicRef, $legalTyp
 /** The resolver gameFromData calls for every FnRef the definition names. */
 export function bodies(ref: string): ((...args: never[]) => unknown) | undefined {
 	switch (ref) {
+		case 'checkers.(*gameDelegate).ConfigurePredicateConstructors':
+			return checkers_gameDelegate_ConfigurePredicateConstructors;
 		case 'checkers.(*gameDelegate).DistributeComponentToStarterStack':
 			return checkers_gameDelegate_DistributeComponentToStarterStack;
 		case 'checkers.(*gameDelegate).GameEndConditionMet':

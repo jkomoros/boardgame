@@ -35,6 +35,9 @@ var expectedNeverApplied = map[string]string{
 	"blackjack/Shuffle Discard Into Draw": "fires only once the 52-card draw stack is exhausted, which takes several full rounds (conformance/blackjack/scenario-reshuffle covers it)",
 	"blackjack/Force Finish Turn":         "legal only for the admin, and the driver never proposes as the admin",
 	"debuganimations/Seat Player":         "the corpus takes only unseated debuganimations seeds (seated, its players are never activated)",
+	"checkers/Move Token":                 "in Go no Move Token is legal from the starting position (spaceIsBlack marks columns; both players are stored as red), so every game stops after set-up",
+	"checkers/Crown Token":                "follows a Move Token, which is never legal",
+	"checkers/Finish Turn":                "follows a Move Token, which is never legal",
 }
 
 func assertCorpusCoverage(t *testing.T, index *Index) {

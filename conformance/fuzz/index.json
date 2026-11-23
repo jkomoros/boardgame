@@ -185,6 +185,76 @@
       "uncovered": []
     },
     {
+      "game": "checkers",
+      "seeds": 8,
+      "maxProposals": 40,
+      "maxVersions": 60,
+      "finished": 0,
+      "moves": [
+        {
+          "name": "Seat Player",
+          "isFixUp": true,
+          "applied": 8,
+          "proposedLegally": 0,
+          "refused": 0
+        },
+        {
+          "name": "Activate Inactive Player",
+          "isFixUp": true,
+          "applied": 8,
+          "proposedLegally": 0,
+          "refused": 0
+        },
+        {
+          "name": "Place Token",
+          "isFixUp": true,
+          "applied": 192,
+          "proposedLegally": 0,
+          "refused": 0
+        },
+        {
+          "name": "Start Phase Playing",
+          "isFixUp": true,
+          "applied": 8,
+          "proposedLegally": 0,
+          "refused": 0
+        },
+        {
+          "name": "Crown Token",
+          "isFixUp": true,
+          "applied": 0,
+          "proposedLegally": 0,
+          "refused": 0
+        },
+        {
+          "name": "Finish Turn",
+          "isFixUp": true,
+          "applied": 0,
+          "proposedLegally": 0,
+          "refused": 0
+        },
+        {
+          "name": "Move Token",
+          "isFixUp": false,
+          "applied": 0,
+          "proposedLegally": 0,
+          "refused": 1
+        }
+      ],
+      "rejectionsByKind": {
+        "propose": 1
+      },
+      "refusalsByReason": {
+        "illegal-input": 1
+      },
+      "neverApplied": [
+        "Crown Token",
+        "Finish Turn",
+        "Move Token"
+      ],
+      "uncovered": []
+    },
+    {
       "game": "debuganimations",
       "seeds": 8,
       "maxProposals": 30,
@@ -695,6 +765,118 @@
       "end": "max-versions",
       "proposals": 14,
       "rejections": 2
+    },
+    {
+      "file": "checkers/seed-0000.json.gz",
+      "game": "checkers",
+      "seed": 0,
+      "players": 2,
+      "variant": [],
+      "seated": false,
+      "versions": 26,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 0,
+      "rejections": 0
+    },
+    {
+      "file": "checkers/seed-0001.json.gz",
+      "game": "checkers",
+      "seed": 1,
+      "players": 2,
+      "variant": [],
+      "seated": true,
+      "versions": 30,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 2,
+      "rejections": 0
+    },
+    {
+      "file": "checkers/seed-0002.json.gz",
+      "game": "checkers",
+      "seed": 2,
+      "players": 2,
+      "variant": [],
+      "seated": true,
+      "versions": 30,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 2,
+      "rejections": 0
+    },
+    {
+      "file": "checkers/seed-0003.json.gz",
+      "game": "checkers",
+      "seed": 3,
+      "players": 2,
+      "variant": [],
+      "seated": false,
+      "versions": 26,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 0,
+      "rejections": 0
+    },
+    {
+      "file": "checkers/seed-0004.json.gz",
+      "game": "checkers",
+      "seed": 4,
+      "players": 2,
+      "variant": [],
+      "seated": false,
+      "versions": 26,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 0,
+      "rejections": 0
+    },
+    {
+      "file": "checkers/seed-0005.json.gz",
+      "game": "checkers",
+      "seed": 5,
+      "players": 2,
+      "variant": [],
+      "seated": true,
+      "versions": 30,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 2,
+      "rejections": 0
+    },
+    {
+      "file": "checkers/seed-0006.json.gz",
+      "game": "checkers",
+      "seed": 6,
+      "players": 2,
+      "variant": [],
+      "seated": false,
+      "versions": 26,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 1,
+      "rejections": 1
+    },
+    {
+      "file": "checkers/seed-0007.json.gz",
+      "game": "checkers",
+      "seed": 7,
+      "players": 2,
+      "variant": [],
+      "seated": true,
+      "versions": 30,
+      "viewers": 4,
+      "finished": false,
+      "end": "no-action",
+      "proposals": 2,
+      "rejections": 0
     },
     {
       "file": "debuganimations/seed-0000.json.gz",

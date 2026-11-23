@@ -166,7 +166,9 @@ func TestCheckMemory(t *testing.T) {
 
 // TestCheckCheckersPredicate: a translation of checkers' predicate
 // constructor written from its brief alone passes the static and type
-// steps, and the check stops, by name, at checkers having no recordings.
+// steps and, now that checkers has a checked-in fuzz corpus, the
+// differential step. (Before the corpus existed the check stopped, by
+// name, at checkers having no recordings.)
 func TestCheckCheckersPredicate(t *testing.T) {
 	node := testNode(t)
 	g := loadExample(t, "checkers")
@@ -177,7 +179,7 @@ func TestCheckCheckersPredicate(t *testing.T) {
 	if result.Node.Static == nil || !result.Node.Static.OK || result.Node.Types == nil || !result.Node.Types.OK {
 		t.Fatalf("static or types:\n%s", result.Text())
 	}
-	if result.Verdict != VerdictPrecondition || !strings.Contains(result.Text(), "has no recordings") {
-		t.Errorf("want the no-recordings precondition, got:\n%s", result.Text())
+	if result.Verdict == VerdictPrecondition || result.Verdict == VerdictFail || result.Node.Differential == nil || result.Node.Differential.First != nil {
+		t.Errorf("want the differential step to pass, got:\n%s", result.Text())
 	}
 }

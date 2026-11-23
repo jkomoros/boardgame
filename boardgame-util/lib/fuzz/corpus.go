@@ -45,9 +45,13 @@ type CorpusGame struct {
 	Seating string `json:"seating,omitempty"`
 }
 
-// CorpusGames are the six games with a TypeScript port, in order.
+// CorpusGames are the games with a TypeScript port, in order.
 var CorpusGames = []CorpusGame{
 	{Game: "blackjack", MaxProposals: 40, MaxVersions: 70},
+	// In Go no move is legal from checkers' starting position, so every run
+	// stops after set-up (about 26 versions) with only refusals after it.
+	// It has no hand port: the corpus is the generated game's oracle.
+	{Game: "checkers", MaxProposals: 40, MaxVersions: 60},
 	// Seated, debuganimations' players stay inactive forever (it configures
 	// Seat Player but no Activate Inactive Player), so nothing is legal.
 	{Game: "debuganimations", MaxProposals: 30, MaxVersions: 20, Seating: SeatingUnseated},
