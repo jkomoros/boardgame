@@ -114,3 +114,12 @@ func Int(i int) boardgame.LegalBindingValue {
 func Bool(b bool) boardgame.LegalBindingValue {
 	return boardgame.LegalBindingValue{B: &b}
 }
+
+// Evaluate runs p against ctx under the same contract a legality plan
+// enforces: the move is withheld unless p's Reads declare a move-dependent
+// path, ctx.ResolvePath only resolves declared Reads (any other path makes
+// the verdict Unknown), and a panic or zero-valued verdict fails closed. Use
+// it to unit-test a predicate; calling p.Evaluate directly skips enforcement.
+func Evaluate(p *Predicate, ctx Context) Verdict {
+	return boardgame.EvaluateLegalPredicate(p, ctx)
+}

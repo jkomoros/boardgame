@@ -491,7 +491,15 @@ func resolveLegalPlayerReader(path LegalPropPath, source legalPlayerIndexSource,
 // by package legal's catalog (or a game's own LegalPredicateConstructor),
 // should call c.ResolvePath rather than hand-rolling its own "kind.Property"
 // parsing.
+//
+// While the engine evaluates a predicate (evalLegalPredicate), ResolvePath
+// is scoped to that predicate's declared Reads: resolving any other path
+// returns an error and makes the predicate's verdict a fail-closed
+// LegalUnknown, whatever Evaluate returns afterwards (legal_reads.go).
 func (c LegalContext) ResolvePath(p LegalPropPath) (interface{}, PropertyType, error) {
+	if err := c.reads.check(p); err != nil {
+		return nil, TypeIllegal, err
+	}
 	return resolveLegalPathForProposer(p, c.State, c.Move, c.ProposerPlayerIndex)
 }
 

@@ -721,7 +721,11 @@ func TestConformanceCorpus(t *testing.T) {
 					}
 					fixture := buildLegalFixture(t, c.Fixture)
 					pred := resolvePredicateForTest(t, c.Spec)
-					verdict := pred.Evaluate(fixture.context(boardgame.PlayerIndex(c.Proposer)))
+					// legal.Evaluate, not pred.Evaluate: the corpus runs every
+					// catalog predicate under the engine's read enforcement,
+					// so a catalog predicate resolving a path outside its
+					// declared Reads (or reading a withheld move) fails here.
+					verdict := legal.Evaluate(pred, fixture.context(boardgame.PlayerIndex(c.Proposer)))
 					if got := outcomeString(verdict.Outcome); got != c.Expect {
 						t.Errorf("legal: %s case %d (%s, fixture %s): got %s, want %s (verdict: %+v)", path, i, c.Spec.Name, c.Fixture, got, c.Expect, verdict)
 					}

@@ -259,25 +259,40 @@ which is still a genuine relation over one path (a space index), so it
 becomes a small, named, serializable game-registered predicate rather than
 LegalCustom residue.
 
-Two hard requirements on a game-registered Evaluate, and the consequences of
-breaking them:
+Write the common case without declaring Reads at all: take the paths your
+predicate reads as Args, leave Reads unset, and resolve them with
+ctx.ResolvePath. The engine derives one FacetValues read per path-shaped arg
+(literals such as "3" or ">=" are skipped), so `move.*` and
+`players[move.*]` args make the predicate field-dependent automatically.
+checkers' spaceIsBlack is written exactly this way. Declare Reads explicitly
+only to read a path that is not an arg, or to claim a narrower facet.
 
-Declared Reads must cover every path Evaluate touches — over-approximate,
-never under-approximate. Reads is an honor system (a Go closure cannot be
-introspected), and the failure mode of UNDER-declaring a move.* (or
-players[move.*]) read is much worse than a client-side evaluability skew:
-plan assembly sorts a predicate with no declared move reads into the
-field-independent bucket, whose verdict is memoized keyed on (move type,
-state version, proposer) — WITHOUT the move's field values — so the SERVER
-ITSELF serves a stale verdict when only the move's fields change. The boot
-gauntlet smoke-probes the common shape of this bug: each field-independent
-game-registered predicate is evaluated once against the example state with a
-sentinel move whose property reader panics on any access, and touching the
-move's properties is a boot error naming the move and the predicate. Do not
-lean on the probe, though — it cannot see a move read that is conditional on
-state the example state doesn't exhibit, or one made through a concrete type
-assertion on ctx.Move rather than ctx.ResolvePath/ctx.Move.Reader(), so an
-honest Reads declaration remains YOUR responsibility.
+Declared or derived, Reads is ENFORCED, not trusted — the same rules apply to
+every catalog predicate:
+
+  - A predicate whose Reads include no move-dependent path (`move.X`,
+    `players[move.F].X`, or a `[move.F]` board selector) is evaluated with
+    ctx.Move == nil. Its verdict is memoized per (move type, state version,
+    proposer), and withholding the move makes that key cover every input the
+    predicate can see, so the memo cannot serve one move's verdict for
+    another. Reading a withheld move — unconditionally, behind a condition,
+    or through a type assertion on ctx.Move — yields a fail-closed Unknown
+    (or, for a comma-ok assertion, whatever your code does with a nil move),
+    identically in tests and in production.
+  - ctx.ResolvePath resolves only declared paths. Any other path returns an
+    error, and the predicate's verdict becomes Unknown with a Reason naming
+    the predicate and the path, even if Evaluate ignores the error.
+
+The boot gauntlet also evaluates every game-registered predicate once against
+the example state under these rules and reports an unconditional violation as
+a boot error naming the move, the predicate, and the path. That probe only
+diagnoses violations early; runtime enforcement is what keeps them safe, so a
+violation the example state never triggers still cannot produce a stale
+verdict. Use legal.Evaluate(pred, ctx) to unit-test a predicate under the
+same enforcement (calling pred.Evaluate directly skips it). Prefer
+ctx.ResolvePath over ctx.Move: it is the surface enforcement can scope.
+
+Evaluate must also be a pure function of its Context — see below.
 
 For every declared read whose evaluator expects a particular property shape,
 also declare RequiredReadTypes. NewGameManager then rejects a property that
@@ -401,6 +416,14 @@ respectively — and widened the composition seam. What's left, honestly:
     needs either a wider constructor signature (example state reachable at
     construction) or a dedicated boot-validation hook, neither of which
     exists yet.
+  - **Raw ctx.State reads are not scoped.** Enforcement covers the move
+    (withheld unless declared) and ctx.ResolvePath (declared paths only). A
+    predicate that reads ctx.State directly — as inPhase and the
+    AllActivePlayers quantifier do — can still under-declare a STATE read.
+    That cannot make a memoized verdict stale (the state version is in the
+    memo key), but it can make Reads under-report what a client would need.
+    Game-registered predicates are ClientEvaluable=false, so no client relies
+    on those reads today.
   - **Memoization does not reorder checks.** Field-independent verdicts are
     cached per predicate, but the evaluator and ledger always traverse the
     contributed/authored declaration order. A later state-only check can

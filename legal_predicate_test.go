@@ -428,7 +428,7 @@ func TestEvalLegalPredicatePanicRecovery(t *testing.T) {
 		}
 		v := evalLegalPredicate(p, LegalContext{Move: nil})
 		assert.For(t).ThatActual(v.Outcome).Equals(LegalUnknown)
-		assert.For(t).ThatActual(v.Reason).Equals("undeclared move read")
+		assert.For(t).ThatActual(strings.HasPrefix(v.Reason, "undeclared move read")).Equals(true)
 	})
 
 	t.Run("nil-Move panic WITH a declared move read is a generic panic, not the special guard", func(t *testing.T) {
@@ -442,7 +442,7 @@ func TestEvalLegalPredicatePanicRecovery(t *testing.T) {
 		}
 		v := evalLegalPredicate(p, LegalContext{Move: nil})
 		assert.For(t).ThatActual(v.Outcome).Equals(LegalUnknown)
-		if v.Reason == "undeclared move read" {
+		if strings.HasPrefix(v.Reason, "undeclared move read") {
 			t.Errorf("expected a generic panic Reason (predicate declared a move.* read), got the undeclared-move-read guard's Reason instead")
 		}
 		assert.For(t).ThatActual(strings.Contains(v.Reason, "declaresMoveButNilAnyway")).Equals(true)
