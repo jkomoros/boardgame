@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/legal"
 )
 
@@ -75,6 +76,60 @@ func TestComponentSelectorsRejectMalformedSpecs(t *testing.T) {
 	for _, spec := range bad {
 		if _, err := resolveSpecViaRegistry(spec, legal.DefaultConstructors(), nil); err == nil {
 			t.Errorf("malformed spec unexpectedly constructed: %+v", spec)
+		}
+	}
+}
+
+func TestComponentSelectorProp(t *testing.T) {
+	tests := []struct {
+		name     string
+		selector legal.ComponentSelector
+		want     string
+	}{
+		{"first", legal.FirstOccupied("game.Cards"), "game.Cards[first].Type"},
+		{"ordinal", legal.OccupiedOrdinal("game.Cards", 2), "game.Cards[occupied:2].Type"},
+		{"move index", legal.MoveIndex("players[move.TargetPlayerIndex].Species", "move.TargetSpecies"), "players[move.TargetPlayerIndex].Species[move.TargetSpecies].Type"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.selector.Prop("Type"); got != test.want {
+				t.Fatalf("Prop = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+// TestComponentPathMatchesComponentPropEquals pins that PropEquals over a
+// selector's component path is the same check as the older
+// ComponentPropEquals for a static enum field, on both the pass and the
+// fail branch.
+func TestComponentPathMatchesComponentPropEquals(t *testing.T) {
+	fixture := buildLegalFixture(t, "checkersDefault")
+	ctx := fixture.context(0)
+	selector := legal.FirstOccupied("game.Spaces")
+	path := selector.Prop("Color")
+
+	val, propType, err := ctx.ResolvePath(legal.PropPath(path))
+	if err != nil || propType != boardgame.TypeEnum {
+		t.Fatalf("resolving %q: %v (type %v)", path, err, propType)
+	}
+	actual := val.(enum.ImmutableVal)
+	other := ""
+	for _, key := range actual.Enum().Values() {
+		if key != actual.Value() {
+			other = actual.Enum().String(key)
+			break
+		}
+	}
+	if other == "" {
+		t.Fatal("color enum has only one value")
+	}
+
+	for _, want := range []string{actual.String(), other} {
+		viaPath := resolvePredicateForTest(t, legal.PropEquals(path, want)).Evaluate(ctx)
+		viaComponent := resolvePredicateForTest(t, legal.ComponentPropEquals(selector, "Color", want)).Evaluate(ctx)
+		if viaPath.Outcome == legal.Unknown || viaPath.Outcome != viaComponent.Outcome {
+			t.Fatalf("want %q: PropEquals outcome %v, ComponentPropEquals outcome %v", want, viaPath.Outcome, viaComponent.Outcome)
 		}
 	}
 }

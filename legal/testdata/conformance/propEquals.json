@@ -76,6 +76,56 @@
       "fixture": "memoryDefault",
       "proposer": 0,
       "expect": "unknown"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "false"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "true"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_equals"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "true"]},
+      "fixture": "checkersCrownedToken",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "true"]},
+      "fixture": "checkersEmptySpace",
+      "proposer": 0,
+      "expect": "unknown"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[move.TokenIndexToMove].Crowned", "true"]},
+      "fixture": "checkersNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[move.TokenIndexToMove].Color", "Red"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[move.TokenIndexToMove].Color", "Black"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_equals"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.Spaces[first].Color", "Red"]},
+      "fixture": "checkersNoMove",
+      "proposer": 0,
+      "expect": "pass"
     }
   ]
 }

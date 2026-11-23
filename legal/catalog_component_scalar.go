@@ -30,10 +30,41 @@ const (
 
 // ComponentSelector is a closed description of one component in a stack.
 // Its fields are private so callers can only construct supported selectors.
-// It serializes into LegalSpec.Args; it does not widen the legal path grammar.
+// It serializes into LegalSpec.Args for the ComponentProp* predicates, and
+// Prop turns it into a component path that every path-reading predicate
+// accepts.
 type ComponentSelector struct {
 	stackPath string
 	wire      string
+}
+
+// Prop returns the legal path naming property name of the selected
+// component: "Stack[move.Field].Name", "Stack[first].Name" or
+// "Stack[occupied:N].Name". name may be a static Values() field or a
+// DynamicComponentValues field; boot validation requires exactly one of the
+// two to define it on every component of the stack's deck. Pass the result
+// to any path-reading predicate:
+//
+//	species := legal.MoveIndex("players[move.TargetPlayerIndex].Species", "move.TargetSpecies")
+//	legal.PropCompare(species.Prop("Population"), legal.OpLessThan, 6)
+//	legal.ComponentPresentAt(species.Prop("Traits"), "move.TargetTraitCard")
+//
+// The selected slot must hold a component; an empty slot evaluates to
+// Unknown, so put a ComponentPresentAt or StackNotEmpty check first when the
+// move needs a specific message for it.
+func (s ComponentSelector) Prop(name string) string {
+	var bracket string
+	switch {
+	case s.wire == string(selectorFirstOccupied):
+		bracket = "first"
+	case strings.HasPrefix(s.wire, string(selectorOccupiedOrdinal)+":"):
+		bracket = "occupied:" + strings.TrimPrefix(s.wire, string(selectorOccupiedOrdinal)+":")
+	case strings.HasPrefix(s.wire, string(selectorMoveIndex)+":"):
+		bracket = strings.TrimPrefix(s.wire, string(selectorMoveIndex)+":")
+	default:
+		bracket = s.wire
+	}
+	return s.stackPath + "[" + bracket + "]." + name
 }
 
 // FirstOccupied selects the first non-empty slot in stackPath.

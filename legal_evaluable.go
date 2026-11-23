@@ -46,6 +46,10 @@ neither of which package server/api can reach.
 //     ledger's job here is to judge evaluability WITHOUT trusting the move
 //     to pick a favorable player, so it must be conservative over every
 //     player the field could name (same rationale as pathPlayersAll above).
+//   - Component paths ("game.Stack[selector].Prop") need the stack hop to
+//     be PolicyVisible for every owner the path can name, and, when Prop is
+//     a DynamicComponentValues property, read.Facet must also survive the
+//     deck's dynamic-value policy (legalComponentReadEvaluable).
 //
 // A malformed read.Path, a nil st, or an st whose concrete type isn't this
 // package's own (impossible in practice — ImmutableState has exactly one
@@ -77,6 +81,10 @@ func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) b
 	transformation, err := concrete.generateSanitizationTransformation(viewer)
 	if err != nil {
 		return false
+	}
+
+	if parsed.hasComponent() {
+		return legalComponentReadEvaluable(st, transformation, parsed, read)
 	}
 
 	switch parsed.kind {
