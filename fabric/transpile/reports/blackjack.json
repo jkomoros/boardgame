@@ -1,0 +1,601 @@
+{
+  "version": 1,
+  "game": "blackjack",
+  "package": "github.com/jkomoros/boardgame/examples/blackjack",
+  "definition": "current",
+  "movesData": 16,
+  "movesWithCode": 7,
+  "functions": {
+    "total": 23,
+    "data": {
+      "count": 13,
+      "functions": [
+        "blackjack.(*gameDelegate).ConfigureComputedProperties",
+        "blackjack.(*gameDelegate).ConfigureDecks",
+        "blackjack.(*gameDelegate).ConfigureLegalTemplates",
+        "blackjack.(*gameDelegate).ConfigureMoves",
+        "blackjack.(*gameDelegate).DefaultNumPlayers",
+        "blackjack.(*gameDelegate).Description",
+        "blackjack.(*gameDelegate).GameStateConstructor",
+        "blackjack.(*gameDelegate).MaxNumPlayers",
+        "blackjack.(*gameDelegate).MinNumPlayers",
+        "blackjack.(*gameDelegate).Name",
+        "blackjack.(*gameDelegate).PlayerStateConstructor",
+        "blackjack.(*gameDelegate).Variants",
+        "blackjack.NewDelegate"
+      ]
+    },
+    "mechanical": {
+      "count": 23,
+      "functions": [
+        "blackjack.(*gameDelegate).BeginSetUp",
+        "blackjack.(*gameDelegate).ConfigureComputedProperties.func1",
+        "blackjack.(*gameDelegate).DistributeComponentToStarterStack",
+        "blackjack.(*gameDelegate).FinishSetUp",
+        "blackjack.(*gameDelegate).GameEndConditionMet",
+        "blackjack.(*moveAccumulateScores).Apply",
+        "blackjack.(*moveAccumulateScores).Legal",
+        "blackjack.(*moveCollectCards).Apply",
+        "blackjack.(*moveCollectCards).Legal",
+        "blackjack.(*moveCurrentPlayerHit).Apply",
+        "blackjack.(*moveCurrentPlayerHit).LegalCustom",
+        "blackjack.(*moveCurrentPlayerStand).Apply",
+        "blackjack.(*moveIncrementRoundsCompleted).Apply",
+        "blackjack.(*moveIncrementRoundsCompleted).Legal",
+        "blackjack.(*moveResetPlayerForNewRound).Apply",
+        "blackjack.(*moveResetPlayerForNewRound).Legal",
+        "blackjack.(*moveRevealHiddenCard).Apply",
+        "blackjack.(*moveRevealHiddenCard).LegalCustom",
+        "blackjack.(*playerState).HandValue",
+        "blackjack.(*playerState).ResetForTurnEnd",
+        "blackjack.(*playerState).ResetForTurnStart",
+        "blackjack.(*playerState).TurnDone",
+        "blackjack.handValue"
+      ]
+    },
+    "agent": {
+      "count": 0,
+      "functions": []
+    },
+    "agentNowMechanical": {
+      "count": 0,
+      "functions": []
+    },
+    "engineGap": {
+      "count": 0,
+      "functions": []
+    },
+    "notPorted": {
+      "count": 1,
+      "functions": [
+        "blackjack.(*gameDelegate).Diagram"
+      ]
+    },
+    "translatable": 23,
+    "boundForAgent": {
+      "count": 0,
+      "functions": []
+    }
+  },
+  "headline": {
+    "units": 39,
+    "data": {
+      "count": 16,
+      "of": 39,
+      "percent": "41.0"
+    },
+    "mechanical": {
+      "count": 23,
+      "of": 39,
+      "percent": "59.0"
+    },
+    "agent": {
+      "count": 0,
+      "of": 39,
+      "percent": "0.0"
+    },
+    "engineGap": {
+      "count": 0,
+      "of": 39,
+      "percent": "0.0"
+    }
+  },
+  "coverage": {
+    "documents": 8,
+    "versions": 527,
+    "rejections": 9,
+    "moves": [
+      {
+        "name": "Shuffle Discard Into Draw",
+        "isFixUp": true,
+        "applied": 0,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Seat Player",
+        "isFixUp": true,
+        "applied": 11,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Activate Inactive Player - Gathering",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Wait For Enough Players - Gathering",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Inactivate Empty Seat - Gathering",
+        "isFixUp": true,
+        "applied": 3,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Begin Game",
+        "isFixUp": true,
+        "applied": 8,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Start Round Cleanup",
+        "isFixUp": true,
+        "applied": 19,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Current Player Hit",
+        "isFixUp": false,
+        "applied": 40,
+        "proposed": 40,
+        "refused": 3
+      },
+      {
+        "name": "Current Player Stand",
+        "isFixUp": false,
+        "applied": 37,
+        "proposed": 37,
+        "refused": 3
+      },
+      {
+        "name": "Reveal Hidden Card",
+        "isFixUp": true,
+        "applied": 60,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Finish Turn",
+        "isFixUp": true,
+        "applied": 35,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Force Finish Turn",
+        "isFixUp": false,
+        "applied": 0,
+        "proposed": 0,
+        "refused": 3
+      },
+      {
+        "name": "Activate Inactive Player",
+        "isFixUp": true,
+        "applied": 7,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Wait For Enough Players",
+        "isFixUp": true,
+        "applied": 25,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Inactivate Empty Seat",
+        "isFixUp": true,
+        "applied": 6,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Deal Initial Hidden Card",
+        "isFixUp": true,
+        "applied": 67,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Deal Initial Visible Card",
+        "isFixUp": true,
+        "applied": 67,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Start Phase Normal Play",
+        "isFixUp": true,
+        "applied": 25,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Accumulate Scores",
+        "isFixUp": true,
+        "applied": 19,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Collect Cards",
+        "isFixUp": true,
+        "applied": 19,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Reset Player For New Round",
+        "isFixUp": true,
+        "applied": 19,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Increment Rounds Completed",
+        "isFixUp": true,
+        "applied": 19,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Start Next Round",
+        "isFixUp": true,
+        "applied": 17,
+        "proposed": 0,
+        "refused": 0
+      }
+    ],
+    "predicates": [
+      {
+        "move": "Current Player Hit",
+        "index": 0,
+        "name": "inPhase",
+        "args": [
+          "2"
+        ],
+        "pass": 1072,
+        "fail": 1698,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Hit",
+        "index": 1,
+        "name": "proposerIsCurrentPlayer",
+        "pass": 1054,
+        "fail": 1716,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Hit",
+        "index": 2,
+        "name": "mayMoveFirstTo",
+        "args": [
+          "game.DrawStack",
+          "player.VisibleHand"
+        ],
+        "pass": 2770,
+        "fail": 0,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Hit",
+        "index": 3,
+        "name": "playerBool",
+        "args": [
+          "Eliminated",
+          "false"
+        ],
+        "pass": 2554,
+        "fail": 216,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Hit",
+        "index": 4,
+        "name": "stackNotEmpty",
+        "args": [
+          "game.DrawStack"
+        ],
+        "pass": 2770,
+        "fail": 0,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Hit",
+        "index": 5,
+        "name": "custom",
+        "pass": 2581,
+        "fail": 189,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Stand",
+        "index": 0,
+        "name": "inPhase",
+        "args": [
+          "2"
+        ],
+        "pass": 1072,
+        "fail": 1698,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Stand",
+        "index": 1,
+        "name": "proposerIsCurrentPlayer",
+        "pass": 1054,
+        "fail": 1716,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Stand",
+        "index": 2,
+        "name": "playerBool",
+        "args": [
+          "Eliminated",
+          "false"
+        ],
+        "pass": 2554,
+        "fail": 216,
+        "unknown": 0
+      },
+      {
+        "move": "Current Player Stand",
+        "index": 3,
+        "name": "playerBool",
+        "args": [
+          "Stood",
+          "false"
+        ],
+        "pass": 2423,
+        "fail": 347,
+        "unknown": 0
+      }
+    ],
+    "visibility": [
+      {
+        "property": "Game.DiscardStack",
+        "sanitizedNonZero": 1317,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,nonempty]"
+        ]
+      },
+      {
+        "property": "Game.DrawStack",
+        "sanitizedNonZero": 2243,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,nonempty]"
+        ]
+      },
+      {
+        "property": "Players.HiddenHand",
+        "sanitizedNonZero": 3011,
+        "revealedNonZero": 0,
+        "facets": [
+          "[count,nonempty]"
+        ]
+      }
+    ],
+    "blocks": {
+      "reached": 93,
+      "blocks": 106,
+      "functions": [
+        {
+          "func": "blackjack.(*gameDelegate).BeginSetUp",
+          "blocks": 3,
+          "reached": 2,
+          "unreached": [
+            "main.go:86.3-87.1"
+          ]
+        },
+        {
+          "func": "blackjack.(*gameDelegate).ConfigureComputedProperties.func1",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*gameDelegate).DistributeComponentToStarterStack",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "main.go:107.3-108.1"
+          ]
+        },
+        {
+          "func": "blackjack.(*gameDelegate).FinishSetUp",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*gameDelegate).GameEndConditionMet",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*moveAccumulateScores).Apply",
+          "blocks": 6,
+          "reached": 6,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*moveAccumulateScores).Legal",
+          "blocks": 8,
+          "reached": 6,
+          "unreached": [
+            "moves.go:103.2-103.60",
+            "moves.go:96.4-96.12"
+          ]
+        },
+        {
+          "func": "blackjack.(*moveCollectCards).Apply",
+          "blocks": 6,
+          "reached": 4,
+          "unreached": [
+            "moves.go:144.4-145.1",
+            "moves.go:147.4-148.1"
+          ]
+        },
+        {
+          "func": "blackjack.(*moveCollectCards).Legal",
+          "blocks": 6,
+          "reached": 5,
+          "unreached": [
+            "moves.go:137.2-137.53"
+          ]
+        },
+        {
+          "func": "blackjack.(*moveCurrentPlayerHit).Apply",
+          "blocks": 10,
+          "reached": 9,
+          "unreached": [
+            "moves.go:247.3-248.1"
+          ]
+        },
+        {
+          "func": "blackjack.(*moveCurrentPlayerHit).LegalCustom",
+          "blocks": 5,
+          "reached": 5,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*moveCurrentPlayerStand).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*moveIncrementRoundsCompleted).Apply",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*moveIncrementRoundsCompleted).Legal",
+          "blocks": 9,
+          "reached": 7,
+          "unreached": [
+            "moves.go:201.4-202.1",
+            "moves.go:207.3-208.1"
+          ]
+        },
+        {
+          "func": "blackjack.(*moveResetPlayerForNewRound).Apply",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*moveResetPlayerForNewRound).Legal",
+          "blocks": 8,
+          "reached": 6,
+          "unreached": [
+            "moves.go:166.4-166.12",
+            "moves.go:173.2-173.55"
+          ]
+        },
+        {
+          "func": "blackjack.(*moveRevealHiddenCard).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*moveRevealHiddenCard).LegalCustom",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "moves.go:327.3-328.1"
+          ]
+        },
+        {
+          "func": "blackjack.(*playerState).HandValue",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*playerState).ResetForTurnEnd",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*playerState).ResetForTurnStart",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.(*playerState).TurnDone",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "blackjack.handValue",
+          "blocks": 12,
+          "reached": 12,
+          "unreached": []
+        }
+      ]
+    },
+    "gaps": {
+      "neverApplied": [
+        "Shuffle Discard Into Draw",
+        "Force Finish Turn"
+      ],
+      "neverRefused": null,
+      "predicates": [
+        "Current Player Hit #0 inPhase(2): no unknown",
+        "Current Player Hit #1 proposerIsCurrentPlayer(): no unknown",
+        "Current Player Hit #2 mayMoveFirstTo(game.DrawStack, player.VisibleHand): no fail, unknown",
+        "Current Player Hit #3 playerBool(Eliminated, false): no unknown",
+        "Current Player Hit #4 stackNotEmpty(game.DrawStack): no fail, unknown",
+        "Current Player Hit #5 custom(): no unknown",
+        "Current Player Stand #0 inPhase(2): no unknown",
+        "Current Player Stand #1 proposerIsCurrentPlayer(): no unknown",
+        "Current Player Stand #2 playerBool(Eliminated, false): no unknown",
+        "Current Player Stand #3 playerBool(Stood, false): no unknown"
+      ],
+      "visibility": null
+    },
+    "mutants": null
+  },
+  "replay": {
+    "source": "checked-in",
+    "loaded": true,
+    "documents": 15,
+    "passed": 15
+  },
+  "stale": [],
+  "nulls": {
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)"
+  }
+}

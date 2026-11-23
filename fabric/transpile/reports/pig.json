@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "game": "pig",
+  "package": "github.com/jkomoros/boardgame/examples/pig",
+  "definition": "current",
+  "movesData": 3,
+  "movesWithCode": 3,
+  "functions": {
+    "total": 10,
+    "data": {
+      "count": 12,
+      "functions": [
+        "pig.(*gameDelegate).ConfigureDecks",
+        "pig.(*gameDelegate).ConfigureLegalTemplates",
+        "pig.(*gameDelegate).ConfigureMoves",
+        "pig.(*gameDelegate).DefaultNumPlayers",
+        "pig.(*gameDelegate).Description",
+        "pig.(*gameDelegate).DynamicComponentValuesConstructor",
+        "pig.(*gameDelegate).GameStateConstructor",
+        "pig.(*gameDelegate).MaxNumPlayers",
+        "pig.(*gameDelegate).MinNumPlayers",
+        "pig.(*gameDelegate).Name",
+        "pig.(*gameDelegate).PlayerStateConstructor",
+        "pig.NewDelegate"
+      ]
+    },
+    "mechanical": {
+      "count": 10,
+      "functions": [
+        "pig.(*gameDelegate).DistributeComponentToStarterStack",
+        "pig.(*gameDelegate).FinishSetUp",
+        "pig.(*gameDelegate).GameEndConditionMet",
+        "pig.(*moveCountDie).Apply",
+        "pig.(*moveDoneTurn).Apply",
+        "pig.(*moveRollDice).Apply",
+        "pig.(*playerState).ResetForTurn",
+        "pig.(*playerState).ResetForTurnEnd",
+        "pig.(*playerState).ResetForTurnStart",
+        "pig.(*playerState).TurnDone"
+      ]
+    },
+    "agent": {
+      "count": 0,
+      "functions": []
+    },
+    "agentNowMechanical": {
+      "count": 0,
+      "functions": []
+    },
+    "engineGap": {
+      "count": 0,
+      "functions": []
+    },
+    "notPorted": {
+      "count": 1,
+      "functions": [
+        "pig.(*gameDelegate).Diagram"
+      ]
+    },
+    "translatable": 10,
+    "boundForAgent": {
+      "count": 0,
+      "functions": []
+    }
+  },
+  "headline": {
+    "units": 13,
+    "data": {
+      "count": 3,
+      "of": 13,
+      "percent": "23.1"
+    },
+    "mechanical": {
+      "count": 10,
+      "of": 13,
+      "percent": "76.9"
+    },
+    "agent": {
+      "count": 0,
+      "of": 13,
+      "percent": "0.0"
+    },
+    "engineGap": {
+      "count": 0,
+      "of": 13,
+      "percent": "0.0"
+    }
+  },
+  "coverage": {
+    "documents": 8,
+    "versions": 413,
+    "rejections": 25,
+    "moves": [
+      {
+        "name": "Seat Player",
+        "isFixUp": true,
+        "applied": 14,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Activate Inactive Player",
+        "isFixUp": true,
+        "applied": 14,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Roll Dice",
+        "isFixUp": false,
+        "applied": 91,
+        "proposed": 91,
+        "refused": 10
+      },
+      {
+        "name": "Done Turn",
+        "isFixUp": false,
+        "applied": 83,
+        "proposed": 83,
+        "refused": 15
+      },
+      {
+        "name": "Count Die",
+        "isFixUp": true,
+        "applied": 99,
+        "proposed": 0,
+        "refused": 0
+      },
+      {
+        "name": "Finish Turn",
+        "isFixUp": true,
+        "applied": 104,
+        "proposed": 0,
+        "refused": 0
+      }
+    ],
+    "predicates": [
+      {
+        "move": "Roll Dice",
+        "index": 0,
+        "name": "proposerIsCurrentPlayer",
+        "pass": 826,
+        "fail": 2065,
+        "unknown": 0
+      },
+      {
+        "move": "Roll Dice",
+        "index": 1,
+        "name": "playerBool",
+        "args": [
+          "DieCounted"
+        ],
+        "pass": 2156,
+        "fail": 735,
+        "unknown": 0
+      },
+      {
+        "move": "Done Turn",
+        "index": 0,
+        "name": "proposerIsCurrentPlayer",
+        "pass": 826,
+        "fail": 2065,
+        "unknown": 0
+      },
+      {
+        "move": "Done Turn",
+        "index": 1,
+        "name": "playerBool",
+        "args": [
+          "DieCounted"
+        ],
+        "pass": 2156,
+        "fail": 735,
+        "unknown": 0
+      },
+      {
+        "move": "Done Turn",
+        "index": 2,
+        "name": "playerBool",
+        "args": [
+          "Done",
+          "false"
+        ],
+        "pass": 2309,
+        "fail": 582,
+        "unknown": 0
+      }
+    ],
+    "visibility": [],
+    "blocks": {
+      "reached": 36,
+      "blocks": 38,
+      "functions": [
+        {
+          "func": "pig.(*gameDelegate).DistributeComponentToStarterStack",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*gameDelegate).FinishSetUp",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*gameDelegate).GameEndConditionMet",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "main.go:83.4-84.1"
+          ]
+        },
+        {
+          "func": "pig.(*moveCountDie).Apply",
+          "blocks": 8,
+          "reached": 8,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*moveDoneTurn).Apply",
+          "blocks": 4,
+          "reached": 4,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*moveRollDice).Apply",
+          "blocks": 6,
+          "reached": 6,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*playerState).ResetForTurn",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*playerState).ResetForTurnEnd",
+          "blocks": 3,
+          "reached": 3,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*playerState).ResetForTurnStart",
+          "blocks": 1,
+          "reached": 1,
+          "unreached": []
+        },
+        {
+          "func": "pig.(*playerState).TurnDone",
+          "blocks": 5,
+          "reached": 4,
+          "unreached": [
+            "state.go:45.3-46.1"
+          ]
+        }
+      ]
+    },
+    "gaps": {
+      "neverApplied": null,
+      "neverRefused": null,
+      "predicates": [
+        "Roll Dice #0 proposerIsCurrentPlayer(): no unknown",
+        "Roll Dice #1 playerBool(DieCounted): no unknown",
+        "Done Turn #0 proposerIsCurrentPlayer(): no unknown",
+        "Done Turn #1 playerBool(DieCounted): no unknown",
+        "Done Turn #2 playerBool(Done, false): no unknown"
+      ],
+      "visibility": null
+    },
+    "mutants": null
+  },
+  "replay": {
+    "source": "checked-in",
+    "loaded": true,
+    "documents": 11,
+    "passed": 11
+  },
+  "stale": [],
+  "nulls": {
+    "coverage.mutants": "no body-mutant run is recorded for this game's checked-in bodies (port check runs the mutants of one function; a run over every function is not part of port)"
+  }
+}

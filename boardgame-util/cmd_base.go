@@ -35,6 +35,7 @@ type boardgameUtil struct {
 	Gamedef         gamedefCmd
 	Fuzz            fuzzCmd
 	Transpile       transpileCmd
+	Port            portCmd
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -125,6 +126,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Gamedef,
 		&b.Fuzz,
 		&b.Transpile,
+		&b.Port,
 	}
 }
 
