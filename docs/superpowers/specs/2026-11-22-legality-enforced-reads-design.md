@@ -31,6 +31,40 @@ through the move, but `legalReadsIncludeMovePath` only recognized `move.X` and
 board-selector path was misclassified as field-independent and memoized
 without the field.
 
+## History
+
+These are the GitHub issues on jkomoros/boardgame related to this change. The
+repo's only Discussion is the welcome post, so none apply.
+
+- **#761 "Allow declarative legal methods"** (closed, implemented). The
+  original design proposed "it should be possible to tell which preconditions
+  read fields in the move, and sort it so that ones that don't require reading
+  the move are run first", with an internal `readsMoveProperties()`. The
+  field-independent bucket and memo are that idea. This change makes the
+  "tell" sound: whether a predicate reads move fields is now enforced at
+  evaluation time instead of declared on trust. **Advances #761's design
+  intent; it has nothing left open to close.**
+- **#640 "Improve performance of moveProgressionChecks"** (open). The
+  per-version memo is part of the answer to legality cost. This change keeps
+  memoization for every honest field-independent predicate, including
+  game-registered ones, which are now safe to memoize. **Advances it without
+  closing it.** The progression-check cost itself is addressed by the tape memo
+  (`LegalTapeMemo`).
+- **#189 "Capture move Legal logic ... reject obviously illegal moves
+  immediately"** and **#213 "proposeMove client-side should bail early"**
+  (open). A client evaluator decides per-viewer evaluability from Reads, so
+  Reads must be honest for it to be correct. Scoping `ResolvePath` makes
+  declared reads honest on the sanctioned surface. Raw `ctx.State` reads are
+  the remaining gap (see Open questions). **Advances both; closes neither.**
+  The client evaluator doesn't exist yet.
+- **#736 "Create StackConstraint to check whether a move is legal"** (open).
+  This is board/space legality. The `[move.F]` board-selector paths it led to
+  were misclassified as field-independent. That's fixed here (see Problem).
+- **#65 "If a FixUp move is not legal, log it"** (open) and **#693 "Move
+  structs need to be able to be sanitized"** (closed). Not affected. Note
+  for #693: move fields are never hidden from the legality engine, so
+  withholding the move is about memo soundness, not visibility.
+
 ## Goal
 
 The safe thing should be the only easy thing. Ideally an author never writes
@@ -193,6 +227,42 @@ of them were already honest.
 6. **Stronger static probes (several example states, fuzzed proposers).**
    These only shrink the blind spots, at boot-time cost. Rejected in favor of
    making the blind spots harmless.
+
+## GAMES (jkomoros/games) migration
+
+GAMES has **no game-registered predicates**, so nothing there depended on the
+old honor system. Its 26 `LegalCustom` residues were audited for checks that
+this change makes safe to express as game predicates. The best candidate is a
+small branching rule over paths a predicate can name as args, where that rule
+reads the move. Before this change, that shape was exactly what made a game
+predicate risky.
+
+- **Migrated: valentine `MovePlayCard`'s Countess rule** became
+  `valentine.countessRule`. Its Args are
+  `players[move.TargetPlayerIndex].HiddenHand` and `move.CardIndex`. It has no
+  `Reads` (they're derived and enforced) and a `RequiredReadTypes` contract.
+  It was the move's entire residue, so `MovePlayCard` no longer implements
+  `LegalCustom`. New golden cases fence all six hand/slot combinations
+  against the legacy `Legal()` body, for every proposer; there was no
+  Countess golden coverage before. A mutation of the rule fails them.
+- **Left alone, for these reasons:**
+  - darwin (11 residues): owned by the concurrent proposer-paths bundle.
+  - Already catalog-expressible: secretgroups `moveGuessWord`'s slot checks
+    (`ComponentAbsentAt`/`ComponentPresentAt`), terrainweave
+    `moveDiscardTile`, and sequenceforge `MoveStartTurn` (`PropEquals`).
+    These are catalog migrations unrelated to enforced reads.
+  - Reading derived state through state methods that enforcement can't scope:
+    murdermrmonroe `CanBeSeen()`/`LuckPower()` and metaltrader
+    `concreteStates` cost checks. A game predicate would gain only
+    memoization, not safety.
+  - Dynamic or arithmetic logic (rule 3): terrainweave placement validation,
+    sequenceforge sequence values, and valentine `MoveSelectPlayer`'s
+    counting.
+
+Landing order: GAMES' valentine change needs this BOARDGAME change. Against
+the currently pinned BOARDGAME it fails at boot with a clear error (its type
+contract names a read the old engine didn't derive); it doesn't fail
+silently. Publish BOARDGAME first, then bump GAMES' pin.
 
 ## Compatibility
 
