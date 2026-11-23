@@ -247,12 +247,15 @@ consulted a concrete current player first, for every move. That left an
   current player.
 - **`moveDealCard`** keeps `players[move.TargetPlayerIndex]`: its target is a
   recipient, not an actor.
-- **`moveSubmitFoodCard`** (Select Food, `moves.AnyPlayer`) is now
-  *expressible* (`InPhase`, `StackEmpty("player.SubmittedFoodCard")`,
-  `ComponentPresentAt("player.Hand", "move.TargetCard")`), but it is
-  seam-blocked. `AnyPlayer` declares its own `Legal()` (with a target
-  auto-correct side effect) and is not on the composition seam. Widening the
-  seam is a separate limit, owned by the seam session.
+- **`moveSubmitFoodCard`** (Select Food, `moves.AnyPlayer`). The seam
+  session put `AnyPlayer` on the composition seam and migrated it with
+  `players[move.TargetPlayerIndex].X`. After rebasing onto that, it reads
+  `StackEmpty("player.SubmittedFoodCard")` and
+  `ComponentPresentAt("player.Hand", "move.TargetCard")`, fenced by
+  `darwin/legal_golden_submit_food_test.go`.
+- **The species component path** shared by the Play Cards moves
+  (`targetSpecies`, added by the dynamic-values session) is now
+  `legal.MoveIndex("player.Species", "move.TargetSpecies")`.
 - **Other games:** none have a wildcard phase; see the survey below.
 
 ## Related issue history (jkomoros/boardgame)
@@ -316,11 +319,13 @@ Every move the change makes expressible therefore falls into one of two
 groups:
 
 - **Migrated:** Darwin's six Play Cards moves.
-- **Expressible but seam-blocked on `moves.AnyPlayer`:** Darwin's
-  `moveSubmitFoodCard` and werewolf's `moveCastVote`. They are not migrated
-  here, because seam scope is a sibling limit. `AnyPlayer` already
-  implements `LegalOnBehalfOfer`, so when it joins the seam they need only
-  plain `player.X`.
+- **Simplified after the seam landed:** the seam session migrated Darwin's
+  `moveSubmitFoodCard` and werewolf's `moveCastVote` (both `moves.AnyPlayer`)
+  with `players[move.TargetPlayerIndex].X`. After rebasing, both read plain
+  `player.X` / `legal.Player()`. Their snapshot golden tests
+  (`darwin/legal_golden_submit_food_test.go`,
+  `examples/werewolf/legal_golden_test.go`) sweep every proposer, admin
+  included, and both fail if the admin on-behalf step is removed.
 
 ## Adversarial review (pre-landing)
 

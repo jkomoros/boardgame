@@ -311,13 +311,14 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	return nil
 }
 
-// NewDelegate is the primary entry point of the package.
 // castVotePreconditions is moveCastVote's declared legality, shared by the day
 // and night installations. It runs after the base's contributed checks and
-// before moveCastVote's LegalCustom.
+// before moveCastVote's LegalCustom. legal.Player() is the voter: the
+// moves.AnyPlayer move's own player (the proposer, or the TargetPlayerIndex an
+// admin votes for).
 func castVotePreconditions() []legal.Spec {
 	return []legal.Spec{
-		legal.PlayerBoolAt(legal.PlayerFromMove("TargetPlayerIndex"), "Eliminated", false).
+		legal.PlayerBoolAt(legal.Player(), "Eliminated", false).
 			WithMessage(templateEliminatedCannotVote),
 	}
 }
@@ -332,6 +333,7 @@ func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 	}
 }
 
+// NewDelegate is the primary entry point of the package.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

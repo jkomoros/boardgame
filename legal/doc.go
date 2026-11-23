@@ -431,10 +431,7 @@ respectively — and widened the composition seam. What's left, honestly:
     (AdminBypass). When `player.X` names the proposer rather than the current
     player (simultaneous play, AnyPlayer moves), client evaluability is
     conservative across every player, like `proposer.X`, because
-    evaluability receives a viewer, not a trusted proposer. Moves built on
-    moves.AnyPlayer (werewolf's vote, darwin's food submission) are
-    expressible with `player.X` but remain opaque until AnyPlayer joins the
-    composition seam.
+    evaluability receives a viewer, not a trusted proposer.
   - **AllActivePlayers' inner leaf only accepts int/bool-typed properties.**
     PlayerBool/PlayerBoolIs, player-path PropAtLeast/PropCompare, or an Any
     of those — never an enum- or PlayerIndex-typed property, even though
