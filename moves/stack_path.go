@@ -15,8 +15,15 @@ path grammar:
 
 	"DrawStack"                            gameState (the historical spelling)
 	"game.DrawStack"                       gameState
-	"player.Hand"                          the CURRENT player's state
+	"player.Hand"                          the move's player's state
 	"players[move.TargetPlayerIndex].Hand" the player named by a move field
+
+"player." means the same player as "player.X" in a legal precondition: the
+player the move is made for. For a moves.CurrentPlayer or moves.AnyPlayer move
+that is its TargetPlayerIndex, in every phase. For any other move (a fix-up, a
+plain moves.Default) it is the game's current player, so during simultaneous
+play such a move has no "player." to resolve; name the player with
+players[move.Field].
 
 An unqualified name still means gameState, so every configuration written before
 the grammar existed keeps its exact meaning.
@@ -38,7 +45,7 @@ type stackPathKind int
 const (
 	//stackPathGame is "game.X", or a bare "X".
 	stackPathGame stackPathKind = iota
-	//stackPathCurrentPlayer is "player.X".
+	//stackPathCurrentPlayer is "player.X": the move's player.
 	stackPathCurrentPlayer
 	//stackPathMoveField is "players[move.<Field>].X".
 	stackPathMoveField
@@ -173,9 +180,9 @@ func (p parsedStackPath) resolve(move boardgame.Move, state boardgame.State) (bo
 	case stackPathGame:
 		reader = state.GameState().ReadSetter()
 	case stackPathCurrentPlayer:
-		playerState := state.CurrentPlayer()
+		playerState := stackPathMovePlayerState(move, state)
 		if playerState == nil {
-			return nil, fmt.Errorf("stack property %q: the game has no valid current player", p.raw)
+			return nil, fmt.Errorf("stack property %q: the game has no valid current player, and the move names no player it is made for", p.raw)
 		}
 		reader = playerState.ReadSetter()
 	case stackPathMoveField:
@@ -208,6 +215,32 @@ func (p parsedStackPath) resolve(move boardgame.Move, state boardgame.State) (bo
 	}
 
 	return stack, nil
+}
+
+// stackPathMovePlayerState resolves "player." in a stack path to the move's
+// player, matching what "player.X" means in a legal precondition. A move
+// that names its own player (boardgame.LegalOnBehalfOfer: CurrentPlayer's
+// and AnyPlayer's TargetPlayerIndex) is that player's move in every phase.
+// Apply receives no proposer, but legality has already required that player
+// to match the proposer (AnyPlayer's Legal fills an unset target in from the
+// proposer). Any other move is the concrete current player's. When a move's
+// own player is not yet a concrete index (boot-time validation against an
+// example move, before AnyPlayer's Legal has filled it in), the concrete
+// current player stands in. It returns nil when no concrete player remains.
+func stackPathMovePlayerState(move boardgame.Move, state boardgame.State) boardgame.SubState {
+	players := state.PlayerStates()
+	concrete := func(index boardgame.PlayerIndex) boardgame.SubState {
+		if index < 0 || int(index) >= len(players) {
+			return nil
+		}
+		return players[index]
+	}
+	if onBehalf, ok := move.(boardgame.LegalOnBehalfOfer); ok {
+		if player := concrete(onBehalf.LegalOnBehalfOf()); player != nil {
+			return player
+		}
+	}
+	return concrete(state.CurrentPlayerIndex())
 }
 
 func (p parsedStackPath) resolveBoardSpace(move boardgame.Move, board boardgame.Board) (boardgame.Stack, error) {

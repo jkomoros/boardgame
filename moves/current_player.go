@@ -20,6 +20,12 @@ Equivalent() but does not grant omniscient access to hidden state, unlike
 boardgame.AdminPlayerIndex which should be reserved for engine-initiated
 actions like fix-up moves and timers).
 
+In declarative legality, "player.X" paths (legal.Player()) and moves stack
+paths spelled "player." name this move's player in both cases: the proposer,
+or TargetPlayerIndex when an admin proposes on its behalf. The turn check
+above already requires that player to be the current one in a turn-based
+phase.
+
 Typically you'd implement your own Legal method that calls
 CurrentPlayer.Legal() first, then do your own specific checking after that,
 too.
@@ -85,6 +91,15 @@ func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	return nil
 
+}
+
+// LegalOnBehalfOf returns TargetPlayerIndex: the player this move is made
+// for. It marks the move as made for its own player, so "player.X" paths
+// (legal.Player()) and "player." stack paths name the proposer, or this
+// player when an admin proposes on its behalf, rather than the game's current
+// player. Implements boardgame.LegalOnBehalfOfer.
+func (c *CurrentPlayer) LegalOnBehalfOf() boardgame.PlayerIndex {
+	return c.TargetPlayerIndex
 }
 
 // DefaultsForState will set the TargetPlayerIndex to be the CurrentPlayerIndex.

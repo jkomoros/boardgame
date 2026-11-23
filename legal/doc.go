@@ -417,16 +417,24 @@ StackEmpty/StackNotEmpty, PropEquals/PropNotEquals, the
 players[move.<Field>].<Prop> path kind, and PlayerBoolIs/ComponentAbsentAt,
 respectively — and widened the composition seam. What's left, honestly:
 
-  - **Current player and proposer are deliberately distinct.** `player.X`
-    resolves against CurrentPlayerIndex; `proposer.X` resolves against the
-    concrete proposing player and therefore works during simultaneous play.
-    Prefer CurrentPlayer(), Proposer(), or PlayerFromMove("Field") rather
-    than assembling behavior paths by hand. Proposer-read client
-    evaluability is conservative across every player because the public
-    evaluability API receives a viewer, not a trusted proposer. These helpers
-    return a typed PlayerSelector backed by one internal player-index-source
-    resolver. Semantic behavior conditions on Proposer carry explicit admin
-    bypass policy; Observer and Any are never valid actors.
+  - **`player.X` is the player the move is made for.** For a move built on
+    moves.CurrentPlayer or moves.AnyPlayer (boardgame.LegalOnBehalfOfer), it
+    is the proposer, or the TargetPlayerIndex an admin acts for, in every
+    phase; CurrentPlayer's contributed turn check still requires that player
+    to be the current one. For any other move it is the game's current
+    player, or the proposer while the current player is the AnyPlayerIndex
+    wildcard. Player() is the selector; CurrentPlayer() is its deprecated
+    alias. See design spec 2026-11-22-legality-actor-paths. What remains:
+    a plain moves.Default move made out of turn names its player with
+    PlayerFromMove("Field") plus ProposerIsPlayerFromMove. `proposer.X`
+    (Proposer()) has no on-behalf form, so its semantic helpers exempt admin
+    (AdminBypass). When `player.X` names the proposer rather than the current
+    player (simultaneous play, AnyPlayer moves), client evaluability is
+    conservative across every player, like `proposer.X`, because
+    evaluability receives a viewer, not a trusted proposer. Moves built on
+    moves.AnyPlayer (werewolf's vote, darwin's food submission) are
+    expressible with `player.X` but remain opaque until AnyPlayer joins the
+    composition seam.
   - **AllActivePlayers' inner leaf only accepts int/bool-typed properties.**
     PlayerBool/PlayerBoolIs, player-path PropAtLeast/PropCompare, or an Any
     of those — never an enum- or PlayerIndex-typed property, even though

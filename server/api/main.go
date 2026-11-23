@@ -2373,13 +2373,13 @@ func legalFormFromLedger(moveItem *moveForm, state boardgame.ImmutableState, mov
 // buildPreconditionEntry converts one boardgame.LegalVerdictEntry into its
 // wire shape for viewer (design spec §6): Verdict as a lowercase string,
 // Evaluable per the entry.Serializable ∧ every-Read-survives-sanitization
-// formula (boardgame.LegalReadsEvaluable), Provisional mirroring
+// formula (boardgame.LegalVerdictEntry.ReadsEvaluable), Provisional mirroring
 // entry.FieldDependent, and Message — present only for a non-Pass verdict —
 // with Bindings stripped whenever Evaluable is false (the #693 guard: a
 // verdict a viewer cannot independently confirm must not leak the state
 // values that produced it, only the template key naming WHY it failed).
 func buildPreconditionEntry(state boardgame.ImmutableState, viewer boardgame.PlayerIndex, entry boardgame.LegalVerdictEntry) preconditionEntry {
-	evaluable := entry.ClientEvaluable && entry.Serializable && boardgame.LegalReadsEvaluable(state, viewer, entry.Reads)
+	evaluable := entry.ClientEvaluable && entry.Serializable && entry.ReadsEvaluable(state, viewer)
 
 	out := preconditionEntry{
 		Name:        entry.Name,

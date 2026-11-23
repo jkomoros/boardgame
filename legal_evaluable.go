@@ -29,9 +29,15 @@ neither of which package server/api can reach.
 //   - AdminPlayerIndex is omniscient, mirroring state.SanitizedForPlayer's
 //     own AdminPlayerIndex bypass (see its doc comment): every Read is
 //     evaluable to an Admin viewer.
-//   - "player.X" reads resolve against st's actual current player — the
-//     same player resolveLegalPath itself reads against — so evaluability
-//     is judged against THAT player's sanitization policy for viewer.
+//   - "player.X" reads resolve against the move's player. This function
+//     sees only the read, not the move, so it judges the read against st's
+//     current player when that is concrete. That is right for moves without
+//     a player of their own, and for moves.CurrentPlayer moves, whose turn
+//     check ties their player to the current one. When the current player
+//     is a wildcard (AnyPlayerIndex during simultaneous play, or
+//     AdminPlayerIndex) the read is judged like "proposer.X" below. Ledger
+//     consumers should call LegalVerdictEntry.ReadsEvaluable instead, which
+//     also judges a moves.AnyPlayer-style move's reads like "proposer.X".
 //   - "proposer.X" reads conservatively require the facet to survive for
 //     every player. LegalReadEvaluable intentionally has no proposer argument;
 //     this avoids assuming that proposer and viewer are the same identity.
@@ -56,6 +62,25 @@ neither of which package server/api can reach.
 // implementation) all fail closed (false): this is the same "never leak
 // bindings we can't prove are safe" posture as the #693 guard itself.
 func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) bool {
+	return legalReadEvaluable(st, viewer, read, false)
+}
+
+// ReadsEvaluable reports whether every one of e's Reads is evaluable for
+// (st, viewer). It is LegalReadsEvaluable, except that when e's "player.X"
+// reads name the proposer rather than the current player
+// (e.MovePlayerIsProposer: a move made for its own player that nothing ties
+// to the current player, such as a moves.AnyPlayer move), those reads are
+// judged like "proposer.X": conservatively, across every player.
+func (e LegalVerdictEntry) ReadsEvaluable(st ImmutableState, viewer PlayerIndex) bool {
+	for _, read := range e.Reads {
+		if !legalReadEvaluable(st, viewer, read, e.MovePlayerIsProposer) {
+			return false
+		}
+	}
+	return true
+}
+
+func legalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead, movePlayerIsProposer bool) bool {
 	parsed, err := parseLegalPath(read.Path)
 	if err != nil {
 		return false
@@ -84,7 +109,7 @@ func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) b
 	}
 
 	if parsed.hasComponent() {
-		return legalComponentReadEvaluable(st, transformation, parsed, read)
+		return legalComponentReadEvaluable(st, transformation, parsed, read, movePlayerIsProposer)
 	}
 
 	switch parsed.kind {
@@ -92,20 +117,18 @@ func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) b
 		return facetSurvives(legalPolicyForProp(transformation.Game, parsed.prop), read.Facet)
 	case pathPlayer:
 		current := st.CurrentPlayerIndex()
+		if movePlayerIsProposer || legalPlayerIndexIsWildcard(current) {
+			// Simultaneous play: the move's player is the proposer (or whom
+			// an admin acts for), which this viewer-keyed API cannot trust.
+			// Judge it like proposer.X: conservatively, across every player.
+			return legalFacetSurvivesForEveryPlayer(transformation.Players, parsed.prop, read.Facet)
+		}
 		if current < 0 || int(current) >= len(transformation.Players) {
 			return false
 		}
 		return facetSurvives(legalPolicyForProp(transformation.Players[current], parsed.prop), read.Facet)
 	case pathProposer, pathPlayersAll, pathPlayersMoveField:
-		if len(transformation.Players) == 0 {
-			return false
-		}
-		for _, playerPolicies := range transformation.Players {
-			if !facetSurvives(legalPolicyForProp(playerPolicies, parsed.prop), read.Facet) {
-				return false
-			}
-		}
-		return true
+		return legalFacetSurvivesForEveryPlayer(transformation.Players, parsed.prop, read.Facet)
 	default:
 		// Every legalPathKind must be classified explicitly above. A new
 		// path kind added to legal_path.go without a corresponding case here
@@ -116,6 +139,21 @@ func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) b
 		// accept the false.
 		return false
 	}
+}
+
+// legalFacetSurvivesForEveryPlayer reports whether facet of prop survives
+// every player's sanitization policy for the viewer (and false when there
+// are no players at all).
+func legalFacetSurvivesForEveryPlayer(players []subStateSanitizationTransformation, prop string, facet LegalFacet) bool {
+	if len(players) == 0 {
+		return false
+	}
+	for _, playerPolicies := range players {
+		if !facetSurvives(legalPolicyForProp(playerPolicies, prop), facet) {
+			return false
+		}
+	}
+	return true
 }
 
 // LegalReadsEvaluable reports whether EVERY read in reads is

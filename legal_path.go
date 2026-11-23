@@ -13,10 +13,8 @@ type legalPathKind int
 const (
 	// pathGame denotes a "game.X" path, resolved against the game state.
 	pathGame legalPathKind = iota
-	// pathPlayer denotes a "player.X" path, resolved against the current
-	// player, i.e. the player state at state.CurrentPlayerIndex(). See
-	// resolveLegalPath for how an invalid/Observer/Admin/AnyPlayerIndex
-	// current player is handled.
+	// pathPlayer denotes a "player.X" path, resolved against the move's
+	// player: the player the move is made for. See legalMovePlayerIndex.
 	pathPlayer
 	// pathProposer denotes a "proposer.X" path, resolved against the concrete
 	// player proposing the move. Unlike pathPlayer it does not depend on the
@@ -149,7 +147,7 @@ func parseLegalPropertyExpression(path, expression string) (legalPropertyExpress
 }
 
 // legalPlayerIndexSource is the single internal algebra behind the public
-// legal.CurrentPlayer(), legal.Proposer(), and legal.PlayerFromMove helpers.
+// legal.Player(), legal.Proposer(), and legal.PlayerFromMove helpers.
 // The path grammar retains its stable wire spellings, but all three resolve
 // through resolveLegalPlayerReader below.
 type legalPlayerIndexSource int
@@ -161,7 +159,7 @@ const (
 )
 
 // parseLegalPath parses p according to the path grammar in spec §1 and §3:
-// "game.X", "player.X" (current player), "proposer.X", "players[*].X"
+// "game.X", "player.X" (the move's player), "proposer.X", "players[*].X"
 // (quantifier-only), "move.X", or "players[move.<Field>].<Prop>". The KIND segment is matched
 // literally and case-sensitively against exactly those spellings
 // ("players[0]" or any other concrete index is not valid grammar — only the
@@ -446,11 +444,9 @@ func validatePropOnReader(p LegalPropPath, propName string, reader PropertyReade
 // built on parseLegalPath, and a "kind.Property" spelling that boot
 // accepted can never surprise evaluation with a different parse.
 //
-// "player.X" paths resolve against state.ImmutableCurrentPlayer(), which
-// already guards CurrentPlayerIndex() against being out of bounds or one of
-// the special negative indices (ObserverPlayerIndex, AdminPlayerIndex,
-// AnyPlayerIndex): in every one of those cases it returns nil rather than
-// panicking, and this function turns that nil into an error. move may be
+// "player.X" paths resolve against the move's player (legalMovePlayerIndex):
+// the player the move is made for. An index that is not a concrete player
+// (ObserverPlayerIndex, out of bounds) is an error rather than a panic. move may be
 // nil for non-move paths; resolving a "move.X" path with a nil move is
 // itself an error. "players[*].X" paths are quantifier-only (spec §1) and
 // cannot be resolved to a single value here; resolving one is an error.
@@ -459,6 +455,18 @@ func resolveLegalPath(p LegalPropPath, state ImmutableState, move Move) (interfa
 }
 
 func resolveLegalPathForProposer(p LegalPropPath, state ImmutableState, move Move, proposer PlayerIndex) (interface{}, PropertyType, error) {
+	movePlayer := ObserverPlayerIndex
+	// Only "player.X" names the move's player; resolving it for any other
+	// path would call the delegate's CurrentPlayerIndex for nothing.
+	if parsed, err := parseLegalPath(p); err == nil && parsed.kind == pathPlayer && state != nil {
+		movePlayer, _ = legalMovePlayerIndex(state, move, proposer)
+	}
+	return resolveLegalPathForMovePlayer(p, state, move, proposer, movePlayer)
+}
+
+// resolveLegalPathForMovePlayer is resolveLegalPath with the move's player
+// (what "player.X" names) already resolved by the caller.
+func resolveLegalPathForMovePlayer(p LegalPropPath, state ImmutableState, move Move, proposer PlayerIndex, movePlayer PlayerIndex) (interface{}, PropertyType, error) {
 	parsed, err := parseLegalPath(p)
 	if err != nil {
 		return nil, TypeIllegal, err
@@ -472,7 +480,7 @@ func resolveLegalPathForProposer(p LegalPropPath, state ImmutableState, move Mov
 	case pathGame:
 		return resolveParsedLegalProp(p, parsed, state.ImmutableGameState().Reader(), move)
 	case pathPlayer:
-		reader, err := resolveLegalPlayerReader(p, legalPlayerFromCurrent, "", state, move, proposer)
+		reader, err := resolveLegalPlayerReader(p, legalPlayerFromCurrent, "", state, move, movePlayer)
 		if err != nil {
 			return nil, TypeIllegal, err
 		}
@@ -569,13 +577,73 @@ func resolveLegalBoardSpace(path LegalPropPath, parsed parsedLegalPath, reader P
 	return stack, nil
 }
 
-func resolveLegalPlayerReader(path LegalPropPath, source legalPlayerIndexSource, moveField string, state ImmutableState, move Move, proposer PlayerIndex) (PropertyReader, error) {
+// LegalOnBehalfOfer is implemented by framework move types that name the
+// player they are made for (moves.CurrentPlayer and moves.AnyPlayer, via
+// their TargetPlayerIndex) and whose contributed preconditions require that
+// player to match the proposer. Game authors do not implement it: embedding
+// one of those types is enough.
+//
+// For such a move, "player.X" names that player rather than the game's
+// current player: the proposer, or, when an admin proposes on the player's
+// behalf, LegalOnBehalfOf(). The returned index may be a non-concrete
+// sentinel; resolution then fails closed.
+type LegalOnBehalfOfer interface {
+	LegalOnBehalfOf() PlayerIndex
+}
+
+// legalPlayerIndexIsWildcard reports whether index is one of the
+// PlayerIndex sentinels PlayerIndex.Equivalent treats as matching every
+// concrete player.
+func legalPlayerIndexIsWildcard(index PlayerIndex) bool {
+	return index == AnyPlayerIndex || index == AdminPlayerIndex
+}
+
+// legalMovePlayerIndex resolves "the move's player": the player the move is
+// made for, which is what "player.X" paths and legal.Player() name.
+//
+//   - A move that names its own player (LegalOnBehalfOfer: moves.CurrentPlayer,
+//     moves.AnyPlayer) is that player's move in every phase: the proposer
+//     when it is a concrete player, and for an AdminPlayerIndex proposer the
+//     player the admin acts on behalf of. The current player is never
+//     consulted, so an AnyPlayer move made out of turn, or during an
+//     ObserverPlayerIndex gathering phase, still reads its own player. For a
+//     moves.CurrentPlayer move the contributed proposerIsCurrentPlayer check
+//     has already required that player to be the current player, so the
+//     answer is unchanged wherever that check passes.
+//   - Any other move (moves.Default, fix-ups) is the current player's: the
+//     game's current player when concrete, or, when the current player is a
+//     wildcard (AnyPlayerIndex during simultaneous play, or
+//     AdminPlayerIndex), the proposer.
+//
+// Whatever remains may be a non-concrete index (an Observer proposer, an
+// ObserverPlayerIndex current player for a move with no player of its own,
+// an admin with nobody to act for), which the caller turns into an error and
+// the predicate into a fail-closed Unknown. fromMove reports that the index
+// came from the move's on-behalf field, i.e. that the result depends on a
+// move field.
+func legalMovePlayerIndex(state ImmutableState, move Move, proposer PlayerIndex) (index PlayerIndex, fromMove bool) {
+	if onBehalf, ok := move.(LegalOnBehalfOfer); ok {
+		if proposer == AdminPlayerIndex {
+			return onBehalf.LegalOnBehalfOf(), true
+		}
+		return proposer, false
+	}
+	index = state.CurrentPlayerIndex()
+	if legalPlayerIndexIsWildcard(index) {
+		return proposer, false
+	}
+	return index, false
+}
+
+// resolveLegalPlayerReader returns the player state reader source names.
+// selected is the already-resolved index for the two non-field sources: the
+// move's player (legalMovePlayerIndex) for legalPlayerFromCurrent, and the
+// proposer for legalPlayerFromProposer.
+func resolveLegalPlayerReader(path LegalPropPath, source legalPlayerIndexSource, moveField string, state ImmutableState, move Move, selected PlayerIndex) (PropertyReader, error) {
 	var index PlayerIndex
 	switch source {
-	case legalPlayerFromCurrent:
-		index = state.CurrentPlayerIndex()
-	case legalPlayerFromProposer:
-		index = proposer
+	case legalPlayerFromCurrent, legalPlayerFromProposer:
+		index = selected
 	case legalPlayerFromMoveField:
 		if move == nil {
 			return nil, fmt.Errorf("boardgame: legal path %q: is a players[move.*] path but no move was provided to resolve against", path)
@@ -622,6 +690,9 @@ func resolveLegalPlayerReader(path LegalPropPath, source legalPlayerIndexSource,
 func (c LegalContext) ResolvePath(p LegalPropPath) (interface{}, PropertyType, error) {
 	if err := c.reads.check(p); err != nil {
 		return nil, TypeIllegal, err
+	}
+	if c.movePlayerResolved {
+		return resolveLegalPathForMovePlayer(p, c.State, c.Move, c.ProposerPlayerIndex, c.movePlayer)
 	}
 	return resolveLegalPathForProposer(p, c.State, c.Move, c.ProposerPlayerIndex)
 }

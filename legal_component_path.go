@@ -323,10 +323,17 @@ func resolveLegalComponentProp(path LegalPropPath, parsed parsedLegalPath, stack
 //     the deck's dynamic-value policy for this viewer.
 //
 // Anything that cannot be classified fails closed.
-func legalComponentReadEvaluable(st ImmutableState, transformation *sanitizationTransformation, parsed parsedLegalPath, read LegalRead) bool {
+func legalComponentReadEvaluable(st ImmutableState, transformation *sanitizationTransformation, parsed parsedLegalPath, read LegalRead, movePlayerIsProposer bool) bool {
 	var owners []subStateSanitizationTransformation
 	var readers []PropertyReader
-	switch parsed.kind {
+	kind := parsed.kind
+	if kind == pathPlayer && (movePlayerIsProposer || legalPlayerIndexIsWildcard(st.CurrentPlayerIndex())) {
+		// The move's player is the proposer here, which this viewer-keyed
+		// check cannot trust: judge it like proposer.X, across every player
+		// (see legalReadEvaluable's pathPlayer case).
+		kind = pathProposer
+	}
+	switch kind {
 	case pathGame:
 		owners = []subStateSanitizationTransformation{transformation.Game}
 		readers = []PropertyReader{st.ImmutableGameState().Reader()}

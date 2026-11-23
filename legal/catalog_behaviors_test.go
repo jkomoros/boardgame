@@ -12,7 +12,7 @@ func TestPlayerBoolAtSelectors(t *testing.T) {
 	if proposerSpec.Name != "playerBoolAt" || len(proposerSpec.Args) != 2 || proposerSpec.Args[0] != "proposer.SeatFilled" || proposerSpec.Args[1] != "true" {
 		t.Fatalf("proposer spec = %+v", proposerSpec)
 	}
-	currentSpec := legal.PlayerBoolAt(legal.CurrentPlayer(), "SeatFilled", false)
+	currentSpec := legal.PlayerBoolAt(legal.Player(), "SeatFilled", false)
 	if currentSpec.Args[0] != "player.SeatFilled" {
 		t.Fatalf("current-player path = %q", currentSpec.Args[0])
 	}
@@ -65,7 +65,7 @@ func TestBehaviorPredicateBuilders(t *testing.T) {
 		})
 	}
 
-	current := legal.PlayerIsActive(legal.CurrentPlayer())
+	current := legal.PlayerIsActive(legal.Player())
 	if current.AdminPolicy != boardgame.LegalAdminEvaluate {
 		t.Fatalf("current-player helper unexpectedly bypasses admin: %+v", current)
 	}

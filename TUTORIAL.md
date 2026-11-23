@@ -856,20 +856,27 @@ The most common catalog predicates (full list: `legal.DefaultConstructors()`; re
 
 `legal.ProposerIsCurrentPlayer()` exists too, but you'll rarely author it directly — `moves.CurrentPlayer` contributes it automatically, matching what `CurrentPlayer.Legal()` always checked. For a move that acts on behalf of a player named by one of its fields without requiring that player to be the current player, author `legal.ProposerIsPlayerFromMove("TargetPlayerIndex")`; admin engine moves bypass that actor check explicitly, while Observer and Any are rejected as actors.
 
-**Path grammar**, for any predicate above that takes a `path`/`stackPath`/`idxField` string argument: `"game.X"`, `"player.X"` (the current player), `"proposer.X"` (the concrete proposing player), `"move.X"` (a field on the move being evaluated), `"players[*].X"` (quantifier-only, inside `AllActivePlayers`), and `"players[move.<Field>].<Prop>"` — the player state of whichever player the move's own `<Field>` names. That field must be `boardgame.PlayerIndex`-typed; a plain int is a boot error because nothing marks it as a player index.
+**Path grammar**, for any predicate above that takes a `path`/`stackPath`/`idxField` string argument: `"game.X"`, `"player.X"` (the move's player — see below), `"proposer.X"` (the concrete proposing player, regardless of whose turn it is), `"move.X"` (a field on the move being evaluated), `"players[*].X"` (quantifier-only, inside `AllActivePlayers`), and `"players[move.<Field>].<Prop>"` — the player state of whichever player the move's own `<Field>` names. That field must be `boardgame.PlayerIndex`-typed; a plain int is a boot error because nothing marks it as a player index.
 
 For behavior-aware predicates, prefer typed selectors instead of writing those paths yourself:
 
 ```go
 moves.WithLegalPreconditions(
-    // Correct during simultaneous play, where CurrentPlayer may be AnyPlayerIndex.
-    legal.PlayerHasNotSubmitted(legal.Proposer()),
-    // Select a player through a PlayerIndex field on the move.
-    legal.PlayerSeatIsFilled(legal.PlayerFromMove("TargetPlayerIndex")),
+    // "You": the player this move is made for, in every phase.
+    legal.PlayerHasNotSubmitted(legal.Player()),
+    // A player the move targets, named by a PlayerIndex field on the move.
+    legal.PlayerSeatIsFilled(legal.PlayerFromMove("VoteTarget")),
 )
 ```
 
-`legal.CurrentPlayer()` selects `player.X`; `legal.Proposer()` selects `proposer.X`; and `legal.PlayerFromMove("Field")` selects `players[move.Field].X`. `PlayerSelector` is symbolic: all three variants share one player-index-source resolver and never manufacture a player for a sentinel. During simultaneous play `AnyPlayerIndex` is only the current-player wildcard; the proposer remains concrete. Observer and Any are invalid proposers. Semantic behavior helpers used with `Proposer()` explicitly bypass actor eligibility for `AdminPlayerIndex`; current-player and move-selected state requirements still run.
+`legal.Player()` selects `player.X`, **the player the move is made for**, which is the same player `"player.Hand"` means in `WithSourceProperty`/`WithDestinationProperty`:
+
+- For a move built on `moves.CurrentPlayer` or `moves.AnyPlayer`, it is the player the move names: the proposer, or, when an admin proposes on a player's behalf, that player (`TargetPlayerIndex`). This holds in every phase. `moves.CurrentPlayer`'s own turn check already requires that player to be the current one, and a `moves.AnyPlayer` move reads its own player even when it is made out of turn or while the current player is `ObserverPlayerIndex`.
+- For any other move (`moves.Default`, fix-ups), it is the game's current player. During simultaneous play, when your delegate's `CurrentPlayerIndex` returns the `AnyPlayerIndex` wildcard, it is the proposer instead. An `ObserverPlayerIndex` current player (nobody may move) fails closed.
+
+`legal.CurrentPlayer()` is the deprecated former name of `legal.Player()` and selects the same path.
+
+`legal.PlayerFromMove("Field")` selects `players[move.Field].X`: a player the move *names*, such as a vote or attack target or a card recipient. A plain `moves.Default` move made out of turn on a named player's behalf should pair it with `legal.ProposerIsPlayerFromMove("Field")`, as valentine does; an admin acting for that player is then checked as that player. `legal.Proposer()` selects `proposer.X`, the proposing player whatever the turn. It has no on-behalf form, so semantic behavior helpers used with `Proposer()` skip the check entirely for `AdminPlayerIndex`; use it only when admin should really be exempt. `PlayerSelector` is symbolic: none of the three manufactures a player for a sentinel, and Observer and Any are invalid proposers.
 
 Behavior helpers describe canonical persisted bool fields; they do not call arbitrary behavior methods or inject policy merely because state embeds a behavior. The move explicitly chooses the rule, player, and polarity.
 
@@ -969,7 +976,7 @@ Today the *server* is still the one evaluating every predicate (there is no Type
 
 The wire catalog is v4. It includes counts, typed equality, move-field-indexed player paths, explicit negation leaves, typed proposer selectors, explicit admin policy, and the stricter client-evaluability contract. Some honest boundaries remain:
 
-- **`player.X` still means current player, not proposer.** Use `legal.Proposer()` for a proposing player's persisted behavior state during simultaneous play, or `legal.PlayerFromMove("Field")` when the move explicitly names the relevant player. Proposer reads are conservatively marked client-evaluable only when every player's sanitization policy exposes that property; this avoids assuming the ledger viewer and proposer are always the same identity.
+- **`player.X` is sometimes evaluable only conservatively.** When it names the proposer rather than the current player (during simultaneous play, or for a `moves.AnyPlayer` move), the client-evaluability check, which receives a viewer rather than a trusted proposer, marks the read client-evaluable only when every player's sanitization policy exposes that property, as it does for any `proposer.X` read. Simultaneous moves built on `moves.AnyPlayer` can be written with `player.X` but stay opaque until `AnyPlayer` supports declarative legality.
 - **Stack-count/emptiness now has catalog primitives** (`StackCount`/`StackEmpty`/`StackNotEmpty`, above) — the v1 gap that blocked the most real migrations (debuganimations, pass, darwin, valentine all hit it) is closed.
 - **Typed equality now has a catalog primitive** (`PropEquals`/`PropNotEquals`, above) — int/bool/enum/`PlayerIndex` compares, including the `"observer"`/`"admin"` specials, no longer force a fallback to `LegalCustom`. One honest wrinkle: an unknown enum value NAME or a mismatched-type value is a `LegalUnknown` at *evaluate* time, not a boot-time construction error (a constructor-time typo guard catches most cases when a chest is available, but the "unknown enum name = boot error" design-doc aspiration isn't fully delivered — see the completeness-round spec's implementation notes).
 - **Negation is explicit-leaf-only, not general.** `PlayerBoolIs(prop, false)`, `PropNotEquals`, and `ComponentAbsentAt` cover common single-property negations; `any` remains the only compositor, so `(A∧B)∨(C∧D)` stays `LegalCustom`.

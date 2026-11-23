@@ -104,6 +104,19 @@ type legalPlan struct {
 	// allReads is the de-duplicated union of every constituent predicate's
 	// Reads, for client-evaluability/dirty-tracking consumers.
 	allReads []LegalRead
+	// readsMovePlayer reports that some step (at any depth, via the
+	// unioned Reads) reads a "player.X" path, so evaluation pins the move's
+	// player before running predicates. Plans without one never call the
+	// delegate's CurrentPlayerIndex on their own.
+	readsMovePlayer bool
+	// movePlayerIsProposer reports that "player.X" in this plan names the
+	// proposer rather than the current player (see
+	// LegalVerdictEntry.MovePlayerIsProposer).
+	movePlayerIsProposer bool
+	// independentReadsMovePlayer reports that some field-independent step
+	// reads a "player.X" path, so the memo key must carry the resolved
+	// move player.
+	independentReadsMovePlayer bool
 	// specs is the serializable subset of the plan (every non-opaque
 	// predicate's originating spec shape), preserved for the ledger and
 	// wire format.
@@ -114,6 +127,11 @@ type legalPlanStep struct {
 	predicate      *LegalPredicate
 	fieldDependent bool
 	memoIndex      int
+	// readsMovePlayer reports that the predicate reads a "player.X" path,
+	// whose resolution may come from the move's on-behalf-of player (see
+	// legalMovePlayerIndex). Such a step is reported as field-dependent in
+	// the ledger exactly when that happened for this evaluation.
+	readsMovePlayer bool
 }
 
 // LegalVerdictEntry is one predicate's line in a full-ledger evaluation
@@ -142,6 +160,13 @@ type LegalVerdictEntry struct {
 	// Reads is this predicate's declared read-set (nil for the opaque
 	// custom wrapper).
 	Reads []LegalRead
+	// MovePlayerIsProposer reports that this entry's "player.X" reads name
+	// the proposer rather than the game's current player: the move is made
+	// for its own player (LegalOnBehalfOfer) and its plan has no
+	// proposerIsCurrentPlayer check tying that player to the current one
+	// (a moves.AnyPlayer move). ReadsEvaluable uses it to judge those reads
+	// conservatively.
+	MovePlayerIsProposer bool
 }
 
 // evaluate runs the plan against ctx in contributed/authored declaration
@@ -177,6 +202,23 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 
 	var entries []LegalVerdictEntry
 
+	// Resolve the move's player once, while the whole move is in hand:
+	// predicates reading "player.X" use it through ctx, the memo keys on it,
+	// and the ledger reports when it came from a move field.
+	// Plans with no memoized player.* step keep the historical memo key.
+	movePlayer := ObserverPlayerIndex
+	movePlayerFromMove := false
+	if p.readsMovePlayer {
+		ctx, movePlayerFromMove = ctx.withMovePlayer()
+		if p.independentReadsMovePlayer {
+			// An unresolved player never shares a memo entry with a resolved one.
+			movePlayer = AnyPlayerIndex
+			if ctx.movePlayerResolved {
+				movePlayer = ctx.movePlayer
+			}
+		}
+	}
+
 	consider := func(step legalPlanStep) bool {
 		pred := step.predicate
 		var v LegalVerdict
@@ -185,17 +227,18 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 			// path would never have run it (legal_residue.go).
 			v = legalNotEvaluatedVerdict()
 		} else {
-			v = p.evaluateStep(ctx, step, fullLedger)
+			v = p.evaluateStep(ctx, step, fullLedger, movePlayer)
 		}
 		if fullLedger {
 			entries = append(entries, LegalVerdictEntry{
-				Name:            pred.Name,
-				Args:            pred.Args,
-				Verdict:         v,
-				Serializable:    pred.Serializable(),
-				ClientEvaluable: pred.ClientEvaluable,
-				FieldDependent:  step.fieldDependent,
-				Reads:           pred.Reads,
+				Name:                 pred.Name,
+				Args:                 pred.Args,
+				Verdict:              v,
+				Serializable:         pred.Serializable(),
+				ClientEvaluable:      pred.ClientEvaluable,
+				FieldDependent:       step.fieldDependent || (step.readsMovePlayer && movePlayerFromMove),
+				Reads:                pred.Reads,
+				MovePlayerIsProposer: p.movePlayerIsProposer,
 			})
 		}
 		if v.Outcome != LegalPass && !haveOverall {
@@ -232,7 +275,7 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 	return overall, entries
 }
 
-func (p *legalPlan) evaluateStep(ctx LegalContext, step legalPlanStep, fullLedger bool) LegalVerdict {
+func (p *legalPlan) evaluateStep(ctx LegalContext, step legalPlanStep, fullLedger bool, movePlayer PlayerIndex) LegalVerdict {
 	if fullLedger || step.fieldDependent {
 		return evalLegalPredicate(step.predicate, ctx)
 	}
@@ -241,10 +284,11 @@ func (p *legalPlan) evaluateStep(ctx LegalContext, step legalPlanStep, fullLedge
 		return evalLegalPredicate(step.predicate, ctx)
 	}
 	key := legalFieldIndepMemoKey{
-		moveName:  p.moveName,
-		version:   ctx.State.Version(),
-		proposer:  ctx.ProposerPlayerIndex,
-		predicate: step.memoIndex,
+		moveName:   p.moveName,
+		version:    ctx.State.Version(),
+		proposer:   ctx.ProposerPlayerIndex,
+		movePlayer: movePlayer,
+		predicate:  step.memoIndex,
 	}
 	if verdict, ok := game.legalFieldIndepMemoGet(key); ok {
 		return verdict
@@ -615,19 +659,32 @@ func buildLegalPlanFromPredicates(moveName string, predicates []*LegalPredicate,
 	plan := &legalPlan{specs: specs, moveName: moveName}
 	for _, pred := range predicates {
 		sealLegalPredicate(pred, pred.Args)
+		readsMovePlayer := legalReadsIncludeMovePlayerPath(pred.Reads)
 		if legalPredicateOpaque(pred) || legalReadsIncludeMovePath(pred.Reads) {
 			plan.fieldDependent = append(plan.fieldDependent, pred)
-			plan.ordered = append(plan.ordered, legalPlanStep{predicate: pred, fieldDependent: true, memoIndex: -1})
+			plan.ordered = append(plan.ordered, legalPlanStep{predicate: pred, fieldDependent: true, memoIndex: -1, readsMovePlayer: readsMovePlayer})
 		} else {
 			memoIndex := len(plan.fieldIndependent)
 			plan.fieldIndependent = append(plan.fieldIndependent, pred)
-			plan.ordered = append(plan.ordered, legalPlanStep{predicate: pred, memoIndex: memoIndex})
+			plan.ordered = append(plan.ordered, legalPlanStep{predicate: pred, memoIndex: memoIndex, readsMovePlayer: readsMovePlayer})
+			if readsMovePlayer {
+				plan.independentReadsMovePlayer = true
+			}
 		}
 	}
 	if _, ok := move.(CustomLegaler); ok {
 		plan.custom = newLegalCustomWrapper()
 	}
 	plan.allReads = legalPlanAllReads(plan)
+	plan.readsMovePlayer = legalReadsIncludeMovePlayerPath(plan.allReads)
+	if _, ok := move.(LegalOnBehalfOfer); ok {
+		plan.movePlayerIsProposer = true
+		for _, pred := range predicates {
+			if pred.Name == "proposerIsCurrentPlayer" {
+				plan.movePlayerIsProposer = false
+			}
+		}
+	}
 	return plan
 }
 

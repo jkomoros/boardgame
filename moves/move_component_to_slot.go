@@ -41,8 +41,9 @@ seven example games hand-rolled it.
 
 Configure the two stacks with [WithSourceProperty] and
 [WithDestinationProperty], which accept the full stack path grammar -- so
-either end may live on gameState, on the current player, or on the player one
-of the move's own fields names:
+either end may live on gameState, on the move's player ("player.": the
+current player, or during simultaneous play the move's TargetPlayerIndex), or
+on the player one of the move's own fields names:
 
 	auto.MustConfig(
 	    new(movePlaceToken),

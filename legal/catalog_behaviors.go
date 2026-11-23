@@ -26,13 +26,35 @@ const (
 	playerSelectorMoveField
 )
 
-// CurrentPlayer selects state.CurrentPlayerIndex().
-func CurrentPlayer() PlayerSelector {
+// Player selects the move's player: the player the move is made for. For a
+// moves.CurrentPlayer or moves.AnyPlayer move that is the player it names
+// (its TargetPlayerIndex, which the move's own checks tie to the proposer),
+// in every phase: turn-based, simultaneous, or gathering. For any other move
+// it is the game's current player, or the proposer while the current player
+// is the AnyPlayerIndex wildcard of a simultaneous phase. An admin proposing
+// on a player's behalf is checked as that player. It spells the "player.X"
+// path, the same "player." a moves stack path uses.
+func Player() PlayerSelector {
 	return PlayerSelector{source: playerSelectorCurrent}
 }
 
-// Proposer selects the concrete player proposing the move. It remains distinct
-// from CurrentPlayer during simultaneous-play phases.
+// CurrentPlayer is the former name of Player.
+//
+// Deprecated: use Player. The selector names the player the move is made
+// for, which is not always the game's current player (an AnyPlayer move made
+// out of turn, or any move during simultaneous play).
+func CurrentPlayer() PlayerSelector {
+	return Player()
+}
+
+// Proposer selects the concrete player proposing the move, regardless of
+// whose turn it is. An AdminPlayerIndex proposer has no proposer.X to read,
+// so semantic behavior helpers on Proposer skip the check for admin entirely
+// (AdminBypass). That makes Proposer right only when admin really should be
+// exempt. For a move made out of turn on a named player's behalf, prefer
+// PlayerFromMove("TargetPlayerIndex") with ProposerIsPlayerFromMove, which
+// checks an admin's on-behalf player instead; for moves.CurrentPlayer and
+// moves.AnyPlayer moves, Player already names the proposer.
 func Proposer() PlayerSelector {
 	return PlayerSelector{source: playerSelectorProposer}
 }
@@ -125,7 +147,7 @@ func playerBoolAtConstructor() *PredicateConstructor {
 			}
 			path := spec.Args[0]
 			if !strings.HasPrefix(path, "player.") && !strings.HasPrefix(path, "proposer.") && !strings.HasPrefix(path, "players[move.") {
-				return nil, fmt.Errorf("legal: playerBoolAt path %q must select a player via CurrentPlayer, Proposer, or PlayerFromMove", path)
+				return nil, fmt.Errorf("legal: playerBoolAt path %q must select a player via Player, Proposer, or PlayerFromMove", path)
 			}
 			want, err := playerBoolWant(spec.Args[1])
 			if err != nil {

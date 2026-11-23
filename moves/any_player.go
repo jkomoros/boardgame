@@ -96,6 +96,15 @@ func (a *AnyPlayer) ContributedPreconditions() []legal.Spec {
 	return append(a.Default.ContributedPreconditions(), FrameworkPrecondition(PreconditionAnyPlayer))
 }
 
+// LegalOnBehalfOf returns TargetPlayerIndex: the player this move is made
+// for. It marks the move as made for its own player, so "player.X" paths
+// (legal.Player()) and "player." stack paths name the proposer, or this
+// player when an admin proposes on its behalf, rather than the game's current
+// player. Implements boardgame.LegalOnBehalfOfer.
+func (a *AnyPlayer) LegalOnBehalfOf() boardgame.PlayerIndex {
+	return a.TargetPlayerIndex
+}
+
 // DefaultsForState sets TargetPlayerIndex to ObserverPlayerIndex as a sentinel.
 // If the caller forgets to set it and the proposer is a concrete player, Legal
 // auto-corrects the target to the proposer (making agents work without manual

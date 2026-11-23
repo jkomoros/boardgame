@@ -237,8 +237,9 @@ func (d *DrawToPlayer) LegalPlanOnly() bool {
 	return true
 }
 
-// Apply moves the first component of the draw stack to the current player's
-// stack. An embedding move with bookkeeping of its own should override Apply
+// Apply moves the first component of the draw stack to the move's player's
+// stack (TargetPlayerIndex, which the turn check ties to the current player).
+// An embedding move with bookkeeping of its own should override Apply
 // and super-call this first.
 func (d *DrawToPlayer) Apply(state boardgame.State) error {
 
@@ -262,13 +263,16 @@ func (d *DrawToPlayer) Apply(state boardgame.State) error {
 		return errors.New("the draw stack was nil")
 	}
 
-	currentPlayer := state.CurrentPlayer()
+	//The move's player, resolved exactly as the contributed "player."
+	//precondition resolved it: the current player, or during simultaneous
+	//play the TargetPlayerIndex this move is made for.
+	player := stackPathMovePlayerState(concrete, state)
 
-	if currentPlayer == nil {
+	if player == nil {
 		return errors.New("the game has no valid current player")
 	}
 
-	destination := playerStacker.PlayerStack(currentPlayer)
+	destination := playerStacker.PlayerStack(player)
 
 	if destination == nil {
 		return errors.New("the player's stack was nil")

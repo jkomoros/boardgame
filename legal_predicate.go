@@ -30,6 +30,34 @@ type LegalContext struct {
 	// reads is set by evalLegalPredicate while one predicate evaluates; it
 	// scopes ResolvePath to that predicate's declared Reads (legal_reads.go).
 	reads *legalReadEnforcement
+
+	// movePlayer is "the move's player" (legalMovePlayerIndex), resolved
+	// once by the plan before any predicate runs, while the full move is
+	// still in hand. "player.X" paths read it instead of re-deriving it, so
+	// they never need ctx.Move themselves. Unset (movePlayerResolved false)
+	// for a hand-built context, which resolves on demand.
+	movePlayer         PlayerIndex
+	movePlayerResolved bool
+}
+
+// withMovePlayer returns c with the move's player resolved and pinned. If
+// resolution panics (a delegate's CurrentPlayerIndex misbehaving), c is
+// returned unresolved: the predicates that read "player.X" then resolve on
+// demand inside evalLegalPredicate's recover and fail closed, exactly as
+// before the move's player was pinned.
+func (c LegalContext) withMovePlayer() (resolved LegalContext, fromMove bool) {
+	if c.movePlayerResolved || c.State == nil {
+		return c, false
+	}
+	defer func() {
+		if recover() != nil {
+			resolved, fromMove = c, false
+		}
+	}()
+	resolved = c
+	resolved.movePlayer, fromMove = legalMovePlayerIndex(c.State, c.Move, c.ProposerPlayerIndex)
+	resolved.movePlayerResolved = true
+	return resolved, fromMove
 }
 
 // LegalPredicate is one resolved legality question: either a leaf, built by
@@ -887,6 +915,22 @@ func evalLegalPredicate(p *LegalPredicate, ctx LegalContext) (verdict LegalVerdi
 func legalReadsIncludeMovePath(reads []LegalRead) bool {
 	for _, r := range reads {
 		if legalPathReadsMove(r.Path) {
+			return true
+		}
+	}
+	return false
+}
+
+// legalReadsIncludeMovePlayerPath reports whether reads contains a
+// "player.X" path. Such a read resolves against the move's player
+// (legalMovePlayerIndex), which is state-derived in every turn-based phase
+// but comes from the move's on-behalf-of player when an admin proposes
+// during a wildcard current-player phase. The plan therefore keys its
+// field-independent memo on that resolved player and marks the ledger entry
+// field-dependent in exactly that case.
+func legalReadsIncludeMovePlayerPath(reads []LegalRead) bool {
+	for _, r := range reads {
+		if parsed, err := parseLegalPath(r.Path); err == nil && parsed.kind == pathPlayer {
 			return true
 		}
 	}

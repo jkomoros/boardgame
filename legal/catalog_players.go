@@ -313,8 +313,8 @@ const legalAnyName = "any"
 //
 // Per-player resolution mechanics (why this constructor never calls the
 // resolve callback it's handed): ctx.ResolvePath's "player.X" grammar
-// always resolves against state.ImmutableCurrentPlayer() (see
-// legal_path.go's pathPlayer case) — there is no way to ask it to resolve
+// always resolves against the move's player (see legal_path.go's
+// legalMovePlayerIndex) — the public API has no way to ask it to resolve
 // "player.X" against a DIFFERENT, explicitly-named player. The design
 // brief's own considered alternative (a playerOverride field on
 // LegalContext) was rejected as a new core field mid-plan. So instead of

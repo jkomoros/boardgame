@@ -48,11 +48,18 @@ observed in a torn state.
 
 // legalFieldIndepMemoKey is the field-independent legality memo's key
 // (design spec §5's honest table): one entry per (move type, state version,
-// proposer, predicate ordinal).
+// proposer, move player, predicate ordinal).
 type legalFieldIndepMemoKey struct {
 	moveName string
 	version  int
 	proposer PlayerIndex
+	// movePlayer is the resolved "player.X" index (legalMovePlayerIndex)
+	// for plans whose field-independent predicates read a player.* path,
+	// and ObserverPlayerIndex otherwise. When the current player is a
+	// wildcard and an admin proposes, that index comes from the move's
+	// on-behalf-of player, so keying on it keeps such verdicts correct
+	// without demoting every player.* read to the field-dependent bucket.
+	movePlayer PlayerIndex
 	// predicate is the field-independent predicate's stable ordinal within
 	// the plan. Caching each verdict separately lets evaluation walk the
 	// original declaration order even when independent and dependent

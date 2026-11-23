@@ -240,7 +240,7 @@ func playerSelectorPrefix(info *types.Info, expression ast.Expr) (string, bool) 
 		return "", false
 	}
 	switch function.Name() {
-	case "CurrentPlayer":
+	case "Player", "CurrentPlayer":
 		return "player.", true
 	case "Proposer":
 		return "proposer.", true

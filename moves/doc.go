@@ -443,7 +443,7 @@ a bare gameState property name:
 
 	"DrawStack"                            gameState (the historical spelling)
 	"game.DrawStack"                       gameState
-	"player.Hand"                          the current player's state
+	"player.Hand"                          the move's player's state
 	"players[move.TargetPlayerIndex].Hand" the player named by a move field
 
 That is what lets a Move-type move put components into a player's stack, or take
