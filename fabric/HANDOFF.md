@@ -28,7 +28,9 @@ the head commit.
 
 | Branch (in `commonfabric/labs`) | State | What |
 |---|---|---|
-| `fix/served-handler-write-identity` | Pushed, draft PR commonfabric/labs#10111, CI green | Served handlers are attributed to the handler. Every pattern here depends on it for a witnessed release |
+| `fix/served-handler-write-identity` | Merged, commonfabric/labs#10111 | Served handlers are attributed to the handler. Every pattern here depends on it for a witnessed release |
+| `fix/exchange-at-observation` | Merged, commonfabric/labs#10130 | A value-intrinsic release carries to values derived from the released value |
+| `spike/viewer-bound-release-rebased` | Local | The viewer-bound branch below rebased onto `main` after both merges (13 commits). One serving-runtime display test fails after the rebase and is being diagnosed; use the original branch until that is resolved |
 | `worktree-agent-ad697e53f88bab905` | Local | First spike: a sealed state machine. Findings copied to [labs-spikes/SEALED-STATE-MACHINE-FINDINGS.md](labs-spikes/SEALED-STATE-MACHINE-FINDINGS.md) |
 | `worktree-agent-ac9c0255af3654f11` | Local | Port of the list-release draft (labs#8608) and a card table with per-seat views. Findings copied to [labs-spikes/SEAT-VIEWS-FINDINGS.md](labs-spikes/SEAT-VIEWS-FINDINGS.md), which ends with an unposted draft comment for specs#59 |
 | `worktree-agent-a53d3b2fae9b79d6b` | Local, head `70f5c390ec` | **Viewer-bound release**, the CFC extension this use case asked for, behind the `viewerBoundRelease` option (off by default). A lift asks `currentPrincipal()`; the runtime stamps that viewer on the `TransformedBy` evidence; a module rule releases to that viewer. Also fixes the witness on a record its writer reads and sets, and stale stamps on unchanged outputs. Worked example `patterns/examples/cfc-exchange-rules/card-table.tsx`; draft specification change and an unposted specs#59 comment in `MODULE-NAMED-AUDIENCE-PROPOSAL.md` beside it. See "Viewer-bound release" below |
@@ -150,10 +152,9 @@ reran none of it.
   and the updated proposal beside it.
   1. *Fixed, general, also on `origin/main`:* the flow join applied no
      exchange when a computation read a released value, against §5.3 ("A
-     runtime MUST evaluate exchange wherever a label is consumed"). Labs
-     commit `4afac41b30`, classed conforming; it cherry-picks onto
-     `origin/main` with no conflict. A reproduction on unmodified main fails
-     3 of 6 and passes 6 of 6 with it.
+     runtime MUST evaluate exchange wherever a label is consumed"). Merged
+     to labs `main` on 2026-11-25 as commonfabric/labs#10130
+     (`c9252cc8de`).
   2. *Open, needs a ruling:* a derived node first computed while its input
      was sealed keeps a sealed existence label for good (§8.12.8 requires
      it). A table is `null` before setup, so anyone who opened it before the
